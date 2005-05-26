@@ -1,0 +1,1065 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+
+%   Pdf作成手順
+% dvipdfmx debianmeetingresume200505.dvi
+
+%この資料はA3用紙に両面印刷で印刷する予定
+
+\documentclass[mingoth]{jsarticle}
+\usepackage{graphicx}
+\usepackage{fancybox}
+\usepackage{longtable}
+
+% とりあえずcommandline環境を定義．入出力についてはcommandline環境を活用
+%する
+\newenvironment{commandline}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{12cm}\begin{tiny} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{tiny}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}\fbox{\TheSbox}}
+
+
+
+% 三択問題用
+\newcounter{santakucounter}
+\newcommand{\santaku}[4]{%
+\addtocounter{santakucounter}{1}
+
+\nopagebreak 問題\arabic{santakucounter}. 
+#1\\
+\nopagebreak□ A #2\\
+\nopagebreak□ B #3\\
+\nopagebreak□ C #4
+\pagebreak[1]
+\hspace{1cm}
+\\
+
+}
+
+\newcommand{\emptyspace}{(\underline{\hspace{1cm}})}
+
+
+% sectionをセンタリングする
+\makeatletter
+  \renewcommand{\section}{\@startsection{section}{1}{\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}% 前アキ
+    {.5\Cvs \@plus.3\Cdp}% 後アキ
+    {\normalfont\Large\headfont\raggedright\centering}} % style
+\makeatother
+
+% section の代わりの環境
+\newcommand{\dancersection}[2]{%
+\newpage
+東京エリアDebian勉強会 2005
+\hrule
+\vspace{0.5mm}
+\hrule
+\hfill{}\includegraphics[width=3cm]{image200502/openlogo-nd.eps}\\
+\vspace{-4cm}
+\begin{center}
+  \section{#1}
+\end{center}
+\hfill{}#2\hspace{3cm}\space\\
+\hrule
+\hrule
+\vspace{1cm}
+}
+
+
+
+
+
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分
+\title{\includegraphics[width=7cm]{image200502/openlogo-nd.eps}\\
+ 第4回 東京エリア Debian 勉強会\\事前資料
+\footnote{機密レベル public: 一般開示可能}}
+\date{2005年5月21日}
+\author{Debian勉強会会場係 上川純一\thanks{Debian Project Official Developer}} 
+\maketitle
+
+\end{titlepage}
+
+\newpage
+\tableofcontents
+
+\dancersection{Introduction To Debian 勉強会}{上川純一}
+
+今月のDebian勉強会へようこそ．
+これからDebianのあやしい世界に入るという方も，すでにどっぷりとつかってい
+るという方も，月に一回Debianについて語りませんか？
+
+目的として下記の二つを考えています．
+
+\begin{itemize}
+ \item メールではよみとれない，もしくはよみとってられないような情報を情
+       報共有する場をつくる
+ \item まとまっていないDebianを利用する際の情報をまとめて，ある程度の塊と
+       して出してみる
+\end{itemize}
+
+また，東京にはLinuxの勉強会はたくさんありますので，Debianに限定した勉強
+会にします．Linuxの基本的な利用方法などが知りたい方は，他でがんばってくださ
+い．
+Debianの勉強会ということで究極的には参加者全員がDebian Packageを
+がりがりと作りながらスーパーハッカーになれるような姿を妄想しています．
+
+Debianをこれからどうするという能動的な展開への土台としての空間を提供し，
+情報の共有をしたい，というのが目的です．
+次回は違うこと言ってるかもしれませんが，御容赦を．
+
+\subsection{講師紹介}
+
+\begin{itemize}
+ \item{松山さん} Debianユーザです．普段は java いじってはります．
+ \item{岩松さん} 普段はすーぱーえっちはっかーだそうです．
+ \item{上川純一} 宴会の幹事です．
+      Debian Developerです．
+      元超並列計算機やっていて，
+      今は音楽関係とか，気づいたらcannaとか．
+      あと，pbuilderや，libpkg-guideなどを通して，Debianの品質向上を目指してます．
+\end{itemize}
+
+\subsection{事前課題紹介}
+
+今回の事前課題は
+「さわってみた/さわってみたいDebianのこんなアーキテクチャ移植版」
+というタイトルで200-800文字程度の文章を書いてください．
+というものでした．
+その課題に対して下記の内容を提出いただきました．
+
+\subsubsection{田中さん}
+
+Debian の「移植版」という単語に引っかかってしまいました. kernel の
+i386 以外への移植版はあるけど, Debian GNU/Linux system は i386 で
+開発されたものを移植してるわけではないのでは? と思い込んでました.
+http://www.debian.org/ports/ を読んでみると, (おおらかに言えば)
+全ての architecture でのものが移植版という感じもします.
+
+話は飛びますが, 僕が Debian を使っている 90\% の理由が仕事上のものです.
+職場の, およそ 10台ほどの計算機で linux を稼働させています. i386系の
+ものは最初から Debian で運用してましたが, やむを得ない(?)理由で SuSE が
+走ってる alpha 機や, 昔々の iBook (Mac OS 8 で動いてました)とかも
+ありました. 
+
+最近, これら非 Debian な system を"粛清"し, 全て Debian にして
+しまいました. ということで, alpha と powerpc をさわりました. 現在も
+運用中です. 他に hppa な WS が数台あって, 彼らの余生は Debian で
+過ごさせようかとも思いましたが, なんせ発熱と騒音がひどいので, 何も
+せずに引退してもらいました.
+
+非 i386系でも, 一旦 boot してしまえば i386 系との違いはあまり感じません 
+(感じないような使いかたをしてるとも言えますが). ただ, 恐らくは user が
+少ないせいで, 特定の architecture でだけ bug が取れてない package が
+いくつかあります. tripwire は ppc では (alpha でも) 動いてませんでしたが, 
+こないだ fix していただけました (BTS \verb!#!240982). ちょっと困ってるのは, 
+acct が alpha ではまともに動いてないことです (BTS \verb!#!291154). 
+
+特に他の architecture でさわりたいのはありませんが, これから購入する
+計算機は powerpc系 (powerbook や mac mini) にして, そこで Debian を
+使う可能性は考えてます. Debian GNU/Mac OS X があればいいなとは思ってます 
+(Fink の packaging system は Debian のとは随分違うもののような印象が
+あるので). 
+
+あと, Debian-Plan9 が本当にあれば遊びとしていじってみたい気がします.
+plan9 自体はいじったことはないんですけど.
+
+\subsubsection{澤田さん}
+
+さわってみたいアーキテクチャというどう字数を稼げばいいのか難しい 
+お題を突きつけられたのでいろいろ考えてみた。
+まず、JavaVMやRubyVMなどのVM上で動く 
+Debian。これはまずLinuxを動かさないといけないので 
+Debianの話じゃないなあということになり廃案。
+というわけでLinuxがすでにあるものの上でDebianが動く 
+ことを考える。そういえば最近IPod Linuxってどうなってんだっ 
+け？とかCE Linux上でDebianが動くと萌えだよなとか。こ 
+こで問題となるのは何ができたらDebianなのかということであ 
+る。やはりapt-getできないと駄目だろうか。そうすると 
+IPodは辛い気がする。無線が搭載されることを期待しよう(そう 
+いう問題か？)
+一応最後に本気でさわってみたいアーキテクチャを書いておくとarm(SL  
+Zaurus)かな。Pocket Workstationとかいうのもあるようだし。
+
+
+\subsubsection{きんねこさん}
+さわってみたDebianのSHアーキテクチャ移植版
+
+　近年、どうにも盛り上がりに欠けるSHアーキテクチャなのだけど、kernelやgccの対応は地道に続けらている。
+　一時はDebianの正式対応アーキテクチャになれるようにという動きもあったようだが、現在はそういった動きもなく低調。数年前にsidをベースにdodesプロジェクトがリリースした環境が最もまとまったディストリビューションであったが、それすら簡単にインストールを行うことも難しい状態であった。それでも国産CPUであるSHシリーズは国内では人気があり、いくつかの組み込み系のLinux実装が販売されていて、細々とメンテナンスされている。中には、株式会社シリコンリナックスのように
+自社のボード向けに Debian をベースにしたディストリビューションを保守して
+いるところもある。
+
+　SHの使われる組み込み環境では、商用の組み込みディストリビューション実装があっても、それらはNDAや利用契約で縛られていて、なかなか一般の人は入手がしがたいし、自由に再利用できる環境としてソフトウエアが提供されることは稀である。さらにハードウエアに至っては趣味や学習向けとしても５〜１０万円の投資が必要であり、使いたいと思ってもなかなか手の出るものではない。以前のようにドリームキャストやPDA類のようなSHをベースにしたリテール品があり、その移植がある程度進んでいれば、まだ利用者、開発者ともに増えてゆく可能性があるが、このまま状況が変化しなれば、SHでのLinux実装は一般の人の目に見える場所から消えてゆき、インハウスにだけ存在することになりかねない。
+　国産で、海外ではあまり使われていない超マイナーなCPUでありバリエーションも少なく単価も高いとなれば、国内での対応を進めなければこのまま火は消えてしまうかもしれない。そのような状況はあまり面白くないので、昨年から
+iohack project を土台に再度の盛り上がりを仕掛けようといろいろな取り組み
+を行っているところだ。
+
+　幸い、その一部が実を結んで、I-O DATA の HDL シリーズのハードウエア上で動作する Sarge
+相当のディストリビューションの利用ができるようになってきた。これは細渕氏によるハードウエア・ソフトウエアの解析情報の提供やliloの改造、iWA氏による
+base と pool の構築と提供作業のおかげだ。最近では、iohack 以外のところでも kogiidena 氏による
+kernel2.6 のテスト実装も出ており、それをベースにした pbuilder でのパッケージ自動作成が海老原氏によって進められている。
+すばらしいことだ。
+
+　昨年、UNIX USER 誌に HDL シリーズの Debian
+化カスタム方法を記載した記事を書かせていただいたが、その反応として、興味はあって雑誌もHDLも購入したのだが、ハードウエアの改造という点で、普通の方には大きな抵抗があることがわかってきた。近年のPCの高発熱と高騒音化によって、PCアーキテクチャが家庭でのサーバー運用に適さなくなってきており、ローパワーで静かなサーバーが望まれており、ニッチではあるが市場が存在するのも見えてきた。そこで、業務の一環として、Debian
+が動作するSH環境のハードウエアと、IA-32環境で動作しSHの起動HDDを作成するLiveCDのインストーラーを企画作成してみた。一部のドライバを除いて、オープンソースの部品ばかりで構成されているので、カスタムも自在にできる。LiveCDの作成にはbootcdパッケージを利用してみた。
+比較的簡単にLiveCDが作成できるものの、FDが必須であるなどのいくつか問題を持っているように思われた。
+　製品としてはノンサポートにはなるが、発売をきっかけに SH-Linux
+に触れる人材が増える事を期待したい。組み込みにLinuxを利用しているメーカーに勤務するものとして、会社レベルでのコミュニティへのフィードバックはなかなか難しいものがあるが、コードや資金の提供ではなく、このような形での貢献というのもありうるのではないかという１つの可能性を示す事ができたのではないかと思っている。
+
+\subsubsection{中島さん}
+
+　MSXワールドに行って1チップMSXを予約してしまった。たいしたことないと思ってい
+たけれどなかなかちゃんと作ってあるもんだった。ということでMSXに移植してほしい
+。予約だけしたけれどゲームやらないから、たぶん使わない。使わないのに限定販売だ
+ったので即予約してしまった。　
+　このまま使わないと、もったいないので、とにかく使いたい。使ってる証を誰かに見
+せたい。ユーザである証拠がほしい。このMSXに移植してくれれば人に自慢できる。１
+チップだからどこにでも持っていける。このように目的を決めなければやる気を起こさ
+ないので、とにかく使うためにMSXの移植版がいい。
+
+
+\subsubsection{岩松さん}
+
+ いままで触ったことのあるDebianパッケ−ジのあるアーキテクチャー
+
+\begin{itemize}
+ \item 
+  i386
+ \item powerpc ( powerbook / openblockS )
+ \item  arm ( psion )
+ \item  sh3 /sh4 ( オフィシャルではありませんが )
+\end{itemize}
+
+ です。一番おもしろかったのは psion にいれたときです。
+ こんなものでも動くのか！とびっくりしましたが1週間ほどで飽きました。
+ 
+ 触ってみたいアーキテクチャー
+\begin{itemize}
+ \item s390 を触ってみたい（といいますか、実機を見た事がない）のでどんなもの
+   なのか非常に興味があります。
+\end{itemize} 
+
+\subsubsection{上川}
+
+なんとなく，これからは64bitの時代だ，ということで，とりあえず手が届きそうな64bitのアーキテクチャ
+を全部さわっておきたいところです．
+ppc64, ia64, amd64 を全部そろえたいのですが，どうでしょう？
+
+物欲としては，Zaurusとか欲しいですが，電車でハックしようにも通勤時間が短
+いのが難点．
+通勤時間のかかる遠くに引っ越すしか．
+
+
+%%% trivia quiz
+\dancersection{Debian Weekly News trivia quiz}{上川純一}
+
+ところで，Debian Weekly News (DWN)は読んでいますか？
+Debian 界隈でおきていることについて書いているDebian Weekly News.
+毎回読んでいるといろいろと分かって来ますが，一人で読んでいても，解説が少
+ないので，
+意味がわからないところもあるかも知れません．みんなでDWNを読んでみましょう．
+
+漫然と読むだけではおもしろくないので，DWNの記事から出題した以下の質問にこたえてみてください．
+後で内容は解説します．
+
+\subsection{2005年15号}
+
+4月12日時点の情報です．
+
+\santaku{Debian Project Leader選挙の結果DPLになったのは}
+{Anthony Towns}{
+Branden Robinson}{
+Michael Jackson}
+
+\santaku{Evan Prodomou がCreative Commonsのライセンスに関して任じられた
+のは}
+{Debian側のCreative CommonsのCommitteeとして動くこと}{
+文書の翻訳}{
+文書の精査}
+
+\santaku{tigon II チップのファームウェアが問題なのであれば，仕様を見て，
+フリーで実装しなおせばよいのではないか，といったのは
+}{Branden Robinson
+}{
+Peter De Schrijver}{
+通りがかりの人
+}
+
+\santaku{
+パッケージの自動テストについてPetter Reinholdtsen がプロトタイプを作成し
+たというのは
+}{アップグレードの自動テストのスクリプト
+}{リリースクリティカルバグの原因となった人に自動で罰ゲームを選択してくれるシステム
+}{パッケージの使いやすさに関して定量的に計測して，使いにくいパッケージは
+自動で警告を出してリジェクトできるようなシステム．
+}
+
+\santaku{selinuxについてManoj Srivastavaが開始したのは
+}{etchでのselinuxの導入に向けてのプロジェクト
+}{selinuxはなかったことにするための隠蔽プロジェクト
+}{selinuxに対抗する実装を開始
+}
+
+\subsection{2005年16号}
+
+\santaku{ミュンヘン市がデスクトップPCのOSとして選択したOSは
+}{Windows
+}{Debian
+}{Solaris
+}
+
+\santaku{Debian 3.0のアップデートが出たが，それはどのバージョンか
+}{3.0r5
+}{3.0rX
+}{3.0TNG
+}
+
+\santaku{Adrian BunkがGPLがフリーであるか，ということについて議論した内容は何か
+}{ライセンス文章については変更できないので，フリーではないのではないか
+}{GPLのイデオロギーが気に入らない
+}{RMSが挙動不審だ
+}
+
+\santaku{カーネルチームのIRCミーティングで決定した内容はなにか
+}{etch以降はHurdカーネルを採用する
+}{etchはFreeBSDカーネルとLinuxカーネルのソースツリーをマージする方向で検討する
+}{testingに現在はいっているカーネルで基本はフリーズする．
+}
+
+\santaku{ライセンスの文書でGPLに追加で制限を加える場合にどうなるか，とい
+う議論でどういう問題点が指摘されたか
+}{
+Debianは作者の意向を尊重するため，GPLライセンスで配布されているプログラ
+ムに追加で制限を加える場合には，Debianとして配布できない可能性がある
+}{
+ライセンスはいくらでも変更してよいので問題無い．
+}{
+作者は神様です
+}
+
+
+\subsection{2005年17号}
+
+\santaku{GNOME2.10はどうなったか
+}{unstableにアップロードされた
+}{experimentalにアップロードされた．
+}{sargeに含まれる予定
+}
+
+\santaku{遅々としてDebianに入って来ないmplayerだが，
+MJRayはmplayerについてFAQを作成した．それによると
+}{ftpmasterを人質にとったので，もうすぐアーカイブにインストールされるだ
+ろう．
+}{ftpmasterに賄賂をおくったので，もうすぐアーカイブにインストールされる
+だろう．
+}{問題となっているコードは削除しており，アップロードはftpmasterの承認
+待ち．
+}
+
+\santaku{snapshot.debian.netに関して提案されなかったことは
+}{debian.orgに昇格しよう
+}{バックアップをとりましょう
+}{サーバにDDoSをかけましょう
+}
+
+\subsection{2005年18号}
+
+\santaku{Leadership meetingにてなされた金銭的な議論は
+}{aKademyへの出席に関する参加補助
+}{Leaderへの給与について
+}{Debian Developerへの報酬について
+}
+
+\santaku{PHPアプリケーションにおいてよくある問題で，
+Martin Schulzeがセキュリティーの観点からもっとも問題なので注意してほしい
+と指摘したのは
+}{設定ファイルがhttpで取得できる場所に存在する設計になっている場合
+}{PHPという言語処理系をつかっていること自体
+}{PHPの文法でプログラムを作成しようとする発想
+}
+
+\santaku{Andreas Barthによるとリリースの状況は
+}{ARMのbuilddも追加されたのでtesting-securityの準備がほぼ完了した．
+}{地下組織の暗躍により進展が阻害されている
+}{リリースはそろそろあきらめようかと考えている．
+}
+
+\santaku{Debian Conferenceで今年は新しいイベントとして何をする予定か
+}{全員参加のジャンケンゲーム
+}{一般参加者をつのり，その参加者のためのイベントを最初の日に開催する
+}{Branden Robinsonは誰だゲーム
+}
+
+\santaku{Jorgen Sch\"aferの提案したのは
+}{schemeパッケージのポリシを作成し update-alternatives で管理する
+}{schemeは廃棄してcommon lisp に移行する
+}{rubyで書かれているスクリプトを全てschemeで実装しなおす
+}
+
+\subsection{2005年19号}
+
+\santaku{sargeのバージョン番号はどれか
+}{3.2
+}{3.1
+}{4
+}
+
+\santaku{sargeのフリーズが開始して，新しいパッケージのバージョンはリリースマネージャ
+の承認がないと追加できないようになりました．さて，フリーズの開始したのは？
+}{2005年5月3日
+}{2005年5月30日
+}{2005年4月１日
+}
+
+\santaku{amd64ポートはaliothから移行した．その移行先のサーバは？
+}{ftp.debian.org
+}{amd64.debian.net
+}{amd64.org
+}
+
+\santaku{aptの新しいバージョンをexperimentalにアップロードする際の問題は
+何か
+}{libapt-pkgに依存するパッケージをNMUでexperimental向けにアップロードし
+ても新しいバージョンがunstableにアップロードされるたびにexperimental
+にアップロードしたバージョンが削除されてしまう．
+}{aptの最新版は不安定すぎる
+}{ubuntuとの利権の衝突
+}
+
+\subsection{2005年20号}
+\santaku{adduserのオプションの話しに端を発して
+disabled loginとdisabled passwordに関して，
+sshのパスワードの認証の話しで何が問題となっていたか
+}{UsePamを使った場合のパスワードの扱い
+}{パスワードをつかってログインができない
+}{パスワードを入力しなくてもログインができる．
+}
+
+\santaku{GPLとFDLのドキュメントを一つとして混ぜることはできるか
+}{両方ともRMSが作成したライセンスなので問題ない
+}{そういうことは気にしなくてよい
+}{互換性がないので無理だろう，と Anthony DeRobertis は説明した
+}
+
+\santaku{aliothのサーバはどうなるか
+}{amd64が別のサーバに移動してディスクスペースの問題が解消したので，
+いままで複数のサーバで構成していたのを一つのサーバに移行する．
+}{使い勝手が悪いので停止
+}{アカウントが増えすぎなので募集を停止する
+}
+
+\santaku{Lars Wirzeniusはパッケージのテストが必要だ，と説明した．
+その主張した内容で，現状足りないものは何だといっているか
+}{インストールと削除が無事に動作することを確認するには，新しいツールが必要
+だ． 
+}{暇な人材が必要
+}{開発者がもっと必要
+}
+
+\dancersection{最近のDebian関連のミーティング報告}{上川純一}
+
+\subsection{東京エリアDebian勉強会4回目報告}
+
+
+前回開催した第４回目の勉強会の報告をします．
+
+DWNクイズをしました．一月分のDWNについての質問が30問ほど．
+
+上川がdebhelperのファイル処理の仕組みについて語りました．
+	    どういう順番でどういうファイルがコピーされていくのか，
+	    置換されていくのか，などの点を説明しました．
+
+	    やまねさんが
+	    po-debconfの翻訳をどのように実施しているのか，
+	    利用するツールはなにがあるのかということを説明しました．
+	    現状としては，日本語のdebconfの翻訳について
+	      武藤さんのJapanese debconf-po translation status
+	      頁を参照していじるのがよい，とのことでした．
+	    poファイルの翻訳には特にツールは利用していないということでした．
+	    template.potをja.poにコピーして，そのまま翻訳し，
+	    reportbugで添付してl10nタグをつけてバグ報告する，というフローだそうです．
+
+
+	    グループディスカッションでは，日本人のためになにができるか，という
+	    話しをしました．
+	    Debianとしてのイベントへの露出や，ドキュメントの整備，
+	    出版，雑誌への露出ができるとよいのでは，という提案や，
+	    日本で普及している掲示版を利用するためのDebianのインフラが足りないのでは，という提案などがありました．
+	    コンソール画面の漢字の表示の扱いも，今後なんとかしたいね，ということでした．
+
+
+	    その後ははなの舞にて宴会
+
+	    その後は朝までデニーズ．
+	    task-2chは必要なインフラなのでは，という議論をしてから解散．
+
+\dancersection{DFSG教}{松山}
+%% 松山さんの記事ここから
+\subsection{DFSGって何だ?}
+Debian Free Software Guidlineの略.
+Debian Social Contractの一部を成し,またその第一条「Debian は 100\% フリーソフトウェアであり続けます」のよりどころとなっています.
+したがって,DFSGにそったライセンスのもとにないソフトウェアは,(正式の)Debianには含まれません(non-freeに入る).
+また,DFSGはOSIのThe Open Source Definitionの元となっています.
+\subsection{DFSGってどんなんだ?}
+\begin{itemize}
+\item 自由な再配布
+\item ソースコードの配布
+\item 派生ソフトウェアの作成と,オリジナルと同条件下での配布の許可
+\item 原作者によるソースコードの整合性維持
+\item すべての個人,団体の平等
+\item 目標分野の平等
+\item ライセンスの配布
+\item ライセンスは Debian に限定されない
+\item ライセンスは他のソフトウエアを侵害しない
+\end{itemize}
+
+\subsection{フリーなライセンスの例}
+DFSG-freeとみなさえれているライセンスには以下などがあるようです.
+\begin{itemize}
+\item GPL
+\item BSD
+\item Artistic
+\end{itemize}
+ただ,これらは一般的な話であって,厳密には個々のパッケージ毎にDFSG-freeか否かが判断されるそうです.
+
+\subsection{FAQ}
+DFSGのFAQからいくつかピックアップしてみました\footnote{http://people.debian.org/~bap/dfsg-faq.html}.
+\begin{description}
+\item[どうやってDFSG-freeかどうかを判定するのか]
+人が判定し,debian-legalというMLで議論されるそうです.
+ただ,DFSGは文字どおりガイドラインであって法ではないので,「DFSG-freeだから自由ソフトウェアだ」と断言はできません.
+\item[DFSGフリーだと法的リスクがないのか]
+否.各自弁護士を雇ってください.
+\item[ドキュメントには?]
+ドキュメントもDFSG-freeである必要があります.
+DFSGはDebianのあらゆる部分に適用されます.
+また,プログラムのドキュメントに関してはプログラムとの間の往来を考えると,プログラムと同じ方が好ましいが...?
+\end{description}
+
+\subsection{おわりに}
+かつてRMSは自由なソフトウェアとは以下のような自由のあるソフトウェアだと説きました.
+\begin{itemize}
+\item 目的を問わず実行する自由
+\item ソースを調べ修正する自由
+\item 仲間のために配布する自由
+\item コミュニティ全体のために修正したものを配布する自由
+\end{itemize}
+今のDebianとFSFの関係がどうであれ,基本的な「思い」というのは同じだと思います.
+DFSGはそういう「思い」のもとで,より具体的にどうしたらよいのかを示すガイドラインとして有意義だと思います.
+
+\dancersection{dpkg-cross}{岩松}
+%% 岩松さんの記事はここから
+
+\subsection{はじめに}
+今回、dpkg-crossについて調べてみました。
+\subsubsection{クロス開発ってなんですか}
+dpkg-crossについてお話する前にクロス開発というものを理解する必要があります。
+i386などの高速なCPUを扱っていると、ソフトウェアをコンパイルするマシンと実行するマシ
+ンは一緒だったりしますが、非力なCPU（ ARMとかSupserHなど）でコンパイルしようとする
+と非常に時間がかかります。
+また、プログラムを動かしたいが、対象のマシンには開発環境がないというときもあります。
+このような時にコンパイルは高速なCPUで行うと非常に速くコンパイルできたり、別のマシンでコン
+パイルしたソフトウェアを対象のマシンに転送し、動かすことができます。
+
+このように、クロス開発とはプログラムを開発する環境と実行する環境が異なる開発方法をクロス開
+発と言います。
+
+\subsubsection{dpkg-crossで何をするの？}
+dpkg-crossはクロス環境用パッケージを生成するときに使用します。
+クロスで開発するときには対象アーキテクチャのバイナリパッケージが必要になります。
+
+例えば、i386 上で PowerPC で動く libncurses を使ったアプリケーションをクロスコンパイルしたい
+ときには libncurses5\_*.*.*\_powerpc.deb  と libncurses5-dev\_*.*.*\_powerpc.deb が必要になります。これらのパッ
+ケージはPowerPC用なので 通常i386上ではインストールできません。 PowerPC用のパッケージを持ってたとしても、クロスコンパイル用にディレクトリを作成してそこにヘッダファイルをコピーして......と面倒くさいです。そこで dpkg-cross の登場になります。
+\subsection{やってみる}
+\subsubsection{インストール}
+\# apt-get install dpkg-cross
+
+以上。
+\subsubsection{設定}
+使うアーキテクチャによって設定を行う必要があります。設定ファイルは /etc/dpkg-cross/cross-compile です。
+以下が内容です。
+{\small
+\begin{verbatim}
+#
+# /etc/dpkg-cross/cross-compile: configuration for dpkg-cross & Co.
+#
+
+# default architecture for dpkg-cross (to avoid always typing the -a option
+# if you do cross installations only for one architecture)
+#default_arch = m68k
+
+#
+# general section: paths of cross compiling environment
+#
+# you can set the following variables here:
+#  crossprefix: prefix for cross compiling binaries; default: $(ARCH)-linux-
+#  crossbase  : base prefix for the following; default: /usr
+#  crossdir   : base directory for architecture; default:
+#               $(CROSSBASE)/$(ARCH)-linux
+#  crossbin   : dir for binaries; default: $(CROSSDIR)/bin
+#  crosslib   : dir for libraries; default: $(CROSSDIR)/lib
+#  crossinc   : dir for headers; default: $(CROSSDIR)/include
+#  crossinfo  : dir dpkg-cross' package info files; default:
+#               \$(CROSSLIB)/dpkg-cross-info
+#  maintainer : maintainer name to pass to original dpkg-buildpackage
+#               in -m option. If not set at all, don't pass a -m, thus
+#               dpkg-buildpackage will use the name from the changelog
+#               file. If set to the special string CURRENTUSER,
+#               dpkg-buildpackage will use the name from the
+#               changelog, too, but signing the .changes will be done
+#               as the current user (default key).
+#  removedeps : comma-separated list of package names that should be removed
+#               from depends/conflicts/etc fields
+#  keepdeps   : comma-separated list of package names thet should be kept
+#               in depends/conflicts/etc fields as is, without adding
+#               -arch-cross.
+#
+# Usually, you need only set crossbase, or maybe also crossdir
+#
+crossbase = /usr
+
+# A crossroot definition is for the complete-Debian-system-mounted-somewhere
+# approach, mainly used for Hurd.
+#crossroot-hurd-i386 = /gnu
+
+#
+# This setting for maintainer is usually right:
+#
+maintainer = CURRENTUSER
+#
+# This list is far from being complete ...
+# Please send additions to Nikita Youshchenko <yoush@cs.msu.su>
+#
+removedeps = gcc, binutils, gpm, cpp, debianutils, xfree86-common, libpam-runtime, 
+xlibs-data, debconf
+
+#:w
+
+# per-package sections: additional environment variables to set
+#
+# Please send additions to Nikita Youshchenko <yoush@cs.msu.su>
+
+package e2fsprogs:
+    unset LD
+
+# package gs-aladdin:
+# # must be a native gcc
+#   CCAUX = gcc
+#
+# -------------------------------
+# This should fit EmDebian needs:
+#
+# mode emdebian:
+# package all:
+#   scope environment:
+#       emdebian = true
+#   scope makeflags:
+#       CROSSPREFIX = $(crossprefix)
+#       EXTRA_CFLAGS = ...
+#       LIBC = ...
+#       CONFIG = ...
+
+\end{verbatim}
+}
+
+
+\begin{itemize}
+\item default\_arch
+
+	対象のアーキテクチャを指定します。PowerPC なら {\bf default\_arch = powerpc }と指定します。
+	ひとつのアーキテクチャだけクロスコンパイルを行うときはここに書いておくと、アーキテクチャを指定せずに済みます。
+	
+\item crossprefix
+	クロスコンパイル用のツールを呼び出すために使用します。クロスコンパイル用のgccなどは{\bf powerpc-linux-gcc}などにな
+	っているのでこの形式を指定します。
+	デフォルトでは \$(ARCH)-linux- が指定されています。
+
+\item crossbase
+
+	クロス開発環境をインストールするベースとなるディレクトリを指定します。
+	{\bf crossbase = /home }と指定すると CROSSBASE に /home が指定されます。
+	デフォルトでは /usr 設定されています。
+	
+\item crossdir 
+
+	クロス開発環境インストール先を指定します。
+	{\bf crossdir = /usr/cross }と指定しますと /usr/cross 以下にインストールされます。
+	デフォルトでは \$(CROSSBASE)/\$(ARCH)-linux 設定されています。
+	
+\item crossbin
+
+	実行バイナリをインストールするディレクトリを指定します。
+	デフォルトでは \$(CROSSDIR)/binが設定されています。
+	
+\item crosslib
+
+	ライブラリをインストールするディレクトリを指定します。
+	デフォルトでは \$(CROSSDIR)/libが設定されています。
+	
+\item crossinc
+
+	ヘッダファイルをインストールするディレクトリを指定します。
+	デフォルトでは \$(CROSSDIR)/incが設定されています。
+	
+\item crossinfo
+
+	info ファイルをインストールするディレクトリを指定します。
+	デフォルトでは \$(CROSSDIR)/infoが設定されています。
+	
+\item removedeps
+	設定されているパッケージを depends/conflicts/etc から削除します。
+	クロスコンパイル用のパッケージをインストールしやすくするためのものだと思います。
+	
+\item keepdeps
+	設定されているパッケージを depends/conflicts/etc から削除しないようにします。
+
+\end{itemize}
+
+これらの中で重要なのは
+\begin{itemize}
+ \item defautl\_arch
+ \item crossbase
+\end{itemize}
+です。あとは特に気にしなくてよいと思います。
+
+\subsubsection{パッケージを作ってみる}
+クロス開発用のパッケージを作成するには dpkg-cross コマンドを使います。
+
+\begin{verbatim}
+$ ls 
+libncurses5_5.4-4_powerpc.deb
+libncurses5-dev_5.4-4_powerpc.deb
+$ dpkg-cross -b -apowerpc libncurses5_5.4-4_powerpc.deb
+$ dpkg-cross -b -apowerpc libncurses5-dev_5.4-4_powerpc.deb
+\end{verbatim}
+-a でアーキテクチャを指定します。
+-b は build を行うという意味です。
+行うと以下のような名前のパッケージが作成されます。
+\begin{verbatim}
+$ ls
+libncurses5_5.4-4_powerpc.deb
+libncurses5-dev_5.4-4_powerpc.deb
+libncurses5-powerpc-cross_5.4-4_all.deb
+libncurses5-dev-powerpc-cross_5.4-4_all.deb
+\end{verbatim}
+
+\subsubsection{インストールしてソフトウェアを作ってみる}
+
+最初はクロスコンパイル用のパッケージを入れないままコンパイルしてみます。
+\begin{verbatim}
+iwamatsu@soki:~/dev/study/src$ ls
+sample.c
+iwamatsu@soki:~/dev/study/src$ powerpc-linux-gcc -o sample sample.c -lncurses
+sample.c:10:20: curses.h: そのようなファイルやディレクトリはありません
+sample.c: In function `main':
+sample.c:24: error: `WINDOW' undeclared (first use in this function)
+sample.c:24: error: (Each undeclared identifier is reported only once
+sample.c:24: error: for each function it appears in.)
+sample.c:24: error: `w_pRootwin' undeclared (first use in this function)
+sample.c:24: error: `w_pWin' undeclared (first use in this function)
+\end{verbatim}
+
+/usr/power-pc/include に curses.h がないのでエラーになっています。
+クロスコンパイル用のパッケージをインストールして再度コンパイルしてみます。
+\begin{verbatim}
+iwamatsu@soki:~/dev/study/src$ sudo dpkg -i libncurses5-powerpc-cross_5.4-4_all.deb
+iwamatsu@soki:~/dev/study/src$ sudo dpkg -i libncurses5-dev-powerpc-cross_5.4-4_all.deb
+iwamatsu@soki:~/dev/study/src$ powerpc-linux-gcc -o sample sample.c -lncurses
+iwamatsu@soki:~/dev/study/src$ ls
+sample.c
+sample
+iwamatsu@soki:~/dev/study/src$ file sample
+sample: ELF 32-bit MSB executable, PowerPC or cisco 4500, version 1 (SYSV), 
+for GNU/Linux 2.2.0, dynamically linked (uses shared libs), not stripped
+\end{verbatim}
+PowerPC用のプログラムとしてコンパイルができました。
+PowerPCなマシンに持っていって動作確認してみて、正常に動作すればOKです。
+
+\subsection{おわりに}
+今回dpkg-crossについて説明してみました。
+debianはRedhat系とくらべてクロス開発環境の構築方法が容易だなと感じました。Redhatだとクロス開発環境用に再コンパイルしなおすという
+方法しかないようです（私が調べた限りでは）。やっぱDebianはすばらしいなぁと思いました。
+
+また、今回の事前課題が「さわってみた/さわってみたいDebianのこんなアーキテクチャ移植版」でもありますし、x86以外のアーキテクチャ
+(最近ならPowerPC?) を触ってみていろいろコンパイルしてみるのもいいかもしれません。
+
+%% hemamuさんの記事はここまで
+\dancersection{lintianとlindaを使っての 
+Debian パッケージの作成精度向上}{上川}
+
+\subsection{Debianパッケージに関する問題のパターンマッチング}
+
+Debian パッケージを作成する際に，このファイルにこういう内容を書いている
+のであれば一般的に問題だろう，とか，このファイルがこの内容になっているの
+であればテンプレートファイルのままになっているのではないか，ということを
+指摘するのは実はそんなに難しいことではありません．
+Debian パッケージのファイルの中を正規表現で検索してしまえば見付かります．
+そういう一般的な問題の解決方法として，lintianやlindaは利用されています．
+
+例えば，間違ったタイプのファイルが間違ったディレクトリに配置されている，
+というような問題を検出するのに優れています．
+
+\subsection{実行してみる}
+
+では，実行してみましょう．
+
+lintian を実行してみます．
+debパッケージを指定すると，バリナリパッケージを確認します．
+dsc ファイルを指定すると，ソースパッケージを確認します．
+changesファイルを指定すると，そのアップロードに含まれる予定のファイルを
+全て確認してくれます．
+何かメッセージが出ると，-i オプションをつけると，詳細なメッセージを表示
+してくれます．
+
+\begin{commandline}
+# lintian wysihtml-el_0.11.cvs.1-1_powerpc.deb 
+# lintian wysihtml*dsc
+# lintian wysihtml*changes
+E: wysihtml_0.11.cvs.1-1_powerpc.changes: bad-distribution-in-changes-file UNRELEASED
+# lintian -i wysihtml*changes
+E: wysihtml_0.11.cvs.1-1_powerpc.changes: bad-distribution-in-changes-file UNRELEASED
+N:
+N:   You've specified an unknown `target distribution' for your upload in
+N:   the debian/changelog file.
+N:   
+N:   Note, that the distributions non-free and contrib are no longer valid.
+N:   You'll have to use distribution `unstable' and `Section: non-free/xxx'
+N:   or `Section: contrib/xxx' instead.
+N:
+\end{commandline}
+
+出力がE:ではじまる場合は，ポリシーに反するエラーです．
+W:は特にポリシーに反するというわけではないですが，直したほうが良いのでは
+ないか，と推測される「よくある問題」に対しての警告です．
+
+同様にlindaを実行してみます．
+
+\begin{commandline}
+# linda wysihtml-el_0.11.cvs.1-1_powerpc.deb 
+# linda wysihtml*dsc
+# linda wysihtml*changes
+\end{commandline}
+
+この二つのツールの出力は全く同じではないので，とりあえず両方実行しておき
+ましょう．
+
+\subsubsection{警告メッセージの対応方法}
+
+Debian Policy に基づいてどの部分が問題なのか，を指摘してくれます．
+修正の方法も書いてある場合もあるので，適切に対応しましょう．
+
+/usr/share/lintian/overrides/,
+/usr/share/linda/overrides/
+にファイルを追加すると，
+メッセージを無視するように設定することができます．
+これらのファイルのことをlintian overrides, linda overrides とよびます．
+
+適切でない警告\footnote{false positive という}を出す場合もあるので，
+そういう場合にはここにファイルを追加するようにパッケージを作成します．
+個人的には，ユーザに必要でないファイルをシステムに追加することになるた
+め，好きではありません．
+できることであれば，lintianやlindaに適切な修正パッチを投げましょう．
+
+\subsection{どうなっているのか}
+
+lintian と  linda が内部構成としてどうなっているのか解説します．
+
+\subsubsection{lintianの構成}
+
+lintianはperl scriptです．
+Debian Packageを一時ディレクトリに展開して，
+それに対してgrepなどを活用し，構成を分析します．
+正規表現でそれっぽい間違いを発見したら，報告します．
+
+/usr/share/lintian/checks/以下に
+説明文とperlのスクリプトが大量に入っています．
+これらが順番に実行されます．
+
+追加するためには，そのディレクトリにある.descファイルを編集して，
+perlのスクリプトを作成すればよいようです．
+
+lintianは実行時にまずパッケージをlintian labと呼ぶ場所に展開してくれるの
+で，
+その展開されたファイルを解析すれば良いです．
+
+\subsubsection{lindaの構成}
+
+lindaはlintianをpythonをつかって再実装したものです．
+
+/usr/share/linda/checks/ 以下に
+pythonのスクリプトが大量に入っています．
+/usr/share/linda/data/以下にチェックのメッセージの対応表があります．
+各メッセージは短いのですが，それぞれの文章はgettext経由で取得するように
+実装されているようです．
+
+\begin{commandline}
+msgid "versioned-provides_l"
+msgstr ""
+"The package shown above is trying to do versioned provides, but they aren't "
+"supported by dpkg, and therefore, should not be used."
+
+msgid "versioned-provides_s"
+msgstr "Package contains a versioned Provides with package %s."
+\end{commandline}
+
+
+参考として，lintian, linda 各パッケージのアップロードの履歴の状況を調べてみました．
+lintianが活発でなかった2002,2003年の時期にlindaが活発に開発されていた
+ような雰囲気がうかがえなくもないです．
+
+\begin{commandline}
+ zgrep '^ -- ' /usr/share/doc/lintian/changelog.Debian.gz | cut -d, -f2 | awk '{print $3}' | uniq -c
+      2 2005
+     10 2004
+      6 2003
+     14 2002
+     18 2001
+     13 2000
+     12 1999
+     44 1998
+
+
+ zgrep '^ -- ' /usr/share/doc/linda/changelog.gz | cut -d, -f2 | awk '{print $3}' | uniq -c
+      2 2005
+      9 2004
+     20 2003
+     36 2002
+\end{commandline}
+
+\subsection{どう応用するか}
+
+devscriptsに入っているdebuildコマンドでパッケージをビルドすると，
+lintianを自動的に実行してくれます\footnote{/etc/devscripts.conf 参照}．
+debuildコマンドを活用しましょう．
+
+lintian lindaで確認できる問題もありますが，他にも問題は発生します．
+パッケージの問題は他に何があるか，確認してみます．
+段階がいくつかありますが，簡単に考えてみても，
+それぞれ別の段階で下記のような不具合が発生する
+でしょう．
+
+\begin{itemize}
+ \item ソースコードがコンパイルできない．
+ \item debパッケージがインストールできない．
+ \item アプリケーションが実行できない．
+ \item 操作に対する動作がおかしい．
+\end{itemize}
+
+この問題についてはlintianとlindaの確認はほぼ無力です．
+
+実際は pbuilder などの他のツールを併用します．
+debdiff で前のバージョンとの差を確認したり，debitコマンド\footnote{現在
+は利用できません}を利用して，
+自動テストツールで動作を確認したりします．
+
+あとは，Debianのユーザがパッケージをインストールして，利用してくれて，
+問題を発見してBTSで報告してくれるのを待つばかりです．
+
+
+\newpage
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{個人提案課題}{}
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+下記の空欄を埋めてください:
+
+{\LARGE 
+Debian の (\hspace{5cm})\\
+に注目し，アーキテクチャ対応は(\hspace{6cm})\\
+します．
+}
+\\\\
+企画案の図：
+
+\newpage
+
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{グループ提案課題}{}
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}\\
+
+下記の空欄を埋めてください:
+
+{\LARGE 
+Debian の (\hspace{5cm})\\
+に注目しアーキテクチャ対応は(\hspace{6cm})\\
+します．
+}
+\\\\
+企画案の図：
+
+\newpage
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{Keysigning Party}{上川純一}
+
+
+事前に必要なもの
+\begin{itemize}
+ \item 自分の鍵のfingerprintを書いた紙({\tt gpg --fingerprint XXXX}の出力．)
+ \item 写真つきの公的機関の発行する身分証明書，fingerprintに書いてある名前が自分の
+ものであると証明するもの
+\end{itemize}
+
+キーサインで確認する内容
+\begin{itemize}
+ \item 相手が主張している名前の人物であることを信頼できる身分証明書で証明し
+       ているか\footnote{いままで見た事の無い種類の身分証明書を見せられ
+       てもその身分証明書の妥当性は判断しにくいため，学生証明書やなんと
+       か技術者の証明書の利用範囲は制限される．
+       運転免許証明書やパスポートが妥当と上川は判断している}．
+ \item 相手がfingerprintを自分のものだと主張しているか
+ \item 相手のfingerprintに書いてあるメールアドレスにメールをおくって，
+       その暗号鍵にて復号化することができるか
+\end{itemize}
+
+手順としては
+\begin{itemize}
+ \item 相手の証明書を見て，相手だと確認
+ \item fingerprintの書いてある紙をうけとり，これが自分のfingerprintだと
+       いうことを説明してもらう
+ \item (後日) gpg署名をしたあと，鍵のメールアドレスに対して暗号化して送付，相手
+       が復号化してキーサーバにアップロードする
+       ({\tt gpg --sign-key XXXXX, gpg --export --armor XXXX })
+\end{itemize}
+
+
+\dancersection{次回}{}
+
+次回は6月11日土曜日の夜を予定しています．
+内容は本日決定予定です．
+
+参加者募集はまた後程．
+
+\end{document}

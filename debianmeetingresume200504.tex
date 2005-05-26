@@ -1,0 +1,813 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+
+%   Pdf作成手順
+% dvipdfmx debianmeetingresume200504.dvi
+
+%この資料はA3用紙に両面印刷で印刷する予定
+
+\documentclass[mingoth]{jsarticle}
+\usepackage{graphicx}
+\usepackage{fancybox}
+\usepackage{longtable}
+
+% とりあえずcommandline環境を定義．入出力についてはcommandline環境を活用
+%する
+\newenvironment{commandline}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{12cm}\begin{tiny} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{tiny}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}\fbox{\TheSbox}}
+
+
+
+% 三択問題用
+\newcounter{santakucounter}
+\newcommand{\santaku}[4]{%
+\addtocounter{santakucounter}{1}
+
+\nopagebreak 問題\arabic{santakucounter}. 
+#1\\
+\nopagebreak□ A #2\\
+\nopagebreak□ B #3\\
+\nopagebreak□ C #4
+\pagebreak[1]
+\hspace{1cm}
+\\
+
+}
+
+\newcommand{\emptyspace}{(\underline{\hspace{1cm}})}
+
+
+% sectionをセンタリングする
+\makeatletter
+  \renewcommand{\section}{\@startsection{section}{1}{\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}% 前アキ
+    {.5\Cvs \@plus.3\Cdp}% 後アキ
+    {\normalfont\Large\headfont\raggedright\centering}} % style
+\makeatother
+
+% section の代わりの環境
+\newcommand{\dancersection}[2]{%
+\newpage
+東京エリアDebian勉強会 2005
+\hrule
+\vspace{0.5mm}
+\hrule
+\hfill{}\includegraphics[width=3cm]{image200502/openlogo-nd.eps}\\
+\vspace{-4cm}
+\begin{center}
+  \section{#1}
+\end{center}
+\hfill{}#2\hspace{3cm}\space\\
+\hrule
+\hrule
+\vspace{1cm}
+}
+
+
+
+
+
+
+\begin{document}
+
+\begin{titlepage}
+
+\title{\includegraphics[width=7cm]{image200502/openlogo-nd.eps}\\
+ 第3回 東京エリア Debian 勉強会\\事前資料
+\footnote{機密レベル public: 一般開示可能}}
+\date{2005年4月9日}
+\author{非営利個人 上川純一\thanks{Debian Project Official Developer}} 
+\maketitle
+
+\end{titlepage}
+
+\newpage
+\tableofcontents
+
+\dancersection{Introduction To Debian 勉強会}{上川純一}
+
+3回目のDebian勉強会へようこそ．
+これからDebianのあやしい世界に入るという方も，すでにどっぷりとつかってい
+るという方も，月に一回Debianについて語りませんか？
+
+目的として下記の二つを考えています．
+
+\begin{itemize}
+ \item メールではよみとれない，もしくはよみとってられないような情報を情
+       報共有する場をつくる
+ \item まとまっていないDebianを利用する際の情報をまとめて，ある程度の塊と
+       して出してみる
+\end{itemize}
+
+また，東京にはLinuxの勉強会はたくさんありますので，Debianに限定した勉強
+会にします．Linuxの基本的な利用方法などが知りたい方は，他でがんばってくださ
+い．
+Debianの勉強会ということで究極的には参加者全員がDebian Packageを
+がりがりと作りながらスーパーハッカーになれるような姿を妄想しています．
+
+Debianをこれからどうするという能動的な展開への土台としての空間を提供し，
+情報の共有をしたい，というのが目的です．
+次回は違うこと言ってるかもしれませんが，御容赦を．
+
+\subsection{講師紹介}
+
+\begin{itemize}
+ \item{山根さん} Debianの翻訳関連についてはマスターだそうです
+ \item{上川純一} Debian Developerです．
+      元超並列計算機やっていて，
+      今は音楽関係とか，気づいたらcannaとか．
+      あと，pbuilderとか，libpkg-guideとか，Debianの品質向上目指してます．
+\end{itemize}
+
+\subsection{事前課題紹介}
+
+3回目の事前課題は
+「sargeがリリースするまでに日本語化しておきたいDebianのここらへん」
+というタイトルで200-800文字程度の文章を書いてください．
+というものでした．
+その課題に対して下記の内容を提出いただきました．
+
+\subsubsection{Eto Yasuo}
+
+最低限 aptitude やら インストーラに含まれるもの。
+Debian Specific なものについての po 、man、マニュアルについては
+やりたいと思っていましたが、能力が不足していることが解り、
+英語や日本語の能力を上げるための努力をする気も時間もないので、
+自分は一切やらないことにしました。
+ 自分が手を動かさないことをぐちぐち言ってもしょうがないので、
+「sargeがリリースするまでに日本語化しておきたいDebianのここ」は
+なにもありません。
+
+\subsubsection{Junji Sawada}
+
+sargeのリリースまでに日本語化したいのは、パッケージ説明の日本語化である。パッケージを検索・詳細表示する場合、やはり英語で説明が書かれているよりも日本語で書かれている方が理解しやすい。これを実現するためには、まず各パッケージについてcontrolファイル中のパッケージ説明を日本語化したcontrol.jaを用意する。次にPackagesを作成する際には言語ごとに作成する。control.jaがないパッケージについてはcontrolを利用する。apt-get update時にはロケールに応じて適切なPackagesを取得する。これにより、利用言語に応じたパッケージ説明を見ることが可能である。問題点として、rootのロケールをjaにしておかないといけないこと、現状のパッケージングシステムを大きく変える必要があること、言語ごとのPackagesを以下に効率よく作成するか(UTF-8化して一つのファイルに含めてしまうのがよい？)挙げられる。
+
+\subsubsection{中島清貴さん}
+
+　はじめから日本語で作ってほしい。なので他の言語を日本語化してほしくない。日本語化というと既存の言語を日本語にするわけだから、かなりの手間だ。それであれば始めから日本語で作って日本語で使うべきだ。
+
+　英語も英語で書いて英語で読むべきだ。書けなくても英語で書かれたものは英語で読むくらいのリテラシーは必要だ。逆に日本語で作られたものは日本語で使うべきだし英語化するべきではない。
+
+　読めなければ使えないという状態に持っていけば本当に使いたければ気合で読むはずなので、気合で自分の頭で日本語化してもらうのがよい。自分もワープロが苦手だけれど気合いで使っている。
+
+　日本語にも対応というスタンスでいい。言語の一つとして日本語にも対応する。もちろん当然その他の言語にも対応する。
+
+　日本語化するのがいけないとは言わない。ユーザが自分の頭で日本語に変換するべきだ。それであれば誰も手間はかからない。
+
+　第一そんな手間暇かかることやっていたら時間がかかるし生産性がない。こんなことコンピュータのエキスパートがやるとは思えないのだ。
+
+　これからは始めから日本語で作るべき。そうでなければ日本語にも対応する。もし他の言語で作られていればユーザが個人の頭で勝手に日本語化する。これでいい。
+\subsubsection{Nobuhiro Iwamatsu}
+
+\begin{itemize}
+ \item 
+Debian Installer / マニュアル
+　完全日本語対応してほしいなと思います。
+ \item 
+debconf の po
+ \item 
+package の description
+　日本語化してるものとしてないものがあるのは見た目がかっこ悪い。
+　ちょっと時間があるときにできるので時間をみてやってます。
+ \item 
+日本語化にはあまり関係ないかもしれませんが aptitude の 日本語
+　（マルチバイト）の文字化け
+\end{itemize}
+
+　こんなところです。
+
+\subsubsection{KURASHIKI Satoru}
+
+個人的に欲しいのは、SELinuxの導入手順文書でしょうか。まだ公式の扱いじゃな
+いようですが、他のdistroに比べて、敷居が高いように見えます。また、d-iのFAQ
+、Wikiあたりも日本語になるといいかなぁと思います。ただまぁ、他の作業よりも
+さっさとリリースしちゃうのがDebianには一番必要なんじゃないかとか思ったりも。
+
+
+\subsubsection{上川}
+
+日本語に訳されているけど，現状に内容がおいついていない，一部の古いマニュ
+アルがあります．
+そういうマニュアルを利用すると間違った利用をしてしまう可能性があるので，
+できるだけそういう状況をなくしたいですね．
+
+翻訳の衝突とか，翻訳を採用してもらう手順とか，現在面倒なところもいくつか
+あると思うので，地道に翻訳するインフラを整備するのも大切じゃないかな，と
+考えています．
+
+特に，リリース前の翻訳のためのテキストフリーズという概念をディストリビュー
+ション全体で採用できると理想なのですが．
+
+%%% trivia quiz
+\dancersection{Debian Weekly News trivia quiz}{上川純一}
+
+ところで，Debian Weekly News (DWN)は読んでいますか？
+Debian 界隈でおきていることについて書いているDebian Weekly News.
+毎回読んでいるといろいろと分かって来ますが，一人で読んでいても，解説が少
+ないので，
+意味がわからないところもあるかも知れません．みんなでDWNを読んでみましょう．
+
+漫然と読むだけではおもしろくないので，DWNの記事から出題した以下の質問にこたえてみてください．
+後で内容は解説します．
+
+\subsection{2005年11号}
+
+\santaku{Debconf5 に投稿されたプロポーザルの数は}{22}{33}{44}
+%44 ありました．
+
+\santaku{Debian logoのライセンスの変更するためになにがおきたか}
+{原作者からSPIに著作権の移管}{
+著作権法の改正}{
+ロゴの作り直し}
+
+
+\santaku{ドキュメントや辞書などのデータにGPLライセンスを適用することにより問題となりうるの
+はなにか}
+{ライセンス文が大きすぎることによるデータ量の増大}{
+GPLでないアプリケーションから利用する場合の検討}{
+利用するまえにFree software songを歌う必要がでてくる}
+
+\santaku{USBストレージデバイスでGPGキーを利用する際に，VFAT上でループバッ
+クデバイスを利用しているのはなぜか．}
+{暗号化したいから}{ループバックでしかVFATはマウントできない
+}{GPGがループバックデバイスしか対応していない
+}
+
+\santaku{Debianのwanna-buildサーバのSSHサーバに関して変更が発生したのはなぜか}
+{コネクションキャッシングしないと負荷が高くて死んでしまうから}{
+SSHをビルドすることがかっこよいから
+}{makeコマンドをたたく練習がしたかったから
+}
+
+\santaku{Joey HessがNEWキューに関して提案した内容はなにか}
+{
+NEWキューを無くしてしまおう
+}{
+NEWのパッケージに関して人気投票をしてみよう}{
+新しいパッケージは作成しないことにしよう
+}
+
+\santaku{DPL debateはどこで開催されたか}
+{Vancouver}{
+メッセンジャー}{
+IRCのFreenodeネットワーク上
+}
+
+\santaku{Steve Langasekの出したSCCの提案とはなにか}
+{多くのアーキテクチャをリリースプロセスから除外する}{
+世界に残存するm68kを廃棄する}{
+etchのリリースアーキテクチャは２０種類を目指す
+}
+
+\santaku{Asia Debian Miniconfで達成したのはなにか}
+{debian-zh IRCチャンネルの復活}{
+全員がお腹をこわした
+}{
+中国から台湾へのネットワークでの接続
+}
+
+\subsection{2005年12号}
+
+\santaku{GPLv3が出て来ることでもっともおそれられているのは}
+{GPLv2のみに対応するというソースコードが増えて，プロジェクトのフォークが増えること}{
+ライセンス文が長文になりすぎてオープンソースプロジェクトのファイルサイズ
+が大きくなりすぎる事
+}{
+誰も読めない言語で書かれていること
+}
+
+\santaku{Creative Commons 2.0のラインセンスについてdebian-legalが出した
+判定結果は}
+{DFSG Freeです}{
+Derived Workについて制約が多いので，DFSG Freeではない}{
+GPLと同じです
+}
+
+\santaku{Enrico Ziniはどんなアンケートを実施したか}
+{一日の生活パターンについて}{
+人生の目標について
+}{Debianの利用目的と方法について
+}
+
+\santaku{300000番目のバグレポートはどういう内容か}
+{
+SPAM
+}{セキュリティーホール
+}{Descriptionの文法的な修正}
+
+
+\santaku{DPL Vote システムに暗号化したメールで投票したらどう処理されるか}
+{gpg で復号化し，devoteeシステムが処理する
+}{/dev/randomから投票結果を生成する
+}{暗号には現在対応していない
+}
+
+\santaku{autoconfをbuild時に呼ぶ理由でないものはなにか}
+{そこにautoconf があるから}
+{ソースパッケージのサイズを削減できる}
+{autoconfが変更したあとで実行してもパッケージがビルドできないという状況をさけられる}
+
+
+
+\subsection{2005年13号}
+
+\santaku{3月18日にあたらしく増えたFTP-masterメンバーは誰か}
+{Jeroen van Wolffelaar と Joerg Jaspert}{
+James TroupとRyan Murray}{
+Anthony TownsとBranden Robinson
+}
+
+\santaku{新しくできたメーリングリストdebian-dakはなにについて語る場所か}
+{Katieさんについて語る場所}{
+Debianのパッケージインフラソフトウェアについて語る場所}{
+Anthony Townsの好きな歌手について語る場所
+}
+
+\santaku{libtool1.4にbuild-dependしているパッケージにたいしてなにがおき
+るか}
+{あたらしいlibtoolを使うように推奨}{
+即刻パッケージを削除}{
+libtoolを使わないように修正}
+
+\santaku{ITPされているものの放置されているパッケージに関して推奨された処
+理は}
+{メールアドレスを調査してSPAM送付}{
+バグレポートにメールを追記して，作業を開始する}{
+BTSサーバに新入して，ITPバグレポートをこっそり削除
+}
+
+\santaku{Descriptionの文書でよく間違っているとFlorian Zumbiehlが指摘した
+のは}
+{英語になっていない}{
+略語の前の'a'が'an'であるべきの場所がある}{
+ギリシャ文字で書いてある
+}
+
+\santaku{PHP４のライセンスで問題となっているのは，なにか}
+{GPLが嫌いだ，と書いてある}{問題はない
+}{
+変更したものは，PHP4という名前を利用できない}
+
+\santaku{Marcus BrinkmannがHurd/MachをよりHurd/L4がよいという理由は}
+{l4のほうがLinuxのエミュレーションが優れている}{
+MachのVM管理がださい}{l4のほうがデバイスドライバが書きやすい
+}
+
+\subsection{2005年14号}
+
+\santaku{GNU HurdのライブCDをqemuで起動するコマンドラインはどれか}
+{qemu -cdrom hurd-live-cd.iso -boot d}{
+./gnu-hurd
+}{
+dd if=hurd-live-cd.iso of=/dev/hdc \&\& reboot
+}
+
+\santaku{SCC提案に対して，John Goerzen の提案した内容はなにか}
+{一部のアーキテクチャはバイナリを配付せずにソースのみを配付する}{
+gentooに全員移動}{
+全員i386以外のアーキテクチャは使わない事にする
+}
+
+\santaku{遅いアーキテクチャの対応として提案されたツールの案で，エミュレー
+タなのはどれか}
+{qemu}{
+scratchbox
+}{distcc
+}
+
+\santaku{chroot内でデーモンの起動をしてほしくないときにはなにを使えばよ
+いか}
+{invoke-rc.dのためのpolicy-rc.dスクリプトを作成する}{
+init.d以下のスクリプトを全部即exit0で終了するものに変更する
+}{起動しないように祈りの踊りをささげる
+}
+
+\santaku{起動スクリプトの出力をログにとるためにはどうするか}
+{画面をみながら出力のメモをとる}{
+dmesg コマンドの出力にでるのでそれを使う
+}{echo 'BOOTLOGD\underbar{ }ENABLE=Yes' $>$ /etc/default/bootlogd
+}
+
+\santaku{testingからパッケージが削除された場合の情報はどこに流れるか}
+{apt-cache show パッケージ名}{
+秘密なので教えられない
+}{今後はdebian-testing-changesに流れる予定
+}
+
+\santaku{gluck.debian.orgになにがおきたか}
+{ネットワーク障害による通信の断絶}{ディスク障害によるファイルシステムの崩壊
+}{人的災害によるシステムの破壊
+}
+
+\dancersection{最近のDebian関連のミーティング報告}{上川純一}
+
+\subsection{東京エリアDebian勉強会2回目報告}
+
+今回は朝早くから実施しましたが，予想したよりたくさんの方が無事に到着しました．
+今日の参加者は合計8名．
+	    
+最初はDWNクイズを実施しました．15問中14問正解が最高で，12問くらいまでは正解している方がいらっしゃいました．
+
+Debian Social Contractについての話を松山さんがしました．
+	    Debian Social Contractをまじめによんでみる，という機会をもってみると，
+	    本当にこの通りにできているのか，という疑問をもつ点がありますが，その疑問をもつということも大切でしょう．
+	    upstreamとの連係がうまくとれているのか，フリーの定義とは何かなど，
+	    Debianの精神の基本となる文書でありながらも議論の余地の多い文書であることがわかりました．
+
+	    debhelperについて上川が語りました．
+	    現在debhelperパッケージに入っている全コマンドについて一覧を概説し，
+	    それぞれのコマンドが 
+	    \verb!debian/package.XXX! のような名前のファイルを入力としてとりいれて，
+	    それから
+	    \verb!postinst.debhelper! ファイルなどをつくり，
+	    \verb!postinst!に書いてある
+	    \verb!#DEBHELPER#!という部分を置き換える，ということについて説明しました．
+	    \verb!#DEBHELPER#!の意味を知らない方が意外と多くておどろきです．
+
+	    グループワークとして，Debian パッケージシステムの改善案について議論しました．
+	    出て来た要望としては，「現在はパッケージ名と説明文でしか検索できないので，パッケージの機能を検索したい」「dpkgでインストールするファイルを全部dpkgで管理できるようにしてほしい」「unofficialなsources.listのエントリなどを一括管理できるシステムやGUIなどがあればよいな」などでした．
+	    即実行できる内容もあれば，まだまだ難しいだろうなと思われるものもありました．
+	    
+	  その後，デニーズにて懇親会．
+	    次回はぜひ翻訳について語って頂きたいところです．
+	    あとは，Debian パッケージをdebhelperを使ってビルドできるまでのフロー
+	    について解説したいと思います．
+
+
+\dancersection{debhelper論 その3}{Debhelperの処理の流れ．}
+
+\subsection{debhelperの実行フロー}
+
+debhelperの一般的な実行フローにおいてどのファイルがどういう順番でコピー
+されていくのか，という部分について追跡してみます．
+
+\subsubsection{debian/rules clean}
+
+debhelperとしては，Debianパッケージのビルドに利用した一時ファイルを削除
+します．
+
+debian/以下のディレクトリの削除を実施します．
+\begin{itemize}
+ \item {\it packagename} ディレクトリ
+ \item  {\it packagename}*.debhelper
+ \item files
+ \item tmp
+\end{itemize}
+
+また，一般的な一時ファイルの削除も実施します．
+\begin{itemize}
+ \item \verb!#*#!
+ \item \verb!*~!
+ \item DEADJOE
+ \item *.orig
+ \item *.rej
+ \item *.bak
+ \item *.SUMS
+ \item TAGS
+ \item core
+ \item */.deps/*.P
+ \item auotm4te.cache
+\end{itemize}
+
+
+\subsubsection{debian/rules build}
+
+ここでは，debhelperはほとんどなにもしません．
+上流のソースコードに対してMakeし，コンパイルする作業が主です．
+
+カレントディレクトリが正しい場所か，ということを
+確認します．
+
+\subsubsection{debian/rules install}
+
+ここでは，debhelperを利用して，インストール先のディレクトリを作成し，
+そのディレクトリにソフトウェアをインストールします．
+
+dh\underbar{ }installdirsで，必要なディレクトリを
+{\tt debian/{\it package}}
+以下に作成します．
+
+{\tt debian/{\it package}}
+ディレクトリににソフトウェアをインストールします．
+autoconf/automakeを利用しているソフトウェアであれば，
+\verb!make install DESTDIR=$(PWD)/debian/package/!
+のようなコマンドでインストールできます．
+
+\subsubsection{debian/rules binary}
+
+ここでは，インストールしたソフトウェアをDebianパッケージにするための最終
+的な微調整を実施します．
+
+dh\underbar{ }testrootでrootであることを確認します．
+
+dh\underbar{ }installdocsでドキュメントファイルを
+{\tt debian/{\it package}/usr/share/doc/XXX}
+にコピーします．
+
+dh\underbar{ }installexamplesでドキュメントファイルを
+{\tt debian/{\it package}/usr/share/doc/examples/XXX}
+にコピーします．
+
+dh\underbar{ }installmanで
+{\tt debian/{\it package}/usr/share/man/manX/XXX.X}
+にコピーします．
+
+dh\underbar{ }linkで必要なシンボリックリンクを作成します．
+
+dh\underbar{ }stripで
+{\tt debian/{\it package}/usr/bin/XXX}
+や
+{\tt debian/{\it package}/usr/lib/XXX}
+に存在している実行ファイルのデバッグ情報をstripします．
+
+dh\underbar{ }compressで
+{\tt debian/{\it package}/usr/share/doc/XXX}
+や
+{\tt debian/{\it package}/usr/share/man/manX/XXX.X}
+などにある，ポリシーでgzip圧縮しておくべきとされているファイルを
+gzip圧縮します．
+
+dh\underbar{ }fixpermsで
+{\tt debian/{\it package}/usr/share/doc}
+以下の実行権限をはずしたりして，アクセス権を修正します．
+
+dh\underbar{ }installdebで制御ファイルをDEBIANディレクトリーにコピーしま
+す．
+{\tt debian/{\it package}.XXX}
+を
+{\tt debian/{\it package}/DEBIAN/XXX}
+にコピーします．
+ここで対象となるのが，下記です．
+\begin{itemize}
+ \item postinst
+ \item preinst
+ \item postrm
+ \item prerm
+ \item shlibs
+ \item conffiles
+\end{itemize}
+{\tt debian/{\it package}/etc/}以下にファイルがある場合は，
+{\tt debian/{\it package}/DEBIAN/conffiles}
+に追記されます\footnote{debconf V3以上}．
+postinst/preinst/postrm/prermに関しては，
+\verb!#DEBHELPER#!と記述されている部分は
+{\tt debian/{\it package}.XXX.debhelper}
+ファイルの中身で置換されます\footnote{Debian/Debhelper/Dh\underbar{ }Lib.pm}.
+
+dh\underbar{ }shlibdeps
+で，
+共有ライブラリの依存関係を解析します．
+{\tt debian/{\it package}}以下にある実行ファイルと共有ライブラリの一覧を
+dpkg-shlibdepsに渡します．
+{\tt debian/{\it package}.substvars}に出力させます．
+内容としては，依存するパッケージの一覧を{\tt shlibs:Depends}変数の定義と
+して出力します．
+
+dh\underbar{ }gencontrol
+は，dpkg-gencontrolコマンドを利用します．
+{\tt debian/changelog}ファイルを解析し，バージョンを調べ，
+{\tt debian/control}のパッケージ部分に対して，
+{\tt debian/{\it package}.substvars}にある変数置換を実施し，
+{\tt debian/{\it package}/DEBIAN/control}
+を生成します．
+また，Installed-Size情報をduを実行して作成します．
+
+\begin{commandline}
+--- /tmp/control        2005-04-08 07:49:13.236346992 +0900
++++ debian/whizzytex/DEBIAN/control     2005-04-08 06:17:20.000000000 +0900
+@@ -1,6 +1,11 @@
+ Package: whizzytex
++Version: 1.2.2-2
++Section: tex
++Priority: optional
+ Architecture: all
+ Depends: emacsen, tetex-bin (>= 2.0.2-17), advi | xdvi | gv
++Installed-Size: 584
++Maintainer: Junichi Uekawa <dancer@debian.org>
+ Description: a WYSIWYG emacs environment for LaTeX
+  WhizzyTeX is an emacs minor mode for incrementally
+  (TeXing and) previewing a LaTeX file while editing at real-time.
+\end{commandline}
+
+dh\underbar{ }md5sumsで
+{\tt debian/{\it package}/DEBIAN/md5sum}に
+{\tt debian/{\it package}}以下にあるファイルのmd5sumの結果を記録します．
+
+dh\underbar{ }builddeb
+で
+{\tt dpkg-deb --build} コマンドを呼び出し，パッケージをビルドします．
+{\tt debian/{\it package}/DEBIAN}を制御情報として利用し，
+{\tt debian/{\it package}/}以下をパッケージのデータとして利用し，
+{\tt ../{\it package}\underbar{ }XXXX\underbar{ }XXX.deb}などを作成しま
+す．
+
+
+\subsubsection{参考資料}
+
+debhelperで作成されるdebian/rulesファイルを参考のため載せておきます．
+
+\begin{commandline}
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+
+
+
+CFLAGS = -Wall -g
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	# Add here commands to configure the package.
+
+	touch configure-stamp
+
+
+build: build-stamp
+
+build-stamp: configure-stamp 
+	dh_testdir
+
+	# Add here commands to compile the package.
+	$(MAKE)
+	#docbook-to-man debian/test-source.sgml > test-source.1
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+
+	# Add here commands to clean up after the build process.
+	-$(MAKE) clean
+
+	dh_clean 
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+
+	# Add here commands to install the package into debian/test-source.
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/test-source
+
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs 
+	dh_installdocs
+	dh_installexamples
+#	dh_install
+#	dh_installmenu
+#	dh_installdebconf	
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+	dh_installman
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+#	dh_perl
+#	dh_python
+#	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure
+\end{commandline}
+
+
+
+\newpage
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{個人提案課題}{}
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+下記の空欄を埋めてください:
+
+{\LARGE 
+Debian の (\hspace{5cm})\\
+に注目し日本人のために(\hspace{6cm})\\
+を実現します．
+}
+\\\\
+企画案の図：
+
+\newpage
+
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{グループ提案課題}{}
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}\\
+
+下記の空欄を埋めてください:
+
+{\LARGE 
+Debian の (\hspace{5cm})\\
+に注目し日本人のために(\hspace{6cm})\\
+を実現します．
+}
+\\\\
+企画案の図：
+
+\newpage
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{Keysigning Party}{上川純一}
+
+
+事前に必要なもの
+\begin{itemize}
+ \item 自分の鍵のfingerprintを書いた紙({\tt gpg --fingerprint XXXX}の出力．)
+ \item 写真つきの公的機関の発行する身分証明書，fingerprintに書いてある名前が自分の
+ものであると証明するもの
+\end{itemize}
+
+キーサインで確認する内容
+\begin{itemize}
+ \item 相手が主張している名前の人物であることを信頼できる身分証明書で証明し
+       ているか\footnote{いままで見た事の無い種類の身分証明書を見せられ
+       てもその身分証明書の妥当性は判断しにくいため，学生証明書やなんと
+       か技術者の証明書の利用範囲は制限される．
+       運転免許証明書やパスポートが妥当と上川は判断している}．
+ \item 相手がfingerprintを自分のものだと主張しているか
+ \item 相手のfingerprintに書いてあるメールアドレスにメールをおくって，
+       その暗号鍵にて復号化することができるか
+\end{itemize}
+
+手順としては
+\begin{itemize}
+ \item 相手の証明書を見て，相手だと確認
+ \item fingerprintの書いてある紙をうけとり，これが自分のfingerprintだと
+       いうことを説明してもらう
+ \item (後日) gpg署名をしたあと，鍵のメールアドレスに対して暗号化して送付，相手
+       が復号化してキーサーバにアップロードする
+       ({\tt gpg --sign-key XXXXX, gpg --export --armor XXXX })
+\end{itemize}
+
+
+\dancersection{次回}{}
+
+次回は5月21日土曜日の夜を予定しています．
+内容は本日決定予定です．
+
+参加者募集はまた後程．
+
+\end{document}

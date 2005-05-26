@@ -1,0 +1,755 @@
+%; whizzy chapter -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+%%%; whizzy chapter -advi -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt 
+
+
+
+%   Pdf作成手順
+% dvipdfmx 200503.dvi
+
+%この資料はA3用紙に両面印刷で印刷する予定
+
+\documentclass[mingoth]{jsarticle}
+\usepackage{graphicx}
+\usepackage{fancybox}
+\usepackage{longtable}
+
+% とりあえずcommandline環境を定義．入出力についてはcommandline環境を活用
+%する
+\newenvironment{commandline}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{12cm}\begin{tiny} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{tiny}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}\fbox{\TheSbox}}
+
+
+
+% 三択問題用
+\newcounter{santakucounter}
+\newcommand{\santaku}[4]{%
+\addtocounter{santakucounter}{1}
+
+\nopagebreak 問題\arabic{santakucounter}. 
+#1\\
+\nopagebreak□ A #2\\
+\nopagebreak□ B #3\\
+\nopagebreak□ C #4
+\pagebreak[1]
+\hspace{1cm}
+\\
+
+}
+
+\newcommand{\emptyspace}{(\underline{\hspace{1cm}})}
+
+
+% sectionをセンタリングする
+\makeatletter
+  \renewcommand{\section}{\@startsection{section}{1}{\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}% 前アキ
+    {.5\Cvs \@plus.3\Cdp}% 後アキ
+    {\normalfont\Large\headfont\raggedright\centering}} % style
+\makeatother
+
+% section の代わりの環境
+\newcommand{\dancersection}[2]{%
+\newpage
+東京エリアDebian勉強会 2005
+\hrule
+\vspace{0.5mm}
+\hrule
+\hfill{}\includegraphics[width=3cm]{image200502/openlogo-nd.eps}\\
+\vspace{-4cm}
+\begin{center}
+  \section{#1}
+\end{center}
+\hfill{}#2\hspace{3cm}\space\\
+\hrule
+\hrule
+\vspace{1cm}
+}
+
+
+
+
+
+
+\begin{document}
+
+\begin{titlepage}
+
+\title{\includegraphics[width=7cm]{image200502/openlogo-nd.eps}\\
+ 第2回 東京エリア Debian 勉強会\\事前資料
+\footnote{機密レベル public: 一般開示可能}}
+\date{2005年3月13日}
+\author{非営利個人 上川純一\thanks{Debian Project Official Developer}} 
+\maketitle
+
+\end{titlepage}
+
+\newpage
+\tableofcontents
+
+\dancersection{Introduction To Debian 勉強会}{上川純一}
+
+2回目のDebian勉強会へようこそ．
+これからDebianのあやしい世界に入るという方も，すでにどっぷりとつかってい
+るという方も，月に一回Debianについて語りませんか？
+
+目的として下記の二つを考えています．
+
+\begin{itemize}
+ \item メールではよみとれない，もしくはよみとってられないような情報を情
+       報共有する場をつくる
+ \item まとまっていないDebianを利用する際の情報をまとめて，ある程度の塊と
+       して出してみる
+\end{itemize}
+
+また，東京にはLinuxの勉強会はたくさんありますので，Debianに限定した勉強
+会にします．Linuxの基本的な利用方法などが知りたい方は，他でがんばってくださ
+い．
+Debianの勉強会ということで究極的には参加者全員がDebian Packageを
+がりがりと作りながらスーパーハッカーになれるような姿を妄想しています．
+
+Debianをこれからどうするという能動的な展開への土台としての空間を提供し，
+情報の共有をしたい，というのが目的です．
+次回は違うこと言ってるかもしれませんが，御容赦を．
+
+\subsection{講師紹介}
+
+\begin{itemize}
+ \item{松山さん} 日曜ハッカーです．
+ \item{上川純一} Debian Developerです．
+      元超並列計算機やっていて，
+      今は音楽関係とか，気づいたらcannaとか．
+      あと，pbuilderとか，libpkg-guideとか，Debianの品質向上目指してます．
+\end{itemize}
+
+\subsection{事前課題紹介}
+
+2回目の事前課題は
+「Debianにたりないこんなパッケージ」というタイトルで200-800文字程度の文章を書いてください．
+というものでした．
+その課題に対して下記の内容を提出いただきました．
+
+\subsubsection{小林さん}
+
+Debianに足りない、パッケージなのかどうかは分かりませんが、
+非常に足りない機能だと思うのは、言語環境に関する機能です。
+とりあえず、日本語が使えるようになるのが、非常に難しく、
+私も悪戦苦闘の末、ようやく漢字が使えるtermを正常起動
+させる事に成功したのですが、未だに良く分からないタイミングで、
+微妙に英語がまじってしまったり、文字化けしてしまったり
+します。しかも、結局GUIから設定する方法がうまくいかず、
+というより方法が全く分からず、みようみまねでコマンドで
+やってしまったので、後戻りもできなさそうな雰囲気です。
+正直、現在の所再インストールするしかないのかなあ、
+等と考えている毎日です。。。ま、全部英語でやれよって
+話もありますけどね。。。
+
+\subsubsection{三塚さん}
+
+Debianにたりないこんなパッケージということでいくつか考えてみました。
+
+・squirrelmailのモジュール
+　個人的にいくつかのモジュールを手動で導入しているのですが
+　/usr/share/squirrelmail/plugin に展開せねばならず、パッケージ
+　管理外のファイルを置くのに抵抗があります。
+
+・日本語版Thunderbird
+　見当たらなかったのでhome以下にバイナリを展開して使ってます…。
+
+最近メール関係を設定しなおしていたのでこの辺りが気になりましたが、
+きっと他にもあると思います。
+
+\subsubsection{えとーさん}
+kagemai,qwik とかが足りないなぁ。と思っていたのでパッケージングしました。
+一番不足してると思うのはプロプラエタリなソフトウェアのパッケージです。
+業務で使用する場合ですが、パッケージないから依存関係調べて、hoge.devとか
+kernel-headerとか落してくるのが非常に面倒かつ、人間がやることじゃないと
+思うので嫌で仕方ありません。
+プロプラなソフトウェアのインストーラパッケージだけでも増えてくれればと
+切に願っていたりします。
+それには、検証用の環境及び安価(無償とは言わないが)に検証するような仕組みを整備し
+プロプラな企業にパッケージングの段階でくらいは簡単に検証しパッケージを作成
+できるようになるといいのだろうな。と思いました。
+OSDLみたいな感じですかね。
+
+
+\subsubsection{中島さん}
+
+　マシーンと対話するようなパッケージがたりないと思う。これがあればマイクに語る
+だけでコンピュータと会話が成り立つ。素晴らしい。高齢者やキーボードの打てない人
+に大評判だ。文章もこれで作れる。コンピュータと会話するだけで文章が自動生成だ。
+一人座談会もできそうだ。
+　キーボードの打ちやすさなどは、もう意味がない。入力装置はマイクのみだ。出力は
+スピーカになる。となればモニターも必要ない。視聴に障害のある人も使いこなせる。
+プログラムも音声入力。まさに対話型だ。プログラマも増えるに違いない。間違いない
+。
+
+\subsubsection{やまねさん}
+
+[システムツールとか]
+
+・Red Hat/Fedora/SUSE/Turbo etc...にはある「統一感のあるデスクトップ環境」
+
+・設定を一元的にいじるツール。\\
+　Windowsの「コントロールパネル」のような…。
+
+・膨大なパッケージを探すためのグラフィカルで使いやすい apt フロントエンド\\
+　synaptic が使いやすい? ご冗談を!
+
+・apt の desktop applet \\
+　apt-watch は醜い。実は apt-incicator というのがあるのだが… qt で
+　作られていて gnome ではいまいち。
+
+
+[いわゆるマルチメディア系]
+
+・iTunes\\
+　gtkpod と rhythmbox などの連携では今一歩。
+
+・win32codec とか decss がらみなライブラリとか \\
+　これももってくるのが面倒
+
+
+[ドキュメント関連とか]
+
+・acrobat reader\\
+　いちいち unofficial から持ってくるの面倒。
+
+・MS明朝・MS P明朝・MS ゴシック・MS Pゴシック\\
+　見た目の互換性が重要
+
+
+[その他]
+
+・Spyware 除去\\
+　聞いたこと無い。
+
+・ゲーム?\\
+　素朴なゲームは特にやりたいとは思わないんで…。
+　コンシューマなソフトが使えるといいですよね。
+
+\subsubsection{Masakazu Takahashiさん}
+
+sargeのパッケージにないものという範囲で。あったらごめんなさい。
+
+・使ってるもの\\
+fontconfigのboldとか全角ダッシュとか対応、monafont-ttf、uim-qt、pptpconfig、howm
+
+・Web関係\\
+ZopeはあるけどXOOPSはない。hikiはあるけどpukiwikiはない。
+
+・最新バージョン関係\\
+PHP5、Firefox 1.0.1、OpenOffice.org 2.0（$\beta$ ですが）
+
+・とりあえず言ってみるもの\\
+Xorg、Eclipse
+
+・権利や商業的に無理なもの\\
+Adobe Reader、Flash Player、Sun JVM、ATOK、IPAフォント、リコーフォント、MSフォント
+
+・そもそもLinuxにありませんから残念\\
+うちのデジカメの標準画像管理ツール、うちのボイスレコーダーの再生ソフト、
+うちの携帯のバックアップツール、うちのミニコンポの制御ツール、nPOP、live2ch、
+irvine、Google Desktop、Sleipnir、QuarkXpress、InDesign、Illustrator
+
+
+\subsubsection{五味雅裕さん}
+
+比較的あり物で満足してしまう性格ながら、それでもDebianを使っていて常々パッ
+ケージの不足を感じる分野がある。全く自分の仕事の分野ではあるのだが
+Scienceセクションにおける生物関連、平たくいえばバイオインフォマティクス、
+生物情報科学でのツール類のパッケージの少なさはもう少しなんとかならないか
+なあと日々思う。ごく有名なNCBIによるツール類や古典的といってよいような基
+本的ツールのパッケージは存在しているが、しかし全くといっていいほど不足で
+ある。バイオインフォマティクスという学問分野が勃興してより遺伝子情報解析
+等における有用なツールがオープンなライセンスの元に数多く公開されており、
+これらがパッケージとして取り込まれると生物情報科学の研究者にとってDebian
+が手放せないものとなると考える。
+
+
+\subsubsection{上川}
+
+安心して音楽が編集できる環境．
+emacs並に安定して動作してくれて，音をマルチトラックで処理できて，
+GUIで目視しながら状況を確認できるようなソフトウェア．
+そういうパッケージがない，そもそもその条件を満たすフリーソフトウェアが存
+在していないかもしれない．
+
+%%% trivia quiz
+\dancersection{Debian Weekly News trivia quiz}{上川純一}
+
+ところで，Debian Weekly News (DWN)は読んでいますか？
+Debian 界隈でおきていることについて書いているDebian Weekly News.
+毎回読んでいるといろいろと分かって来ますが，一人で読んでいても，解説が少
+ないので，
+意味がわからないところもあるかも知れません．みんなでDWNを読んでみましょう．
+
+漫然と読むだけではおもしろくないので，DWNの記事から出題した以下の質問にこたえてみてください．
+後で内容は解説します．
+
+
+\subsection{2005年8号}
+
+\santaku{debconfを使っているパッケージのうち，po-debconfを使っていない数は
+}{102}
+{1020}
+{10200}
+
+\santaku{FTP-masterに対して不要になったdebianパッケージを削除してほしい
+と依頼する方法は
+}{IRCの ftpmaster チャンネルで叫ぶ}
+{ftp.debian.org 仮想パッケージに対してBTSでバグを登録する}
+{debian-develにメールする}
+
+\santaku{実行ファイルとデータファイルを別パッケージにしている場合などで
+依存関係を厳密に=の関係で指定すると発生する問題は
+}{APTを使用した場合にCPU負荷が高くなる}
+{FTPサーバに負荷が大きくなる}
+{builddでバイナリがビルドできるまでバイナリの無いアーキテクチャでインス
+トールできない}
+
+\santaku{apt 0.6の機構で実現するのは
+}{ABIの変更は実施しないため，APTライブラリに依存するパッケージのスムーズ
+な移行}
+{暗号学的な認証でインストールするパッケージの出自を確認できるようになる}
+{妄想したパッケージが自動で生成できるようになる}
+
+\santaku{dh-devincludesは何を実現するのか}
+{devパッケージの依存関係情報をビルド時の情報から自動生成する}
+{パッケージをビルドする際にデビンクーズという人のロゴが現れる}{
+デバイスファイルをパッケージに追加する際の処理をする}
+
+\santaku{アプリケーションの移植の際に，armアーキテクチャの場合のみに問題となるものは何か
+}{int の バイトオーダー}
+{char がsignedであるかunsignedであるか}
+{floatの形式}
+
+\santaku{PHP4のライセンスで問題であると指摘されている部分は何か
+}{ソースコードの改変が許可されていない}
+{派生物はPHPと呼ぶことができない}
+{コーヒーをつくれない}
+
+\subsection{2005年9号}
+
+
+\santaku{クロアチアのRudjer Boskovic Instituteが発表したものは
+}{Debian Cluster Components というHPCクラスタ管理用のツール群}
+{クロアチア名産がすぐにわかる土産集パッケージ}
+{Debian使ってません}
+
+\santaku{Hurd/L4で最近できたとMarcus Brinkmannが発表したのは
+}{初めてBannerアプリケーションが実行できた}
+{初めてカーネルが起動した}
+{初めてbashが動いた}
+
+\santaku{Goswin曰くDebianのAMD64移植版は
+}{sargeでgnomeとKDEが入るようになった}
+{debian-installerはまだ動作していない}
+{初めてbashが動いた}
+
+
+
+\subsection{2005年10号}
+
+
+\santaku{2005年のDPL選挙に立候補していないのは
+}{Anthony Towns}
+{Bdale Garbee}
+{Branden Robinson}
+
+
+\santaku{Release Teamのミーティングが開催されるのは
+}{Chicago}
+{Vancouver}
+{Beijing}
+
+\santaku{Project Scudの目的は
+}{Debian に敵対する組織の殲滅}
+{DPLに敵対する陰謀の阻止}
+{DPLの補佐}
+
+\santaku{builddで発生した難しい問題を解決する方法についてSteve Langasek の提案は
+}{玄関のとびらを黄色に変えてから，再度パッケージを投入する}
+{該当アーキテクチャのbuilddの管理者に相談してみる}
+{そのアーキテクチャを捨てよう，とdebien-develメーリングリストで提案する}
+
+\santaku{マニュアルページの中での横棒の表記は
+}{バックスラッシュの後に  - を記述する}
+{-だけを記述する}
+{.hf と記述する}
+
+\dancersection{最近のDebian関連のミーティング報告}{上川純一}
+
+\subsection{東京エリアDebian勉強会1回目報告}
+
+
+無事に一回目は完了しました．
+
+部屋が1階から4階に変わったので前回も参加したひとのほとんどは迷ったそうです．
+
+まず，Debian勉強会についての説明と前回の報告概要．
+
+Debian Weekly News Trivia Quiz. 最高点数は２４点でその次は２０点くらいの
+方が数人いらっしゃったと思います．
+
+やまねさんのBTSの使い方についての熱い説明．reportbugは便利だなぁ，という
+印象です．
+	    debbugs-elって誰もつかっていないんじゃないの？という雰囲気だったのでどきどき．
+	    私はたしかパッチを書いた記憶が．．．つかっていないわけではないので．
+	    ただ，バグをファイルするときにはつかっていなくて，バグの検索とかにだけ利用しています．
+
+debhelperについての上川の話し．\verb!dh_make!について説明をしてDebian
+packageのソースの基本的な構造まで説明しました．
+
+Debianの新しいユーザをターゲットにした手法についてのグループワーク．
+	  出て来たネタは「ISO取得改革：ISOを取得しているOSなので顧客説得力が増大」「見ためFedora，中身はDebian」「インストーラがゲームになっていて，ゲームの進行によってインストールの成否が決まってしまう．ゲームの対策本とかもでて今までにない層にひろまる」でした．
+	    見ためFedora，中身はDebianについてはやまねさんがすでに実践さ
+	  れているようなので期待．
+
+	  Keysignの方法について説明，Keysignの儀式をしました．
+
+前回朝までしたらしんどかったので，宴会は午前3時に解散しました．
+
+
+\dancersection{Debian Social Contractについて}{松山節で攻めます}
+
+\subsection{Debian Social Contractって何だ?}
+Debian プロジェクト憲章 (v1.2)より\footnote{http://www.debian.org/devel/constitution}
+\begin{itemize}
+\item「基本文書 (Foundation Document)」とは,Debianプロジェクトの使命や目的にとって決定的に重要とみなされる文書または声明である.
+\item「基本文書」は,「Debian社会契約(Debian Social Contract)」
+および「Debianフリーソフトウェアガイドライン (Debian Free Software Guidelines)」というタイトルの文書である.
+\item「基本文書」を更新するためには,3:1 の多数決を必要とする.
+新たな「基本文書」の発行や既存の「基本文書」の撤回は,この憲章のリストを修正することによってなされる.
+\end{itemize}
+国なら憲法,DebianにはSocial Contractといったところでしょうか.
+
+\subsubsection{「Debian は 100\% フリーソフトウェアであり続けます.」}
+Debianプロジェクトは社会契約において
+Debian GNU/Linuxディストリビューションを完全にフリーな ソフトウェアとして維持する
+ことを約束しています.
+フリーソフトウェアとはどういうソフトウェアなのか,というのはDebian Free Software Guidline(DFSG)で記述されています.
+
+\subsubsection{「私たちはフリーソフトウェアコミュニティーにお返しをします.」}
+DSCには
+\begin{quote}
+私たちのシステムに含まれているソフトウェアを私たちの「上流」で開発している作者に,バグ修正,改良,ユーザの要求などをフィードバックします.
+\end{quote}
+とありあます.最近MLにDebianデベロッパー同士で「もっと上流の人と密にコミュニケーションとろうよ」的な投稿がありました.実際のところはどうなのでしょうか.
+
+\subsubsection{「私たちは問題を隠しません.」}
+プロジェクトに報告されているバグは全て参照できます.
+Debianでは開発者間,ユーザ間のやりとりのほとんどがメーリングリストを通して行われるそうです.
+Debianはバグの情報に関することのみならず,プロジェクトに関するいろんなことを公開しているようです.
+
+\subsubsection{「私たちはユーザとフリーソフトウェアを大切にします.」}
+DSCには
+\begin{quote}
+私たちはユーザーとフリーソフトウェアコミュニティからの要求に従います.
+彼らの関心と利益を最優先に考えます.
+私たちはさまざまな状況におけるコンピュータ利用環境の運用に関してユーザーの必要を満たすように行動します.
+\end{quote}
+とあります.BTSに「要望」という重要度が用意されているところに,こういった姿勢が現われているでしょうか.
+
+\subsubsection{「私たちのフリーソフトウェア基準に合致しないプログラムについて.」}
+Debianプロジェクトは
+\begin{quote}
+私たちは,Debianフリーソフトウェアガイドラインに適合していないプログラムを使わなければならないユーザーがいることを認めています.
+\end{quote}
+最初の社会契約との折り合いからか,Debianパッケージアーカイブにはmain,contrib,non-freeというカテゴリを作成し,パッケージを整理しています.
+
+\subsection{Debianニュースに見るDebianの思想}
+拒否: Debian プロジェクトは Sender ID を採用できません\footnote{http://www.debian.org/News/2004/20040904}
+\begin{quote}
+...省略...
+また私たちは,インターネットの核となるインフラストラクチャに関する知的財産権 (IPR) は企業に対して認められるべきではないと考えています.IETF が IPR に関するポリシーを見直し,インターネットの核となるインフラストラクチャが妨げられないよう保証する必要があると信じています.
+...省略...
+\end{quote}
+Debian セキュリティ勧告は CVE と互換性があります\footnote{http://www.debian.org/News/2004/20040330}
+\begin{quote}
+...省略...
+公に知られた脆弱性およびセキュリティ上の問題点のすべてについて名前を標準化することを目的とするCommon Vulnerabilities and Exposures (CVE) プロジェクトとの協調的な取り組みの中で, 2002 年 6 月以来,新たなセキュリティ勧告は CVE 識別番号を含めた形で出されています. Debian は 2003 年 5 月に 正式に CVE との互換性を申請しました.
+...省略...
+\end{quote}
+Debian はデスクトップ Linux コンソーシアムに参加します\footnote{http://www.debian.org/News/2003/20030207}
+\begin{quote}
+Debian プロジェクトは,最近設立され,非営利法人になる予定の デスクトップ Linux コンソーシアム (DLC) の設立メンバーです.
+...省略...
+Debian デスクトップ サブプロジェクトは,デスクトップ用途に GNU/Linux を利用しているユーザのために Debian の改善に精力を傾け続けている一例です.
+...省略...
+\end{quote}
+
+\dancersection{debhelper論 その2}{Debhelperの各コマンドは何者か．}
+
+\subsection{debhelperコマンド編}
+
+
+全体を見渡すために，debhelper 4.2.31に含まれているコマンドの一覧を表にしてみます．
+
+ここでインストールといっているのは，ファイルをパッケージビルド用のディレ
+クトリにコピーする，という意味です．
+
+debian/packagename 
+というディレクトリ以下にコピーすることにより，builddebの際にdebファイル
+にコピーされ，後にインストールできるようになります．
+
+DEBIANディレクトリというのは，
+debian/packagename/DEBIAN
+のことで，後にdpkgファイルのcontrol.tar.gzになる部分です．
+
+
+
+%\begin{table}[h]
+\begin{longtable}{|p{3cm}|p{7cm}|p{5cm}|}
+\hline
+\hline
+名称 & 入力ファイル & 効能\\
+\hline
+\hline
+builddeb & & .debファイルを作成 \\
+\hline
+clean & & 不要なファイルを消す debian/rules clean 用 \\
+\hline
+compress & package.compressスクリプト & ドキュメントの圧縮 \\
+\hline
+desktop & & .desktopファイルの登録\\
+\hline
+fixperms & & ファイル権限の修正\\
+\hline
+gconf & & gconf schemaの登録 \\
+\hline
+gencontrol & & dpkg-gencontrolのラッパ． controlファイルをDEBIANディレク
+ トリにインストール \\
+\hline
+install & package.install & ファイルをインストールする \\
+\hline
+installcatalogs & package.sgmlcatalogs & SGMLカタログを登録 \\
+\hline
+installchangelogs & & ChangeLogをインストールする \\
+\hline
+installcron & package.cron.monthly, package.cron.weekly,
+ package.cron.daily package.cron.hourly package.cron.d  & cronスクリプト
+ をインストール \\
+\hline
+installdeb & & DEBIANディレクトリにファイルをインストール \\
+\hline
+installdebconf & package.config package.templates & debconf用のファイル
+ をインストール \\
+\hline
+installdirs & package.dirs & ディレクトリを作成 \\
+\hline
+installdocs & package.docs & ドキュメントをインストール \\
+\hline
+installemacsen & package.emacsen-install package.emacsen-remove
+ package.emacsen-startup & emacs用スクリプトをインストール \\
+\hline
+installexamples & package.examples & example ファイルをインストールする \\
+\hline
+installinfo & package.info & infoをインストールする \\
+\hline
+installinit & package.init package.default & initスクリプトをインストー
+ ルする．defaultファイルをインストールする． \\
+\hline
+installlogcheck &  debian/package.logcheck.cracking
+ debian/package.logcheck.violations
+ debian/package.logcheck.violations.ignore
+ debian/package.logcheck.ignore.workstation
+ debian/package.logcheck.ignore.server
+ debian/package.logcheck.ignore.paranoid & logcheck用のスクリプトを登録 \\
+\hline
+installlogrotate & package.logrotate & logrotate用のスクリプトを登録 \\
+\hline
+installman & package.manpages & manをインストール\\
+\hline
+installmanpages & & installmanを使いましょう   \\
+\hline
+installmenu & package.menu & メニューを追加 \\
+\hline
+installmime & debian/package.mime debian/package.sharedmimeinfo &
+ mime情報を追加 \\
+\hline
+installmodules & debian/package.modules debian/package.modprobe &
+ modutilでmoduleを追加 \\
+\hline
+installpam & debian/package.pam & PAM設定ファイルのインストール \\
+\hline
+installppp & debian/package.ppp.ip-up debian/package.ppp.ip-down & ppp
+ 設定ファイルのインストール \\
+\hline
+installwm & & Window managerを update-alternativesに登録\\
+\hline
+installxfonts & & X フォントの登録 \\
+\hline
+link & package.links & シンボリックリンクの作成 \\
+\hline
+listpackages &  & 処理するパッケージの一覧を出力するだけ \\
+\hline
+makeshlibs & & shlibsファイルを生成する \\
+\hline
+md5sums & & DEBIAN/md5sumsファイルを生成する \\
+\hline
+movefiles & & installを使ってください． \\
+\hline
+perl & & perlスクリプトの依存関係を自動生成する \\
+\hline
+python & & pythonモジュールの依存関係の自動生成と，プリコンパイルのため
+ のpre/postinstスクリプトの自動生成 \\
+\hline
+scrollkeeper & & OMFファイルの登録 \\
+\hline
+shlibdeps & & 共有ライブラリ依存関係情報の自動取得 \\
+\hline
+strip & & デバッグ情報のstrip \\
+\hline
+suidregister & & もう使わないでください \\
+\hline
+testdir & & 正しいディレクトリにいることを確認してくれる \\
+\hline
+testroot & & root権限で実行されていることを確認 \\
+\hline
+testversion & & debhelperのバージョンを確認する．今後はBuild-Dependsで指
+ 定してください． \\
+\hline
+undocumented & & もう使わないでください \\
+\hline
+usrlocal & & /usr/local以下のディレクトリに関してポリシに基づいた作成/削除を実
+ 施．\\
+\hline
+\hline
+\end{longtable}
+
+
+\subsubsection{dh-testroot}
+
+debian/rules スクリプトの中で，Policyで定義されている
+「実行にはroot権限が必要」となっている部分があります．
+本当にroot権限で実行されているのか確認してあげる部分です．
+
+{\tt id -u}  コマンドの出力が 0であるか，とか
+{\tt whoami }コマンドの出力が rootであるか，とかで確認します．
+fakerootで実行されることが多いため，fakerootでだまし切れる内容にする必要があります．
+
+今後selinuxなどの広がりにより，rootである，ということのチェックだけでは
+不十分になったばあいには
+debhelper側で機能が拡張されることでしょう．
+
+\subsubsection{dh-testdir}
+
+現在のディレクトリが，debianパッケージのソースディレクトリであるか，とい
+うことを確認します．
+ここでは，カレントディレクトリからみて，./debian/rulesというファイルが存
+在するか，
+などということで確認できます．
+
+\subsubsection{dh-clean}
+
+作業用に利用したファイルを消します．
+インストールイメージを作成するために一時的に作成する
+{\tt debian/パッケージ名 } ディレクトリの削除はここで実行します．
+
+
+
+
+\newpage
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{個人提案課題}{}
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+下記の空欄を埋めてください:
+
+{\LARGE 
+Debian の (\hspace{5cm})\\
+に注目し(\hspace{6cm})な改善を\\
+パッケージ管理システムに導入し\\
+(\hspace{6cm})を実現します．
+}
+\\\\
+企画案の図：
+
+\newpage
+
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{グループ提案課題}{}
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}
+
+{\large 名前} \underline{\hspace{6cm}} 
+\hfill{}{\large 名前} \underline{\hspace{6cm}}\\
+
+下記の空欄を埋めてください:
+
+{\LARGE 
+Debian の (\hspace{5cm})\\
+に注目し(\hspace{6cm})な改善を\\
+パッケージ管理システムに導入し\\
+(\hspace{6cm})を実現します．
+}
+\\\\
+企画案の図：
+
+\newpage
+%\vfill{}
+%\hfill{}
+%\includegraphics[width=7cm]{image200502/openlogo-nd.eps}
+%\hfill{}
+%\vfill{}
+%\newpage
+
+\dancersection{Keysigning Party}{上川純一}
+
+
+事前に必要なもの
+\begin{itemize}
+ \item 自分の鍵のfingerprintを書いた紙({\tt gpg --fingerprint XXXX}の出力．)
+ \item 写真つきの公的機関の発行する身分証明書，fingerprintに書いてある名前が自分の
+ものであると証明するもの
+\end{itemize}
+
+キーサインで確認する内容
+\begin{itemize}
+ \item 相手が主張している名前の人物であることを信頼できる身分証明書で証明し
+       ているか\footnote{いままで見た事の無い種類の身分証明書を見せられ
+       てもその身分証明書の妥当性は判断しにくいため，学生証明書やなんと
+       か技術者の証明書の利用範囲は制限される．
+       運転免許証明書やパスポートが妥当と上川は判断している}．
+ \item 相手がfingerprintを自分のものだと主張しているか
+ \item 相手のfingerprintに書いてあるメールアドレスにメールをおくって，
+       その暗号鍵にて復号化することができるか
+\end{itemize}
+
+手順としては
+\begin{itemize}
+ \item 相手の証明書を見て，相手だと確認
+ \item fingerprintの書いてある紙をうけとり，これが自分のfingerprintだと
+       いうことを説明してもらう
+ \item (後日) gpg署名をしたあと，鍵のメールアドレスに対して暗号化して送付，相手
+       が復号化してキーサーバにアップロードする
+       ({\tt gpg --sign-key XXXXX, gpg --export --armor XXXX })
+\end{itemize}
+
+
+\dancersection{次回}{}
+
+次回は4月9日土曜日の夜を予定しています．
+内容は本日決定予定です．
+
+参加者募集はまた後程．
+
+\end{document}
