@@ -236,8 +236,440 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 前回開催した第5回目の勉強会の報告をします．
 中略
 
-\dancersection{dsysとupdate-alternatives}{岩松}
+\dancersection{alternatives
+ -選択せよ-}{えとー}
 %% えとーさんの記事はここから
+\subsection{alternatives とは？}
+     パッケージ管理というと依存関係の管理についてのみがクローズアップされるが、
+   パッケージ管理としては、それだけでは不足する部分がある、それを補うものの一つが
+   alternatives です。
+  
+     日本語訳すると「選択肢」、私の定義ですが、
+   「複数のパッケージを特定機能ごとに一つにまとめて扱い機能ベースのパッケージの管理を提供するもの。」
+   「パッケージを機能の視点で管理する。」
+   「プログラムに OS の 統一的な API を提供する。」
+    の3点です。
+
+   機能としては、
+     「類似の機能を持つプログラムの別名を提供する。」で、symlink を使って実現しています。
+    alternatives とは、その symlink を管理するための機構と言えるでしょう。
+ 
+   なぜわざわざ別名が必要？
+
+\begin{enumerate}
+ \item プログラムからの使い勝手の向上
+     万単位のパッケージの存在する Debian では同じような機能を持つ
+     別々のパッケージが複数存在することは珍しくありません。
+     伝統的にUnix系OSではパイプやリダイレクトなどや
+     スクリプト、プログラムなどから他のプログラムの機能を利用することにより
+     コード量の削減と質の向上を図っています。
+     しかし、プログラムから呼び出す際に同じような機能をもつもの全てを把握し
+     条件分岐などで呼んで行くのはコストから言って現実的ではありません。
+     その解決策としてはプログラムへの統一的な API を提供することができるようすることです。
+     awk スクリプトやコンパイラなどを思い浮べるといいと思います。
+
+ \item ユーザへの使い勝手の向上
+     ユーザからしても同じ機能なのに別の別の名前であると不便な場合もあります。
+     MUA や IRCクライアント からの Web Browser を呼び出す際を想像してもらえば想像し易いと思います。
+
+ \item menu との連携
+     Debian 独自なものとして menu がありますが、これと alternatives を連携させることにより
+     メニューをいじらずに、違うパッケージを提供することができます。
+
+\end{enumerate}
+
+\subsection{update-alternatives の使い方}
+  see man(重要)
+
+  alternatives の制御には /usr/sbin/update-alternatives というコマンドを使います。
+
+\begin{commandline}
+  書式一覧
+   update-alternatives --install リンク 一般名 パス 優先度  [--slave スレーブリンク スレーブ一般名 スレーブパス]
+   update-alternatives --remove 一般名 パス
+   update-alternatives --remove-all ディレクトリ
+   update-alternatives --all
+   update-alternatives --auto 一般名
+   update-alternatives --display 一般名
+   update-alternatives --list 一般名
+   update-alternatives --config 一般名
+   update-alternatives --set 一般名 パス
+\end{commandline}
+
+\subsection{用語の説明}
+\subsubsection{マスター}
+\begin{itemize}
+ \item 
+     マスター  alternatives の対象とするもの
+ \item     リンク 一般的なリンクです\\
+       例 /usr/bin/awk, /usr/bin/editor, /usr/bin/pager, /usr/bin/x-www-browser
+ \item     一般名 一般的な名前です、\\
+       例 awk, editor, pager, x-www-browser
+ \item     パス それぞれの alternatives のリンク先になります\\
+       例 /usr/bin/awk: /usr/bin/nawk, /usr/bin/mawk, /usr/bin/gawk 
+          /usr/bin/editor : /bin/ed, /bin/nano, /usr/bin/vim
+          /usr/bin/pager : /bin/more, /usr/bin/less, /usr/bin/w3m, /usr/bin/lv
+          /usr/bin/x-www-browser : /usr/bin/mozilla, /usr/bin/kazehakase, /usr/bin/mozilla-firefox
+ \item     優先度  autoモードで設定される際の選択基準になる整数値です
+\end{itemize}
+\subsubsection{スレーブ}
+
+\begin{itemize}
+ \item 
+
+     スレーブ  alternatives のマスターに付随するファイル、manなど 複数指定可能\\
+ \item      スレーブリンク 一般的なリンクに付随するリンク\\
+       例 /usr/share/man/man1/awk.1.gz, /usr/share/man/man1/nawk.1.gz, /usr/share/man/man1/editor.1.gz, /usr/share/man/man1/pager.1.gz, /usr/share/man/man1/x-www-browser.1.gz
+ \item      スレーブ一般名 一般的な名前に付属する一般名\\
+       例 awk.1.gz, editor.1.gz, pager.1.gz, x-www-browser.1.gz
+ \item      スレーブパス それぞれの alternatives に付随するリンク先\\
+       例 /usr/share/man/man1/awk.1.gz, /usr/share/man/man1/nawk.1.gz : /usr/share/man/man1/mawk.1.gz, /usr/share/man/man1/gawk.1.gz
+          /usr/share/man/man1/editor.1.gz : /usr/share/man/man1/ed.1.gz, /usr/share/man/man1/nano.1.gz, /usr/share/man/man1/vim.1.gz
+          /usr/share/man/man1/pager.1.gz : /usr/share/man/man1/more.1.gz, /usr/share/man/man1/less.1.gz, /usr/share/man/man1/w3m.1.gz, /usr/share/man/man1/lv.1.gz
+          /usr/share/man/man1/x-www-browser.1.gz : /usr/share/man/man1/mozilla.1.gz, /usr/share/man/man1/kazehakase.1.gz, /usr/share/man/man1/mozilla-firefox.1.gz
+\end{itemize}
+
+\subsubsection{automatic と manual }
+
+        alternatives は優先度によって自動的に選択する automatic モードと
+        優先度を無視しユーザが選択する manual モードがあります。 
+        デフォルトは automatic モードで --config や --set 、 --all を
+        使い変更した場合に manual モードに以降します。
+        automatic モードに戻したければ --auto を使います。
+
+\subsection{ユーザとして使う場合}
+     ユーザとして主に使用するコマンド
+
+\subsubsection{状態表示(一般ユーザで可)}
+\begin{commandline}
+     update-alternatives --display 一般名
+     update-alternatives --list 一般名
+\end{commandline}
+\subsubsection{設定変更(rootのみ)}
+\begin{commandline}
+     update-alternatives --auto 一般名
+     update-alternatives --config 一般名
+     update-alternatives --set 一般名 パス
+\end{commandline}
+
+     の4つです。
+
+\subsubsection{使用例と説明}
+
+\begin{commandline}
+
+     # update-alternatives --display editor             <-- editor という一般名の alternatives のステータスを表示
+     editor - status is auto.                           <-- alternatives の モード
+      link currently points to /usr/bin/vim             <-- 現在のリンク先
+     /bin/ed - priority -100                            <-- マスターリンク - 優先度 (/bin/ed)
+      slave editor.1.gz: /usr/share/man/man1/ed.1.gz    <-- スレーブ一般名 : スレーブリンク先 (/bin/ed)
+     /bin/nano - priority 40                            <-- マスターリンク - 優先度 (/bin/nano)
+      slave editor.1.gz: /usr/share/man/man1/nano.1.gz  <-- スレーブ一般名 : スレーブリンク先 (/bin/nano)
+     /usr/bin/vim - priority 120                        <-- マスターリンク - 優先度 (/usr/bin/vim)
+      slave editor.1.gz: /usr/share/man/man1/vim.1.gz   <-- スレーブ一般名 : スレーブリンク先 (/usr/bin/vim)
+     Current `best' version is /usr/bin/vim.            <-- 優先度の一番高いもの
+
+     # update-alternatives --list editor                <-- editor という一般名の alternatives のマスターリンク先を表示
+     /bin/ed                                            <-- マスターリンク先
+     /bin/nano                                          <-- マスターリンク先
+     /usr/bin/vim                                       <-- マスターリンク先
+
+     # update-alternatives --auto editor                <-- 一般名 editor の alternatives を優先度によって変更
+     # update-alternatives --config editor              <-- 一般名 editor の alternatives を選択肢から手動で変更
+  
+     There are 3 alternatives which provide `editor'.   <-- editor という一般名の選択肢が3つある
+
+        Selection    Alternative
+     -----------------------------------------------
+          1        /bin/ed                              <-- alternatives
+          2        /bin/nano                            <-- alternatives
+    *+    3        /usr/bin/vim                         <-- alternatives 現在選択されている
+
+     Press enter to keep the default[*], or type selection number:  <-- ここで番号を選択する
+     Using `/usr/bin/vim' to provide `editor'.          <-- editor を /usr/bin/vim で提供する
+
+     # update-alternatives --set editor /usr/bin/vim    <-- 一般名 editor の alternatives を指定したリンクに変更する
+     Using `/usr/bin/vim' to provide `editor'.          <-- editor を /usr/bin/vim で提供する
+\end{commandline}
+
+\subsection{パッケージメンテナとして使う場合}
+
+     パッケージメンテナな人が主に使うコマンド
+     パッケージインストール時に使用(主に postinst)
+\begin{commandline}
+     update-alternatives --install リンク 一般名 パス 優先度  [--slave スレーブリンク スレーブ一般名 スレーブパス]
+\end{commandline}
+
+     パッケージ削除時に使用(主に prerm)
+\begin{commandline}
+     update-alternatives --remove 一般名 パス
+\end{commandline}
+
+\subsubsection{ 使用例}
+     
+\begin{commandline}
+     update-alternatives --install コマンド
+
+     update-alternatives --install リンク 一般名 パス 優先度  [--slave スレーブリンク スレーブ一般名 スレーブパス]
+\end{commandline}
+     この書式ですが、slave は省略可能で、使用する場合には複数のスレーブを
+     指定することもできます。
+
+     vim の postinst\\
+     リンク元のファイルがインストールされてからリンクを貼るので postinst に書く 
+
+\begin{commandline}
+
+     case "$1" in
+       abort-upgrade)
+         for i in vi view ex editor ; do
+           update-alternatives \
+             --install /usr/bin/$i $i /usr/bin/vim 120 \
+             --slave /usr/share/man/man1/$i.1.gz $i.1.gz /usr/share/man/man1/vim.1.gz
+
+         done
+         ;;
+       configure)
+         for i in vi view ex editor ; do
+           update-alternatives \
+             --install /usr/bin/$i $i /usr/bin/vim 120 \
+             --slave /usr/share/man/man1/$i.1.gz $i.1.gz /usr/share/man/man1/vim.1.gz
+
+         done
+         if [ -L /usr/doc/vim ] ; then
+           rm /usr/doc/vim
+         fi
+         ;;
+     esac
+\end{commandline}     
+
+     vim の prerm\\
+     リンク元のファイルがなくなる前に削除するので prerm に書く
+
+\begin{commandline}
+
+     case "$1" in
+       remove)
+         for i in vi view ex editor ; do
+           update-alternatives --remove $i /usr/bin/vim
+         done
+         ;;
+     esac
+\end{commandline}
+
+\subsection{マニアックなコマンド}
+
+     update-alternatives --all\\
+       全ての選択肢に --config を使い設定を行なう
+
+     update-alternatives --remove-all\\
+       ディレクトリにある全ての選択肢を削除する（危険です)
+
+\subsection{一般的なオプション}
+
+
+\begin{commandline}
+     --verbose 冗長メッセージ
+     --quiet メッセージを抑制
+     --test テスト(未実装)
+     --help ヘルプ
+\end{commandline}
+
+
+\subsection{   マニアックなオプション}
+
+     --altdir \\
+       リンクを置くディレクトリ\\
+       デフォルトは /etc/alternatives/
+
+     --admindir \\
+       設定ファイルを置くディレクトリ\\
+       デフォルトは /var/lib/dpkg/alternatives/
+
+\subsubsection{ マニアックなオプションの使用例}
+
+     /usr/local/以下にソースからインストールしたものや alternatives を提
+     供していないパッケージについて alternatives で管理したい場合などに
+     使う 特権ユーザでなくても使えるのも特徴
+
+     使用例:
+       /home/foo/eclipse 以下にある /home/foo/eclipse/eclipse を
+       alternatives で管理したい。 
+\begin{commandline}
+       $ mkdir /home/foo/altdir/
+       $ mkdir /home/foo/admindir/
+       $ mkdir /home/foo/bin/
+       $  /usr/sbin/update-alternatives --altdir /home/foo/altdir/  --admindir /home/foo/admindir/ --install /home/foo/bin/eclipse eclipse /home/foo/eclipse/eclipse 100 
+\end{commandline}
+
+       で、.bashrc などに /home/foo/bin/ を追加
+     IM とか、MUA の管理にも向いているのではないだろうか。
+
+
+
+\subsection{update-alternatives ってどうなってるの?}
+
+
+   構造
+
+   /usr/sbin/update-alternatives\\
+      alternatives の制御コマンド\\
+      perl で実装されており dpkg パッケージに含まれています。
+
+   /var/lib/dpkg/alternatives\\
+      alternatives設定ファイルディレクトリ\\
+      設定ファイル例
+
+\begin{commandline}
+      $ cat /var/lib/dpkg/alternatives/editor  
+      alternatives設定ファイルディレクトリ
+      /usr/bin/editor                         <-- マスターリンク先
+      editor.1.gz                             <-- スレーブ一般名
+      /usr/share/man/man1/editor.1.gz         <-- スレーブリンク先
+      
+      /bin/ed                                 <-- マスターリンク元(/bin/ed)
+      -100                                    <-- 優先度(/bin/ed)
+      /usr/share/man/man1/ed.1.gz             <-- スレーブリンク元(/bin/ed)
+      /bin/nano                               <-- マスターリンク元(/bin/nano)
+      40                                      <-- 優先度(/bin/nano)
+      /usr/share/man/man1/nano.1.gz           <-- スレーブリンク元(/bin/nano)
+      /usr/bin/vim                            <-- マスターリンク元(/usr/bin/vim)
+      120                                     <-- 優先度(/usr/bin/vim)
+      /usr/share/man/man1/vim.1.gz            <-- スレーブリンク元(/usr/bin/vim)
+\end{commandline}
+
+      
+   /etc/alternatives/\\
+      alternatives のリンクのあるディレクトリです。\\
+      リンク例
+\begin{commandline}
+      $ ls -l /etc/alternatives/editor
+      lrwxrwxrwx  1 root root 12 2005-06-01 02:43 /etc/alternatives/editor -> /usr/bin/vi
+\end{commandline}
+
+\begin{commandline}
+   
+   /usr/share/man/man8/update-alternatives.8.gz
+   /usr/share/man/de/man8/update-alternatives.8.gz
+   /usr/share/man/es/man8/update-alternatives.8.gz
+   /usr/share/man/fr/man8/update-alternatives.8.gz
+   /usr/share/man/ja/man8/update-alternatives.8.gz
+   /usr/share/man/pt_BR/man8/update-alternatives.8.gz
+\end{commandline}
+      alternativesマニュアルです。
+   
+
+\subsection{動作}
+
+   update-alternatives --auto\\
+\begin{enumerate}
+ \item 一般名を取得
+ \item      
+/var/lib/dpkg/alternatives/一般名 のステータス情報が
+        manual の場合は auto に変更
+ \item /etc/alternatives/一般名 のリンク先を /var/lib/dpkg/alternatives/一般名 の
+        優先度の情報を比較し最大のものへのリンクへと変更
+\end{enumerate}
+
+   update-alternatives --config 及び update-alternatives --set コマンド\\
+\begin{enumerate}
+ \item 一般名とリンク先のパスを取得
+ \item /var/lib/dpkg/alternatives/一般名 のステータス情報が
+        auto の場合は manual に変更
+ \item /etc/alternatives/一般名 のリンク先を指定されたリンク先のパスへと変更
+\end{enumerate}
+
+   update-alternatives --install コマンド
+\begin{enumerate}
+ \item      存在しない場合は指定されたパスのリンクを /etc/alternatives/一般名 へと貼る
+ \item      存在しない場合は /var/lib/dpkg/alternatives/一般名 ファイルを指定された情報に基ずいて生成
+ \item      /etc/alternatives/一般名 のリンク先を /var/lib/dpkg/alternatives/一般名 の
+        優先度の情報を比較し最大のものへのリンクへと変更
+\end{enumerate}
+
+   update-alternatives --remove コマンド
+
+\begin{enumerate}
+ \item      /var/lib/dpkg/alternatives/一般名 から指定された パスの情報を削除
+
+ \item      /var/lib/dpkg/alternatives/一般名 で alternatives が提供されない場合は
+        /var/lib/dpkg/alternatives/一般名 及び /etc/alternatives/一般名
+        リンク先を削除
+
+ \item      /var/lib/dpkg/alternatives/一般名 で まだ alternatives が提供されている場合は
+        /etc/alternatives/一般名 のリンク先を /var/lib/dpkg/alternatives/一般名 の
+        優先度の情報を比較し最大のものへのリンクへと変更
+\end{enumerate}
+
+
+\subsection{update-alternatives の改善案}
+
+   update-alternatives 関連の改善案を自分なりに考えてみた。
+
+   1、パッケージのファイル情報への反映
+     
+      現在の alternatives はパッケージをインストールされるまでは
+      そのパッケージがどんな alternatives を提案するのか という情報が
+      解らない。これだと、インストールしてから、普段使用していた 
+      alternatives を使おうとしたら期待してたのと別のものが起動してしまい
+      戸惑うことになるし、無駄なハマりの原因となるし、
+      もし、そのような情報を集積できれば、機能からパッケージをより
+      簡単に検索することができるようになる。
+
+   2、より柔軟に
+      
+       現在の alternatives では、man を slave にした場合などに
+       英語のみしか表示できなくなってしまう、多言語化が進みつつある
+       昨今これだけでは不足ということになってしまっているので、
+       より柔軟な設定を行なえるのが望ましい。
+       ファイルだけではなくコマンドを登録できるようにするなど。
+
+   3、menu 編集インターフェースとの連携
+
+       独自に作成した alternatives などを menu に簡単に登録できるようにする
+       などの、応用的な使い方を簡便にするインターフェースの拡充
+
+\subsection{dsys について}
+
+   目的
+
+   dpkg に含まれる パッケージ依存関係管理を行なう /usr/bin/dpkg 以外の
+   /usr/sbin/update-alternatives, /usr/sbin/dpkg-divert, /usr/sbin/dpkg-statoverride
+   の3つのコマンドに対応した GUI フロントエンドを提供することを目指している。
+
+   歴史
+
+   一番初期は update-alternatives のみに対応したもので、ruby 1.6 と ruby-gtk で書いて
+   いたが、やっぱ gtk2 だろう！ ということで、ruby-gtk2 に手を出してのんびりしてるうちに
+   galternatives など競合で出てきてしまった。
+   思い出したら実装したりしているがコーディング能力の低さのために遅々として改善されていない。
+
+   機能
+
+   /usr/sbin/update-alternatives
+     一覧の表示、個々のステータスの表示、変更、追加、削除
+   /usr/sbin/dpkg-divert
+     一覧の表示
+   /usr/sbin/dpkg-statoverride
+     一覧の表示、変更、追加、削除
+
+   TODO
+
+     まずはツールチップを適切に実装すること
+     綺麗なコードの書き方や、デザインがわからないのでどうにかする
+     せめて man くらい、、
+     alternatives と statoverride のインターフェースを意識的に替えていたがそろそろ統一
+     treeview で右クリックできるようする
+     ショートカットの実装
+
+   将来
+
+     設定ファイルを作るかも
+     アイコン欲しいよね
+
+   協力者の方募集中、、
+
+
 %% えとーさんの記事はここまで
 
 \dancersection{debian-installer}{kmuto}
