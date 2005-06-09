@@ -791,9 +791,199 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 
 %% えとーさんの記事はここまで
 
-\dancersection{debian-installer}{kmuto}
-%% kmutoさんここから
-%% kmutoさんここまで
+\dancersection{Inside Debian-Installer}{武藤 健志}
+\label{sec:inst}
+
+
+\subsection{Debian-Installerとは}
+\label{sec:whatd-i}
+
+\textbf{Debian-Installer}（以下\textbf{d-i}）は、Debian GNU/Linuxリリース3.1、コードネームSargeから採用された新しいインストーラシステムです。
+
+これまでのインストーラシステム（Woody以前）として採用されていたBoot-Floppiesには、次のような問題がありました。
+
+\begin{itemize}
+\item サイズの制限。その名のとおりフロッピーディスクを基盤にしたものなので、システム全体をフロッピー容量の1.2MB〜1.44MBに圧縮して収まるように悪戦苦闘しなければならなかった。
+\item 動的ロードの不備。動的にインストーラを拡張する方法がなく、機能向上を行うすべがなかった。
+\item ハードウェア認識の不備。ハードウェアを自動認識する機構が入っていなかった。ユーザーはすべて手動で設定しなければならなかった。
+\item インストーラのリリースとテスト。インストーラ一式が一体のため、リリースするためには全体をビルドしなければならず、頻繁にリリースすることができなかった。バグへの対処が遅れがちになった。
+\end{itemize}
+
+\begin{table}[htbp]
+  \begin{tabular}[htbp]{|l|p{10cm}|}\hline
+    2000夏ごろ&Joey Hessがデザインを始める\\ \hline
+    2000秋ごろ&サンプル実装が公開される\\ \hline
+    2002&WoodyがBoot-Floppiesに基づいてリリース。Sargeでd-iになるよう本格的に目標が立てられる\\ \hline
+    2003&開発がかなり進展。開発者も増える\\ \hline
+    2004&d-i rc2リリース\\ \hline
+    2005春&d-i rc3リリース\\ \hline
+    2005夏&Sargeリリース\\ \hline
+  \end{tabular}
+  \caption{d-iの簡単な歴史}
+  \label{tab:history}
+\end{table}
+
+
+\subsection{開発体制}
+\label{sec:devel}
+
+d-iの開発は、ほかのどのDebianのサブプロジェクトよりも大規模です。
+
+\begin{itemize}
+\item リポジトリのコミッタ権限がある人：153人
+\item ローカライズコーディネータのコミッタに代行してもらっている人もいるので、実際はもっと多い？
+\item オフィシャルなDebian Developerは60人
+\item アカウント管理：Alioth（\texttt{http://alioth.debian.org/projects/d-i/}）、メーリングリスト：debian-boot@lists.debian.org、バグ追跡：installation-reports仮想パッケージ名、IRC：\#debian-boot
+\end{itemize}
+
+\begin{table}[htbp]
+  \begin{tabular}[htbp]{|l|p{8cm}|}\hline
+    プロジェクトリーダ&Joey Hess\\ \hline
+    国際化&Christian Perrier、Dennis Stampfer\\ \hline
+    フロントエンド&Collin Watson\\ \hline
+    パーティションマネージャ&Anton Zinobiev\\ \hline
+    ネットワーク設定&Joshua Kwan\\ \hline
+    ハードウェア認識&Petter Reinholdtsen\\ \hline
+    移植&Martin Michlmayr、Steve Langaek、…\\ \hline
+    ドキュメント&Frans Pop\\ \hline
+  \end{tabular}
+  \caption{主な開発者}
+  \label{tab:core}
+\end{table}
+
+当初はCVS、現在はSubversionにて協業を行っています。
+
+\begin{itemize}
+\item \texttt{http://svn.d-i.alioth.debian.org/svn/d-i/trunk}（トランク、unstable向け）
+\item \texttt{http://svn.d-i.alioth.debian.org/svn/d-i/branches/d-i/sarge} （フリーズされたSargeのブランチ）
+\end{itemize}
+
+\begin{figure}[htbp]
+\begin{verbatim}
+d-i/
+    installer/build/ ――d-iのビルドディレクトリ (make ...を実行するとd-iイメージができる)
+    installer/doc/   ――ドキュメント。manual/にXML形式のインストールマニュアルが収録されている
+    packages/        ――各udebのソースコード
+    scripts/         ――自動化などに使うスクリプト集
+\end{verbatim}
+  \caption{d-iリポジトリの構造}
+  \label{fig:direpo}
+\end{figure}
+
+\subsection{d-iの構造}
+\label{sec:udeb}
+
+d-iは、これまでに蓄積されてきたさまざまなLinux/Debianのフレームワークを応用しています。
+
+\begin{description}
+\item[udeb] 通常のdebから実行に不必要なものを削除してスリムにしたもの
+\item[cdebconf] Cで記述されたdebconfフレームワーク (いくらか拡張)
+\item[devfs] ハードディスクなどのデバイスファイルの取り扱いを容易にする
+\item[フレームバッファと国際化端末] 国際化端末を実行する (bogl-termおよびjfbterm)
+\item[discoverとhotplug] ハードウェアの自動認識
+\end{description}
+
+
+\subsubsection{udeb}
+\label{sec:udeb}
+
+udebは、通常のdebとほぼ同じですが、ドキュメントなどの実行に直接関係ないものを削ぎ落としたバイナリパッケージです。
+
+\begin{itemize}
+\item インストーラだけで利用する特別なメタ情報として、XB-Installer-Menu-Itemが含まれているものがある。これは、インストーラのメニューに表示する際の順番を示す
+\item DependsやProvidesで依存関係を処理したり、debconf用の国際化済みtemplatesによってローカライズされたメニューを表示できる (メニューに表示されるのはパッケージのshort descriptionだが、特別にdebconf templatesの中でこのローカライズも設定している)
+\item インストーラのメニューを選択することは、postinstを実行するということになる
+\item 環境によってロードする順序を変えることができる 。たとえば、ネットワークインストールなら最初にネットワークの設定を済ませてからIDEコントローラを検出、CDインストールなら最初にIDEコントローラの設定を済ませてからネットワークを検出
+\end{itemize}
+
+\begin{table}[htbp]
+  \begin{tabular}[htbp]{|l|p{7cm}|}\hline
+    anna&擬似APT\\ \hline
+    udpkg&マイクロdpkg\\ \hline
+    languagechooser、countrychooser&言語・国情報の設定\\ \hline
+    hw-detect、ethdetect、hw-detect-full&ハードウェアの検出\\ \hline
+    preseed&事前構成のロード\\ \hline
+    netcfg&ネットワーク設定\\ \hline
+    network-console&SSHサーバーを起動してリモートインストールを実行する\\ \hline
+    cdrom-retriever、floppy-retriever、net-retriever&udebパッケージをダウンロードする\\ \hline
+    partman&パーティションマネージャ\\ \hline
+    base-installer&ベースシステムをdebootsrapで展開し、CPUに合ったカーネルをインストールする\\ \hline
+    os-prober&インストールされているほかのOSの検出\\ \hline
+    prebaseconfig&CDの取り出し、現在の状態の保存など\\ \hline
+  \end{tabular}
+  \caption{主なudeb}
+  \label{tab:udeb}
+\end{table}
+
+リポジトリのpackages/だけでなく、libcやdiscover、console-toolsのように、外部のdebパッケージがudebを提供することもあります。
+
+d-iはudebの集合体で、最初にロードされるインストーラもudebを基に構成されています。d-iのmake時にどのudebから構成しておくかによって、CD向け、ネットワーク向け、USBメモリ向けといったイメージを作成できます。
+
+
+\subsubsection{cdebconf}
+\label{sec:cdebconf}
+
+cdebconfは、Perlで記述されていたdebconfを、Cで実装し直したものです。
+
+\begin{itemize}
+\item Perlの膨大なアーカイブの必要なく動作
+\item 進捗バーなどの機能拡張
+\end{itemize}
+
+今後は普通の環境も、debconfは捨てて(orphan済み)、cdebconfに移行しようという計画になっています。
+
+d-iではcdebconfが大きな役割を果たしています。
+
+\begin{itemize}
+\item debconfインターフェイスにのっとったフロントエンドを切り替えることができる (デフォルトはdialog)
+\item templatesからインストールの質問を表示し、答えをデータベースに格納する
+\item 質問に優先度(critical、high、medium、low)を設定して、質問の詳細と数を変えられる (デフォルトはhigh)
+\item データベースに最初から値を入れるようにして、全自動インストールができる (preseed)
+\end{itemize}
+
+
+\subsubsection{devfs}
+\label{sec:devfs}
+
+Linuxカーネル2.4で導入されたdevfsでは、「動的に」「利用可能な」デバイスファイルが作成されるので、ハードディスクのパーティションやフレームバッファの存在を検出するのに便利です。
+
+ただ、devfsはもうobsoleteなので、今後はudevに書き換えていくことになるでしょう。
+
+
+\subsubsection{フレームバッファと国際化端末}
+\label{sec:i18n}
+
+Linuxのデフォルトの端末画面はラテン文字しか表示できないので、国際化されたインストーラを実行するためにはフレームバッファドライバをロードしたあと、その上で国際化端末を実行する、という手順が必要になります。x86の場合フレームバッファドライバは、vesafb→vga16fbと試行しています。d-iの国際化端末としては、次の2つを採用しています。
+
+\begin{itemize}
+\item bogl-bterm：UTF-8対応の端末。
+\item jfbterm：再起動後、CJK圏でのみ使われる端末(表示はEUC-JP)。なぜbogl-btermで続けなかったかというと…
+\end{itemize}
+
+
+\subsubsection{discoverとhotplug}
+\label{sec:discover}
+
+最初のハードウェア認識にはdiscoverが使われます。再起動後、標準で使われるのはhotplugです。
+
+\begin{itemize}
+\item discover：能動的にハードウェアを認識する。データベースにはPCI ID値などを列挙したdiscover1-dataパッケージの情報を使う
+\item hotplug：ほぼ受動的にハードウェアを認識する。カーネルから送られた情報を使う
+\end{itemize}
+
+
+\subsection{今後のd-i}
+\label{sec:di}
+
+Etchに向けてのTODOはいろいろあります。
+
+\begin{itemize}
+\item より良いハードウェア認識：discover2への移行。既存のdiscoverのデータベースの更新(volatile経由？)。
+\item Woodyのときに使えたような「レスキューモード」：rescue.udebが用意されました
+\item Gtk+によるGUIフロントエンド：実装が進んでいます。ただ、udebの持っている情報をもっと増やすか、別のGUI専用のファイルを用意しないと、GUIのメリットを活かした画面にはならないと思います
+\item 複数言語の選択：だいぶ実装されてきてはいるようです
+\item フロッピーの取り扱い：今回は技術上、カーネル2.4のみの対応としています(カーネル2.6はフロッピーに入らない)。カーネルを分割してロードできないか？
+\end{itemize}
 
 \newpage
 %\vfill{}
