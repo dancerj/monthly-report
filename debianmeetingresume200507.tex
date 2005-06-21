@@ -130,7 +130,11 @@ Debianをこれからどうするという能動的な展開への土台としての空間を提供し，
 
 \subsubsection{上川}
 
-%% TODO
+etchにむけてg++のtransitionがあるらしい．
+ABIがまた変わるとのこと．
+gcc 3.0になるときに「これで最後だから」といってみておきながら，また浮気
+するのですか？
+あぁ．．．
 
 
 
@@ -204,8 +208,70 @@ DWNクイズを実施しました．
 \dancersection{dpatchつかってみよう}{上川純一}
 \label{sec:dpatch}
 
+\subsection{dpatchとは}
 
-\subsection{Debian-Installerとは}
+ Debianのソースパッチを管理するツールです． Debianパッケージでは，ソースパッケージは以下の構成になっています．
+
+    * .orig.tar.gz: オリジナルのtarball
+    * .diff.gz: Debianで作成した差分
+    * .dsc: dpkg用制御ファイル
+
+この中で，.diff.gzは一つの大きな差分ファイルとして管理されるため， どの部分がどういうパッチであるか，ということを管理してはくれません． その部分を実装するのがdpatchです．
+
+通常の.diff.gzであると， debian/ディレクトリ以下のDebianパッケージング用の情報と それ以外のソフトウェア自体への修正が混合しています． それを整理するというものです． 
+
+\subsection{道具}
+
+\subsubsection{dpatch}
+\subsubsection{dpatch-edit-patch}
+\subsubsection{dpatch.el}
+
+\subsection{workflow}
+
+\subsubsection{あたらしいupstreamが出た時}
+    *  前のバージョンからdebian/ディレクトリをコピーしてくる
+    * debian/patches/xx_patchname.dpatchをそれぞれ patch --dry-run -p1 で適用できるかどうか確認する
+    * debian/patches/00listを編集
+    * debian/rules patch
+    * 適用できないパッチの再作成
+
+
+\subsubsection{あたらしくpackageをつくる時}
+    *  debian/rulesを変更し，/usr/share/dpatch/dpatch.makeをincludeし， cleanとconfigureのルールでpatchとunpatchルールが呼ばれるようにする(patch-stampとかを使う)
+    * debian/patches/00listを作成する
+    * dpatch-convert-diffgzを実行，とりあえずdpatchファイルに変換する
+    * dpatchファイルを適当に編集して複数ファイルに分割
+
+    *  debian/rules patchとdebian/rules unpatchが成功する
+    * dpkg-buildpackageで生成されるdiff.gzのdiffstatをとり，debian以下以外の場所にdiffができていないことを確認
+
+\subsubsection{あたらしくpatchを作成}
+
+
+    *  dpatch-edit-patch パッチ番号_パッチ名とする． 例：dpatch-edit-patch 03_automake  もし他のパッチに依存する変更をするなら，そのパッチ名を入力します． dpatch-edit-patch 03_automake 02_autoconf． これを実施すると，/tmp以下に適当なディレクトリでソースが編集できるようにシェルが起動します．
+    * ソースを適当に編集します．
+    * exitすると，パッチファイルがdebian/patchesディレクトリ以下に生成されます．
+    * 生成されたパッチファイルに適当なコメントを書いておきます
+    * debian/patches/00listを適当に修正します
+    * debian/rules unpatchdebian/rules patchdebian/rules unpatchとして 一応パッチが動作することを確認します
+
+
+\subsubsection{すでにあるパッチを編集}
+
+    *  dpatch-edit-patch パッチ番号_パッチ名とする．例：dpatch-edit-patch 03_automake
+    * 編集する
+    * exit
+
+\subsection{ファイル構成}
+ dpatchでは，パッチをdebian/patches/xx_patchname.dpatchという名前 で管理します．例えば，debian/patches/01_configure.dpatchという 名前になります． そして，パッチの一覧をdebian/patches/00listに記述します． そこでは，01_configureというような形式で記述できます．
+
+こうすることにより，Debianにおいての変更点がdebian/ディレクトリ以下に集
+まり， また変更点をdebian/patchesディレクトリで分類して管理できる，とい
+う利点があります． 
+
+\subsection{今後の開発}
+
+がんばれ．
 
 \newpage
 %\vfill{}
