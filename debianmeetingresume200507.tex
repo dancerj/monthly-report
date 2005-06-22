@@ -184,7 +184,7 @@ DWNクイズを実施しました．
 	    udebをつかっていたり，annaをつかっていたり，
 	    cdebconfを使っているところとか．
 	    1st-stageと2nd-stage があって，全然違うとか．
-	    インストーラが動いているときにはDEBCONF_PRIORITYはHIGHなのに
+	    インストーラが動いているときにはDEBCONF\underline{ }PRIORITYはHIGHなのに
 	    インストール後はMEDIUMに強制変更するためいろいろとひずみがでているとか．
 	    なお，自動認識されないハードウェア情報については，
 	    バグレポートが重要なので，lspci, lspci -n
@@ -205,69 +205,189 @@ DWNクイズを実施しました．
 \subsection{今後どうするか}
 %% gotomさんの記事はここまで
 
-\dancersection{dpatchつかってみよう}{上川純一}
+\dancersection{dpatchをつかってみよう}{上川純一}
 \label{sec:dpatch}
 
 \subsection{dpatchとは}
 
  Debianのソースパッチを管理するツールです． Debianパッケージでは，ソースパッケージは以下の構成になっています．
-
-    * .orig.tar.gz: オリジナルのtarball
-    * .diff.gz: Debianで作成した差分
-    * .dsc: dpkg用制御ファイル
+\begin{itemize}
+    \item .orig.tar.gz: オリジナルのtarball
+    \item .diff.gz: Debianで作成した差分
+    \item .dsc: dpkg用制御ファイル
+\end{itemize}
 
 この中で，.diff.gzは一つの大きな差分ファイルとして管理されるため， どの部分がどういうパッチであるか，ということを管理してはくれません． その部分を実装するのがdpatchです．
 
-通常の.diff.gzであると， debian/ディレクトリ以下のDebianパッケージング用の情報と それ以外のソフトウェア自体への修正が混合しています． それを整理するというものです． 
+通常の.diff.gzであると， {\tt debian/}ディレクトリ以下のDebianパッケージング用の情報と それ以外のソフトウェア自体への修正が混合しています． それを整理するというものです． 
+
+\subsection{ファイル構成}
+ dpatchでは，それぞれの小さな変更をそれぞれ独立したパッチとして扱います．
+ それぞれのパッチを{\tt debian/patches/xx\underline{ }patchname.dpatch}とい
+ う名前 で管理します．例えば，{\tt debian/patches/01\underline{ }configure.dpatch}という
+ 名前になります． そして，パッチの一覧を{\tt debian/patches/00list}に適
+ 用する順番に記述しま
+ す． そこでは，{\tt 01\underline{ }configure}というような形式で記述できます．
+
+ この形式を採用しているため，Debianにおいての変更点がdebian/ディレクトリ以下に集
+まり， また変更点をdebian/patchesディレクトリで分類して管理できる，とい
+う利点があります． 
 
 \subsection{道具}
 
+dpatchを利用するための道具を紹介します．
+
 \subsubsection{dpatch}
+
+dpatchコマンドは，パッチの適用とパッチをはずすという処理を実施してくれる
+コマンドです．
+従来は，makefileからincludeするMake スクリプトとして実装されて
+いましたが，dpatch 2.0からは実体が{\tt  /usr/bin/dpatch} シェルスクリプト
+になっています．
+
+古い{\tt debian/rules}では下記の内容を記述しています．
+
+\begin{commandline}
+include /usr/share/dpatch/dpatch.make
+\end{commandline}
+
+最近のdpatchを利用するソースでは，dpatchコマンドを呼ぶように実装すればよ
+いことになっています．
+({\tt /usr/share/doc/dpatch/examples/rules/rules.new.dh.gz}から抜粋)
+
+\begin{commandline}
+#!/usr/bin/make -f
+#
+# Sample dpatch rules file. Only example. Nothing else. :)
+# This one uses the new way with dpatch from dpatch 2.x
+
+export DH_COMPAT = 4
+
+CFLAGS = -Wall -g
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+CFLAGS += -O0
+else
+CFLAGS += -O2
+endif
+
+build: build-stamp
+build-stamp: patch
+	@echo "--- Compiling"
+	dh_testdir
+# Do something to build your package here
+	touch build-stamp
+
+clean: clean1 unpatch
+clean1:
+	@echo "--- Cleaning"
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+# Clean your build tree
+
+install: build-stamp
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+# Install it here
+
+# Build architecture-independent files here.
+binary-indep: build install
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+# And all the other dh_* stuff you need for your package.
+
+# And now the simple things for dpatch. Here we only apply/unapply the patches.
+# You can do more things with dpatch, like having patches only applied on
+# a special architecture - see the non-dh version of the sample for this!
+patch: patch-stamp
+patch-stamp:
+	dpatch apply-all
+	#dpatch call-all -a=pkg-info >patch-stamp
+
+unpatch:
+	dpatch deapply-all
+	rm -rf patch-stamp debian/patched
+
+binary: binary-indep binary-arch
+.PHONY: binary clean binary-indep binary-arch build install patch unpatch \
+	clean1
+\end{commandline}
+
+
 \subsubsection{dpatch-edit-patch}
+
+dpatchで利用するためのパッチを作成するコマンドです．
+
+
 \subsubsection{dpatch.el}
 
-\subsection{workflow}
+emacs上でdpatchを使うために必要な，00listファイルや，.dpatchファイルの
+編集用のモードです．
+
+まだまだ未完成です．
+
+目標はdpatch-edit-patchの実装ですが，コアのdpatchの部分の
+変更しているばっかりで時間が過ぎていきそうです．
+
+\subsection{作業フロー}
 
 \subsubsection{あたらしいupstreamが出た時}
-    *  前のバージョンからdebian/ディレクトリをコピーしてくる
-    * debian/patches/xx_patchname.dpatchをそれぞれ patch --dry-run -p1 で適用できるかどうか確認する
-    * debian/patches/00listを編集
-    * debian/rules patch
-    * 適用できないパッチの再作成
+\begin{itemize}
+     \item  前のバージョンからdebian/ディレクトリをコピーしてくる
+    \item {\tt debian/patches/xx\underline{ }patchname.dpatch}をそれぞれ{\tt  patch --dry-run -p1 }で適用できるかどうか確認する
+    \item {\tt debian/patches/00list}を編集
+    \item {\tt  debian/rules patch}
+    \item {\tt 適用できないパッチの再作成}
 
+\end{itemize}
 
 \subsubsection{あたらしくpackageをつくる時}
-    *  debian/rulesを変更し，/usr/share/dpatch/dpatch.makeをincludeし， cleanとconfigureのルールでpatchとunpatchルールが呼ばれるようにする(patch-stampとかを使う)
-    * debian/patches/00listを作成する
-    * dpatch-convert-diffgzを実行，とりあえずdpatchファイルに変換する
-    * dpatchファイルを適当に編集して複数ファイルに分割
+\begin{itemize}
+     \item  {\tt debian/rules}を変更し，{\tt
+	    /usr/share/dpatch/dpatch.make} をincludeし， cleanと
+	    configureのルールでpatchとunpatchルールが呼ばれるようにする
+	    (patch-stamp等を利用)
+    \item {\tt debian/patches/00list}を作成する
+    \item {\tt dpatch-convert-diffgz}を実行，とりあえずdpatchファイルに変換する
+    \item dpatchファイルを適当に編集して複数ファイルに分割
 
-    *  debian/rules patchとdebian/rules unpatchが成功する
-    * dpkg-buildpackageで生成されるdiff.gzのdiffstatをとり，debian以下以外の場所にdiffができていないことを確認
+    \item {\tt  debian/rules patch}と{\tt debian/rules unpatch}が成功する
+    \item {\tt dpkg-buildpackage}で生成されるdiff.gzのdiffstatをとり，
+	    debian以下以外の場所がdiffに含まれていないことを確認
+\end{itemize}
 
 \subsubsection{あたらしくpatchを作成}
 
-
-    *  dpatch-edit-patch パッチ番号_パッチ名とする． 例：dpatch-edit-patch 03_automake  もし他のパッチに依存する変更をするなら，そのパッチ名を入力します． dpatch-edit-patch 03_automake 02_autoconf． これを実施すると，/tmp以下に適当なディレクトリでソースが編集できるようにシェルが起動します．
-    * ソースを適当に編集します．
-    * exitすると，パッチファイルがdebian/patchesディレクトリ以下に生成されます．
-    * 生成されたパッチファイルに適当なコメントを書いておきます
-    * debian/patches/00listを適当に修正します
-    * debian/rules unpatchdebian/rules patchdebian/rules unpatchとして 一応パッチが動作することを確認します
+\begin{itemize}
+ 
+ \item dpatch-edit-patch パッチ番号\underline{ }パッチ名とする． \\
+       例：
+       { \tt dpatch-edit-patch 03\underline{ }automake }  \\もし他のパッチに依存
+ する変更をするなら，そのパッチ名を入力します． \\ 例 {\tt dpatch-edit-patch
+ 03\underline{ }automake 02\underline{ }autoconf}．\\
+       これを実施すると，{\tt /tmp}以下に適当なディレクトリでソースが編集できるようにシェルが起動します．
+ \item  ソースを適当に編集します．
+ \item  exitすると，パッチファイルが{\tt debian/patches}ディレクトリ以下に生成されます．
+ \item  生成されたパッチファイルに適当なコメントを書いておきます
+ \item  {\tt debian/patches/00list }を適当に修正します
+ \item  {\tt debian/rules unpatchdebian/rules patchdebian/rules unpatch }として 一応パッチが動作することを確認します
+\end{itemize}
 
 
 \subsubsection{すでにあるパッチを編集}
 
-    *  dpatch-edit-patch パッチ番号_パッチ名とする．例：dpatch-edit-patch 03_automake
-    * 編集する
-    * exit
-
-\subsection{ファイル構成}
- dpatchでは，パッチをdebian/patches/xx_patchname.dpatchという名前 で管理します．例えば，debian/patches/01_configure.dpatchという 名前になります． そして，パッチの一覧をdebian/patches/00listに記述します． そこでは，01_configureというような形式で記述できます．
-
-こうすることにより，Debianにおいての変更点がdebian/ディレクトリ以下に集
-まり， また変更点をdebian/patchesディレクトリで分類して管理できる，とい
-う利点があります． 
+\begin{itemize}
+     \item  dpatch-edit-patch パッチ番号\underline{ }パッチ名とする．例：
+{\tt  dpatch-edit-patch 03\underline{ }automake}
+    \item 編集する
+    \item exit
+\end{itemize}
 
 \subsection{今後の開発}
 
