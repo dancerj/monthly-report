@@ -1,2 +1,2 @@
 clean:
-	-rm *.tex *.dvi *.aux *.toc *~ *.log
+	-rm *.dvi *.aux *.toc *~ *.log
