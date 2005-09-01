@@ -198,9 +198,513 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 前回開催した第7回目の勉強会の報告をします．
 
 
-\dancersection{debconf論}{鵜飼さん}
+\dancersection{debconf論}{鵜飼文敏\footnote{Fumitoshi UKAI, ukai@debian.or.jp, ukai@debian.org, Debian Project}}
 \label{sec:ukai}
 %%鵜飼さんの記事はここから
+\subsection{はじめに}
+
+debconfとは、Debianにおいてパッケージの設定を行なうためのフレームワー
+クおよびそれを実装したパッケージです。そもそもは、元Debian Project
+LeaderのWichert Akkerman発案のconfiguration database framework 構想
+\footnote{/usr/share/doc/debian-policy/debconf\_specification.html}であり、
+debconfは、それに基づくJoey Hessによる実装です。
+
+従来、パッケージの設定のうち、パッケージメンテナがデフォルトを決めにくいもの、
+つまりシステム管理者によって決定されるようなものは、メンテナスクリプト
+\footnote{postinstなど}で、プロンプトをだし管理者が入力した値に基づい
+て設定ファイルを生成するようにしていました。これはこれで非常に柔軟性が高い
+\footnote{メンテナががんばってメンテナスクリプトを書けばいろいろできる} 
+のですが、パッケージによって\footnote{メンテナによってというべきか?} 
+やりかたが異なってしまい、ディストリビューションとしての統一感に欠けて
+しまうという欠点がありました。また、パッケージのインストール時・アップ
+グレード時に常に管理者の介在が必要になってしまうために、インストール・
+アップグレード中にコンソールを離れているわけにはいかないという問題もは
+らんでいます。
+
+そこで考案されたのがdebconfです。debconfを使うことで設定データを統一して
+扱うことができるようになります。
+
+\subsection{debconfを使っているパッケージの設定の仕方}
+
+apt-utilsをインストールしておくとapt-extracttemplatesを使って、パッケー
+ジをダウンロードしてインストール作業をする前\footnote{unpackをする前}
+にdebconfを使ってパッケージの設定をおこなうことができるようになります。
+この時はdebconf自体の設定 debconf/frontend に従ったフロントエンド
+\footnote{dialog,readlline,gnome,kde,editor,noninteractiveのどれか}をつかって
+ユーザとのやりとりがおこなわれます。また、設定には優先度(priority)
+\footnote{重要(critical)、高(high)、中(medium)、低(low)のどれか}が
+つけられており、debconf/priority の値より優先度が高いものだけが
+フロントエンドを介してユーザとやりとりをおこなわれるようになります。
+
+またインストールした後もdpkg-reconfigureでパッケージの設定をしなおすこ
+とができます。dpkg-reconfigureは、debconf/priorityの値にかかわらず低優
+先度(low)\footnote{-pオプションを使わなければ}以上すなわちすべての設定
+をやりなおすようになっています。
+
+また、現在そのパッケージの設定値がどうなっているかを知りたい場合は
+debconf-show コマンドが使えます。
+
+\begin{commandline}
+ # debconf-show debconf
+ * debconf/priority: critical
+ * debconf/frontend: Dialog
+\end{commandline}
+
+
+\subsection{debconfの裏側}
+
+apt-getがパッケージをダウンロードしてくると/etc/apt/apt.conf.d/70debconfというファイルによりdpkg-preconfigure -aptが実行されるようになります。
+
+\begin{commandline}
+// Pre-configure all packages with debconf before they are installed.
+// If you don't like it, comment it out.
+DPkg::Pre-Install-Pkgs {"/usr/sbin/dpkg-preconfigure --apt || true";};
+\end{commandline}
+
+dpkg-preconfigureでは、apt-utilsのapt-extracttempaltesを使っているため、apt-utilsがインストールされていないと、debconfの設定はこのタイミングではおこなわれません。
+
+dpkg-preconfigure -aptに対して、いまダウンロードしたパッケージのリストがわたされるので、それらからtemplateをとりだして configスクリプトの実行をおこないます。
+
+\begin{itemize}
+\item apt-getによる*.debのダウンロード。/var/cache/apt/archives/にパッケージがおかれる
+\item dpkg-preconfigure -aptの実行
+ \begin{itemize}
+   \item /var/cache/apt/archives/からインストールしようとするdebをみつける
+   \item control情報のtempaltesとconfigをとりだす\footnote{dpkg -I パッケージ.deb templates config。apt-extractpackageを使う}
+   \item templatesをloadして、debconfデータベース\footnote{/var/cache/debconf/*.data}を更新
+   \item configスクリプトを実行する。db\_set、db\_inputやdb\_go
+ \end{itemize}
+\item dpkg --unpack
+ \begin{itemize}
+ \item preinstを実行
+ \item パッケージを展開し、ファイルをおきかえ
+ \end{itemize}
+\item dpkg --configure
+ \begin{itemize}
+ \item postinstを実行。db\_get
+ \end{itemize}
+\end{itemize}
+
+基本的には、configスクリプトで設定情報を決定し\footnote{ユーザに対して設定情報をたずねるか、デフォルト値を設定する}、postinstスクリプトでそれを読みだして実際のパッケージの設定ファイルなどに書きだすという処理をおこなうことになります。
+
+なお、debconfデータベースはregistryとして使うな\footnote{使うとdebconf abuseとしてbugをくらう}ので、debconfデータベースを参照するのはメンテナスクリプトだけにしておく必要があります。また、debconf以外で設定ファイルを変更された場合も、その情報を上書きすることなく反映する必要があります。
+
+\begin{table}[htbp]
+ \begin{tabular}[htbp]{|l|l|l|l|}\hline
+ シェルコマンド & 内容 & データのむき & 使う場所 \\ \hline
+ db\_version "2.0"& バージョンネゴシエーション & & \\ \hline
+ db\_capb multiselect & キャパビリティネゴシエーション & & \\ \hline
+ db\_title タイトル & タイトル文字列の設定 & スクリプト→ユーザ & config \\ \hline
+ db\_stop & debconfの停止 & & postinst, postrm \\ \hline
+ db\_input プライオリティ 変数名 & 変数への入力 & テンプレ→ユーザ→DB & config \\ \hline
+ db\_go & 入力の実行 & & config \\ \hline
+ db\_get 変数名 & 変数のとりだし & DB→スクリプト & postinst \\ \hline
+ db\_set 変数名 値 & 変数の設定 & スクリプト→DB & config \\ \hline
+ db\_reset 変数名 & 変数の初期化 & テンプレ→DB & \\ \hline
+ db\_subst 変数名 鍵 置換 & 置き換え & テンプレ(←スクリプト) & config \\ \hline
+ db\_fget 変数名 フラグ & フラグのとりだし & DB→スクリプト & \\ \hline
+ db\_fset 変数名 フラグ 値 & フラグの設定 & スクリプト→DB & \\ \hline
+ db\_metaget 変数名 フィールド & フィールドのとりだし & テンプレ→スクリプト & \\ \hline
+ db\_register テンプレート 変数名 & 変数の生成 & 元テンプレ→テンプレ & config \\ \hline
+ db\_unregister 変数名 & 変数の削除 & →テンプレ & \\ \hline
+ db\_purge & データベースから削除 & →テンプレ、DB & postrm \\ \hline
+ \end{tabular}
+ \caption{debconfコマンド}
+ \label{debconf:cmd}
+\end{table}
+
+debconfでは、メンテナスクリプトとdebconfデータベース間のやりとりのプロトコルを決めています。こうすることで、フロントエンドをかえたりバックエンドのデータベースの実装を変更したりすることができるようになっているわけです。
+
+\newpage
+
+\subsubsection{テンプレートと変数}
+
+debconfではtemplatesファイルでテンプレートを定義し、そのテンプレートで作られる変数に対してdebconfプロトコルを使って値を設定したり、読みだしたりしています。テンプレートを定義するとそれと同名の変数がつくられるので、ほとんどの場合ではテンプレート名と同名の変数を使うことがほとんどですが、同じような情報をいくつか持ちたい場合などではテンプレートから複数の変数を生成する場合があります。
+
+テンプレートはdebian/templatesファイルもしくはdebian/パッケージ名.templatesファイルに記述します。
+
+\begin{commandline}
+Template: 名前
+Type: 型
+Default: デフォルト値
+Description: 短かい説明
+ 長い説明
+\end{commandline}
+
+名前としては基本的には「パッケージ名/識別子」という文字列を使います。パッケージ名がプレフィクスについているので、他のパッケージのテンプレートと衝突することはありません。もし複数のパッケージで共有するようなテンプレートは「share/共有名/識別子」のような名前をつかうことが推奨されています。
+
+型としては次のようなものがあります。
+
+\begin{table}[htbp]
+ \begin{center}
+ \begin{tabular}[htbp]{|l|p{30em}|}\hline
+  型名 & 意味 \\ \hline
+  string & 文字列 \\ \hline
+  boolean & true か false \\ \hline
+  select & Choices:に設定されている値から一つ(``, ''で区切る) \\ \hline
+  multiselect & selectと違い複数選べる \\ \hline
+  note & Description:の内容を提示するだけ。メールとしても送られる \\ \hline
+  text & Description:の内容を提示する \\ \hline
+  password & パスワード用。\\ \hline
+ \end{tabular}
+ \end{center}
+ \caption{テンプレートのType}
+ \label{template:type}
+\end{table}
+
+debconfで使うメッセージは翻訳する場合、debconf-gettextizeを使って
+debian/po/ディレクトリ以下に各国語版のpoファイルを置けるように準備をします。
+
+\begin{commandline}
+ % debconf-gettextize templates
+
+  To complete conversion, you must:
+    a. Check that new templates files contain all the localized fields
+    b. Add po-debconf to Build-Depends or Build-Depends-Indep in debian/control
+    c. Remove obsolete files:
+         templates.old
+    d. Edit debian/rules to generate the localized templates file, either
+       with dh\_installdebconf or directly with po2debconf
+\end{commandline}
+
+このようにtemplatesファイルを指示してdebconf-gettextizeを実行すると、元の
+templatesファイルは.oldサフィックスがついたものに残され、新しいtemplates
+ファイルが作られます。新しいtemplatesファイルは、翻訳すべきフィールドは
+``\_'' がプレフィクスとしてつくようになります。そしてpoディレクトリに
+POTFILES.inとtemplates.potが生成されます。翻訳する場合は、templates.potを
+ロケール名.po にコピーしてgettextを翻訳するのと同じようにして翻訳していきます。
+マルチパッケージで複数のtemplatesファイルがある場合は、それをすべてdebconf-gettextize実行時に指示します。古いtemplates.oldは消してしまってかまいません。
+
+このようにして作られる翻訳をdebパッケージにちゃんととりこめるようにす
+るには、まずdebian/controlの Build-Depends(かBuild-Depends-Indep)に 
+po-debconfを追加します。
+
+後はdebian/rulesのbinary-arch、binary-indepルールでdh\_installdebconf
+をdh\_installdebの直前くらいに呼ぶようにしておけば後は
+dh\_installdebconfがしかるべき処理をしてくれます。cdbsを使っている場合
+はinclude /usr/share/cdbs/1/rules/debhelper.mk すれば中で
+dh\_installdebconfを実行してくれます。また Depends: 行に 
+\${misc:Depends} をいれるのを忘れないようにしましょう。
+dh\_installdebconf がしかるべき依存関係を設定してくれます。
+
+L10Nバグ(po翻訳)を受けとった時は、そのファイルをdebian/poディレクトリに
+しかるべき名前(ロケール名.po)で置くだけでOKです。
+
+\subsubsection{configスクリプト}
+
+configスクリプトは、debパッケージがインストールされる前に\footnote{実際にはpostinstなどからconfmoduleが読みこまれた時にも}実行されます。configスクリプトでやるべきことは基本的には以下のような処理になります。
+
+\begin{commandline}
+#!/bin/sh -e
+# sample config
+#
+. /usr/share/debconf/confmodule
+db_version 2.0
+db_capb multiselect
+if [ -f /etc/default/mypackage ]; then
+  . /etc/default/mypackage
+  db_set mypackage/foo "$FOOR"
+  db_set mypackage/bar "$BAR"
+  db_go
+fi
+
+db_title "My Package Configuration"
+db_input low mypackage/foo || true
+db_input low mypackage/bar || true
+db_go
+\end{commandline}
+
+configスクリプトで使うdebconfコマンドは以下のとおり
+
+\begin{itemize}
+ \item . /usr/share/debconf/confmodule
+
+まず/usr/share/debconf/confmoduleを.でよみこみます。これでfrontendとbackendのプロセスにわかれそれぞれ通信するようになります。ちなみにfrontendはperlで書かれていてopen2でスクリプトを起動しなおして通信しています。なおdebconfシェルモジュールではすべてのコマンドにはdb\_が前についてるが、プロトコル上はこのdb\_は実際にはつけません。
+
+ \item (必要があれば)db\_version でバージョンチェック。
+
+通信に使うdebconfプロトコルのバージョンをネゴシエーションします。これは「version 2.0で通信したい」といっているわけで、それがdebconfでサポートできないようなバージョンだとリターンコード30を変数\$RETにいれてかえします。この場合エラーになるのでsh -eによりここで実行が終了すます。このコマンドはpostinstなんかでも使います。
+
+ \item (必要があれば)db\_capb でcapabilityチェック
+
+必要とするキャパビリティを要求します。指定できるのはbackupおよびmultiselectのふたつ。backupは前の質問に戻るをサポート、multiselectは複数のセレクトをできるようにする機能です。
+
+ \item 設定ファイル\footnote{通常/etc/default/パッケージ}があるかどうかをチェックして、設定ファイルで指定されている現在の設定をよみとります。
+
+もしあれば、その値で db\_set して、debconf変数の値に反映させます。
+
+\begin{commandline}
+ db_set 変数名 値
+\end{commandline}
+
+db\_setはユーザとのやりとりは発生しません。
+
+ \item db\_title でタイトルの設定
+
+質問ダイアログを出すときのタイトルを設定します。
+
+ \item db\_input でユーザに聞く質問を指示
+
+\begin{commandline}
+ db_input プライオリティ 変数名 || true
+\end{commandline}
+
+もしプライオリティがdebconf設定のプライオリティより高ければ変数名に対応しているテンプレートを使ってユーザにデータを入力させるようにする。つまりdb\_input lowだとその質問はあまり重要ではなく細かい設定がしたい人だけがやればいいというような項目になります。逆にdb\_input criticalだとユーザが与えないとまともな設定ができないような項目になります。
+
+\begin{table}[htbp]
+ \begin{center}
+ \begin{tabular}[htbp]{|l|p{30em}|}\hline
+  プライオリティ & 意味 \\ \hline
+  low & ほとんどのケースでデフォルト値で問題ない場合 \\ \hline
+  medium & まともなデフォルト値がある場合 \\ \hline
+  high & まともなデフォルト値がない場合 \\ \hline
+  critical & デフォルト値では問題があるような場合。ユーザの入力が必要 \\ \hline
+ \end{tabular}
+ \end{center}
+ \caption{プライオリティ}
+ \label{input:priority}
+\end{table}
+
+どのようにデータを入力するかはそのテンプレートにわりあてられている型によってかわります。
+
+もしユーザに提示しなかったらエラーで\$RETが30になります。そのため通常は || true としてsh -eによりここでスクリプトが終了しないようにします。
+
+なお、db\_inputだけでは入力の指示をフロントエンドに送るだけで、質問自体はまだおこなわれません。実際にフロントエンドがユーザにたずねるのはdb\_goを呼びだした時です。
+
+ \item db\_go 
+
+db\_inputで与えられてきた「質問してよー」というのを実際にユーザに提示します。
+ここでダイアログがでてきてユーザとやりとりすることになります。
+
+\end{itemize}
+
+debconfは一度、db\_input で入力した場合、その変数のseenフラグをtrueに設定します。このフラグの値を変更するにはdb\_fset を使います。
+
+\begin{commandline}
+db_fset 変数名 seen false
+\end{commandline}
+
+デフォルト値に戻したい場合は db\_resetを使います。これでテンプレートに記述されていたデフォルト値に戻すことができます。
+
+\begin{commandline}
+db_reset 変数名
+\end{commandline}
+
+基本的にはテンプレートと同名の変数を使うことで事足りる場合が多いですが、必要があればテンプレートから新しい変数を作ったりすることができます。変数をつくったりけしたりする操作は db\_register、db\_unregister を使います。
+
+\begin{commandline}
+db_register テンプレート 変数名
+\end{commandline}
+
+\begin{commandline}
+db_unregister 変数名
+\end{commandline}
+
+また、変数を新たにつくった場合は質問のメッセージの一部を変えることが多いでしょう\footnote{でないと、どれがどれかユーザにわからなくなってしまう}。そのためにdb\_substというのが使えます。テンプレートの中で \$\{鍵文字列\} というのを埋めこんでおいて、次のようにdb\_substを実行すると、\$\{鍵文字列\} の部分が、``置換文字列'' に置きかえられます。
+
+\begin{commandline}
+Template: mypackage/baz
+...
+Description: ${鍵文字列} の値?
+ ${鍵文字列}の値を入力してください
+
+\end{commandline}
+
+\begin{commandline}
+ db_register mypackage/baz mypackage/baz2
+ db_subst 変数名 鍵文字列 置換文字列
+\end{commandline}
+
+\begin{commandline}
+...
+Description: 置換文字列 の値?
+ 置換文字列の値を入力してください
+ 
+\end{commandline}
+
+\subsubsection{postinstスクリプト}
+
+postinstスクリプト\footnote{preinstスクリプトはパッケージ展開前なので普通はdebconfを使うことはない}ではdebconfからデータをよみだして実際の設定ファイルを生成することが仕事となります。debconf以前ではpostinst自身がechoやreadコマンドなどをつかってユーザの入力をいれていたのをここではdebconfからとってくるようにするわけです。
+
+\begin{commandline}
+#!/bin/sh -e
+#  postinst
+. /usr/share/debconf/confmodule
+
+case "$1" in
+ configure)
+   db_get mypackage/foo
+   FOO="$RET"
+   db_get mypackage/bar
+   BAR="$RET"
+   if [ -f /etc/default/mypackage ]; then
+     sed -e 's/^FOO=.*/FOO="'"$FOO"'"/' \
+	 -e 's/^BAR=.*/BAR="'"$BAR"'"/' 
+	< /etc/default/mypackage > /etc/default/mypackage.dpkg-tmp
+     if cmp -s /etc/default/mypackage /etc/default/mypackage.dpkg-tmp; then
+	   rm -f /etc/default/mypackage.dpkg-tmp
+     else
+	   mv -f /etc/default/mypackage /etc/default/mypackage.dpkg-old
+	   mv /etc/default/mypackage.dpkg-tmp /etc/default/mypackage
+     fi
+   else
+     cat <<DEFAULT > /etc/default/mypackage
+# mypackage configuration file
+# see /usr/share/doc/mypackage/README.Debian.
+# this file is automatically managed by debconf.
+#
+# FOO="..."
+#  foo is blah blah
+FOO="$FOO"
+#
+# BAR="..."
+#  bar is blah blha
+BAR="$BAR"
+# END OF FILE
+DEFAULT
+   fi
+   ;;
+ abort-upgrade|abort-remove|abort-deconfigure)
+   ;;
+ *)
+   echo "postinst called with unknown argument `$1'" >&2
+   exit 1
+   ;;
+esac
+db_stop
+#DEBHELPER#
+exit 0
+\end{commandline}
+
+configスクリプトで使うdebconfコマンドは以下のとおり
+
+\begin{itemize}
+
+ \item . /usr/share/debconf/confmodule
+
+configスクリプトと同様、まず/usr/share/debconf/confmoduleを.でよみこみます。注意すべきことは、ここで{\em configスクリプトもまた実行される}ということです。
+
+ \item db\_get で値のとりだし
+
+\begin{commandline}
+db_get 変数名
+\end{commandline}
+
+db\_getを実行すると、変数名であらわされる変数に格納されている値を\$RETにとりだすことができます。
+
+ \item db\_stop でdebconfの終了
+
+ここでdebconfの処理を終了させます。これ移行、標準入出力が使えるようになります。たとえば invoke-rc.d などで起動されるものがある場合、メッセージを標準出力にだそうとするのでこの前に db\_stop しておかなければいけません。
+
+\end{itemize}
+
+postinstでは、この例にあるように既存の設定ファイルをできるだけ維持しつつ、更新された設定値だけをいれかえるようにすることが期待されています。
+
+\subsubsection{postrmスクリプト}
+
+postrmスクリプトでは、このパッケージのdebconfデータをdebconfデータベースから削除しておく必要があります。
+
+\begin{commandline}
+#!/bin/sh -e
+#
+
+case "$1" in
+ purse
+   . /usr/share/debconf/confmodule
+   db_purge
+   db_stop
+   ;;
+ remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disapper)
+   ;;
+ *)
+   echo "$0 called with unknown argument `$1'" >&2
+   exit 0
+   ;;
+esac
+#DEBHELPER#
+\end{commandline}
+
+\begin{itemize}
+ \item . /usr/share/debconf/confmodule
+
+debconfを使う前にまず/usr/share/debconf/confmoduleを.でよみこみます。
+
+ \item db\_purge
+
+db\_purgeでこのパッケージに属するdebconfデータをdebconfデータベースから削除します。
+
+ \item db\_stop
+
+もうdebconfは必要ないのでstopします。
+
+\end{itemize}
+
+\subsubsection{debconfプロトコルのやりとり}
+
+debconfはconfmoduleをソースすることで、frontendにexecしています。その
+中でconfmoduleを呼びだしたscriptをopen2で起動してdb\_コマンドを
+frontendとの通信にして処理をおこなっています。
+
+fd=3にコマンドを出力すると、frontendプログラムで解釈実行され結果がかえっ
+てきます。その結果はスクリプトの標準入力に与えられるので read で読みとっ
+てスペースの前がコマンドの終了コード、スペースの後が\$RETに格納される
+値となります。
+
+スクリプトがおわるとfrontendはそれを検知してデータベースに書き出して終
+了となります。
+ 
+\includegraphics[scale=0.7]{image200509/debconf-protocol.eps}
+
+\subsection{debconfデータベース}
+
+debconfで設定したデータはどこにあるのでしょうか? この設定は/etc/debconf.confに記述されています。
+
+デフォルトでは /var/cache/debconf に次のようなファイルとして格納されています。
+
+\begin{table}[htbp]
+ \begin{center}
+ \begin{tabular}[htbp]{|l|p{20em}|}\hline
+  ファイル名 & 内容 \\ \hline
+  templates.dat & templatesの情報 \\ \hline
+  config.dat & 設定データ \\ \hline
+  password.dat & パスワードデータ \\ \hline
+ \end{tabular}
+ \end{center}
+ \caption{debconfデータベース}
+ \label{debconf:dbfile}
+\end{table}
+
+debconfデータベースの内容は debconf-get-selections を使うとダンプすることができます。この出力を debconf-set-selectionsの入力として渡すとロードすることができます。\footnote{debconf-get-selectionsは TABで分割していて、debconf-set-selectionsでは(特にタイプと値の間は)空白文字列一つだけという点に注意したほうがいいでしょう。ファイル経由でやりとりしたりパイプ経由の場合は問題ありませんが、ターミナルの出力をコピペするとはまることがあります(TABが複数のスペースになってしまっているので)}
+
+debconf-get-selections --installerで、debian-installerで使ってdebconfデータベースをとりだすことができます。
+
+その他に debconf-copydb を使うことでデータベースファイルをコピーすることができます。
+
+\subsection{debconfを使っているスクリプトのデバッグ}
+
+debconfを使ってるスクリプトのデバッグは簡単ではありません。しかし基本はDEBCONF\_DEBUGに値を設定してスクリプトを実行すればいい場合が多いでしょう。
+
+\begin{commandline}
+ # DEBCONF_DEBUG='.*' /var/lib/dpkg/info/パッケージ.postinst configure 最後に設定されたバージョン
+\end{commandline}
+
+これでパッケージの設定する時のdebconfの動きを追うことができます。なお簡単にするためにdpkg-reconfigure debconfでdebconfフロントエンドをReadlineなどをにしておいた方がいいでしょう。
+
+DEBCONF\_DEBUG='.*'というのは DEBCONF\_DEBUG=user、DEBCONF\_DEBUG=developer、DEBCONF\_DEBUG=dbすべてを指定したのと同じ意味になります。
+
+debconf-communicateを使うと、debconfデータベースと直接やりとりすることができます。標準入力からコマンドを与えると、標準出力に結果をかえします。コマンドはdebconfシェルモジュールでつかうコマンドからdb\_をとりのぞいたものになることに注意しましょう。例えば次のように使います。
+
+\begin{commandline}
+ # echo 'get debconf/priority' | debconf-communicate
+ 0 critical
+\end{commandline}
+
+0が成功を意味\footnote{db\_getの終了値}し、criticalがdebconf/priorityの値\footnote{db\_getを実行した場合だと\$RETに設定される値}を意味します。
+
+\subsection{おわりに}
+
+本文書ではDebianで設定データの管理を司っているdebconfについて解説しました。
+
 %%ここまで
 
 \dancersection{???}{上川？}
