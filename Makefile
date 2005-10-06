@@ -1,4 +1,4 @@
-SOURCE:=$(wildcard *.tex)
+SOURCE:=$(wildcard debianmeeting*.tex)
 DVIFILES:=$(SOURCE:%.tex=%.dvi)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
 all: $(PDFFILES)
