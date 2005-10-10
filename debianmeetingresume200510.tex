@@ -313,6 +313,9 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 
 この文書は Anthony Towns が フィンランドの debconf 5 で発表した内容を
 日本にて展開するための資料です．
+Anthony Townsの作成した英語の資料を省略して抜粋しています．
+また，それ以降に変更した事項について追記しています．
+
 
 Debian Bug Tracking System (BTS)は，ほぼDebianに特化したバグ報告の管理
 のためのシステムです．
@@ -346,8 +349,228 @@ Anthony Townsによると下記が要件です．
 \end{itemize}
 
 \subsection{データ形式}
+
+バグデータベースのスプールの形式は下記です．
+リレーショナルデータベースなどは利用していません，
+スプールディレクトリ以下にほとんどのデータが格納されています．
+
+各バグについて，ファイルはそれぞれ
+４個あります．
+サマリーファイルはメタデータを保存します．
+ログファイルは，そのバグに対して流れたメールを全て保存します．
+
+statusファイルは互換性のためだけに存在しています．
+reportファイルは，最初のバグ報告のメールで，バグが close されるときに送
+信されるものです．
+
+\begin{itemize}
+ \item /org/bugs.debian.org/spool
+       \begin{itemize}
+	\item incoming/
+	      \begin{itemize}
+	       \item T.*
+	       \item S[BMQFDU RC] *.*
+	       \item R[BMQFDU RC] *.*
+	       \item I[BMQFDU RC] *.*
+	       \item G[BMQFDU RC] *.*
+	       \item P[BMQFDU RC] *.*
+	      \end{itemize}
+	\item db-h/
+	      \begin{itemize}
+	       \item 00/
+		     \begin{itemize}
+		      \item ..
+		      \item 314200.log
+		      \item 314200.report
+		      \item 314200.status
+		      \item 314200.summary
+		     \end{itemize}
+	       \item ..
+	       \item 99/
+	      \end{itemize}
+	\item archive/
+	      \begin{itemize}
+	       \item 00/
+	       \item ..
+	       \item 99/
+	      \end{itemize}
+	\item index.db -- index.db.realtime
+	\item index.archive -- index.archive.realtime
+	\item nextnumber
+       \end{itemize}
+\end{itemize}
+
+\subsubsection{incoming}
+
+incomingに来たメールは処理中，名前を変えます．
+
+\begin{itemize}
+ \item T receiveによってうけとられた
+ \item S SPAM確認待ち
+ \item R SPAM確認中
+ \item I SPAMチェック通った
+ \item G service か process スクリプトを通った
+ \item P process中
+\end{itemize}
+
+また，ファイル名の二つ目の文字はどこのメールアドレスにメールが送信されて
+きたものなのかということを示します．
+ファイル名ののこりは，バグ番号と，一意なIDです．
+一意なIDを決定するのに現在は時間とプロセス番号を利用しています．
+
+\begin{itemize}
+ \item B: 通常のバグ報告．submit@ 1234@
+ \item M: -maintonly メーリングリストに投げない
+ \item Q: BTSに登録しない．-quiet
+ \item F: アップストリームにフォーワード -forwarded
+ \item D: バグ終了 -done
+ \item U: サブミッターにメール -submitter
+ \item R: ユーザのリクエスト用インタフェース request@
+ \item C: デベロッパーの制御用インタフェース control@
+\end{itemize}
+
+\subsubsection{StatusとSummary}
+
+statusファイルの中身は行ベースです．
+無い行については空行とみなします．
+このファイルは今後なくしていこうとしています．
+
+\begin{itemize}
+ \item バグ報告者のメールアドレス
+ \item 時間(秒)
+ \item サブジェクト
+ \item 元のメールのメッセージID
+ \item バグがアサインされているパッケージ
+ \item タグ
+ \item closeした人のメールアドレス
+ \item 上流のメールアドレスかURL(forwardされたばあい)
+ \item マージされているバグ番号
+ \item severity
+\end{itemize}
+
+summary ファイルはRFC822形式で，拡張可能になっています．
+現在Format-Version: 2 と 3 の二つの形式があります．
+3は，ヘッダについてはRFC1522(MIME)のデコードされた形式になっています．
+
+\begin{itemize}
+ \item Format-Version: このファイル形式のバージョン
+ \item Submitter: バグ報告者のメールアドレス
+ \item Date: 時間(秒)
+ \item Subject: サブジェクト
+ \item Message-ID: 元のメールのメッセージID
+ \item Package: バグがアサインされているパッケージ
+ \item Tags: タグ
+ \item Done: closeした人のメールアドレス
+ \item Forwarded-To: 上流のメールアドレスかURL(forwardされたばあい)
+ \item Merged-With: マージされているバグ番号
+ \item Severity: severity
+ \item Owner: バグの所有者
+\end{itemize}
+
+\subsubsection{logファイル}
+
+あらゆるメールがlogファイルには追記されていきます．
+また，メタデータも追記されていきます．
+残念ながら，メタデータは生のHTMLで書かれており，
+またバージョンによって記述の仕方が変わっており，
+さらに悪いことに，古いバグの中にあるテキストは更新されていないため，
+機械的に処理することは難しくなっています．
+
+また，コントロール情報は，行頭のエスケープコードにより切り替わります．
+メールの中にエスケープコードのような文字列が出て来たら，それは
+030を追加してエスケープします．
+
+詳細はDebbugs::Logを見てください．
+
+\begin{itemize}
+ \item kill-init: まだ一行も処理していません
+ \item incoming-recv: 07: あとにgoがくる，Received:行
+ \item autocheck: 01: X-Debian-Bugs-..: までの無視されている行，
+       autowaitが次に来る
+ \item html: 06: 生で表示すべきHTML
+ \item recips: 02: メールの受取人，04で分割されている
+ \item go: 05: メールの文書
+ \item go-nox: X: メールの文書，Xではじまる行
+ \item kill-end: 03: メッセージの終り．
+ \item autowait: go-noxがあとにくる，空行まで無視されるその他の情報．
+\end{itemize}
+
+\subsubsection{Indexファイル}
+
+indexファイルは，pkgreport.cgiがどのパッケージにどのバグがわりあてられて
+いるかを確認するための情報です．
+
+以前は，by-package.idxとby-severity.idxというのがあり，高速化に貢献する
+はずだった．
+一年以上長い間生成されていなかった．，誰も気づかなかったので必要ないんじゃ
+ないだろう．
+
+データ形式としては下記のようになります．
+パッケージ，バグ番号，時間，ステータス，メールアドレス，severityの順に書
+いた行が全てのバグに対して作成されています．
+
+\begin{commandline}
+ 
+ pbuilder 317998 1121196782 open [Junichi Uekawa <dancer@netfort.gr.jp>] normal
+\end{commandline}
+
 \subsection{コード形式}
+
+debbugsは特に設計もされずに長い間パッチを累積してきました．
+ただ，明確にわかれている部分はあって，メールを処理するコアのインタフェー
+スのスクリプトと，
+ウェブを表示するためのCGI部分とで分離できます．
+
+設定ファイルは全て/etc/debbugs にあります．
+
+\subsubsection{コアのスクリプト}
+
+メールを処理する部分があります．
+
+\begin{itemize}
+ \item errorlib: ライブラリ
+ \item receive: MTAからメールを受信する
+ \item spamscan: 受信メールをSPAMチェックする
+ \item processall: process と service にメールを分配する
+ \item process: バグメールを処理する
+ \item service: control@ と report@ メールを処理
+ \item expire: closeされてから28日過ぎたバグをエキスパイア処理する
+ \item rebuild: indexファイルをリビルド
+\end{itemize}
+
+receive と rebuild 以外は cronから起動しています．
+１５分に一回しか動作しません．
+
+
+\subsubsection{CGIスクリプト}
+
+CGI関連は，
+errorlib関数を活用している部分もありますが，ほぼ独立しています．
+
+\begin{itemize}
+ \item bugreport.cgi: バグレポートを一つ表示
+ \item pkgreport.cgi: パッケージやサブミッタなどでサマリを作成する
+ \item pkgindex.cgi: パッケージやseverityに対して数を表示
+ \item common.pl: ライブラリとして利用
+\end{itemize}
+
+pkgreport.cgiは特に速度が重要視される部分なので，注意．
+
+\subsubsection{ハックするには}
+
+debbugsのソースはCVSにあります．
+また，Debian Developerであれば，
+ミラーが merkel.debian.orgの/org/bugs.debian.org以下にあります．
+
+
+
 \subsection{そして何がおきたか}
+
+Googleがmaster.debian.orgにとってDoSになるような検索の仕方をしていたので，
+現在BTSはgoogleの検索対象にははいっていないので検索サービスが必要だろう．
+
+バージョントラッキングは重要な機能だろう．
+
 
 %% ここまで
 
