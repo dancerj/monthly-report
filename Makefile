@@ -12,4 +12,4 @@ all: $(PDFFILES)
 	platex $<
 
 clean:
-	-rm *.dvi *.aux *.toc *~ *.log *.waux
+	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out
