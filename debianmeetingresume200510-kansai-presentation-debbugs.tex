@@ -1,0 +1,261 @@
+%; whizzy document
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定． 
+
+\documentclass{beamer}
+\usepackage{beamerthemeshadow}
+\usepackage{url}
+% latex-beamerではhyperref は動かない？
+
+% previewするキーバインド
+% (defun dancer-debianmeetingresume-debbugs-preview () "Preview" (interactive) (compile "make") (shell-command "xpdf debianmeetingresume200510-kansai-presentation-debbugs.pdf"))
+
+%\def\UrlBreaks{\do\.\do\@\do\\\do\/\do\!\do\_\do\|\do\%\do\;\do\>\do\]%
+% \do\)\do\,\do\?\do\'\do\+\do\=\do\#\do\&}%
+
+
+\title{Debian勉強会資料}
+\author{上川 純一}
+\date{2005年10月29日}
+
+\begin{document}
+%% debianmeetingresume200510-kansai.texから以下コピー
+
+\frame{\titlepage}
+
+\section{debbugsの内部構造}
+\section{debbugs概要}
+
+\begin{frame}
+\begin{itemize}
+ \item 55000以上の現在アクティブなバグ報告
+ \item 231000のアーカイブされたバグ報告
+ \item 毎週1000以上の新規のバグ報告
+ \item リアルタイムでバグ報告をウェブページにどんどん反映
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+ \begin{itemize}
+ \item インタフェース： 開発者がメールで操作できるようになっており，誰で
+       もウェブで閲覧できるようになっている．
+ \item パッケージベース： バグ報告をパッケージ別に高速に管理する必要があ
+       る
+ \item スケーラビリティー: 大量のバグ報告に対応できる必要がある
+ \item 即時性： 現在のバグの状態をすぐに報告してくれる必要があり，バグの
+       状態が変更されたらすぐに反映される必要がある
+ \item 安定性： 継続して動作する必要がある．新規の機能がどんどん追加さ
+       れたとしても．
+ \item 公開： 議論の内容にDebianコミュニティー全体として参加できるように，
+       永続的な公開記録として保存される必要がある．
+ \end{itemize}
+\end{frame}
+
+\section{データ形式}
+
+\begin{frame}
+ \begin{itemize}
+ \item /org/bugs.debian.org/spool
+       \begin{itemize}
+	\item incoming/
+	\item db-h/
+	\item archive/
+	\item index.db -- index.db.realtimeへのシンボリックリンク
+	\item index.archive -- index.archive.realtimeへのシンボリックリンク
+	\item nextnumber
+       \end{itemize}
+ \end{itemize}
+\end{frame}
+
+
+\subsection{incoming}
+
+\begin{frame}
+ \begin{itemize}
+ \item T receiveによってうけとられた
+ \item S SPAM確認待ち
+ \item R SPAM確認中
+ \item I SPAMチェック通った
+ \item G service か process スクリプトを通った
+ \item P process中
+ \end{itemize}
+\end{frame}
+
+\begin{frame}
+ 
+ \begin{itemize}
+ \item B: 通常のバグ報告．submit@ 1234@
+ \item M: -maintonly メーリングリストに投げない
+ \item Q: BTSに登録しない．-quiet
+ \item F: アップストリームにフォーワード -forwarded
+ \item D: バグ終了 -done
+ \item U: サブミッターにメール -submitter
+ \item R: ユーザのリクエスト用インタフェース request@
+ \item C: デベロッパーの制御用インタフェース control@
+ \end{itemize}
+\end{frame}
+
+\subsection{StatusとSummary}
+
+\begin{frame}
+ Status
+ \begin{itemize}
+ \item バグ報告者のメールアドレス
+ \item 時間(秒)
+ \item サブジェクト
+ \item 元のメールのメッセージID
+ \item バグがアサインされているパッケージ
+ \item タグ
+ \item closeした人のメールアドレス
+ \item 上流のメールアドレスかURL(forwardされたばあい)
+ \item マージされているバグ番号
+ \item severity
+ \end{itemize}
+\end{frame}
+
+\begin{frame}
+ Summary
+ \begin{itemize}
+ \item Format-Version: このファイル形式のバージョン
+ \item Submitter: バグ報告者のメールアドレス
+ \item Date: 時間(秒)
+ \item Subject: サブジェクト
+ \item Message-ID: 元のメールのメッセージID
+ \item Package: バグがアサインされているパッケージ
+ \item Tags: タグ
+ \item Done: closeした人のメールアドレス
+ \item Forwarded-To: 上流のメールアドレスかURL(forwardされたばあい)
+ \item Merged-With: マージされているバグ番号
+ \item Severity: severity
+ \item Owner: バグの所有者
+ \end{itemize}
+\end{frame}
+
+\subsection{logファイル}
+
+\begin{frame}
+ \begin{itemize}
+ \item kill-init: まだ一行も処理していません
+ \item incoming-recv: 07: あとにgoがくる，Received:行
+ \item autocheck: 01: X-Debian-Bugs-..: までの無視されている行，
+       autowaitが次に来る
+ \item html: 06: 生で表示すべきHTML
+ \item recips: 02: メールの受取人，04で分割されている
+ \item go: 05: メールの文書
+ \item go-nox: X: メールの文書，Xではじまる行
+ \item kill-end: 03: メッセージの終り．
+ \item autowait: go-noxがあとにくる，空行まで無視されるその他の情報．
+ \end{itemize}
+\end{frame}
+
+\subsection{Indexファイル}
+
+\begin{frame}
+\begin{itemize}
+ \item パッケージ
+ \item バグ番号
+ \item 時間
+ \item ステータス
+ \item メールアドレス
+ \item severity
+ \item 例： pbuilder 317998 1121196782 open [Junichi Uekawa <dancer@netfort.gr.jp>] normal
+\end{itemize}
+\end{frame}
+
+\section{コード形式}
+
+\frame{設定ファイルは全て/etc/debbugs にあります．}
+
+\subsection{コアのスクリプト}
+
+\begin{frame}
+ メールの処理部分
+ \begin{itemize}
+  \item errorlib: ライブラリ
+  \item receive: MTAからメールを受信する
+  \item spamscan: 受信メールをSPAMチェックする
+  \item processall: process と service にメールを分配する
+  \item process: バグメールを処理する
+  \item service: control@ と report@ メールを処理
+  \item expire: closeされてから28日過ぎたバグをエキスパイア処理する
+  \item rebuild: indexファイルをリビルド
+  \item 15 分に一回cronで動作
+ \end{itemize}
+\end{frame}
+
+\subsection{CGIスクリプト}
+
+\begin{frame}
+ ウェブインタフェース
+ \begin{itemize}
+ \item bugreport.cgi: バグレポートを一つ表示
+ \item pkgreport.cgi: パッケージやサブミッタなどでサマリを作成する
+ \item pkgindex.cgi: パッケージやseverityに対して数を表示
+ \item common.pl: ライブラリとして利用
+ \end{itemize}
+\end{frame}
+
+
+\subsection{ハックするには}
+
+\begin{frame}
+ \begin{itemize}
+  \item ソースはCVS
+  \item  merkel.debian.orgの/org/bugs.debian.org に複製がある
+ \end{itemize}
+\end{frame}
+
+\section{そして何がおきたか}
+
+\subsection{バージョントラッキング}
+
+\begin{frame}
+ \begin{itemize}
+  \item close バグ番号 バージョン
+  \item reassign バグ番号 パッケージ バージョン
+  \item found バグ番号 バージョン
+  \item 'Source-Version: バグ番号' タグが追加
+  \item \url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?pkg=cowdancer&version=0.4}と
+\url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?pkg=cowdancer&version=0.5}
+  \item Summaryファイルにも，Found-In: cowdancer/0.4,
+	Fixed-In: cowdancer/0.5
+ \end{itemize}
+\end{frame}
+
+
+\subsection{ユーザタグ}
+
+\begin{frame}
+ \begin{itemize}
+  \item user aj@azure.humbug.org.au
+  \item usertag 18733 + good-reasons-to-run-for-dpl
+  \item usertag 18733 + still-cant-believe-it-finally-got-fixed
+  \item usertag 62529 + your-days-are-numbered
+  \item \url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?pkg=dlisp;users=dancer@debian.org}
+  \item \url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=ignore-for-now;users=dancer@debian.org}
+ \end{itemize}
+\end{frame}
+
+\subsection{バグ購読}
+
+\begin{frame}
+ \begin{itemize}
+  \item {\tt バグ番号-subscribe@bugs.debian.org} にメールを出す
+ \end{itemize}
+\end{frame}
+
+\subsection{バグブロッカー}
+
+\begin{itemize}
+ \item  block 保留中のバグ番号 by 原因のバグ番号
+ \item  unblock 保留中のバグ番号 by 原因のバグ番号
+\end{itemize}
+
+\subsection{mindays maxdays}
+\begin{itemize}
+ \item \url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?maint=dancer@debian.org&maxdays=90}
+ \item \url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?maint=dancer@debian.org&mindays=90}
+\end{itemize}
+
+\end{document}
