@@ -316,6 +316,19 @@ dpkg -lって凶悪だと思いません？
 これは困りますね．
 
 
+\subsubsection{えとー}
+
+dpkg は検索ツールとして使うことが多いです。
+dpkg -l, dpkg -L, dpkg -S は多用しています。
+
+他に使うのって、自作パッケージを dpkg -i で突っ込むくらいになっています。
+
+dpkg, dpkgていうけど皆さん /usr/sbin/dpkg しかあんま興味ないかもしれませんが、
+dpkg-statoverride や dpkg-divert ,update-alternative なんかはフロントエンド作ってみて、
+気にしないでも生きていけるけど知ってると便利なこともあるんだなぁと思うようなものが
+あるんだなと思って結構興味持っています。
+
+しかし、新dpkgは話はいっぱいあるのだけどなかなか出てこないのでちょっと寂しいですね。
 
 %%% trivia quiz
 \dancersection{Debian Weekly News trivia quiz}{上川純一}
@@ -547,8 +560,190 @@ RSSViewerを使えば，自分のマシンに今入っているパッケージのセキュリティー
 	    宴会は近所の焼き鳥やさん「とり蔵」で開催．
 	    おいしい鳥料理をたくさんいただきました．
 
-\dancersection{???}{えとーさん}
+
+\dancersection{Debianとステータス}{えとー}
 \label{sec:eto}
+
+\subsection{statoverrideとは？}
+
+ステータス情報を操作するインターフェースファイル、ディレクトリ、
+デバイスファイルなどdpkgが扱えるファイルシステムオブジェクトならなんでも扱うことができる。
+
+\subsection{歴史}
+
+dpkg-statoverride の前には dh\_suidregister というのがあった。
+その suidregister の幾つかの問題を解決したものとなっている。
+2000年のことなのですでに5年以上の歴史のある古いものになっているが今だ有効な仕組み。
+\footnote{参考リンク:http://lists.debian.org/debian-dpkg/2000/06/msg00015.html}
+
+\subsection{どんな風に使われている？}
+
+  \subsubsection{メンテナ編}
+
+    まずは身近なpostfixで用いられているメンテナスクリプトから抜粋してみましょう。
+
+postinst
+
+\begin{commandline}
+1 dpkg-statoverride --remove \$POSTDROP >/dev/null 2>&1 || true
+2 dpkg-statoverride --remove /var/spool/postfix/public >/dev/null 2>&1 || true
+3 dpkg-statoverride --remove /usr/sbin/postqueue >/dev/null 2>&1 || true 
+4 dpkg-statoverride --update --add root postdrop 02555 \$POSTDROP
+5 dpkg-statoverride --update --add postfix postdrop 02710 /var/spool/postfix/public
+6 dpkg-statoverride --update --add root postdrop 02555 /usr/sbin/postqueue
+\end{commandline}
+
+postrm  
+
+\begin{commandline}
+1 dpkg-statoverride --remove /usr/sbin/postdrop >/dev/null 2>&1 || true
+2 dpkg-statoverride --remove /var/spool/postfix/public >/dev/null 2>&1 || true
+3 dpkg-statoverride --remove /usr/sbin/postqueue >/dev/null 2>&1 || true
+\end{commandline}
+
+  \begin{enumerate}
+
+  \item dpkg-statoverride --remove /usr/sbin/postdrop >/dev/null 2>\&1 || true
+
+        /usr/sbin/postdrop のstatoverrideの設定を削除する
+
+  \item dpkg-statoverride --remove /var/spool/postfix/public >/dev/null 2>\&1 || true
+
+        /var/spool/postfix/public のstatoverrideの設定を削除する
+
+  \item dpkg-statoverride --remove /usr/sbin/postqueue >/dev/null 2>\&1 || true
+
+        /usr/sbin/postqueue のstatoverrideの設定を削除する
+
+  \item dpkg-statoverride --update --add root postdrop 02555 \$POSTDROP
+
+        ユーザ「root」グループ「postdrop」で実行時にグループIDのユーザで起動、読み取りと実行をオーナユーザ、
+        オーナグループ、その他に許可したものを/usr/sbin/postdropに付与する。
+
+  \item dpkg-statoverride --update --add postfix postdrop 02710 /var/spool/postfix/public
+
+        ユーザ postfix グループ postdrop で実行時にグループIDを指定した、オーナユーザには
+        読み、書き、実行を、オーナグループには実行を、その他にはなにも出来ない権限を
+        /var/spool/postfix/pubulicに付与する。
+
+  \item dpkg-statoverride --update --add root postdrop 02555 /usr/sbin/postqueue
+
+        ユーザ root グループ postdrop で実行時にグループIDを指定した、読み取りと実行をオーナユーザ、
+        オーナグループ、その他に許可したものを/usr/sbin/postqueue に付与する。
+
+  \end{enumerate}
+
+  以上のように、プログラムにデフォルトのパーミッションを付与したい場合に用いることができる。
+
+  パッケージメンテナがこれを利用したほうがよいのには理由がある。
+
+  debianのポリシーマニュアルでは標準のパーミッションなどが規定されている、しかし、規定されているものでは
+  却って不便になってしまうものがあり、ポリシーから離れてパーミッションなどを変更する場合に
+  あとからユーザがポリシーにない状態の確認を容易にするために用いるインターフェースとして利便性のためである。
+
+  別の例を上げてみよう。
+
+  \begin{Verbatim}[frame=single]
+  for i in /usr/bin/foo /usr/sbin/bar
+  do
+    if ! dpkg-statoverride --list $i >/dev/null
+    then
+      dpkg-statoverride --update --add sysuser root 4755 $i
+    fi
+  done
+  \end{Verbatim}
+
+  \begin{itemize}
+    \item [解説] 
+    \begin{itemize}
+      \item /usr/bin/foo や /usr/sbin/bar に statoverride の設定がされていなければ
+            ユーザ「sysuser」、グループ「root」、パーミッション「4755」を設定する。
+    \end{itemize}
+  \end{itemize}
+
+  第二にpostinstなどでchmod,chownなどを使う場合でもユーザの都合でオーナーやパーミッションを変更させることが
+  ありうるが、たとえ変更したとしてもパッケージの再インストール時やアップグレード時などにパッケージ標準の
+  オーナとパーミッションに上書きされてしまう可能性がある。
+  これを防ぐためにパッケージ標準のオーナ及びパーミッションを設定可能にしておくのがよいかと思われる。
+
+  パーミッションをごたごた言うBTSを減らすためにも statoverride は活用しましょう！
+
+  \subsubsection{ユーザ編}
+
+  サーバ管理者などはパッケージにより提供されているオーナやパーミッションでは目的が達成できない場合がある、
+  アップデートの少ないstableを使ったとしてもセキュリティアップデートなどでupdateがかかった場合にどうしても
+  上書きされてしまい、初期の値に戻されてしまうことになる。
+  これを回避するためには、dpkg-statoverrideを使うことによりパッケージの上書きを回避してユーザ設定の
+  オーナとパーミッションをアップグレードしても無関係に用いることができるようになる。
+  
+  GUI環境がある場合は dsys を使ってみてください。
+
+\subsection{使い方}
+
+  \subsection{一般的な用法}
+
+  \begin{enumerate}
+  \item ステータスの追加
+
+    \# dpkg-statoverride --add ユーザ名 グループ名 パーミッション ファイル名
+
+  \item ステータスの即時追加]
+  
+    \# dpkg-statoverride --update --add ユーザ名 グループ名 パーミッション ファイル名
+
+  \item ステータスの削除
+
+    \# dpkg-statoverride --remove ファイル名   
+
+  \item ステータスの変更 
+
+     \# dpkg-statoverride --remove ファイル名 
+     \# dpkg-statoverride --update --add ユーザ名 グループ名 パーミッション ファイル名
+
+  \item ステータスの確認
+     
+     \# dpkg-statoverride --list パターン
+
+  \end{enumerate}
+
+
+  \subsection{マニアックな用法}
+
+  --admindir オプションを使いホームディレクトリの .（ドット）ファイルのパーミッションを制御する。
+
+  \subsection{パッケージアップグレード}
+
+\begin{enumerate}
+  \item postinst などで statoverride が使われているものを管理者などが statoverride の設定を変更した場合
+
+    postinst などで設定を --remove してから --add している場合などにはシステム管理者が statoverride を
+    設定しても postinst などの設定に書き換えられてしまう。(postfixなど)
+
+    postinst などで --add のみの場合は管理者などが設定した statoverride の設定になる
+
+  \item postinst などで statoverride をセットされているが管理者が chown、chmod などをした場合
+
+    statoverrideの設定に従ってパーミションが変更される
+
+  \item postinst などで chown や chmod しているものを管理者などが statoverride の設定を変更した場合
+
+    システム管理者が statoverride を設定してもパッケージの postinst などの chown、chmodで書き換えられてしまう。
+
+  \item postinst などでは statoverride も chonw、chmod も使われていないものを statoverride の設定を行なった場合
+
+    statoverride の設定に従ってファイルのパーミッションが変更される
+
+  \item postinst などで chown や chmod しているものを管理者などが chown や chmod で設定を変更した場合
+
+    システム管理者が chown や chmod で設定してもパッケージの postinst などの chown、chmodで書き換えられてしまう。
+
+\end{enumerate}
+
+\subsection{おわりに}
+
+  statoverride は alternatives と比べると単純な機能ではシンプルなものだし知名度は更に低いが、
+  メンテナもユーザも楽になれるツールなので是非活用していただきたいと思う。
+
 
 \dancersection{???}{こばやしさん}
 \label{sec:kobayashi}
