@@ -758,8 +758,327 @@ postrm
   メンテナもユーザも楽になれるツールなので是非活用していただきたいと思う。
 
 
-\dancersection{???}{こばやしさん}
+\dancersection{Debian Weekly News翻訳フロー}{小林儀匡}
 \label{sec:kobayashi}
+
+\subsection{はじめに}
+
+Debian Weekly News (DWN) という、
+Debianコミュニティのために毎週発行されるニュースレターを御存知でしょうか。
+Debian通になるためには読むのが必須とされている (?) ニュースです\footnote{もちろん、
+きちんとすべて頭に入れ、忘れないよう毎日読み返す、なんてことはしなくてかまわないでしょう。
+ただ、世界に広がるDebianコミュニティにはどんな人がいて、どんな活動をしているか、
+Debianがどのような人々の日常的な保守作業や議論を通して作られているかは、q
+一ユーザとして知っておいたほうがよいように思うので、
+目は軽く通しておいたほうがよいと思います。あくまで私見ですが。}。
+Debian JPのdebian-usersメーリングリスト\footnote{\verb|debian-users@debian.or.jp|。}を購読しているかたなら、
+最近では毎週のように翻訳したものが流れてくるので知っているでしょう。
+このDWN翻訳作業は、以前は今井伸広さんが一人でされていましたが
+2005年6月ごろからDDTP\footnote{Debian Description Translation Project。Debianパッケージ説明文の翻訳をするプロジェクト。}日本語チームコーディネータの田村一平さん、
+そして小林がチームを組んでおこなっています。
+ここでは、その翻訳作業の流れについて説明します。
+
+\subsection{Debian Weekly Newsとは}
+
+DWN はDebianコミュニティのための週刊ニュースレターで、
+UTCで毎週火曜18:45ごろ (JSTで毎週水曜3:45ごろ) に発行されます。
+「週刊」というだけあって基本的に毎週発行されますが、発行されないことも年に数回あります。
+発行形態はメーリングリストとウェブページの2種類あり、
+前者は本家のdebian-newsメーリングリスト\footnote{\verb|debian-news@lists.debian.org|。}で購読できます
+(もちろんこのメーリングリストにはDWNの他に不定期のニュースも珠に流れてきます)。
+また後者は\url{http://www.debian.org/News/weekly/}で参照できます。
+様々なメーリングリストでの話題やイベントについて書かれているので、
+読んでおくとDebian界隈のニュースに (無駄に) 詳しくなれます。
+
+DWNの編集は最近ではほとんどMartin 'Joey' Schulze一人の作業に委ねられています。
+しかしフッタに書かれる編集者情報を見る限り、
+2号に1号くらいは他の人が助けているようです。
+
+ちなみに創刊号は1999年1月4日に出され、その編集者はJoey Hessでした。
+記念すべき第1号のeditorialによれば、
+Linux Weekly News\footnote{\url{http://lwn.net/}。}を真似て作られたようです。
+またeditorialの次に書かれた記事第1号のタイトルは `RMS is using Debian.' です。
+
+\subsection{ファイル形式 -- WML}
+
+ウェブページ版のDWNはDebianのサイトの一部なので、
+他のページと同じCVSリポジトリ\footnote{リポジトリURLは\url{:pserver:anonymous@cvs.debian.org:/cvs/webwml}で、
+ウェブインタフェースも\url{http://cvs.debian.org/?root=webwml}で利用できます。
+この中の\verb|webwml|ディレクトリに\url{http://www.debian.org/}用のwmlファイルやそれからウェブページをビルドするツールなどが含まれています。
+例えばDWN 2005年第44号英語版は\verb|webwml/english/News/weekly/2005/44/index.wml|にあり、
+その日本語版は\verb|webwml/japanese/News/weekly/2005/44/index.wml|にあります。}、
+そして同じWMLというファイル形式を利用しています。
+
+ファイル形式には他のページと同様にWMLが用いられています。
+WMLとはウェブサイトメタ言語 (web site meta language) のことで、
+Debianでは\verb|wml|パッケージとして提供されています。
+簡単に言ってしまえばHTMLに命令を混ぜたような言語で、
+例えばウェブページのコンテンツに定型的なヘッダ・フッタ、
+さらにHTMLのheadを加えたりするのに用いられています。
+また、条件分岐を用いた、
+「○○のリリース前にはこのコンテンツを表示し、リリース後にはこのコンテンツを表示する」
+というような表示の切り替えや、
+Debianのウェブページの翻訳版がオリジナル版のどのバージョンに基いているかを管理するのにも用いられています。
+WMLについてより詳しく知りたければ\url{http://www.debian.org/devel/website/using_wml}を参照してください\footnote{ちなみに筆者は、WMLがDebian以外にどこで使われているか知りません}。
+
+\subsubsection{DWNのWML}
+
+Debian Weekly News の場合だとWMLの形式は決まっています。
+以下では (わざわざ説明する必要もない、見れば分かるものだと思いますが) DWN 2005年第44号のものを例にとって説明します。
+
+まず最初に命令が決ます。
+ここには、発行日時・そしてアーカイブのページに表示されるサマリ (主だった記事のキーワードのリスト) が書かれます。
+その後にCVSのIdが書かれています。
+\begin{verbatim}
+#use wml::debian::weeklynews::header PUBDATE="2005-11-01" SUMMARY="Dependencies, OpenSSL, Berlinux, RFCs, Kernel, Packaging, GTK, GNOME"
+# $Id$
+\end{verbatim}
+
+その後で、
+`Welcome to this year's \verb|nth| issue of DWN, the weekly newsletter for the Debian community.'
+で始まるeditorialが来ます。
+
+\begin{verbatim}
+<p>Welcome to this year's 44th issue of DWN, the weekly newsletter for the
+Debian community.  Nathanael Nerode <a
+href="http://lists.debian.org/debian-devel/2005/10/msg00388.html">reported</a>
+that current GCC versions support the old i386 processor again and hence
+Debian could retain i386 compatibility in the upcoming <a
+href="$(HOME)/releases/etch/">etch release</a>.</p>
+\end{verbatim}
+
+あとは普通の記事の繰り返しです。
+
+\begin{verbatim}
+<p><strong>Calculating Development Package Dependencies.</strong> Jay
+Berkenbilt <a
+href="http://lists.debian.org/debian-devel/2005/10/msg00184.html">\
+proposed</a> to work on a <a
+href="http://packages.debian.org/debhelper">debhelper</a> script that helps
+calculating <a href="http://packages.debian.org/libtool">libtool</a>
+dependencies for development packages.  Goswin von Brederlow <a
+href="http://lists.debian.org/debian-devel/2005/10/msg00519.html">pointed
+out</a> that with <a href="http://raw.no/debian/amd64-multiarch-2">\
+multiarch</a> there may be concurrent <code>.la</code> files to handle.  No
+consensus in favour of such a script was reached.  Junichi Uekawa (&#19978;&#24029; &#32020;&#19968;)
+<a
+href="http://lists.debian.org/debian-devel/2005/10/msg00316.html">\
+mentioned</a> the <a href="http://packages.debian.org/d-shlibs">d-shlibs</a>
+package that contains scripts to support the maintainer in this regard.</p>
+\end{verbatim}
+
+以上がDWNの記事部分です。
+
+記事部分のあとには、箇条書で書けるような様々な情報のコーナーが続きます。
+主に前号の発行以降に変化があったパッケージについての情報で、
+最近載っているのは
+\begin{description}
+ \item[`Security Updates.' (「セキュリティ上の更新。」)]
+   DSA番号・パッケージ名・脆弱性についての記述) のリスト。
+ \item[`New or Noteworthy Packages.' (「新規または注目すべきパッケージ。」)]
+   パッケージ名・パッケージ説明文のリスト。
+ \item[`Orphaned Packages.' (「みなしご化されたパッケージ。」)]
+   パッケージ名・パッケージ説明文・debbugsのバグ番号のリスト。
+ \item[`Removed Packages.' (「削除されたパッケージ。」)]
+   パッケージ名・パッケージ説明文・パッケージ削除理由のリスト。
+\end{description}
+の4コーナーですが、このうち「削除されたパッケージ。」は比較的新しい項目です。
+去年は、
+Debian Package a Day's Journal\footnote{\url{http://www.livejournal.com/users/debaday/}。}で紹介されたパッケージのリストを含む
+`Debian Packages introduced last Week. Ever' (「先週紹介された Debian パッケージ。」) というコーナーがあったのですが、
+これは、ウェブページが更新されなくなった (さすがにネタが尽きた?) ために廃止されたようです。
+以下にコーナーの例を示します。
+
+\begin{verbatim}
+<p><strong>Security Updates.</strong> You know the drill.  Please make sure
+that you update your systems if you have any of these packages installed.</p>
+
+<ul>
+<li>DSA 872: <a href="$(HOME)/security/2005/dsa-872">koffice</a> --
+    Arbitrary code execution.
+<li>DSA 873: <a href="$(HOME)/security/2005/dsa-873">net-snmp</a> --
+    Denial of service.
+<li>DSA 874: <a href="$(HOME)/security/2005/dsa-874">lynx</a> --
+    Arbitrary code execution.
+<li>DSA 875: <a href="$(HOME)/security/2005/dsa-875">openssl094</a> --
+    Cryptographic weakness.
+<li>DSA 876: <a href="$(HOME)/security/2005/dsa-876">lynx-ssl</a> --
+    Arbitrary code execution.
+<li>DSA 877: <a href="$(HOME)/security/2005/dsa-877">gnump3d</a> --
+    Several vulnerabilities.
+<li>DSA 878: <a href="$(HOME)/security/2005/dsa-878">netpbm-free</a> --
+    Arbitrary code execution.
+</ul>
+\end{verbatim}
+
+最後に定型メッセージが入ります。
+
+\begin{verbatim}
+<p><strong>Want to continue reading DWN?</strong> Please help us create this
+newsletter.  We still need more volunteer writers who watch the Debian
+community and report about what is going on.  Please see the <a
+href="$(HOME)/News/weekly/contributing">contributing page</a> to find out how
+to help.  We're looking forward to receiving your mail at <a
+href="mailto:dwn@debian.org">dwn@debian.org</a>.</p>
+\end{verbatim}
+
+そしてフッタ用のWML命令が入ります。
+編集者の名前を書くのに使われます。
+
+\begin{verbatim}
+#use wml::debian::weeklynews::footer editor="Martin 'Joey' Schulze"
+\end{verbatim}
+
+\subsection{翻訳作業}
+
+翻訳作業はだいたい以下のような流れになっています。
+
+\begin{description}
+ \item[週末] Martin `Joey' Schulzeがプライベートな草稿\footnote{\url{http://www.infodrom.org/~joey/Writing/DWN/}。}に記事を追加する。
+ \item[水曜未明] オリジナル版がリリースされる。
+ \item[水曜] 今井さんが翻訳チームの田村さん・小林に作業を割り振る。
+ \item[水曜〜日曜] 翻訳チームメンバーの3人が個々に翻訳し、
+   Debian JPのdebian-wwwメーリングリスト\footnote{\verb|debian-www@debian.or.jp|。}にそれを投稿して査読をお願いする。
+   それに対して杉山さん・武井さんなどが査読をしてくださる。
+ \item[月曜〜火曜] (基本的に今井さんが) debian-usersに日本語版をリリースする。
+\end{description}
+
+\subsubsection{Martin `Joey' Schulzeのオリジナル版リリース作業}
+
+Martin `Joey' Schulzeは、
+オリジナル版をリリースするために独自のリポジトリ\footnote{\url{:pserver:anonymous@cvs.infodrom.org:/var/cvs/infodrom.org}の\verb|public_html/src/Writing/DWN|。}を用いています。
+彼はそれに記事を追加していき、
+UTCで月曜日の夕方に、「ごく親しい関係者」向けにDWNのプレビューをリリースします。
+彼はこのプレビューを\verb|dwn@debian.org|に送り、DWNチームのレビューを受けます。
+またプレビューは、
+早目に翻訳にとりかかりたい人のために\verb|dwn-trans@debian.org|にも送られます。
+こうして、
+いくつかの言語ではオリジナル版の正式なリリースと同時に翻訳版をリリースすることができるようになっています。
+日本語版は現在、正式リリースを待って作業を開始しています。
+
+\subsubsection{割り振り}
+
+翻訳チームメンバー3人への作業の割り振りは基本的に今井さんが行います。
+チーム制を始めたばかりのころは「記事部分前半」・「記事部分後半」・「それ以外 (様々なコーナー)」という分け方をしていました。
+しかし、記事というのは流れがあるので訳していてそれなりに楽しいのですが、
+「それ以外 (様々なコーナー)」は、
+脆弱性・パッケージ削除理由といった定型文句が多数を占めるものがある一方で、
+流れがなくて訳しづらいパッケージ説明文もあります。
+(どちらにしろローテーション制なのですが) それだとやりがいに差が出るためか\footnote{本当の理由は知らないので、もしかしたら違うかもしれません。}、
+最近では「記事部分の1/3とどれかのコーナー」という分け方になっているようです。
+
+\subsubsection{翻訳・査読依頼}
+
+翻訳作業は、
+CVSリポジトリからオリジナル版のDWNのwmlファイルをコピーして始めます。
+このときファイルのコピーには、
+同じリポジトリに入っている\verb|webwml/copypage.pl|を用います。
+というのも、このPerlスクリプトはコピー元のオリジナル版wmlファイルに含まれるCVSのIdキーワードの値から翻訳バージョンチェック用のWML命令を作り出してくれるからです。
+またこのスクリプトは、
+オリジナル版wmlファイルに含まれているLatin-1文字コードの文字を適切な文字実体参照に置き換え、
+ASCIIだけを含むファイルにしてくれます。
+ウェブインタフェースを使ったダウンロードや、
+\verb|cp|コマンドによる生のコピーでは、それらがおこなわれません。
+
+実際の翻訳作業では、査読のしやすさを考えて、
+オリジナルの記事・リスト項目を残し、その後ろに翻訳をつけていきます。
+「この文の意味がよく分からない」「この単語はこう解釈した」といったメモを査読者に残したい場合は、
+「\verb|#|」でコメントアウトしたものをオリジナルと翻訳の間に挟んで残します。
+
+\subsubsection{日本語版リリース作業}
+
+リリース作業は次のような手順でおこないます。
+
+\begin{enumerate}
+ \item Debian JP debian-wwwメーリングリストに送られた3人の翻訳をwmlファイルにマージする。
+ \item 査読をしてくださった方々のコメントを反映させる修正をおこなう。
+ \item w3mで表示させ、査読でも指摘されずに残った明らかなミスがないか、
+   自分の目で簡単にチェックする。
+ \item w3mの表示を見ながら、
+   全角文字同士や全角文字とASCIIの間に不必要な空白ができていないか、
+   またはASCIIの周りに空白がきちんとあるかを調べ、
+   必要に応じて改行位置やタグの位置を変える。
+   詳しくは\ref{subsec:translation-care}を参照のこと。
+ \item 最下行にあるフッタ用WML命令に、
+   \verb|editor|フィールドとは別に\verb|translator|フィールドをつけることができるので、
+   そこに翻訳者の名前を連ねる。
+ \item 査読しやすいように残してあったオリジナルの記事・リスト項目と翻訳時のメモを消す (これでウェブ用翻訳版wmlファイルは完成となる)。
+ \item 今井さんのRubyスクリプトで、
+   wmlファイルをDebian JP debian-usersメーリングリスト投稿用プレインテキストに変換する。
+ \item \verb|&ouml;|などの文字実体参照をw3mなどの出力に合わせて変換する。
+ \item Emacsの\verb|auto-fill-mode|を利用して適当なところで改行する。
+   ただし、
+   リンクの代わりとなるURLリスト内の項目番号を示す「\verb|[1]|」のような文字列の前で改行されてしまった場合は、
+   それを手動で前の行末に戻す。
+ \item 以前のdebian-usersへの投稿を元に体裁を整える。
+ \item コメントを加える。
+   大変な査読作業をしてくださった方々への謝辞を忘れないようにする。
+ \item 完成した投稿用プレインテキストをdebian-usersに送信する。
+ \item 最後にウェブ用翻訳版wmlファイルをdebian-wwwに送信し、
+   コミットをお願いする (もちろん、コミット権のある今井さんが作業者の場合は直接コミットとなる)。
+\end{enumerate}
+
+\subsection{翻訳作業時の注意点}
+\label{subsec:translation-care}
+
+翻訳作業時には以下のような点に注意を払います。
+
+\begin{itemize}
+ \item ウェブページの見栄えを意識して、ASCIIと全角文字の間には空白を入れる。
+ \item 変なところで改行すると、
+   テキストブラウザで見たときに全角文字どうしの間に空白が入ってしまうことがある。
+  それを防ぐため改行位置には注意を払い、たとえば次のような方法をとる。
+ \begin{itemize}
+  \item 見かけに反映されることのない、タグの内側での改行を多用する。
+  \item 特にタグ直後の改行には注意する。
+  \item 結果的にスペースを伴うような改行がどうしても必要なときは、
+    行末に\verb|\|を入れる。
+ \end{itemize}
+ \item 改行位置に自信がないときはw3mで見てみる\footnote{\verb|-T text/html|とオプションを指定すれば、wmlファイルをHTMLファイルとして見ることができます。}。
+\end{itemize}
+
+\subsection{今後の課題}
+
+今後の課題としては以下のようなものがあるでしょう。
+中にはDWNの翻訳に留まらず他の翻訳にも関係するものもあります。
+
+\begin{description}
+ \item[定型文句の翻訳の自動化]
+   定型文句を翻訳するときには、訳語や表現形式を合わせるために、
+   その文句が使われている過去の翻訳を探してcopy and pasteするという作業が必要になります。
+   この作業は、
+   オリジナル版と翻訳版を行き来して該当部分を探し出さなければならないので、
+   案外面倒なものです。
+   対訳をデータベース化し、
+   そのデータを用いて翻訳できる部分は作業前に予め機械的に翻訳できるようにしておくと、
+   もう少し効率よく作業を進められる気がします。
+ \item[対訳表の保守]
+   Debian JPに対訳表\footnote{HTML版が\url{http://www.debian.or.jp/Documents/trans_table/trans_table.html}にあり、
+   dict形式のものも\url{http://www.debian.or.jp/devel/doc/about-trans-table.html}で手に入ります。}があるのですが、現在は更新されていません。
+   APT関連、Debianプロジェクト関連、
+   あるいはその他のDebianでよく使われる用語の対訳表\footnote{翻訳者を煩わせるサードパーティのアプリケーション名の表記に関するポリシーも一緒に含まれていたらよいと思います。}を整備できたらと思います。
+   新規に翻訳作業に携わりたい人にとって、
+   対訳が簡単に調べられることはかなり重要でしょう。
+\end{description}
+
+\subsection{おまけ: 翻訳作業に有用なツール}
+
+小林が翻訳作業によく用いているのは、
+英辞郎\footnote{\url{http://www.eijiro.jp/}。}、
+NDTPD\footnote{\url{http://www.sra.co.jp/people/m-kasahr/ndtpd/}。
+Debianパッケージは\url{http://packages.debian.org/ndtpd}。}、
+Lookup\footnote{\url{http://openlab.ring.gr.jp/lookup/}。
+Debianパッケージは\url{http://packages.debian.org/lookup-el}。}の組み合わせです。
+英辞郎のデータをFreePWING\footnote{\url{http://www.sra.co.jp/people/m-kasahr/freepwing/}。
+Debianパッケージは\url{http://packages.debian.org/freepwing}。}で変換して得られたデータに、
+Emacs上のクライアントLookupからサーバNDTPDを経由してアクセスします。
+
+また、文書の変更を管理するのに、
+バージョン管理システムとしてSubversion\footnote{\url{http://subversion.tigris.org/}。
+Debianパッケージは\url{http://packages.debian.org/subversion}。}を利用しています。
+差分をunified diffで表示しても分かりにくいときは、
+DocDiff\footnote{\url{http://www.kt.rim.or.jp/~hisashim/docdiff/}。
+Debianパッケージは\url{http://packages.debian.org/docdiff}。}で表示させると分かりやすくなることがあります。
 
 
 \newpage 
