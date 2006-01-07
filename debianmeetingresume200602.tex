@@ -10,6 +10,7 @@
 % dvipdfmx debianmeetingresume200602.dvi
 %  preview (shell-command (concat "xpdf " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 % 画像ファイルを処理するためにはebbを利用してboundingboxを作成．
+%(shell-command "cd image200602; ebb *.png")
 
 %%ここからヘッダ開始。
 
@@ -200,8 +201,13 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 
 \subsection{東京エリアDebian勉強会12回目報告}
 
-\dancersection{DebianでMIDIは扱えるのか，楽譜は使えるのか？}{XX}
+\dancersection{DebianでMIDIは扱えるのか，楽譜は使えるのか？}{上川}
 \label{sec:uekawa}
+
+Debianにて音楽活動をしようとすると何ができるのか，何ができないのか，追求
+してみようと思います．
+MIDIデバイスはまだ持っていないのではたして2月までにこの資料は完成するの
+か？
 
 \subsection{jack-audio-connection-kit}
 
@@ -217,12 +223,131 @@ jackdというデーモンが実行しているユーザ権限で起動し，それを経由して
  jackd -d alsa -d ixp -r 48000
 \end{commandline}
 
+\subsection{TSE3}
+
+よくわからないけどMIDIインタフェースのようだ．
+
 \subsection{lilypond}
 
+TeXで楽譜を作成しよう，というパッケージ．
+まともな楽譜を作成するような作業をする際にはこれでやってました．
+
+
 \subsection{denemo}
+
+今までは上川はこれで一小節程度の楽譜ならこちょこちょっと作成して用を足して来た．
+キーバインドも数字で音符の長さが決まっていたり，キーの上下で操作できたり
+する．久しぶりに見てみるとインタフェースが大幅に改善されているよう．
+
+\includegraphics[width=10cm]{image200602/denemo.png}
+
+TODO MIDI import/export
+
+
 \subsection{noteedit}
+
+MIDIのインポートもできるらしい．
+とりあえず楽譜を表示することはできるっぽい．
+
+TODO MIDI import/export
+TODO 操作方法
+
+\includegraphics[width=10cm]{image200602/noteedit.png}
+
+
 \subsection{rosegarden4}
+
+apt-get install rosegarden4 でインストール．
+
+一応楽譜が編集できるらしい．
+デバッグメッセージが大量に出て来るのとなんだか反応が鈍い感じ．
+
+TODO 操作方法が全くわからん
+
+TODO MIDI import/export?
+
+
+\includegraphics[width=10cm]{image200602/rosegarden4-1.png}
+
+\includegraphics[width=10cm]{image200602/rosegarden4-2.png}
+
+\subsection{ecasound}
+
+apt-get install ecasound でインストール．
+
+コマンドラインベースで音声加工をする．
+
+よく使うコマンドは
+
+音量をノーマライズする．(可能な最大の音量まであげる)\\
+\begin{commandline}
+$ ecanormalize in.wav
+\end{commandline}
+%$
+
+in.wav にコンプレッサーエフェクトをかけて，out.wavを生成する．\\
+\begin{commandline}
+$ ecasound -i in.wav -o out.wav -eca
+\end{commandline}
+%$
+
+とりあえず録音する\\
+\begin{commandline}
+$ ecasound -i alsahw,0,0,0 -o /tmp/a.wav
+********************************************************************************
+*        ecasound v2.4.3 (C) 1997-2005 Kai Vehmanen and others
+********************************************************************************
+- [ Session created ] ----------------------------------------------------------
+- [ Chainsetup created (cmdline) ] ---------------------------------------------
+- [ Connecting chainsetup ] ----------------------------------------------------
+(eca-chainsetup) 'rt' buffering mode selected.
+(eca-chainsetup) Audio object "alsahw", mode "read".
+(audio-io) Format: s16_le, channels 2, srate 44100, interleaved.
+(eca-chainsetup) Audio object "/tmp/a.wav", mode "read/write".
+(audio-io) Format: s16_le, channels 2, srate 44100, interleaved.
+- [ Chainsetup connected ] -----------------------------------------------------
+(eca-control-objects) Connected chainsetup: "command-line-setup".
+- [ Controller/Starting batch processing ] -------------------------------------
+- [ Engine init - Driver start ] -----------------------------------------------
+
+ここでctrl-Cで停止
+
+- [ Controller/Processing stopped (cond) ] -------------------------------------
+- [ Engine exiting ] -----------------------------------------------------------
+(eca-control-objects) Disconnecting chainsetup: "command-line-setup".
+- [ Chainsetup disconnected ] --------------------------------------------------
+- [ Controller/Batch processing finished ] -------------------------------------
+\end{commandline}
+%$
+
+
+\subsection{sweep}
+
+apt-get install sweep でインストール．
+
+メモリ上にwavファイルを展開するので，大きいwavファイルは編集できない．
+プリビューが優秀．ダブルクリックしたらそこから再生したりしてくれる．
+こまかい波形の切りだしなどに上川愛用．
+
+\includegraphics[width=10cm]{image200602/sweep.png}
+
 \subsection{audacity}
+
+apt-get install audacity でインストール．
+
+audacityで起動．
+マルチトラックのオーディオ編集に最適．巨大な波形データもメモリ上に全てを
+ロードしようとはしないので編集できる．
+巨大なデータの一次処理用には上川愛用．
+
+
+\includegraphics[width=10cm]{image200602/audacity.png}
+
+TODO: MIDIのインポートができることになっている．
+
+TODO: 日本語インタフェースを利用すると悲惨
+
+
 \subsection{ardour}
 
 apt-get install ardour-gtk でインストール．
@@ -234,6 +359,51 @@ apt-get install ardour-gtk でインストール．
 \includegraphics[width=10cm]{image200602/ardour2.png}
 
 \subsection{muse}
+
+手もとの環境ではSEGVで死にました．
+
+\begin{verbatim}
+LC_ALL=C catchsegv muse
+No superuser privileges, using system timer fallback
+NO Config File </home/dancer/.MusE> found
+no locale <muse_ja_JP.EUC-JP>/</usr/share/muse/locale>
+Trying RTC timer...
+fatal error: open /dev/rtc failed: Permission denied
+Trying ALSA timer...
+got timer = 12
+QObject::connect: No such signal PartCanvas::horizontalScroll(int)
+QObject::connect:  (sender name:   'unnamed')
+QObject::connect:  (receiver name: 'unnamed')
+Arranger::configChanged - no bitmap!
+open projectfile: No such file or directory
+starting with default template
+  name2route: <alsa_pcm:playback_1> not found
+  name2route: <alsa_pcm:playback_2> not found
+Arranger::configChanged - no bitmap!
+AlsaTimer::setTimerTicks(): requested freq 1024 Hz too high for timer (max is 10 00)
+  freq stays at 1000 Hz
+set realtime scheduler: Operation not permitted
+midi thread 22054 _NOT_ running SCHED_FIFO
+*** Segmentation fault
+
+省略
+Backtrace:
+muse[0x46635e]
+/lib/libc.so.6(__libc_start_main+0xda)[0x2aaaadb384ca]
+muse(_ZN9QComboBox11setEditTextERK7QString+0x5a)[0x428fba]
+\end{verbatim}
+
+\subsection{kguitar}
+
+apt-get install kguitarでインストール．
+
+ギターのタブ譜を編集できるソフトウェアのようです．使い方が分からないので，
+困りました．楽譜が出るはずのようですが，出てません．ギターの絵が素敵です．
+MIDI入出力ができることになっているようです．
+
+\includegraphics[width=10cm]{image200602/kguitar.png}
+
+\includegraphics[width=10cm]{image200602/kguitar2.png}
 
 \dancersection{次回}{}
 
