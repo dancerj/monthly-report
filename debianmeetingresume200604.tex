@@ -177,6 +177,12 @@ Debianをこれからどうするという能動的な展開への土台としての空間を提供し、
 をしてドラフトで保存してます。検索が簡単なのとメールでのやり取りが多い＆新し
 くbluebirdを立ち上げなくていいので、結構便利だと思っています。
 
+\subsection{岩松}
+いままで Linux でドキュメントを書くことはありませんでした。プレゼンテーションの
+ときは ooimpress でした。しかし、Debian 勉強会に参加して、自分でも発表を行うよう
+になってから、Tex に目覚め、今では会社のドキュメントも Tex で書く様になってしま
+いました。これからは Word なんかを使わず、茨の道を進んでいこうと思います。
+
 \subsubsection{上川}
 
 
@@ -365,6 +371,254 @@ operaとかのフリーじゃないものを使うのは邪道ですか？ & いいえ\\\hline
 
 \dancersection{Debian policy}{岩松}
 \label{sec:policy2}
+Debian Policy 第3回です。今回は Source package についてです。
+\subsection{ソースパッケージとは？}
+ソースパッケージはDebianが配布しているバイナリパッケージの元になっているパッケージのことです。
+例えば、シェルスクリプトの{\bf bash}\footnote{http://packages.debian.org/unstable/shells/bash} は bash\footnote{http://packages.qa.debian.org/b/bash.html}というソースパッケージからビルドされます。
+しかし、bash ソースパッケージは bash バイナリパッケージを作成するだけでなく、bash-builtins\footnote{http://packages.debian.org/unstable/utils/bash-builtins}パッケージやbash-doc\footnote{http://packages.debian.org/unstable/doc/bash-doc}パッケージもビルドされます。一つのソースパッケージから複数のソースパッケージがビルドされるとがあるということです。
+
+\subsection{Standards-Versionについて}
+Standards-Version は Debian Policy のバージョンを指します。Debian Policyは常に更新されており、現在、バージョンは 3.6.2.2 です。
+ソースパッケージは常に最新の Debian-Policy に追従すべきであると書かれています。
+実際にはパッケージをアップデートしたときに、Debian Policy のバージョンをチェックし上がっていた時、 Standards-Version の追従してバージョンを上げます。
+\\
+Standards-Version は debian/control ファイルの Standards-Version フィールドに記述します。
+Standards-Version フィールドのフォーマットもポリシーで決められており、セクション5.6.11で説明されています。
+
+\subsection{パッケージ関係について}
+パッケージをビルドする際に必要なパッケージが出てきます。
+そのビルドに必要なパッケージを指定する必要があると書かれています。
+
+必要なパッケージを全て書くわけではなく、最低限必要なパッケージを書くべきであると書かれており、
+例えば、bashを例にすると、ビルドの依存関係は以下のようになっています。
+
+\begin{verbatim} 
+Build-Depends: autoconf, patch, bison, libncurses5-dev, texinfo, autotools-dev, debhelper (>= 4.1), 
+texi2html, locales
+\end{verbatim}
+
+libncurses5-devに注目して、libncurses5-dev\footnote{ソースパッケージは ncurses }の依存関係を見てみると、
+\begin{verbatim}
+Build-Depends: debhelper (>= 3.0.23), libc6-dev-sparc64 [sparc], libc6-dev-s390x [s390], 
+libc6-dev-amd64 [i386], libc6-dev-ppc64 [powerpc], lib64gcc1 [i386 powerpc sparc s390], 
+libgpmg1-dev (>= 1.19.6-20) [!hurd-i386 !kfreebsd-i386], quilt (>= 0.40-1)
+\end{verbatim}
+となっています。
+依存しているパッケージに依存しているパッケージはもともと依存しているので、書く必要がないということです。
+
+パッケージ間の依存の詳細に関しては セクション7 で説明されています。
+
+\subsection{アップストリームのソース変更について}
+Debian では Debian social contract に書かれているように、Debianで発生した不具合やパッチをアップストリームに還元するようにしています。よって、パッチをアップストリームに還元するように示されています。
+アップストリームとは上流開発者のことで、パッケージの開発元を指します。
+また、Debian特有の問題やビルド時における最適化等で修正を入れるときがあります。
+ビルド前のテストでDebianとして追加したい項目があるときはautoconfを使って適切に処理したり、
+Makefileを修正するときは、Makefile を直接修正せずに、Makefile.inを修正するようにとも書かれています。
+これはconfigure を行ったときに Makefile が上書きされてしまうからです。
+
+\subsection{Debian changelogについて}
+Debian changelog とは Debianパッケージに関する変更点について書かれたものです。
+アップストリームの変更とは別書く必要があり、debian/changelog ファイルに記述します。
+
+ポリシーとして、debian/changelog にDebian パッケージによる変更点を簡潔に記述すべきであると書かれています。
+debian/changelog を修正するときは dch\footnote{http://packages.debian.org/unstable/devel/devscripts}を使うと便利です。
+
+Debian changelog の役目はこれだけではなく、debian/changelog からパッケージのバージョン情報を取得し、パッケージ構築の際に使用します。
+形式は以下のようになります。
+
+\begin{verbatim}
+     package (version) distribution(s); urgency=urgency
+     	    [optional blank line(s), stripped]
+       * change details
+         more change details
+     	    [blank line(s), included in output of dpkg-parsechangelog]
+       * even more change details
+     	    [optional blank line(s), stripped]
+      -- maintainer name <email address>[two spaces]  date
+\end{verbatim}
+
+\begin{itemize}
+\item package , version
+
+ ソースパッケージ名とソースパッケージのバージョンを指します。
+\item distribution
+ 
+ version で指定されたパッケージがインストールされるディストリビューションを指します。
+ Distributionに関してはSection 5.6.14.で説明されています。
+\item urgency
+
+ パッケージをアップロードする際の緊急度を指定します。
+ low, medium, high ,emergency を指定することができます。
+\item コメント部
+
+ コメントに関しては先頭は2つのスペースが必要です。
+ 習慣で各変更内容の先頭はアスタリスクになっています。
+ 長い文章は改行するのですが、改行したときは字下げを行います。字下げは上のテキストに沿って行います。
+ 空改行は変更内容をわけるために使用したりします。
+
+ 変更内容に不具合の修正内容を書くときがあります。このとき、BTS\footnote{http://bugs.debian.org}に登録されている
+ 場合があります。バグの番号をフォーマット通りに changelog に書くことによって、changes ファイルに書き込まれ、パッケー
+ ジがアップロードされたときに、自動的にバグがcloseされます。フォーマットは \#nnnnnn です。
+
+\item maintainer name , email address
+ changelog を書く際にメンテナ名とメールアドレスを書きます。この項目はパッケージがアップロードされた時の承認結果を送る際に
+ 使用されます。また、パッケージのキーサインにもこの項目が使われます。
+
+\item date
+ 修正した日時を書きます。RFC822フォーマットに基づいて書く必要があります。
+
+
+\item タイトル
+ タイトル部は左から始まります。メンテナーの前はスペースを入れ、トレーサー（--）を入れる必要があります。
+ また、メンテナと日付の間には２つスペースを入れ、分ける必要があります。
+
+\end{itemize}
+ changelog がインストールされる場所はセクション12.7に説明されています。
+
+ また、代替のChangelog フォーマットを使うことができます。
+ 実験用ではないパッケージでは、dpkgの最新バージョンでサポートされる debian/changelog のためのフォーマットを使用しなければなりません。
+ 自分が使用したいフォーマットがあるなら、パーサーを提供することによって変更することができます。
+ パーサーは dpkg-genchanges および dpkg-gencontrol によって期待されたAPI互換性を持つ必要があります。
+
+\subsection{Error trapping in makefiles}
+ Makefile からシェルスクリプトが呼ばれるときがあります。例えば、dpatch \footnote{http://packages.debian.org/unstable/devel/dpatch}によって呼ばれるpatch ファイルです。
+ Makefile 内でシェルスクリプトファイルがエラーが発生しても、エラーを捉えることができません。
+ そのため、シェルスクリプトファイルは実行の際に -e オプション\footnote{ERR トラップが設定されていればそれを実行して終了します。}を付けなければならないと説明されています。
+
+\subsection{タイムスタンプについて}
+可能な限りアップストリームのソースファイルのタイムスタンプをパッケージ中に変更せず、そのままにしておくことを推奨すると書かれています。
+%パッケージメンテナーはアップストリームソースの変更した時間を保存すべきである、と書かれています。
+%修正したという履歴を残しておくと、どれだけ放置されているかチェックできるという利点があります。
+
+\subsection{ソースパッケージの中のオブジェクトファイルにおける制限}
+ソースパッケージの中にはハードリンク、デバイスファイル、ソケット、setuid やgetuid されたファイルを入れてはいけません。
+
+\subsection{Main building script: debian/rules}
+deban/rules ファイルは ソースパッケージからバイナリパッケージを作成する方法がスクリプトです。
+実態は実行可能な(パーミッション:755)makefile です。
+ファイルの先頭は{\bf \#!/usr/bin/make -f} になっています。
+
+スクリプトは非対話式になっています。対話式だと、毎回同じバイナリが生成されるとは限らないので、自動的にバイナリパッケージが生成されるようになっています。
+スクリプトの内容はdpkg-buildpackageから呼ばれる必要なターゲットとしてclean, binary, binary-arch, binary-indep, build があり、これらが最小の構成になっています。
+
+\begin{itemize}
+	\item build
+
+		パッケージの設定、コンパイルを行います。
+		もし、パッケージ構築前に設定作業がある場合は、Debian化されたソースの設定作業を行った後で
+		行うべきであると書かれています。その理由として設定を再度行わず、パッケージの構築が行えるよう
+		にするためです。
+
+		いくつかのパッケージは同じソースパッケージからコンパイルのやり方を変更して異なったバイナリを
+		生成する場合があります。buildターゲットではこのような処理には対応できないので、それぞれの構築
+		方法に従って、それぞれのターゲット（例えば、binary-a と binary-b）を作成して使用するといいと書か
+		れています。この場合は実際はbuildターゲットではなにも行わず、binaryターゲットでそれぞれのパッケ
+		ージをビルドしてそれぞれのバイナリパッケージを作成することになります。
+
+		ルート権限が必要な作業は行ってはいけません。
+		
+	\item build-arch (optional), build-indep (optional)
+
+		build-arch は、提供された場合、アーキテクチャーに依存しているバイナリパッケージ( debian/control ファイルの Architecture 
+		フィールドが''all''ではないとき）すべて生成するために必要になった設定やコンパイルをすべて行なうべきです。
+		build-indep は アーキテクチャーから独立しているバイナリパッケージ( debian/control ファイルの Architecture フィールドが''all''のとき）
+		すべて生成するために必要になった設定やコンパイルをすべて行なうべきです。
+		build ターゲットは、rules ファイルの中で提供される build-arch およびbuild-indep に依存するべきです。
+	\item binary, binary-arch, binary-indep
+
+		binary ターゲットはこれだけで、バイナリパッケージを構築できないといけません。
+		binary ターゲットは2種類に分けられ、binary-arch は特定のアーキテクチャ用のファイル、binary-indepは
+		それ以外のファイルを生成します。これらのターゲットは非対話的に動作するものでなければいけませ
+		ん。
+	\item clean
+
+		build ターゲットとbinary ターゲットによって生成されたファイルを削除し、元に戻します。
+		例外として、binaryターゲットで出力されたファイルは消さず、残します。
+		このターゲットは非対話的である必要があります。
+
+
+	\item get-orig-source (optional)
+
+		このターゲットは主要なアーカイブサイト（例えば、もげ）から最新のオリジナルソースをHTTP や FTP
+		から取得します。取得したオリジナルソースを tar ファイルに再構成します。
+		
+
+\end{itemize}
+ build , binary および clean ターゲットはパッケージのトップディレクトリをカレントディレクトリとして実行されなければなりません。
+ 
+ 公開されている、またはいないインターフェイスのためやパッケージ内部で使用するために debian/rules に他のターゲットを置くことは許されます。
+
+ パッケージを実際に構築するマシンやインストールの対象となるマシンのアーキテクチャは、dpkg-architecture を使い、変数を指定することによって
+決定されます。これにより、ホストマシンだけでなくパッケーの構築するマシンの Debian 形式のアーキテクチャーと GNU 形式のアーキテクチャ指定
+文字列を取得するとができます。
+\begin{itemize}
+\item DEB\_BUILD\_ARCH
+
+	Debian 形式のパッケージ構築マシンアーキテクチャ\\
+	例：i386
+\item DEB\_HOST\_ARCH
+
+	Debian 形式のインストール先アーキテクチャ\\
+	例：i386
+\item DEB\_BUILD\_GNU\_TYPE
+	
+	GNU 形式のパッケージ構築マシンアーキテクチャ指定文字列\\
+	例：i486-linux-gnu
+\item DEB\_HOST\_GNU\_TYPE
+
+	GNU 形式のインストール先アーキテクチャ指定文字列\\
+	例：i486-linux-gnu
+\item DEB\_BUILD\_GNU\_CPU
+
+	DEB\_BUILD\_GNU\_TYPE の CPU 部分\\
+	例：i486
+\item DEB\_HOST\_GNU\_CPU
+
+	DEB\_HOST\_GNU\_TYPE の CPU 部分\\
+	例：i486
+\item DEB\_BUILD\_GNU\_SYSTEM
+
+	DEB\_BUILD\_GNU\_TPE のシステム部分\\
+	例：linux-gnu
+\item DEB\_HOST\_GNU\_SYSYTEM
+
+	DEB\_HOST\_GNU\_TYPE のシステム部\\
+	例：linux-gnu	
+\end{itemize}
+
+DEB\_BUILD\_ARCH および DEB\_HOST\_ARCH はDebianアーキテクチャのみを決定することができます。
+実際の CPU やシステム情報を取得する際はこれらを使用してはいけません。この場合には GNU 形式の変数を使用しなくてはいけません。 
+
+\subsection{Variable substitutions: debian/substvars}
+	substvars ファイルはそのパッケージの実行ファイルに関する共有ライブラリの依存関係を計算し、書き出され
+	たものです。
+	bashを例に取ると、内容は以下のようになっています。
+
+\begin{verbatim}
+	shlibs:Pre-Depends=libc6 (>= 2.3.5-1), libncurses5 (>= 5.4-5)
+\end{verbatim}
+	
+	このファイルはdebian/rules によって生成され、動的に変更されます。clean ターゲットで削除されるようにしておく必要があります。
+	実際にはdpkg-gencontrol , dpkg-genchanges, dpkg-source が control ファイルを生成するときに substbar を参照
+	してファイルを生成します。
+	substbars を使ったソースの変換方法については、dpkg-sourceの man に書かれています。
+	
+\subsection{Generated files list: debian/files}
+	このファイルはソースツリーの常に存在する部分ではありません。
+	これはどのようなパッケージが生成されたのか記録するために用いられます。dpkg-genchanges は、.changeファ
+	イルを生成する際に使用します。
+	bash を例に取ると、以下のような内容になっています。
+
+\begin{verbatim}
+	bash-doc_3.1-4_all.deb doc optional
+	bash_3.1-4_i386.deb shells required
+	bash-builtins_3.1-4_i386.deb utils optional
+	bash-static_3.1-4_i386.deb shells optional
+	bash-minimal_3.1-4_i386.deb shells optional
+\end{verbatim}
+
+	また、このファイルはアップロードされるソースパッケージには含めてはならず、
+	debian/rules の clean ターゲットで削除すべきであると書かれています。
 
 \dancersection{Debian TeXのファイル構造}{上川}
 \label{sec:latexdebian1}
