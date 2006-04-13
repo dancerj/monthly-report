@@ -258,6 +258,58 @@ Cygwinのsshをcocotを使用して起動し、Sarge環境に接続。
 になってから、Tex に目覚め、今では会社のドキュメントも Tex で書く様になってしま
 いました。これからは Word なんかを使わず、茨の道を進んでいこうと思います。
 
+
+\subsection{やまねさん}
+Debianで文章編集…どのような環境、といっても
+
+\begin{itemize}
+ \item IME        - uim+anthy
+ \item mail        - Sylpheed / firefox(gmail)
+ \item irc        - loqui
+ \item editor     - gedit / vim
+ \item presentation    - OpenOffice.org(Impress)
+\end{itemize}
+
+と面白みの無い答えになります。
+Emacs など使い方が身につけばつかってみたいのですが、なかなかきっかけがありません。（riece を起動するだけにしか使わない）
+
+\subsection{小林さん}
+
+Debianでは主にEmacs 21で文書を書いています。
+フォーマットは、個人的なメモなど、
+印刷物などにする必要がないものに関してはすべてRDです。
+
+学生なのでTeXもそれなりに使ってきました。
+レジュメなど最終的に印刷する必要があるものはすべてTeXです。
+もちろん修論も同様で、
+スタイルファイルにはokumura-clsfilesパッケージのjsbook.clsを使い、
+出力はdvipdfmxでpdfに変換しました。
+EmacsのメジャーモードにはYaTeXを使っています。
+
+個人的なものについては、印刷物はTeX、それ以外はRDですが、
+翻訳作業をしている関係でそれ以外のフォーマットも扱います。
+しかし最近では、ウェブページはもちろん、
+様々なソフトウェアのドキュメントもみなXML/SGMLやその仲間 (HTML, XHTML, DocBook/XML, wml, ...) で書かれているので、
+特筆することはありません。
+せいぜい、DocBook/XMLで書かれたAptitudeのドキュメントをdocbook-xslパッケージのXSLTスタイルシートで変換しようとして文字コードやその他のバグにちょっと苦しんだくらいです。
+docbook-xslの新しいバージョンのパッケージはいつ入るのかが気になる昨今です (というかsargeリリース直前に入ったのもNMUだし、ほとんどメンテナンスされていないような気がします)。
+
+
+\subsection{北原さん}
+　　率直に正直に言いますと「Debianで文書はつくって
+いません」。　文章を作るときには、手馴れた某OSの某
+エディタを使用し、必要があれば、転送・文字コード変
+換等を行います。　装飾が必要なときは、作成したテキ
+ストをワードプロセッサに読み込ませます。
+　　これでは、デビアン勉強会の宿題回答にはならない
+ので、あえてデビアン環境で文章を作るならという事で
+回答すると、短いメモや覚書程度なら vi 、少々サイズ
+が大きい文章なら OpenOffice.org でしょうか。　TeX
+とかは使用できません。
+（何とか200文字を越えました。）
+
+
+
 \subsubsection{上川}
 
 \begin{itemize}
@@ -725,10 +777,26 @@ TeX policyについて簡単に解説します．
 
 \subsection{ファイル配置}
 
+TeXの入力ファイルのみをTEXMFツリーに配置します．
+そうでないものは，/usr/share/PACKAGEに配置します．
+例外として，説明のためのテキストファイルはTEXMFツリーに配置することがで
+きます．
 
+\subsubsection{パス検索とlibkpathsea/libkpse}
 
-\subsubsection{パス検索とlibkpathsea}
+ファイルフォーマットなどに基づいて，TEXMFツリーの検索をするためのライブ
+ラリです．
+libkpathsea はあまり考えていませんでしたが，libkpseは，API/ABIを考慮したライ
+ブラリです．
+
+スクリプトからは kpsewhich, kpsepath, kpsexpand, kpsestat を利用できます．
+
 \subsubsection{ディレクトリツリー}
+
+配置は，TeX ディレクトリ構造標準(TDS)に準拠する．TDSの古いバージョンに準
+拠するのはバグ．TDSの新しいバージョンに依存しながらこのtex-commonパッケー
+ジやTeXの基本パッケージの十分新しいバージョンに依存していないのもバグ．
+
 \subsubsection{生成されたファイル}
 \subsubsection{ファイル名と別名のファイルのインストール？}
 \subsubsection{ドキュメント}
@@ -754,12 +822,28 @@ TeX policyについて簡単に解説します．
 \subsection{platexでPDFを作成する方法}
 
 platexはptex-binパッケージに含まれています．
-texファイルからdviファイルを生成することができます．
+日本語でかかれたtexファイルからdviファイルを生成することができます．
 
 \begin{commandline}
  $ platex debianmeetingresume200604.tex
 \end{commandline}
 %$
+
+Debian でのplatexのデフォルトは，EUCモードです．ソースファイルのエンコー
+ディングは iso-2022-jp か euc-jp にしておくとよいでしょう．
+SJISモードでの処理については，Debian パッケージとしてはサポート
+していません\footnote{\url{http://bugs.debian.org/234547}}
+
+\begin{center}
+ \begin{tabular}{|c|c|}
+ 文字コード & 可否 \\
+ \hline
+ EUC-JP & ○ \\
+ SJIS & × \\
+ ISO-2022-JP & ○ \\
+ UTF-8 & × \\
+ \end{tabular}
+\end{center}
 
 dviファイルからPDFを作成する方法は，いくつかあります．
 
@@ -793,9 +877,9 @@ dviファイルからPDFを作成する方法は，いくつかあります．
        現状 \verb!GS_LIB! 環境変数の指定が必要になっているのと，Kochiフォ
        ントを利用しているとエラーを吐いて停止するという問題があります．
        dfontmgrを利用して，ps2pdf(gs)が利用するフォントとしてkochiフォン
-       ト以外を指定する必要があります．(参考：
+       ト以外を指定する必要があります．\footnote{参考：
        \url{http://lists.debian.or.jp/debian-users/200501/msg00008.html},
-       \url{http://kmuto.jp/d/index.cgi/debian/gs-esp-8151.htm} )
+       \url{http://kmuto.jp/d/index.cgi/debian/gs-esp-8151.htm} }
 
        \includegraphics[width=12cm]{image200604/dfontmgr.png}
 
