@@ -171,6 +171,16 @@ Debianをこれからどうするという能動的な展開への土台としての空間を提供し、
 というものでした。
 その課題に対して下記の内容を提出いただきました。
 
+\subsubsection{小室さん}
+
+Debian Conferenceが実は夜這いがメインならば、気に入った人＆イケメンを口説き
+落とす。それは置いといても参加するならば（自分に何が出来るかどうかと考えてみ
+ると）、あんまり即席プログラムとか出来ないので、どちらかというと運営側なら出
+来るかなと。幹事みたいな事とか。Debconfが始まったら参加者全員とツーショット
+を撮る。後やっぱり日本で開催されたら、秋葉原とか板橋の花火大会とかに連れて行
+き、最後に１０９の前で集合写真を撮る。その前にまずDebconfに参加する人達につ
+いていけるように勉強に励みたいと思います。
+
 \subsubsection{}
 
 \subsubsection{上川}
@@ -308,15 +318,398 @@ Rosetta などの既存の新しいツールでは解決できない問題，
 
 Debconfの会場で開発したツール、cowbuilderについてご紹介します。
 
+cowdancer 自体は Finland での Debconf (2005年)で開発を開始しましたが，構
+想をねっていたcowbuilder に着手し完了したのは， Mexico での Debconf
+(2006年) でした． cowbuilder ツールについて紹介します．
+
 \subsection{pbuilderとは}
+
+まず，\texttt{cowbuilder} のベースになっている \texttt{pbuilder} につい
+て紹介します．
+
+\texttt{pbuilder}\footnote{\url{http://pbuilder.alioth.debian.org/},
+\url{http://www.netfort.gr.jp/~dancer/software/pbuilder.html.ja}} は 
+Debian パッケージのビルドテストをクリーンルーム環境({\tt chroot})で実施
+することが簡単になるようにつくられたツールです．{\tt chroot}環境を利用す
+ると，いろいろな試験を実施することができますが，実はバージョンを最新にす
+る手間とか，最小のパッケージをインストールするための手間などが結構かかり
+ます．特に，いつでも最新版の \texttt{Debian} をインストールできる必要が
+あるため，ときおりトラブルが起き，その問題を解決する必要があります．そこ
+で， \texttt{chroot} 管理に関連した QA 作業を集中してスクリプト化してお
+き，このスクリプトさえ使えばいつでも動くようにしてしまおう，という目論見
+ではじめたのが \texttt{pbuilder} です．
+
+ここで解説している対象はバージョン 0.155 です．
+
+{\tt pbuilder build {\it パッケージ.dscファイル} }コマンドを利用すると，
+tar.gz から \texttt{chroot} を展開して，その中でDebian パッケージをビルドしてくれ
+ます．ビルドに必要な依存関係は \texttt{debian/control} ファイルの \texttt{Build-Depends} 
+フィールドと \texttt{Build-Depends-Indep} フィールドを参考に \texttt{apt-get install} でイ
+ンストールします．
+
+{\tt pbuilder create} は Debian の初期インストールイメージを作成し， 
+tar.gz として管理します．\texttt{--basetgz} オプションを利用すれば，
+tar.gzファイルを指定できます\footnote{デフォルトは 
+\texttt{/var/cache/pbuilder/base.tgz}}．\texttt{--distribution}オプショ
+ンで Debian etch/sarge/sid を指定することができるので，各バージョン用の
+\texttt{chroot} 環境を作成することができます．
+
+{\tt pbuilder update} は Debian の初期インストールイメージを最新版の状態
+に更新します．Debian unstableは一日一回新しいバージョンがリリースされて
+しまうので，一日に一回実行する必要があります．
+
+{\tt pdebuild} は，一般ユーザ権限でDebian パッケージのソースディレクトリ
+の中に居る場合に，sudo コマンドを利用してで root 権限になり，Debianのソー
+スパッケージの作成から \texttt{chroot} 環境でのビルドまでを自動化してくれるツールです．
+
+ここから，pbuilder create, pbuilder update, pbuilder build, 
+pdebuild のそれぞれの実行時のログの例を紹介します．
+
+\begin{commandline}
+# pbuilder update --mirror http://ftp.jp.debian.org/debian --override-config --distribution sid 
+W: /home/dancer/.pbuilderrc does not exist
+Upgrading for distribution sid
+Building the build Environment
+ -> extracting base tarball [/var/cache/pbuilder/base.tgz]
+ -> creating local configuration
+ -> copying local configuration
+ -> mounting /proc filesystem
+ -> mounting /dev/pts filesystem
+ -> policy-rc.d already exists
+  -> Installing apt-lines
+Refreshing the base.tgz 
+ -> upgrading packages
+Get:1 http://ftp.jp.debian.org sid Release.gpg [189B]
+Get:2 http://ftp.jp.debian.org sid Release [38.3kB]
+Ign http://ftp.jp.debian.org sid Release
+Get:3 http://ftp.jp.debian.org sid/main Packages [4030kB]
+Fetched 4069kB in 4s (904kB/s)
+Reading package lists... Done
+W: GPG error: http://ftp.jp.debian.org sid Release: Could not execute '/usr/bin/gpgv' to verify signature 
+ (is gnupg installed?)
+W: You may want to run apt-get update to correct these problems
+dpkg - warning: ignoring request to remove lilo which isn't installed.
+Obtaining the cached apt archive contents
+Reading package lists... Done
+Building dependency tree... Done
+Calculating upgrade... Done
+The following NEW packages will be installed:
+  cpp-4.1 g++-4.1 gcc-4.1 libstdc++6-4.1-dev tasksel-data
+The following packages will be upgraded:
+  apt apt-utils aptitude bsdutils coreutils cpio cpp cpp-4.0 debconf
+[中略]
+  wget
+77 upgraded, 5 newly installed, 0 to remove and 0 not upgraded.
+Need to get 25.4MB/49.3MB of archives.
+After unpacking 25.4MB of additional disk space will be used.
+WARNING: The following packages cannot be authenticated!
+  bsdutils dpkg coreutils debianutils diff libc6-dev tzdata libc6 e2fslibs
+[中略]
+  libgnutls12 telnet dhcp3-client dhcp3-common
+Get:1 http://ftp.jp.debian.org sid/main dpkg 1.13.21 [1569kB]
+[中略]
+Get:41 http://ftp.jp.debian.org sid/main telnet 0.17-32 [72.1kB]
+Fetched 25.4MB in 17s (1423kB/s)
+Extracting templates from packages: 100%
+Preconfiguring packages ...
+(Reading database ... 12009 files and directories currently installed.)
+Preparing to replace bsdutils 1:2.12r-9 (using .../bsdutils_1%3a2.12r-10_amd64.deb) ...
+Unpacking replacement bsdutils ...
+Setting up bsdutils (2.12r-10) ...
+
+[中略]
+
+Preparing to replace libgpg-error0 1.2-1 (using .../libgpg-error0_1.2-1_amd64.deb) ...
+Unpacking replacement libgpg-error0 ...
+
+[中略]
+
+Setting up libc6-dev (2.3.6-15) ...
+
+[中略]
+
+Setting up dpkg-dev (1.13.21) ...
+Reading package lists... Done
+Building dependency tree... Done
+build-essential is already the newest version.
+dpkg-dev is already the newest version.
+apt is already the newest version.
+0 upgraded, 0 newly installed, 0 to remove and 1 not upgraded.
+Copying back the cached apt archive contents
+
+[中略]
+
+ -> new cache content libgnutls12_1.2.11-1_amd64.deb added
+ -> unmounting dev/pts filesystem
+ -> unmounting proc filesystem
+ -> creating base tarball [/var/cache/pbuilder/base.tgz]
+ -> cleaning the build env 
+    -> removing directory /var/cache/pbuilder/build//2252 and its subdirectories
+\end{commandline}
+
+\begin{commandline}
+$ sudo pbuilder build ~/pending/20060531/pbuilder_0.154.dsc 
+W: /home/dancer/.pbuilderrc does not exist
+I: using fakeroot in build.
+pbuilder-buildpackage/amd64 $Id$
+$Id$
+
+Current time: Sat Jun 10 23:42:44 JST 2006
+pbuilder-time-stamp: 1149950564
+Building the build Environment
+ -> extracting base tarball [/var/cache/pbuilder/base.tgz]
+ -> creating local configuration
+ -> copying local configuration
+ -> mounting /proc filesystem
+ -> mounting /dev/pts filesystem
+ -> policy-rc.d already exists
+ -> created buildresult dir :/var/cache/pbuilder/result/
+Obtaining the cached apt archive contents
+Installing the build-deps
+ -> Attempting to parse the build-deps : pbuilder-satisfydepends,v 1.28 2006/05/30 23:45:45 dancer Exp $
+ -> Considering  debhelper (>= 4.1.0)
+   -> Trying debhelper
+
+[中略]
+
+ -> Installing  debhelper docbook-xsl ldp-docbook-xsl xsltproc
+Reading package lists... Done
+Building dependency tree... Done
+The following extra packages will be installed:
+
+[中略]
+
+0 upgraded, 14 newly installed, 0 to remove and 1 not upgraded.
+Need to get 2643kB/5118kB of archives.
+After unpacking 23.1MB of additional disk space will be used.
+WARNING: The following packages cannot be authenticated!
+  libmagic1 file html2text gettext intltool-debian po-debconf debhelper
+  sgml-base xml-core docbook-xsl ldp-docbook-xsl libxml2 libxslt1.1 xsltproc
+Get:1 http://ftp.jp.debian.org sid/main libmagic1 4.17-1 [277kB]
+
+[中略]
+
+Get:10 http://ftp.jp.debian.org sid/main xsltproc 1.1.17-1 [100kB]
+Fetched 2643kB in 2s (953kB/s)
+Selecting previously deselected package libmagic1.
+(Reading database ... 12605 files and directories currently installed.)
+Unpacking libmagic1 (from .../libmagic1_4.17-1_amd64.deb) ...
+Selecting previously deselected package file.
+
+[中略]
+
+Setting up xsltproc (1.1.17-1) ...
+ -> Finished parsing the build-deps
+Reading package lists... Done
+Building dependency tree... Done
+The following NEW packages will be installed:
+  fakeroot
+0 upgraded, 1 newly installed, 0 to remove and 1 not upgraded.
+Need to get 96.2kB of archives.
+After unpacking 401kB of additional disk space will be used.
+WARNING: The following packages cannot be authenticated!
+  fakeroot
+Get:1 http://ftp.jp.debian.org sid/main fakeroot 1.5.8 [96.2kB]
+Fetched 96.2kB in 0s (513kB/s)
+Selecting previously deselected package fakeroot.
+(Reading database ... 14355 files and directories currently installed.)
+Unpacking fakeroot (from .../fakeroot_1.5.8_amd64.deb) ...
+Setting up fakeroot (1.5.8) ...
+
+Copying back the cached apt archive contents
+
+[中略]
+
+Copying source file
+    -> copying [/home/dancer/pending/20060531/pbuilder_0.154.dsc]
+    -> copying [/home/dancer/pending/20060531/pbuilder_0.154.tar.gz]
+Extracting source
+su: Authentication service cannot retrieve authentication info.
+(Ignored)
+dpkg-source: warning: no utmp entry available and LOGNAME not defined; using uid of process (1234)
+dpkg-source: warning: could not verify signature on ./pbuilder_0.154.dsc since gpg isn't installed
+dpkg-source: extracting pbuilder in pbuilder-0.154
+dpkg-source: unpacking pbuilder_0.154.tar.gz
+ -> Building the package
+su: Authentication service cannot retrieve authentication info.
+(Ignored)
+dpkg-parsechangelog: warning: no utmp entry available and LOGNAME not defined; using uid of process (1234)
+debian: warning: no utmp entry available and LOGNAME not defined; using uid of process (1234)
+
+[中略]
+
+ fakeroot debian/rules clean
+
+[中略]
+
+ debian/rules build
+
+[中略]
+
+ -> unmounting dev/pts filesystem
+ -> unmounting proc filesystem
+Current time: Sat Jun 10 23:43:47 JST 2006
+pbuilder-time-stamp: 1149950627
+ -> cleaning the build env 
+    -> removing directory /var/cache/pbuilder/build//10498 and its subdirectories
+
+\end{commandline}
+
+\begin{commandline}
+$ pdebuild 
+W: /home/dancer/.pbuilderrc does not exist
+dpkg-buildpackage: source package is pbuilder
+dpkg-buildpackage: source version is 0.155
+dpkg-buildpackage: source changed by Junichi Uekawa <dancer@debian.org>
+dpkg-buildpackage: source version without epoch 0.155
+ fakeroot debian/rules clean
+dh_testdir
+dh_testroot
+rm -f build-stamp configure-stamp
+# Add here commands to clean up after the build process.
+/usr/bin/make clean
+make[1]: Entering directory `/home/dancer/cvscheckout/external/pbuilder/pbuilder'
+rm -f *.bak *~ TAGS
+rm -f testsuite/testimage
+rm -rf testsuite/testbuild testsuite/testbuild2
+make[1]: Leaving directory `/home/dancer/cvscheckout/external/pbuilder/pbuilder'
+rm -rf debian/pbuilder-uml/
+dh_clean
+ dpkg-source -b pbuilder
+dpkg-source: warning: source directory `./pbuilder' is not <sourcepackage>-<upstreamversion> `pbuilder-0.155'
+dpkg-source: building pbuilder in pbuilder_0.155.tar.gz
+dpkg-source: building pbuilder in pbuilder_0.155.dsc
+ dpkg-genchanges -S
+dpkg-genchanges: including full source code in upload
+dpkg-buildpackage: source only upload: Debian-native package
+W: /home/dancer/.pbuilderrc does not exist
+I: using fakeroot in build.
+pbuilder-buildpackage/amd64 $Id$
+$Id$
+
+Current time: Sat Jun 10 23:49:35 JST 2006
+pbuilder-time-stamp: 1149950975
+Building the build Environment
+ -> extracting base tarball [/var/cache/pbuilder/base.tgz]
+ -> creating local configuration
+ -> copying local configuration
+ -> mounting /proc filesystem
+ -> mounting /dev/pts filesystem
+ -> policy-rc.d already exists
+ -> created buildresult dir :/var/cache/pbuilder/result
+Obtaining the cached apt archive contents
+Installing the build-deps
+
+[中略]
+
+dpkg-buildpackage: full upload; Debian-native package (full source is included)
+Copying back the cached apt archive contents
+ -> unmounting dev/pts filesystem
+ -> unmounting proc filesystem
+Current time: Sat Jun 10 23:50:38 JST 2006
+pbuilder-time-stamp: 1149951038
+ -> cleaning the build env 
+    -> removing directory /var/cache/pbuilder/build//13247 and its subdirectories
+\end{commandline}
+
 
 \subsection{cowdancerとは}
 
+\texttt{cowdancer}\footnote{\url{http://www.netfort.gr.jp/~dancer/software/cowdancer.html.ja}} 
+はディレクトリをハードリンクでコピーしておけば，書き込みをされる段階にハー
+ドリンクの関係を破壊する，というツールです．大きなディレクトリツリーを作
+業用にコピーして，作業したあとは捨てる，と言うような利用方法の場合，実際
+にコピーすると書き込み量が大きく，待たされます．また全てのファイルを変更
+するわけではなく，一部のファイルしか書き換えないので，書き換える段階になっ
+てから実物をコピーしたほうが効率良い場合があります．そのような用途に利用
+します．
+
+GNU の \texttt{cp} コマンドであれば， \texttt{cp -al }でコピーをすると，
+ファイルを全部コピーするかわりに全てのファイルをハードリンクでコピーして
+くれます．\texttt{cp -al} でコピーしたツリーに対して， 
+\texttt{cow-shell} コマンドで起動したシェルの中で作業すればよいです．
+
+例えば，下記のような作業をしても，\texttt{linux-2.6} ディレクトリの中身
+には影響を与えません．また，\texttt{cp -a} コマンドでコピーするのに比べ
+ると格段にはやいです．
+
+\begin{commandline}
+$ cp -al linux-2.6 linux-2.6-work
+$ cd linux-2.6-work
+$ cow-shell 
+Invoking /bin/bash
+$ vi .config
+[作業]
+$ exit 
+exit
+$ cd ../
+$ rm -rf linux-2.6-work
+\end{commandline}
+
 \subsection{cowbuilderとは}
 
-\subsection{使い方紹介}
+\texttt{cowbuilder} は \texttt{cowdancer} を利用して \texttt{pbuilder} 
+を高速化したツールです．\texttt{pbuilder} は便利ですが，Debian のインス
+トールイメージの .tar.gz を毎回展開しているため，遅いという重大な欠点が
+ありました．.tar.gz のかわりに作業用のツリーを展開した状態で保持しておき，
+\texttt{cowdancer} を利用して，ハードリンクを毎回利用するようにしたところ，.
+.tar.gz の展開の部分が省略されたため，高速になりました．
+
+\begin{center}
+ \begin{tabular}[t]{@{\vrule width 1pt}c|r|r|r@{\ \vrule width 1pt}}
+ \hline
+ \hline
+ オペレーション & pbuilder & cowbuilder & speed \\
+ \hline
+ update & 150  & 16 & 10x \\
+ build (N/W down) & 80 & 18 & 5x \\
+ build (pbuilder) & 177 & 86 & 2x\\
+ login & 80 & 4 & 20x\\
+ \hline
+ \hline
+ \end{tabular}
+\end{center}
 
 
+\subsection{cowbuilderの使い方}
+
+{\tt cowbuilder --build {\it パッケージ.dscファイル} }コマンドを利用する
+と，Debian パッケージを \texttt{cowbuilder} 環境でビルドしてくれます．
+
+{\tt cowbuilder --create} は Debian の初期インストールイメージを作成しま
+す．\texttt{--basepath} オプションを利用すれば，そのイメージを配置する場
+所を指定できます．\footnote{デフォルトは 
+\texttt{/var/cache/pbuilder/base.cow}}．\texttt{--distribution}オプショ
+ンで Debian etch/sarge/sid を指定することができるので，各バージョン用の
+\texttt{chroot} 環境を作成することができます．
+
+{\tt cowbuilder --update} は Debian の初期インストールイメージを最新版の
+状態に更新します． Debian unstable は一日一回新しいバージョンがリリース
+されてしまうので，一日に一回実行する必要があります．
+
+{\tt pdebuild --pbuilder cowbuilder} は，一般ユーザ権限でDebian パッケー
+ジのソースディレクトリの中に居る場合に，sudo コマンドを利用してで root 
+権限になり，Debianのソースパッケージの作成から \texttt{chroot} 環境での
+ビルドまでを自動化してくれるツールです．
+
+\subsection{cowbuilderの今後の課題}
+
+\texttt{debuild} を利用してパッケージをビルドする時間と比較してみると，
+実はまだまだ高速化できる余地はあります．\texttt{apt-get} でベースインス
+トールイメージからBuild-Depends をそろえる部分にて，時間を取られているこ
+ともあり，また，ext3 ファイルシステムを利用している場合，ハードリンクし
+たツリーの rm -rf が結構遅いこともあります．今後の方策としてはいろいろあ
+りますが，下記が考えられます:
+
+\begin{itemize}
+ \item 各パッケージ向けのインストールイメージのキャッシュ．Build-Depends
+       の解析は一日一回ですむようにして，ビルドツリーのキャッシュを保持しておく．
+ \item apt-get install を高速化する, dpkg -i を高速化する, dpkg をデーモン化させ， apt-get からはデーモンを呼ばせる
+ \item ext3の削除ルーチンの高速化
+\end{itemize}
+
+apt-get install の高速化は日常的なオペレーションにとっても利点があるので，
+そちらを注目して作業してみるとよいでしょう．
 
 \dancersection{次回}{}
 
