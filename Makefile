@@ -7,6 +7,8 @@ all: $(PDFFILES)
 	dvipdfmx $< 
 
 %.dvi: %.tex
+	# check kanji-code of the tex file.
+	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
 	platex $<
 	platex $<
 	platex $<
