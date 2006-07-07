@@ -594,6 +594,22 @@ EndSection
  
 \end{commandline}
 
+キーバインドは .xsession \footnote{最近はデフォルトでは　.gnomerc　とい
+うファイルが使われるようです。 GDMからデフォルトのシステムセッションを明
+示的に選択すれば .xsession　を実行してくれるようです。}の中で次のような
+設定をしています。右のappleキーを押すと全角・半角キーに割り当てられてい
+ます。option と apple　キーはよく押し間違えるので、両方を Alt\_Lとして設
+定しています。また、イジェクトキーとキーボードの下の部分にあるENTERキー
+をマウス用のキーとして定義しています。\footnote{xkbsetパッケージが必要}。
+また、外部マウスをUSBで接続した場合も問題なく動作します。
+
+\begin{commandline}
+xmodmap -e "keycode 115 = Alt_L"
+xmodmap -e "keycode 116 = Zenkaku_Hankaku" # right-apple
+xmodmap -e "keycode 108 = Pointer_Button3" # KP-ENTER
+xmodmap -e "keycode 204 = Pointer_Button2" # eject
+xkbset m
+\end{commandline}
 
 いつもの癖でboot(ext2)とroot(ext3)をわけてしまっているのでちょっとややこ
 しい例ですが、現在利用しているlilo.conf の例です：
@@ -625,6 +641,106 @@ image=/vmlinuz.old
 
 \end{commandline}
 
+サウンドカードは　\texttt{snd\_hda\_intel}　ドライバで対応できる ALSAのオーディオデ
+バイスです。
+
+\begin{commandline}
+$ cat /proc/asound/cards
+ 0 [Intel          ]: HDA-Intel - HDA Intel
+                      HDA Intel at 0x90440000 irq 50
+\end{commandline}
+
+
+有線ネットワークは SKY2 ドライバを利用します。
+
+cpufreq は \texttt{cpufreq\_centrino}　で動作します。
+apt-get install cpufreqd でインストールして、cpufreqd　を動作させてあげ
+ると、動作します。
+
+USBは　UHCI, EHCI　です。
+
+バッテリーはまともにサポートしているようです。
+ただ、電源の全容量が出ていないので、変なメッセージは出ました。
+
+\includegraphics{image200607/batterylo.png}
+
+
+\subsection{未確認のデバイス}
+
+サスペンド
+
+スリープ
+
+CD-Rの動作はまだ確認していません。
+
+\begin{commandline}
+ 
+ # cdrecord -scanbus
+ scsibus0:
+        0,0,0     0) *
+        0,1,0     1) 'ATA     ' 'ST98823AS       ' '7.01' Disk
+        0,2,0     2) *
+        0,3,0     3) *
+        0,4,0     4) *
+        0,5,0     5) *
+        0,6,0     6) *
+        0,7,0     7) *
+\end{commandline}
+
+内蔵のiSightはcapture device として認識されますが、キャプチャー自体はで
+きないみたいです。
+外部デバイスとしてのiSight はieee1394 iidc　だろうと思われますが、こいつ
+は？
+
+\begin{commandline}
+$ sane-find-scanner
+
+  # sane-find-scanner will now attempt to detect your scanner. If the
+  # result is different from what you expected, first make sure your
+  # scanner is powered up and properly connected to your computer.
+
+  # No SCSI scanners found. If you expected something different, make sure that
+  # you have loaded a kernel SCSI driver for your SCSI adapter.
+
+found USB scanner (vendor=0x05ac, product=0x8300) at libusb:001:003
+  # Your USB scanner was (probably) detected. It may or may not be supported by
+
+$ lsusb -v -s 001:003 
+
+Bus 001 Device 003: ID 05ac:8300 Apple Computer, Inc.
+Device Descriptor:
+  bLength                18
+  bDescriptorType         1
+  bcdUSB               2.00
+  bDeviceClass          255 Vendor Specific Class
+  bDeviceSubClass       255 Vendor Specific Subclass
+  bDeviceProtocol       255 Vendor Specific Protocol
+  bMaxPacketSize0        64
+
+以下略
+\end{commandline}
+
+
+
+
+バックライトの制御：ユーザ空間から実施可能だけど。。。カーネルは？
+
+無線ネットワークは　madwifi で対応できるそうです。
+
+bluetooth?
+
+
+
+\subsection{発表履歴}
+
+本資料は下記の場所での発表資料として作成されたものです。
+
+\begin{itemize}
+ \item 7月2日 CodeFestAkihabara 2006　最終報告
+ \item　7月6日　カーネル読書会 mixi.jp の話の前座
+ \item 7月15日 OSC-Do
+\end{itemize}
+
 \subsection{参考文献}
 
 ほとんどの文献は現在の時点で古くなっているので、参考になりませんが、
@@ -635,6 +751,11 @@ image=/vmlinuz.old
        ここからたどれるメーリングリストで有用な情報が交換されています。
  \item rEFItのページ　\url{http://refit.sourceforge.net/}
  \item \url{http://sharealike.org/index.php?m=200605}
+ \item バックライト制御
+       \url{http://modular.math.washington.edu/macbook/backlight/}
+ \item Ubuntuのインストールについてのまとめページ
+       \url{http://desrt.mcmaster.ca/macbook.xhtml}
+ \item Gentoo の情報ページ　\url{http://gentoo-wiki.com/HARDWARE_Apple_MacBook}
 \end{itemize}
 
 
