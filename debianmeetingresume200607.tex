@@ -315,27 +315,284 @@ Debianプロジェクトはあなたの参加を心待ちにしております。
 \dancersection{MacBookにDebian をインストールしてみる}{上川}
 \label{dancerjmacbook}
 
-MacOS X と Debian の dual-boot でのインストールの流れは下記です．
+MacOS X と Debian の dual-boot でのインストールの流れを紹介します。
 MacOS X を削除してDebian のみをインストールする方法については現状不明です．
 
-\begin{itemize}
- \item MacOS X パーティションを縮小
- \item rEFIt イメージを MacOS X にインストール， enable.sh を実行して
-       bless コマンドを実行， rEFIt で起動できるようにする．
- \item 2006年7月版以降のetchのインストーラを利用してインストールする．
-       パーティションを切る部分\footnote{既存のEFI FATとMac OS Xのパーティ
-       ションは削除しないこと．LILOをインストールする予定のパーティショ
-       ンはパーティション番号3 か 4 にすること}を過ぎ，パッケージがインストールされたら，
-       LILOをインストールする直前まで実施．
- \item Alt-F2 で仮想コンソールを切替え，コマンドラインにうつり，そこで
-       gptsync コマンドを実行する．\footnote{今後はインストーラから実施
-       できるように改善したい} 現状のインストール方法としては，
-       \texttt{chroot /target bin/sh}として，chrootに入り，そこから 
-       \texttt{apt-get install refit} でインストール．
- \item LILO をMBRではなく，Linux 用のパーティションにインストールする．
- \item 再起動するとrEFItからパーティションを指定するとLinuxが起動するよ
-       うになる．
-\end{itemize}
+
+\subsection{インストール用にパーティション準備}
+
+購入直後の状態では、Mac OS X が全部の領域を占めています。
+その　MacOS X パーティションを縮小し、Debianがインストールできるようにし
+ます。
+Mac OS Xは20GB程度必要とするみたいなので、20GBまで縮小してしまいましょう。
+
+diskutil resizevolume コマンドでボリュームサイズを動的に変更することがで
+きます。\footnote{resizevolumeコマンドはMac OS X 10.4.6の機能拡張のようです。}
+
+\begin{commandline}
+Mac OS X $ df -h
+Filesystem                Size   Used  Avail Capacity  Mounted on
+/dev/disk0s2               74G    17G    57G    23%    /
+devfs                      95K    95K     0B   100%    /dev
+fdesc                     1.0K   1.0K     0B   100%    /dev
+<volfs>                   512K   512K     0B   100%    /.vol
+automount -nsl [171]        0B     0B     0B   100%    /Network
+automount -fstab [179]      0B     0B     0B   100%    /automount/Servers
+automount -static [179]     0B     0B     0B   100%    /automount/static
+/dev/disk0s1              197M   512B   197M     0%    /efi
+
+Mac OS X $ sudo diskutil resizevolume disk0s2 20G
+Started resizing on disk disk0s2 Macintosh HD
+Verifying
+
+Resizing Volume
+Adjusting Partitions
+
+Finished resizing on disk disk0s2 Macintosh HD
+WARNING: You must now reboot!
+\end{commandline}
+
+\subsection{rEFItのインストール}
+
+rEFIt\footnote{\url{http://refit.sourceforge.net/} 執筆時点のバージョン
+は0.7でした。} イメージを MacOS X にインストールします。インストールする
+場所はどこでもよいのですが、ドキュメントに従ってみましょう。
+\texttt{/efi} あたりにファイルを展開し、 ./enable.sh を実行します。
+スクリプト内部で bless コマンドを実行してくれます。これで、起動時に自動
+で rEFIt　が実行されるようになります。
+
+\subsection{Debian のインストール}
+
+2006年7月版以降のetchのインストーラを利用してインストールします。パーティ
+ションを切る部分\footnote{注意事項としては、既存のEFI FATとMac OS Xのパー
+ティションは削除しないこと。LILOをインストールする予定のパーティションは
+パーティション番号　3 か 4 にすること、ということがあります。5番目以降の
+パーティションは　MBRの制限があるので利用できません。}を過ぎ，パッケージ
+がインストールされたら，LILOをインストールする直前の部分まで実施します。
+
+LILOが現在動作できない状態になっているので、MBRをGPTに同期させる作業を実
+施します。ここで、Alt-F2 で仮想コンソールを切替え、コマンドラインにうつ
+ります。gptsync コマンドを実行してください\footnote{今後はインストーラか
+ら実施できるように改善したいです}。 現状のインストール方法としては，
+\texttt{chroot /target bin/sh}としてインストール先の chrootに入り、そこ
+から \texttt{apt-get install refit} でパッケージをインストール、そして
+\texttt{ gptsync} コマンドでGPTからMBRに同期させます。
+
+この状態で、インストーラの画面に Alt-F1で戻ります。LILO をMBRではなく、
+Linux 用のパーティションにインストールします。
+
+再起動するとrEFItからパーティションを指定するとLinuxが起動するよ
+うになります。
+
+\subsection{Debianを自動起動するには}
+
+これから設定します。
+
+\subsection{Xの設定}
+
+Xはi810ドライバで設定します。
+915resolutionパッケージをインストールします。
+解像度は1200x800です。
+
+\texttt{/etc/default/915resolution}の例です：\\
+\begin{commandline}
+#
+# 915resolution default
+#
+# find free modes by  /usr/sbin/915resolution -l
+# and set it to MODE
+# e.g. use MODE=54 
+MODE=32
+#
+# and set resolutions for the mode.
+# e.g. use XRESO=1024 and YRESO=768
+XRESO=1280
+YRESO=800
+#
+# We can also set the pixel mode.
+# e.g. use BIT=32
+# Please note that this is optional,
+# you can also leave this value blank.
+BIT=
+\end{commandline}
+
+xorg.conf の例です\footnote{デフォルトで外部出力もするように設定してあります}：
+
+\begin{commandline}
+Section "Files"
+	FontPath	"/usr/share/fonts/X11/misc"
+	FontPath	"/usr/X11R6/lib/X11/fonts/misc"
+	FontPath	"/usr/share/fonts/X11/cyrillic"
+	FontPath	"/usr/X11R6/lib/X11/fonts/cyrillic"
+	FontPath	"/usr/share/fonts/X11/100dpi/:unscaled"
+	FontPath	"/usr/X11R6/lib/X11/fonts/100dpi/:unscaled"
+	FontPath	"/usr/share/fonts/X11/75dpi/:unscaled"
+	FontPath	"/usr/X11R6/lib/X11/fonts/75dpi/:unscaled"
+	FontPath	"/usr/share/fonts/X11/Type1"
+	FontPath	"/usr/X11R6/lib/X11/fonts/Type1"
+	FontPath	"/usr/share/fonts/X11/100dpi"
+	FontPath	"/usr/X11R6/lib/X11/fonts/100dpi"
+	FontPath	"/usr/share/fonts/X11/75dpi"
+	FontPath	"/usr/X11R6/lib/X11/fonts/75dpi"
+	# path to defoma fonts
+	FontPath	"/var/lib/defoma/x-ttcidfont-conf.d/dirs/TrueType"
+EndSection
+
+Section "Module"
+	Load	"i2c"
+	Load	"bitmap"
+	Load	"ddc"
+	Load	"dri"
+	Load	"extmod"
+	Load	"freetype"
+	Load	"glx"
+	Load	"int10"
+	Load	"type1"
+	Load	"vbe"
+EndSection
+
+
+Section "InputDevice"
+	Identifier	"Generic Keyboard"
+	Driver		"kbd"
+	Option		"CoreKeyboard"
+	Option		"XkbRules"	"xorg"
+	Option		"XkbModel"	"pc104"
+	Option		"XkbLayout"	"us"
+	Option		"XkbOptions"	"ctrl:nocaps"
+EndSection
+
+Section "InputDevice"
+	Identifier	"Configured Mouse"
+	Driver		"mouse"
+	Option		"CorePointer"
+	Option		"Device"		"/dev/input/mice"
+	Option		"Protocol"		"ExplorerPS/2"
+	Option		"Emulate3Buttons"	"true"
+EndSection
+
+Section "InputDevice"
+	Identifier	"Synaptics Touchpad"
+	Driver		"synaptics"
+	Option		"SendCoreEvents"	"true"
+	Option		"Device"		"/dev/psaux"
+	Option		"Protocol"		"auto-dev"
+	Option		"HorizScrollDelta"	"0"
+EndSection
+
+
+Section "Device"
+	Identifier	"Generic Video Card"
+	Driver		"i810"
+	Screen		0
+	Option "MonitorLayout" "CRT,LFP"
+	BusID		"PCI:0:2:0"
+EndSection
+
+Section "Device"
+	Identifier	"Device1"
+	Driver		"i810"
+	Screen		1
+	Option "MonitorLayout" "CRT,LFP"
+	BusID		"PCI:0:2:0"
+EndSection
+
+\end{commandline}
+\\続く
+
+\begin{commandline}
+
+
+
+Section "Monitor"
+	Identifier	"Generic Monitor"
+	Option		"DPMS"
+	HorizSync	28-64
+	VertRefresh	43-60
+EndSection
+
+
+Section "Monitor"
+	Identifier	"External Monitor"
+	Option		"DPMS"
+	HorizSync	28-64
+	VertRefresh	43-60
+EndSection
+
+Section "Screen"
+	Identifier	"Default Screen"
+	Device		"Generic Video Card"
+	Monitor		"Generic Monitor"
+	DefaultDepth	24
+	SubSection "Display"
+		Depth		1
+		Modes		"1280x800" "1024x768" "800x600" "640x480"
+	EndSubSection
+	SubSection "Display"
+		Depth		4
+		Modes		"1280x800" "1024x768" "800x600" "640x480"
+	EndSubSection
+	SubSection "Display"
+		Depth		8
+		Modes		"1280x800" "1024x768" "800x600" "640x480"
+	EndSubSection
+	SubSection "Display"
+		Depth		15
+		Modes		"1280x800" "1024x768" "800x600" "640x480"
+	EndSubSection
+	SubSection "Display"
+		Depth		16
+		Modes		"1280x800" "1024x768" "800x600" "640x480"
+	EndSubSection
+	SubSection "Display"
+		Depth		24
+		Modes		"1280x800" "1024x768" "800x600" "640x480"
+	EndSubSection
+EndSection
+
+Section "Screen"
+	Identifier "Secondary Screen"
+	Device "Device1"
+	Monitor "External Monitor"
+	DefaultDepth 24
+	SubSection "Display"
+		   Depth 1
+		   Modes "1024x768" "800x600"
+	EndSubSection
+	SubSection "Display"
+		   Depth 4
+		   Modes "1024x768" "800x600"
+	EndSubSection
+	SubSection "Display"
+		   Depth 8
+		   Modes "1024x768" "800x600"
+	EndSubSection
+	SubSection "Display"
+		   Depth 16
+		   Modes "1024x768" "800x600"
+	EndSubSection
+	SubSection "Display"
+		   Depth 24
+		   Modes "1024x768" "800x600"
+	EndSubSection
+EndSection
+
+Section "ServerLayout"
+	Identifier "Dual-monitor Layout"
+	Screen 0 "Default Screen"
+	Screen 1 "Secondary Screen" LeftOf "Default Screen"
+	# Option "Clone" "On"
+	#Option "Xinerama" "On"
+	InputDevice "Generic Keyboard"
+	InputDevice "Configured Mouse"
+	InputDevice "Synaptics Touchpad"
+EndSection
+
+Section "DRI"
+	Mode	0666
+EndSection
+ 
+\end{commandline}
 
 \dancersection{次回}{}
 
