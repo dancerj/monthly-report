@@ -664,8 +664,7 @@ $ cat /proc/asound/cards
                       HDA Intel at 0x90440000 irq 50
 \end{commandline}
 
-
-有線ネットワークは SKY2 ドライバを利用します。
+有線ネットワークは SKY2 のドライバを利用します。
 
 cpufreq は \texttt{cpufreq\_centrino}　で動作します。
 apt-get install cpufreqd でインストールして、cpufreqd　を動作させてあげ
@@ -676,12 +675,97 @@ USBは　UHCI, EHCI　です。
 バッテリーはまともにサポートしているようです。
 ただ、電源の全容量が出ていないので、gnomeから変なメッセージは出ました。
 
-\includegraphics{image200607/batterylo.png}
+\includegraphics[width=0.8\hsize]{image200607/batterylo.png}
 
 
 デフォルトでインストールされているカーネルが　2.6.17 以前のものであれば、
 よく起動時にパニックをおこすので、Intel Mac 対応の　2.6.17 以降のものに
 変更しましょう。
+
+無線ネットワークは　madwifi で対応できるそうです。
+
+\begin{commandline}
+ $ sudo apt-get install madwifi-source madwifi-tools madwifi-doc
+ $ sudo m-a prepare
+Getting source for kernel version: 2.6.17dancer
+/lib/modules/2.6.17dancer/source のカーネルヘッダを利用できます
+symlink を作成中...
+apt-get install build-essential
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています... 完了
+以下のパッケージが新たにインストールされます:
+  build-essential
+アップグレード: 0 個、新規インストール: 1 個、削除: 0 個、保留: 94 個。
+6916B のアーカイブを取得する必要があります。
+展開後に追加で 20.5kB のディスク容量が消費されます。
+取得:1 http://ftp.jp.debian.org sid/main build-essential 11.2 [6916B]
+6916B を 0s で取得しました (81.0kB/s)
+パッケージフィールドを読み込んでいます... 完了
+パッケージ状態を読み込んでいます... 完了
+バグレポートを取得しています... 完了
+(データベースを読み込んでいます ... 現在 101852 個のファイルとディレクトリがインストールされています。)
+(.../build-essential_11.2_i386.deb から) build-essential を展開しています...
+build-essential (11.2) を設定しています ...
+
+完了!
+$ sudo m-a a-i madwifi
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています... 完了
+madwifi-source はすでに最新バージョンです。
+アップグレード: 0 個、新規インストール: 0 個、削除: 0 個、保留: 94 個。
+
+1 パッケージについての情報を更新しました
+Extracting the package tarball, /usr/src/madwifi.tar.bz2, please wait...
+\end{commandline}
+
+\includegraphics[width=0.8\hsize]{image200607/madwifi.png}
+
+\begin{commandline}
+/home/dancer/shared/git/madwifi-modules-2.6.17dancer_0.svnr1644.0.9.0-2+20060705_i386.deb が完了しました。
+未選択パッケージ madwifi-modules-2.6.17dancer を選択しています。
+(データベースを読み込んでいます ... 現在 101861 個のファイルとディレクトリがインストールされています。)
+(.../madwifi-modules-2.6.17dancer_0.svnr1644.0.9.0-2+20060705_i386.deb から) madwifi-modules-2.6.17dancer 
+を展開しています...
+madwifi-modules-2.6.17dancer (0.svnr1644.0.9.0-2+20060705) を設定しています ...
+
+$ sudo modprobe ath_pci
+$ lsmod | grep ath_pci
+ath_pci                82212  0
+ath_rate_sample        11776  1 ath_pci
+wlan                  167132  4 wlan_scan_sta,ath_pci,ath_rate_sample
+ath_hal               192208  3 ath_pci,ath_rate_sample
+$ dmesg | tail -20
+eth1: no IPv6 routers present
+ath_hal: module license 'Proprietary' taints kernel.
+ath_hal: 0.9.17.2 (AR5210, AR5211, AR5212, RF5111, RF5112, RF2413, RF5413)
+wlan: 0.8.4.2 (svn r)
+ath_rate_sample: 1.2 (svn r)
+ath_pci: 0.9.4.5 (svn r)
+Device `[PXS2]is not power manageable<6>ACPI: PCI Interrupt 0000:02:00.0[A] -> GSI 17 (level, low) -> IRQ 169
+PCI: Setting latency timer of device 0000:02:00.0 to 64
+wifi0: 11a rates: 6Mbps 9Mbps 12Mbps 18Mbps 24Mbps 36Mbps 48Mbps 54Mbps
+wifi0: 11b rates: 1Mbps 2Mbps 5.5Mbps 11Mbps
+wifi0: 11g rates: 1Mbps 2Mbps 5.5Mbps 11Mbps 6Mbps 9Mbps 12Mbps 18Mbps 24Mbps 36Mbps 48Mbps 54Mbps
+wifi0: H/W encryption support: WEP AES AES_CCM TKIP
+wifi0: mac 10.3 phy 6.1 radio 10.2
+wifi0: Use hw queue 1 for WME_AC_BE traffic
+wifi0: Use hw queue 0 for WME_AC_BK traffic
+wifi0: Use hw queue 2 for WME_AC_VI traffic
+wifi0: Use hw queue 3 for WME_AC_VO traffic
+wifi0: Use hw queue 8 for CAB traffic
+wifi0: Use hw queue 9 for beacons
+wifi0: Atheros 5424: mem=0x90100000, irq=169
+
+$ /sbin/ifconfig wifi0
+wifi0     リンク方法:不明なネット  ハードウェアアドレス 00-16-CB-BA-76-E7-B8-DA-00-00-00-00-00-00-00-00
+          BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+      衝突(Collisions):0 TXキュー長:199
+          RX bytes:0 (0.0 b)  TX bytes:0 (0.0 b)
+          割り込み:169 メモリ:f8d20000-f8d30000
+\end{commandline}
+
 
 \subsection{未確認のデバイス、手法}
 
@@ -743,8 +827,6 @@ Device Descriptor:
 
 バックライトの制御：ユーザ空間から実施可能だけど。。。カーネルは？
 
-無線ネットワークは　madwifi で対応できるそうです。
-
 bluetooth?
 
 \subsection{発表履歴}
@@ -781,7 +863,9 @@ iSightProgGuide.pdf}
        \url{http://modular.math.washington.edu/macbook/backlight/}
  \item Ubuntuのインストールについてのまとめページ
        \url{http://desrt.mcmaster.ca/macbook.xhtml}
- \item Gentoo の情報ページ　\url{http://gentoo-wiki.com/HARDWARE_Apple_MacBook}
+ \item Gentoo の情報ページ　
+       \url{http://gentoo-wiki.com/HARDWARE_Apple_MacBook}
+ \item MadWifi Wiki \url{http://madwifi.org/wiki/UserDocs/Distro/Debian/MadWifing}
 \end{itemize}
 
 \dancersection{次回}{}
