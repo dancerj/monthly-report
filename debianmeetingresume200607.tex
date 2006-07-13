@@ -402,7 +402,8 @@ Linux 用のパーティションにインストールします。
 再起動するとrEFItからパーティションを指定するとLinuxが起動するよ
 うになります。
 
-\subsection{Xの設定}
+\subsection{各種デバイスの設定}
+\subsubsection{Xの設定}
 
 Xはi810ドライバで設定します。
 915resolutionパッケージをインストールします。
@@ -625,6 +626,8 @@ xmodmap -e "keycode 204 = Pointer_Button2" # eject
 xkbset m
 \end{commandline}
 
+\subsubsection{liloの設定}
+
 いつもの癖でboot(/dev/sda3, ext2)とroot(/dev/sda4 ext3)をわけてしまっているのでちょっとややこ
 しい例ですが、現在利用しているlilo.conf の例です：
 
@@ -655,6 +658,13 @@ image=/vmlinuz.old
 
 \end{commandline}
 
+
+デフォルトでインストールされているカーネルが　2.6.17 以前のものであれば、
+よく起動時にパニックをおこすので、Intel Mac 対応の　2.6.17 以降のものに
+変更しましょう。
+
+\subsubsection{サウンドカード設定}
+
 サウンドカードは　\texttt{snd\_hda\_intel}　ドライバで対応できる ALSAのオーディオデ
 バイスです。
 
@@ -664,13 +674,18 @@ $ cat /proc/asound/cards
                       HDA Intel at 0x90440000 irq 50
 \end{commandline}
 
-有線ネットワークは SKY2 のドライバを利用します。
+\subsubsection{CPUの動的周波数設定}
 
 cpufreq は \texttt{cpufreq\_centrino}　で動作します。
 apt-get install cpufreqd でインストールして、cpufreqd　を動作させてあげ
 ると、動作します。
 
+\subsubsection{USBの設定}
+
 USBは　UHCI, EHCI　です。
+通常は特に設定必要ないはずです。
+
+\subsubsection{電源設定}
 
 バッテリーはまともにサポートしているようです。
 ただ、電源の全容量が出ていないので、gnomeから変なメッセージは出ました。
@@ -678,9 +693,9 @@ USBは　UHCI, EHCI　です。
 \includegraphics[width=0.8\hsize]{image200607/batterylo.png}
 
 
-デフォルトでインストールされているカーネルが　2.6.17 以前のものであれば、
-よく起動時にパニックをおこすので、Intel Mac 対応の　2.6.17 以降のものに
-変更しましょう。
+\subsubsection{ネットワークの設定}
+
+有線ネットワークは SKY2 のドライバを利用します。
 
 無線ネットワークは　madwifi で対応できるそうです。
 
@@ -766,22 +781,24 @@ wifi0     リンク方法:不明なネット  ハードウェアアドレス 00-16-
           割り込み:169 メモリ:f8d20000-f8d30000
 \end{commandline}
 
+\subsubsection{リモコン}
 
 赤外線のリモコンは使えるようです。カーネル用のデバイスドライバが存在しま
 す。2.6.18以降にとりこまれるのではないでしょうか？
+ユーザ空間で利用できるドライバは作成しておきました。
+\footnote{\url{http://www.netfort.gr.jp/~dancer/diary/daily/2006-Jul-12.html.ja}}
 
+\subsubsection{未確認のデバイス、手法}
 
-\subsection{未確認のデバイス、手法}
+Debianを自動起動させる方法がわかりません、rEFItはデフォルトでは、MacOSX
+もしくはeLILOを起動しようとしてしまいます。eLILOを起動すると起動できない。
+優先度の変更はどうやったらよいのか、というのがいまいち不明です。
 
-Debianを自動起動させる方法、rEFItはデフォルトでは、MacOSXもしくはeLILOを
-起動しようとしてしまう。eLILOを起動すると起動できない。優先度の変更はど
-うやったらよいのか？
+サスペンドの方法。
 
-サスペンド
+スリープの方法。
 
-スリープ
-
-CD-Rの動作はまだ確認していません。
+CD-Rの動作はまだ確認していません。PATAパッチが必要という噂です。
 
 \begin{commandline}
  
@@ -797,9 +814,10 @@ CD-Rの動作はまだ確認していません。
         0,7,0     7) *
 \end{commandline}
 
-内蔵のiSightはcapture device として認識されますが、キャプチャー自体はで
-きないみたいです。外部デバイスとしてのiSight は IEEE1394 IIDC　だと思わ
-れますが、こいつはなんでしょう？？
+
+
+内蔵のiSightはcapture device として認識されます。
+USB video classのデバイスだそうです。
 
 \begin{commandline}
 $ sane-find-scanner
@@ -829,9 +847,10 @@ Device Descriptor:
 以下略
 \end{commandline}
 
-バックライトの制御：ユーザ空間から実施可能だけど。。。カーネルは？
+バックライトの制御ができるドライバは作成されているので、2.6.18か19くらい
+には入るのではないでしょうか。
 
-bluetooth?
+bluetoothについては未調査。
 
 \subsection{発表履歴}
 
@@ -874,7 +893,10 @@ iSightProgGuide.pdf}
        \url{http://desrt.mcmaster.ca/macbook.xhtml}
  \item Gentoo の情報ページ　
        \url{http://gentoo-wiki.com/HARDWARE_Apple_MacBook}
- \item MadWifi Wiki \url{http://madwifi.org/wiki/UserDocs/Distro/Debian/MadWifing}
+ \item MadWifi Wiki
+       \url{http://madwifi.org/wiki/UserDocs/Distro/Debian/MadWifing}
+ \item Macbook Pro build-in iSight
+       \url{http://blogs.gnome.org/view/rbultje/2006/07/08/0}
 \end{itemize}
 
 \dancersection{次回}{}
