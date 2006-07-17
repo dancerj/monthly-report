@@ -342,12 +342,16 @@ DebianのrEFItパッケージを利用してインストールする場合にはバージョン0
 \subsection{Debian のインストール}
 
 2006年7月版以降のetch\footnote{これ以前については動作確認をしていません。} 
-のインストーラを利用してインストールします。\footnote{2006年7月時点で
-Debian Installer　で利用しているLinux カーネル 2.6.15, 2.6.16　あたりで
-は Intel Mac に対応できていない問題があり、5回に4回程度は「APICエラー」
-なるものが発生し、起動に失敗するので、根気よく起動するまでがんばってくだ
-さい。2.6.17 以降ではIntel Mac 向けの修正が一部マージされているので、状
-況は改善しています。}
+のインストーラを利用してインストールします。
+
+CDROMから起動するためには、CDROMを挿入してから、Cを押しながら起動すれば
+よいです。もしくは、option キーを押しながら起動するとファームウェアの選
+択画面が起動します。rEFItのメニューからもCDROMからの起動を選択できます。
+\footnote{2006年7月時点でDebian Installer　で利用しているLinux カーネル 
+2.6.15, 2.6.16　あたりでは Intel Mac に対応できていない問題があり、5回に
+4回程度は「APICエラー」なるものが発生し、起動に失敗するので、根気よく起
+動するまでがんばってください。2.6.17 以降ではIntel Mac 向けの修正が一部
+マージされているので、状況は改善しています。}
 
 パーティションを切る部分\footnote{注意事項としては、既存のEFI FATとMac
 OS Xのパーティションは削除しないこと。LILOをインストールする予定のパーティ
@@ -662,12 +666,30 @@ USBは　UHCI, EHCI　です。
 
 \includegraphics[width=0.8\hsize]{image200607/batterylo.png}
 
-
 \subsubsection{ネットワークの設定}
 
 有線ネットワークは SKY2 のドライバを利用します。
 
 無線ネットワークは　madwifi で対応できます。
+インストール方法は下記です。
+
+\begin{itemize}
+  \item \texttt{sudo apt-get install madwifi-source madwifi-tools madwifi-doc}
+  \item \texttt{sudo m-a prepare}
+  \item \texttt{sudo m-a a-i madwifi}
+  \item \texttt{sudo modprobe ath\_pci}
+\end{itemize}
+
+放っておくとhotplugにより、起動時に自動ロードされて有効になります。
+\texttt{/etc/hotplug/blacklist.d/}にファイルを作成し、下記のような内容を
+追加しておくと手動でロードしないと有効にならないようにできます。飛行機に
+のる場合などのためには必要かもしれません。
+
+\begin{commandline}
+ ath_pci
+\end{commandline}
+
+以下、インストール字のログの例です。
 
 \begin{commandline}
  $ sudo apt-get install madwifi-source madwifi-tools madwifi-doc
@@ -752,6 +774,9 @@ ath0      リンク方法:イーサーネット  ハードウェアアドレス 00:1
           RX bytes:230678 (225.2 KiB)  TX bytes:1306390 (1.2 MiB)
 
 \end{commandline}
+
+
+
 
 \subsubsection{リモコン}
 

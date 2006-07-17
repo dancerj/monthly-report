@@ -7,10 +7,10 @@
 % Copyright 2006 Junichi Uekawa and others
 
 %   Pdf作成手順
-% dvipdfmx debianmeetingresume200606.dvi
+% dvipdfmx debianmeetingresume200609.dvi
 %  preview (shell-command (concat "xpdf " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 % 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
-%(shell-command "cd image200606; ebb *.png")
+%(shell-command "cd image200609; ebb *.png")
 
 %%ここからヘッダ開始。
 
@@ -124,8 +124,8 @@
 
 % 毎月変更する部分, 本文の末尾も修正することをわすれずに
 \title{\includegraphics[width=7cm]{image200502/openlogo-nd.eps}\\
- 第19回 東京エリア Debian 勉強会\\事前資料}
-\date{2006年8月19日}
+ 第20回 東京エリア Debian 勉強会\\事前資料}
+\date{2006年9月16日}
 \author{Debian勉強会会場係 上川純一\thanks{Debian Project Official Developer}} 
 \maketitle
 \thispagestyle{empty}
@@ -225,32 +225,92 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 
 \dancersection{最近のDebian関連のミーティング報告}{上川純一}
 
-\subsection{東京エリアDebian勉強会18回目報告}
+\subsection{東京エリアDebian勉強会19回目報告}
 % (query-replace-regexp "<.*>" "")
 
-7月のDebian勉強会は北海道で開催されました。
-上川が Debian の紹介、Debian勉強会の紹介、
-MacBook に Debian をインストールする方法について説明しました。
+\dancersection{apt/dpkgのプロファイリング}{上川}
+\label{sec:dancerjapt}
 
-今回の参加人数は40人くらいでした。
+aptやdpkgのどの部分が一番遅いのか、実際にプロファイリングしてみます。
+この例をケーススタディーとして一般的にどういう作業をすればパフォーマンス
+チューニングができるのか、をあきらかにしてみましょう。
 
-会場でMacBookをすでに購入しているひとは数人でした。今回の参加によって東
-京でのDebian勉強会に参加しようと思ったひとは5人くらいいました。
+\subsection{oprofie のインストールと設定方法}
 
-\dancersection{Debian Conference　調査進捗}{岩松}
-\label{sec:iwamatsudebconf}
+Debianのデフォルトのカーネルはoprofileをサポートしています
+\footnote{i386, amd64　などのアーキテクチャ以外での利用は現時点では難し
+い可能性があるので確認してください。} 。もし、自分でコンパイルしていたり
+して oprofile サポートを追加していない場合は、カーネルを oprofile サポー
+ト付きでコンパイルしなおします。オプションは \texttt{CONFIG\_OPROFILE}
+です。メニューでは
 
-調査進捗の報告。
+\texttt{Intrumentation support : Profiling Support :
+Oprofile system profiling (experimental)}\footnote{2.6.18-rc1 現在}
 
-\dancersection{make-kpkg/module-assistant/kdump}{上川}
-\label{sec:makekpkg}
+にあります。
 
-kernel-package などのツールの使いかたを紹介します。
+カーネルがサポートしている場合、oprofileを利用するのに追加で必要なのは
+\texttt{oprofile}パッケージです。
+\texttt{apt-get install oprofile}でインストールしましょう。
 
-\dancersection{OSC沖縄の検討}{誰か}
-\label{sec:oscokinawa}
+\subsection{dpkg と apt をコンパイルしなおす}
 
-何を目標にするのかを検討しましょう。
+dpkg と apt のプロファイル出力はデフォルトではデバッグ情報がたりないため、
+デバッグシンボルを追加してコンパイルしなおします。
+
+debuild -e DEB\_BUILD\_OPTIONS=debug
+
+\subsection{テストケースの作成}
+
+テストケースを作成します。今回はchroot　内部で大量の apt-get update,
+apt-get install と apt-get remove をループで実行してベンチマークをとって
+みましょう。
+
+\subsection{最適化の必要な部分の解析}
+
+プロファイル結果を利用して、解析します。
+
+\subsection{最適化例}
+
+今回の結果で適用できる最適化を分析します。
+
+\subsection{結果の検証}
+
+さきほどのベンチマークを利用して、状況が改善していることを確認します。
+
+\subsection{回帰テストの貢献}
+
+できるようであれば、今回の修正が二度と必要ないように、パフォーマンスのデ
+グレードがすぐに検出しやすいよう、再現しやすいテストケースを追加してみる
+のもよいでしょう。
+
+\subsection{修正をフィードバック}
+
+パフォーマンスの改善のための修正をフィードバックします。
+Debian の場合、BTSにパッチを登録します。
+該当するバグ番号は下記です。
+
+\begin{itemize}
+ \item XXX
+ \item YYY
+\end{itemize}
+
+\dancersection{グループワーク}{全員}
+\label{sec:groupwork}
+
+OSC沖縄というイベントが開催されます、
+そこで展示するのであればどういうことをするのか、議論しましょう。
+
+\subsection{過去の実績}
+\subsection{期待する効果の例}
+何をもって成功だったとするのか、考えてみましょう。
+ここでは例を出してみます
+
+\begin{itemize}
+ \item Debian勉強会にメンバーが増えた
+ \item 沖縄でもDebian勉強会をしようという話になった
+ \item 沖縄在住のDebian Developerが増えた
+\end{itemize}
 
 \dancersection{次回}{}
 
@@ -266,7 +326,7 @@ kernel-package などのツールの使いかたを紹介します。
 \vspace{2mm}
 \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
 \noindent \Large \bf Debian 勉強会資料\\ \\
-\noindent \normalfont 2006年8月19日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 2006年9月16日 \hspace{5mm}  初版第1刷発行\\
 \noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
 \hrule
 
