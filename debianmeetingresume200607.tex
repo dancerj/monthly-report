@@ -785,6 +785,36 @@ ath0      リンク方法:イーサーネット  ハードウェアアドレス 00:1
 ユーザ空間で利用できるドライバは作成しておきました。
 \footnote{\url{http://www.netfort.gr.jp/~dancer/diary/daily/2006-Jul-12.html.ja}}
 
+\subsubsection{iSight}
+
+iSight は linux-uvcデバイスです。
+ファームウェアのロードが必要です。
+次の手順でインストールができます。
+
+\begin{itemize}
+ \item \texttt{apt-get install linux-uvc-tools linux-uvc-source}
+ \item \texttt{module-assistant auto-install linux-uvc}
+\end{itemize}
+
+アプリケーションはekigaなどを利用しましょう。
+v4l2デバイスなので、v4l2対応のソフトウェアが必要です。
+
+\begin{itemize}
+ \item \texttt{apt-get install ekiga libpt-plugins-v4l2}
+\end{itemize}
+
+実際にロードするには、Mac OS Xのデバイスドライバに入っているファームウェ
+アをロードしてからモジュールをロードします。ドライバのある場所のディレク
+トリ階層が深いので注意。
+
+\begin{itemize}
+ \item \texttt{sudo mount /dev/sda2 /mnt/macosx}
+ \item \texttt{sudo macbook-isight-firmware-loader \\
+       /mnt/mac/System/Library/Extensions/IOUSBFamily.kext/Contents/PlugIns(次の行に続く)\\/AppleUSBVideoSupport.kext/Contents/MacOS/AppleUSBVideoSupport}
+ \item \texttt{modprobe uvcvideo}
+\end{itemize}
+
+
 \subsubsection{未確認のデバイス、手法}
 
 Debianを自動起動させる方法がわかりません、rEFItはデフォルトでは、MacOSX
@@ -809,37 +839,6 @@ CD-Rの動作はまだ確認していません。PATAパッチが必要という噂です。
         0,5,0     5) *
         0,6,0     6) *
         0,7,0     7) *
-\end{commandline}
-
-内蔵のiSightはcapture device として認識されます。
-USB video classのデバイスだそうです。
-
-\begin{commandline}
-$ sane-find-scanner
-
-  # sane-find-scanner will now attempt to detect your scanner. If the
-  # result is different from what you expected, first make sure your
-  # scanner is powered up and properly connected to your computer.
-
-  # No SCSI scanners found. If you expected something different, make sure that
-  # you have loaded a kernel SCSI driver for your SCSI adapter.
-
-found USB scanner (vendor=0x05ac, product=0x8300) at libusb:001:003
-  # Your USB scanner was (probably) detected. It may or may not be supported by
-
-$ lsusb -v -s 001:003 
-
-Bus 001 Device 003: ID 05ac:8300 Apple Computer, Inc.
-Device Descriptor:
-  bLength                18
-  bDescriptorType         1
-  bcdUSB               2.00
-  bDeviceClass          255 Vendor Specific Class
-  bDeviceSubClass       255 Vendor Specific Subclass
-  bDeviceProtocol       255 Vendor Specific Protocol
-  bMaxPacketSize0        64
-
-以下略
 \end{commandline}
 
 バックライトの制御ができるドライバは作成されているので、2.6.18か19くらい
