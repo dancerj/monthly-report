@@ -231,6 +231,180 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 
 \dancersection{rpmstrapを活用する}{岩松}
 \label{sec:iwamatsurpmstrap}
+\subsection{始めに}
+みなさん、rpmstrap を御存じでしょうか。「これは Debian 勉強会なんじゃないの？RPM の話なんて
+関係ねーじゃねーか！」と思った人もおられると思いますが、今回は無視してrpmstrapについてお話したいと
+思います。
+
+\subsection{rpmstrap とは？}
+Debian ではchroot環境等を構築するツールとして、debootstrap\footnote{http://packages.debian.org/unstable/admin/debootstrap}
+がありますが、rpmstrapは名前の通り、RPMパッケージで chroot 環境等を構築するツールです。
+debootstrap と同様、wget\footnote{http://packages.debian.org/unstable/web/wget}をつかって、
+http/ftp 経由でパッケージを取得します。
+なので、インターネットにつながった環境が必要になります。
+
+Debian では testing と sid にあり、sarge にはありません。時期リリースの Etch には収録される予定です。
+
+\subsection{インストール}
+
+\begin{commandline}
+# apt-get install rpmstrap
+\end{commandline}
+
+でインストールできます。
+\subsection{使い方}
+
+rpmstrap は root 権限が必要です。root権限を持ったユーザー等で実行する必要があります。
+
+\subsubsection{とりあえず、chroot環境を構築してみる}
+
+rpomstrap を使って、CentOS 4.0 の環境を構築してみます。
+chroot を構築するには以下のコマンドで行います。
+
+
+\begin{commandline}
+# rpmstrap centos4 install_path
+\end{commandline}
+
+
+第1引数に対象ディストリビューション、第2引数にはインストール先を指定します。
+
+実行すると、ネットワーク経由で RPM パッケージをダウンロードしてきます。
+
+\begin{commandline}
+iwamatsu@rahute:~/rpm # rpmstrap --verbose centos4 ./centos/
+rpmstrap: debug: Preparing variables
+rpmstrap: debug: Loading /usr/lib/rpmstrap/scripts/centos4 suite
+rpmstrap: debug: Working out mirror
+rpmstrap: debug: Work out RPMS
+rpmstrap: debug: setup_env()
+rpmstrap: debug: Install RPMS
+rpmstrap: debug: setup_env()
+rpmstrap: debug: get_rpms(): Getting RPM from http://mirror.centos.org/centos/4/os/i386/CentOS/RPMS/
+rpmstrap: debug: wget  http://mirror.centos.org/centos/4/os/i386/CentOS/RPMS/setup-2.5.37-1.3.noarch.rpm
+--21:56:09--  http://mirror.centos.org/centos/4/os/i386/CentOS/RPMS/setup-2.5.37-1.3.noarch.rpm
+           => `setup-2.5.37-1.3.noarch.rpm'
+mirror.centos.org をDNSに問いあわせています... 72.21.40.10
+mirror.centos.org|72.21.40.10|:80 に接続しています... 接続しました。
+HTTP による接続要求を送信しました、応答を待っています... 200 OK
+長さ: 31,051 (30K) [application/x-rpm]
+
+100%[===================================================================>] 31,051        64.83K/s
+
+21:56:10 (64.69 KB/s) - `setup-2.5.37-1.3.noarch.rpm' を保存しました [31051/31051]
+
+rpmstrap: debug: get_rpms(): Getting RPM from http://mirror.centos.org/centos/4/os/i386/CentOS/RPMS/
+rpmstrap: debug: wget  http://mirror.centos.org/centos/4/os/i386/CentOS/RPMS/filesystem-2.3.0-1.i386.rpm
+--21:56:10--  http://mirror.centos.org/centos/4/os/i386/CentOS/RPMS/filesystem-2.3.0-1.i386.rpm
+           => `filesystem-2.3.0-1.i386.rpm'
+mirror.centos.org をDNSに問いあわせています... 72.21.40.10
+mirror.centos.org|72.21.40.10|:80 に接続しています... 接続しました。
+HTTP による接続要求を送信しました、応答を待っています... 200 OK
+長さ: 15,608 (15K) [application/x-rpm]
+
+100%[===================================================================>] 15,608        48.90K/s
+
+21:56:11 (48.77 KB/s) - `filesystem-2.3.0-1.i386.rpm' を保存しました [15608/15608]
+
+.............（中略）
+
+rpmstrap: debug: Installing pass number 53...
+rpmstrap: debug: Installing nano-1.2.4-1.i386.rpm to /home/iwamatsu/rpm/./centos...
+警告: nano-1.2.4-1.i386.rpm: Header V3 DSA signature: NOKEY, key ID 443e1821
+rpmstrap: debug: Installing pass number 54...
+rpmstrap: debug: Installing openldap-2.2.13-4.i386.rpm cyrus-sasl-2.1.19-5.EL4.i386.rpm 
+ cyrus-sasl-md5-2.1.19-5.EL4.i386.rpm to /home/iwamatsu/rpm/./centos...
+警告: openldap-2.2.13-4.i386.rpm: Header V3 DSA signature: NOKEY, key ID 443e1821
+rpmstrap: debug: Installing pass number 55...
+rpmstrap: debug: Installing libuser-0.52.5-1.el4.1.i386.rpm to /home/iwamatsu/rpm/./centos...
+警告: libuser-0.52.5-1.el4.1.i386.rpm: Header V3 DSA signature: NOKEY, key ID 443e1821
+rpmstrap: debug: Installing pass number 56...
+rpmstrap: debug: Installing passwd-0.68-10.1.i386.rpm to /home/iwamatsu/rpm/./centos...
+警告: passwd-0.68-10.1.i386.rpm: Header V3 DSA signature: NOKEY, key ID 443e1821
+rpmstrap: debug: Installing pass number 57...
+rpmstrap: debug: ...nothing left to do.
+rpmstrap: debug: Done
+
+\end{commandline}
+
+これで構築の完了です。
+
+\subsection{chroot 環境にログインする}
+chroot 環境にログインするためには root 権限で chrootを実行します。
+
+\begin{commandline}
+# chroot ./centos
+\end{commandline}
+
+\subsubsection{RPM データベースを作成}
+
+chroot 後に最初しないといけなことです。
+/var/lib/rpm に RPM のデータベースが構築されていないので、構築する必要があります。
+
+\begin{commandline}
+# rpm --rebuilddb
+\end{commandline}
+
+\subsection{細かい設定}
+
+\subsection{設定ファイル}
+RPM を取得するパッケージのレポジトリ等の設定を行っているファイルが
+
+\begin{commandline}
+/usr/lib/rpmstrap/scripts/
+\end{commandline}
+
+にあります。
+rpmstrapで取得可能なレポジトリはこのディレクトリ下のファイルのみになります。
+新しいディストリビューションを追加する場合は設定ファイルを追加する必要があります。
+現在は
+
+\begin{itemize}
+\item centos3 ( Cent OS 3 )
+\item heidelberg( Fedora Core 3 )  
+\item sl402 ( Scientfic Linux 4.02 )       
+\item suse10.0  ( Suse 10.0 )
+\item tettnang ( Fedora Core 2 )
+\item centos4  (Cent OS 4 )   
+\item mandriva10 ( Mandriva 10 )
+\item sl304  ( Scientfic Linux 3.04 )    
+\item stentz ( Fedora Core 4 )  
+\item suse9.3  ( Suze 9.3 )   
+\item yellowdog4 ( YelloDog Linux 4.0)
+\end{itemize}
+
+をサポートしています。
+pdk というファイルで設定ファイルの雛型があるので、それを見て設定ファイルを作成するとよいでしょう。
+今回はVineLinuxがサポートされていないようなので、追加してパッチを送りました。
+\subsection{rpmstrap のだめなところ}
+
+rpmstrap を使ってみて、だめなところがたくさんありました。
+\begin{itemize}
+\item 構築までに時間がかかる。
+
+	無駄なファイルが多く、構築までに30分ほど時間がかかります。
+	設定ファイルに記述する RPM を吟味するといいかもしれません。
+
+\item 設定ファイルの実装がダサい。
+
+	RPM を使ったディストリビューションは多いのですが、相互でバージョンが一致していなく、設定ファイルにバージョン
+	も記述しないといけません。よって、RPM がひとつでもアップデートされると書き直す必要があります。
+	Debian ですとファイル名だけなのでこのような問題は発生しません。
+	また、ディストリビューションが増える毎に設定ファイルが増えていくという問題もあります。
+
+
+\end{itemize}
+
+\subsection{使いどころ}
+
+rpmstrap の使いどころを妄想してみました。
+\begin{itemeize}
+\item Debian が動作しているマシンで RPM のパッケージを
+コンパイルする。
+\item RPM を使っている ディストリビューション上で別のディストリビューションを
+構築する。
+
+\end{itemize}
 
 \dancersection{グループワーク}{全員}
 \label{sec:groupwork}
