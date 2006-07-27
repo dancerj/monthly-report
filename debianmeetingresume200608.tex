@@ -266,10 +266,152 @@ MacBook に Debian をインストールする方法について説明しました。
 
 調査進捗の報告。
 
-\dancersection{make-kpkg/module-assistant/kdump}{上川}
-\label{sec:makekpkg}
+\dancersection{module-assistant}{上川}
+\label{sec:modass}
 
-kernel-package などのツールの使いかたを紹介します。
+Debian 用にカーネルモジュールパッケージを作成する方法について解説します。
+
+\subsection{従来の方法、kernel-package}
+
+従来は、kernel-package にて実装されていた方法を利用することが多かったで
+す。最近は、その簡便さから流行はmodule-assistantに移行しはじめているよう
+です。
+
+\subsection{module-assistantの利用}
+
+module-assistant　はパッケージのインストール、ソースの展開、
+ビルド、インストールまでの一連の作業を自動化してくれるツールです。
+
+まず、カーネルソースの場所を教えます。通常、現在実行中のカーネルに対して
+のソースのディレクトリは\texttt{/lib/modules/\$(uname -r)/build}のシンボ
+リックリンクをたどることで取得できます。そのため、何も指定しないで下記の
+コマンドをうつと設定できます。
+
+\begin{commandline}
+ # m-a prepare
+\end{commandline}
+
+一度カーネルソース、もしくはカーネルヘッダパッケージを適切にインストール・
+設定したあとはパッケージ名を指定してあげれば、そのパッケージからモジュー
+ルを作成し、インストールするところまで実施してくれます。
+
+\begin{commandline}
+ # m-a a-i \textit{package}
+\end{commandline}
+
+このコマンドを入力すると、\textit{package}-source パッケージをインストー
+ルし、/usr/src/\textit{package}.tar.bz2を展開、モジュールパッケージをビ
+ルドして、パッケージをインストールしてくれます。
+
+出力例を見てみましょう。
+
+\begin{commandline}
+# m-a --text-mode a-i linux-uvc
+.
+1 パッケージについての情報を更新しました
+Getting source for kernel version: 2.6.18-rc2dancer-gb4e54de8-dirty
+/lib/modules/2.6.18-rc2dancer-gb4e54de8-dirty/source のカーネルヘッダを利用できます
+apt-get install build-essential
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています... 完了
+build-essential はすでに最新バージョンです。
+アップグレード: 0 個、新規インストール: 0 個、削除: 0 個、保留: 122 個。
+
+完了!
+download
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています... 完了
+以下のパッケージが新たにインストールされます:
+  linux-uvc-source
+アップグレード: 0 個、新規インストール: 1 個、削除: 0 個、保留: 122 個。
+32.7kB 中 0B のアーカイブを取得する必要があります。
+展開後に追加で 73.7kB のディスク容量が消費されます。
+パッケージフィールドを読み込んでいます... 完了
+パッケージ状態を読み込んでいます... 完了
+バグレポートを取得しています... 完了
+未選択パッケージ linux-uvc-source を選択しています。
+(データベースを読み込んでいます ... 現在 131883 個のファイルとディレクトリがインストールされています。)
+(.../linux-uvc-source_0.1.0-2_amd64.deb から) linux-uvc-source を展開しています...
+linux-uvc-source (0.1.0-2) を設定しています ...
+linux-uvc-source についての情報を更新中
+
+1 パッケージについての情報を更新しました
+unpack
+Extracting the package tarball, /usr/src/linux-uvc.tar.bz2, please wait...
+"/usr/share/modass/packages/default.sh" build
+ KVERS=2.6.18-rc2dancer-gb4e54de8-dirty 
+ KSRC=/lib/modules/2.6.18-rc2dancer-gb4e54de8-dirty/source KDREV=GIT.2006.07.25.15.08 kdist_image
+dh_testdir
+dh_testroot
+dh_clean
+/usr/bin/make -C /usr/src/modules/linux-uvc clean \
+        KERNELPATH=/lib/modules/2.6.18-rc2dancer-gb4e54de8-dirty/source 
+KERNELRELEASE=2.6.18-rc2dancer-gb4e54de8-dirty KERNELCONF=/lib/modules/2.6.18-rc2dancer-gb4e54de8-dirty/source/.config
+
+[中略]
+
+dh_builddeb --destdir=/home/dancer/shared/git
+tar: -: file name read contains nul character
+dpkg-deb:
+ /home/dancer/shared/git/linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty_0.1.0-2+GIT.2006.07.25.15.08_amd64.deb 
+にパッケージ `linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty' を構築しています。
+make[1]: ディレクトリ `/usr/src/modules/linux-uvc' から出ます
+/usr/bin/make  -f debian/rules kdist_clean
+make[1]: ディレクトリ `/usr/src/modules/linux-uvc' に入ります
+dh_testdir
+dh_testroot
+dh_clean
+/usr/bin/make -C /usr/src/modules/linux-uvc clean \
+        KERNELPATH=/lib/modules/2.6.18-rc2dancer-gb4e54de8-dirty/source
+ KERNELRELEASE=2.6.18-rc2dancer-gb4e54de8-dirty
+ KERNELCONF=/lib/modules/2.6.18-rc2dancer-gb4e54de8-dirty/source/.config 
+make[2]: ディレクトリ `/usr/src/modules/linux-uvc' に入ります
+rm -f *.o *.ko .*.cmd .*.flags *.mod.c Modules.symvers
+rm -rf .tmp_versions
+make[2]: ディレクトリ `/usr/src/modules/linux-uvc' から出ます
+make[1]: ディレクトリ `/usr/src/modules/linux-uvc' から出ます
+dpkg -Ei
+ /home/dancer/shared/git/linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty_0.1.0-2+GIT.2006.07.25.15.08_amd64.deb 
+未選択パッケージ linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty を選択しています。
+(データベースを読み込んでいます ... 現在 131888 個のファイルとディレクトリがインストールされています。)
+(.../linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty_0.1.0-2+GIT.2006.07.25.15.08_amd64.deb
+ から) linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty を展開していま
+ す... 
+linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty (0.1.0-2+GIT.2006.07.25.15.08) を設定しています ...
+
+\end{commandline}
+
+
+\subsection{パッケージの作成方法}
+
+まず、source　用のパッケージを作成します。そのパッケージはモジュールのソー
+スを\texttt{/usr/src/package.tar.bz2}をインストールします。その中身自体
+も、またDebianソースパッケージの形態になっています。
+
+module-assistant用のソースの中に debian/*.modules.in というファイル名で
+おいてあると、その中にある \texttt{\_KVERS\_} と書いている部分がカーネル
+のバージョン番号に置換されます。
+
+\begin{itemize}
+ \item rules
+ \item control.modules.in: モジュールパッケージのコントロールファイルで
+       す。
+ \item postinst.modules.in: インストールされたときに実行されます。depmod
+       などを実行します。
+\end{itemize}
+
+\subsection{CDBSを利用した例}
+
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+ \item CDBSのルールを展開して出力する方法
+       \url{http://syn.theti.ca/articles/2006/07/27/plumbing-the-depths-of-cdbs}
+ \item man 8 module-assistant
+ \item \url{/usr/share/doc/module-assistant/examples/templates-debian-dir.tar.bz2}
+\end{itemize}
 
 \dancersection{グループワーク}{全員}
 \label{sec:groupwork}
