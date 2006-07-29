@@ -381,28 +381,305 @@ linux-uvc-modules-2.6.18-rc2dancer-gb4e54de8-dirty (0.1.0-2+GIT.2006.07.25.15.08
 
 \end{commandline}
 
-
 \subsection{パッケージの作成方法}
 
-まず、source　用のパッケージを作成します。そのパッケージはモジュールのソー
-スを\texttt{/usr/src/package.tar.bz2}をインストールします。その中身自体
-も、またDebianソースパッケージの形態になっています。
+まず、カーネルモジュールのソースを提供するためのパッケージを作成します。
+今回の例では、\texttt{tt-source}パッケージです。module-assistantから処理
+できるように、\texttt{パッケージ名-source }という命名規則に従ってくださ
+い。\texttt{tt-source}パッケージはモジュールのソースを
+\texttt{/usr/src/package.tar.bz2}をインストールします。
+\texttt{/usr/src/package.tar.bz2} の中身自体は、またDebianソースパッケー
+ジの形態になっており、\texttt{module-assistant} が処理してカーネルモジュー
+ルパッケージを生成できるようになっています。
 
-module-assistant用のソースの中に debian/*.modules.in というファイル名で
+\texttt{module-assistant}用のソースの中に debian/*.modules.in というファイル名で
 おいてあると、その中にある \texttt{\_KVERS\_} と書いている部分がカーネル
 のバージョン番号に置換されます。
+登場するファイルの代表的なものを簡単に説明します。
 
 \begin{itemize}
- \item rules
- \item control.modules.in: モジュールパッケージのコントロールファイルで
+ \item \texttt{rules}
+ \item \texttt{control.modules.in}: モジュールパッケージのコントロールファイルで
        す。
- \item postinst.modules.in: インストールされたときに実行されます。depmod
+ \item \texttt{postinst.modules.in}: インストールされたときに実行されます。depmod
        などを実行します。
 \end{itemize}
 
-\subsection{CDBSを利用した例}
+\subsubsection{dh-make を利用した例}
+
+\texttt{dh\_make}を利用して作成してみましょう。ドライバの名前は仮に \texttt{tt} とします。
+
+\begin{commandline}
+$ dh_make
+
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b] k
+
+Maintainer name : Junichi Uekawa
+Email-Address   : dancer@debian.org
+Date            : Sat, 29 Jul 2006 13:13:32 +0900
+Package Name    : tt
+Version         : 1
+License         : blank
+Type of Package : Kernel Module
+Hit <enter> to confirm:
+Skipping creating ../tt_1.orig.tar.gz because it already exists
+Done. Please edit the files in the debian/ subdirectory now. You should also
+check that the tt Makefiles install into $DESTDIR and not in / .
+\end{commandline}
+
+作成されるソースパッケージのディレクトリ構造は下記のようになっています。
+
+\begin{itemize}
+ \item driver/: ドライバのソース
+ \item ./: 通常のソース
+ \item debian/: debianの通常のソースパッケージに必要なもろもろのファイル
+\end{itemize}
+
+パッケージを作成してdebc で確認してみます。tt-source というパッケージが
+できています。/usr/src/tt.tar.bz2 というファイルが作成されています。この
+中身を作成するのがメインの仕事になります。
+
+\begin{commandline}
+ tt-source_1-1_all.deb
+ ---------------------
+ 新形式 debian パッケージ、バージョン 2.0。
+ サイズ 5608 バイト: コントロールアーカイブ = 576 バイト。
+     466 バイト,    13 行      control
+     199 バイト,     3 行      md5sums
+ Package: tt-source
+ Version: 1-1
+ Section: unknown
+ Priority: optional
+ Architecture: all
+ Depends: module-assistant, debhelper (>> 4.0.0), make, bzip2
+ Installed-Size: 12
+ Maintainer: Junichi Uekawa <dancer@debian.org>
+ Source: tt
+ Description: Source for the tt driver.
+  This package provides the source code for the tt kernel modules.
+  The tt package is also required in order to make use of these
+  modules. Kernel source or headers are required to compile these modules.
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/share/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/share/doc/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/share/doc/tt-source/
+ -rw-r--r-- root/root       188 2006-07-29 13:13 ./usr/share/doc/tt-source/changelog.Debian.gz
+ -rw-r--r-- root/root       627 2006-07-29 13:13 ./usr/share/doc/tt-source/copyright
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/src/
+ -rw-r--r-- root/root      3832 2006-07-29 13:27 ./usr/src/tt.tar.bz2
+
+ tt_1-1_i386.deb
+ ---------------
+ 新形式 debian パッケージ、バージョン 2.0。
+ サイズ 1928 バイト: コントロールアーカイブ = 452 バイト。
+     243 バイト,     8 行      control
+     197 バイト,     3 行      md5sums
+ Package: tt
+ Version: 1-1
+ Section: unknown
+ Priority: optional
+ Architecture: i386
+ Installed-Size: 12
+ Maintainer: Junichi Uekawa <dancer@debian.org>
+ Description: <insert up to 60 chars description> <insert long description, indented with spaces>
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/share/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/share/doc/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/share/doc/tt/
+ -rw-r--r-- root/root       188 2006-07-29 13:13 ./usr/share/doc/tt/changelog.Debian.gz
+ -rw-r--r-- root/root       627 2006-07-29 13:13 ./usr/share/doc/tt/copyright
+ -rw-r--r-- root/root       926 2006-07-29 13:13 ./usr/share/doc/tt/README.Debian
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/sbin/
+ drwxr-xr-x root/root         0 2006-07-29 13:27 ./usr/bin/
+
+\end{commandline}
+
+\texttt{tt.tar.bz2} の中身をみてみましょう。
+
+\begin{commandline}
+$ tar tfj tt-source/usr/src/tt.tar.bz2 
+ modules/
+ modules/tt/
+ modules/tt/Makefile
+ modules/tt/debian/
+ modules/tt/debian/compat
+ modules/tt/debian/copyright
+ modules/tt/debian/changelog
+ modules/tt/debian/rules
+ modules/tt/debian/tt-modules-_KVERS_.postinst.modules.in.ex
+ modules/tt/debian/control.modules.in
+\end{commandline}
+
+通常の Debian のソースパッケージの形になっています。これらは、
+\texttt{make-kpkg} か、\texttt{module-assistant}から利用されることを想定
+しています。\texttt{debian/rules} はそのままコピーしてきたものを利用して
+います。\texttt{binary-modules}という特別なターゲットが準備してあり、モ
+ジュールをビルドする際に呼び出されます。\texttt{binary-modules} は通常の
+カーネルのモジュールのビルドと同じことをします。注意するべきは、Debian 
+パッケージを作成するために、実行時に必要なディレクトリ
+(\texttt{/lib/modules/}以下) に直接インストールするのではなく、deb パッ
+ケージとして配布するためのディレクトリにインストールするという点です。
+
+\begin{commandline}
+ cp drivers/slusb.$ko drivers/slamr.$ko debian/$(PKGNAME)/lib/modules/$(KVERS)/misc
+\end{commandline}
+
+\texttt{control.modules.in} の中身を見てみます。カーネルのバージョンによっ
+て置換される文字列が \texttt{\_KVERS\_} という文字列になっています。
+\texttt{control.modules.in} は \texttt{module-assistant} などにより処理
+され、各バージョン用の内容に変更されます。同様に、\texttt{\_KVERS\_} を
+置換してもらうことを前提として、　\texttt{postinst.modules.in} などを作
+成することが可能です。
+
+\begin{commandline}
+Source: tt
+Section: unknown
+Priority: optional
+Maintainer: Junichi Uekawa <dancer@debian.org>
+Build-Depends: debhelper (>> 4.0.0)
+Standards-Version: 3.7.2
+
+Package: tt-modules-_KVERS_
+Architecture: any
+Provides: tt-modules
+Description: tt modules for Linux (kernel _KVERS_).
+ This package contains the set of loadable kernel modules for the
+ <description>.
+ .
+ This package contains the compiled kernel modules for _KVERS_
+ .
+ If you have compiled your own kernel, you will most likely need to build
+ your own tt-modules. The tt-source package has been
+ provided for use with the Debian's module-assistant or kernel-package
+ utilities to produce a version of tt-module for your kernel.
+\end{commandline}
 
 
+\subsubsection{CDBSを利用した例}
+
+madwifi カーネルモジュールなどはCDBSを利用したパッケージ構成になっていま
+す。それでは、CDBSを利用した例を見てみましょう。debhelper のみを利用して
+いる場合、テンプレート的に毎回同様の内容を記述する部分が多数ありますが、
+CDBSを利用することによって、その部分をCDBSに任せ、差異のある部分に集中す
+ることができます。
+
+それでは例で見てみましょう。
+
+まず、メインのdebian/rules を見てみます。
+ここでは、linux-uvc パッケージを例にとります。
+
+\begin{commandline}
+#!/usr/bin/make -f
+#mostly copied from madwifi debian/rules
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/rules/dpatch.mk
+include /usr/share/dpatch/dpatch.make
+
+build/linux-uvc-tools::
+	-$(MAKE) extract
+
+install/linux-uvc-source::
+	# Enforce executable bit on debian/rules, and create directory 
+	# structure for modules source
+	install -D -m 0755 debian/rules.modules \
+		debian/tmp/modules/linux-uvc/debian/rules
+	# Prepare the other debian stuff
+	for f in *.modules.in control compat copyright changelog README.Debian; do \
+		install -m 0644 debian/$$f \
+			debian/tmp/modules/linux-uvc/debian/; \
+	done
+	# Prepare upstream source
+	find . -path ./debian/\* -type d -prune -o -printf "%P\n" | \
+		egrep -v 'debian|contrib|regression|.svn' | \
+		cpio -admp debian/tmp/modules/linux-uvc/
+	# clean it
+	-$(MAKE) -C debian/tmp/modules/linux-uvc/ clean
+	-rm -f debian/tmp/modules/linux-uvc/extract
+	# Prepare the debian source tarball
+	tar jcf debian/linux-uvc-source/usr/src/linux-uvc.tar.bz2 \
+		-C debian/tmp modules
+
+install/linux-uvc-tools::
+	install -D -m 0755 extract debian/linux-uvc-tools/usr/sbin/macbook-isight-firmware-loader
+
+clean::
+	-rm -f extract
+\end{commandline}
+
+cdbsでは、各build ターゲットとinstallターゲットを
+build/パッケージ名、install/パッケージ名として定義しているのがわかります。
+また、dh\_系のコマンドがまったく書かれていません。
+debian/rules -p を実行すると、それがcdbsにてどういう風に補完されるのかが
+確認できます。
+たとえば、linux-uvc-source についてぇあ、下記のように展開されることがわ
+かります。
+
+というか、よくわかりませんね。とりあえずどうやら下記のふたつが実行されて
+いる、ということを認識してみてください。
+
+\begin{commandline}
+install/linux-uvc-source::
+	# Enforce executable bit on debian/rules, and create directory 
+	# structure for modules source
+	install -D -m 0755 debian/rules.modules \
+	debian/tmp/modules/linux-uvc/debian/rules
+	# Prepare the other debian stuff
+	for f in *.modules.in control compat copyright changelog README.Debian; do \
+	install -m 0644 debian/$$f \
+	debian/tmp/modules/linux-uvc/debian/; \
+	done
+	# Prepare upstream source
+	find . -path ./debian/\* -type d -prune -o -printf "%P\n" | \
+	egrep -v 'debian|contrib|regression|.svn' | \
+	cpio -admp debian/tmp/modules/linux-uvc/
+	# clean it
+	-$(MAKE) -C debian/tmp/modules/linux-uvc/ clean
+	-rm -f debian/tmp/modules/linux-uvc/extract
+	# Prepare the debian source tarball
+	tar jcf debian/linux-uvc-source/usr/src/linux-uvc.tar.bz2 \
+	-C debian/tmp modules
+	
+binary-install/linux-uvc-source::
+	dh_installdocs -p$(cdbs_curpkg) $(DEB_INSTALL_DOCS_ALL) $(DEB_INSTALL_DOCS_$(cdbs_curpkg)) 
+	dh_installexamples -p$(cdbs_curpkg) $(DEB_INSTALL_EXAMPLES_$(cdbs_curpkg))
+	dh_installman -p$(cdbs_curpkg) $(DEB_INSTALL_MANPAGES_$(cdbs_curpkg)) 
+	dh_installinfo -p$(cdbs_curpkg) $(DEB_INSTALL_INFO_$(cdbs_curpkg)) 
+	dh_installmenu -p$(cdbs_curpkg) $(DEB_DH_INSTALL_MENU_ARGS)
+	dh_installcron -p$(cdbs_curpkg) $(DEB_DH_INSTALL_CRON_ARGS)
+	dh_installinit -p$(cdbs_curpkg) $(if $(DEB_UPDATE_RCD_PARAMS),--update-rcd-params="$(call cdbs_strip_quotes,$(DEB_UPDATE_RCD_PARAMS))",$(if $(DEB_UPDATE_RCD_PARAMS_$(cdbs_curpkg)),--update-rcd-params="$(call cdbs_strip_quotes,$(DEB_UPDATE_RCD_PARAMS_$(cdbs_curpkg)))")) $(DEB_DH_INSTALLINIT_ARGS) 
+	dh_installdebconf -p$(cdbs_curpkg) $(DEB_DH_INSTALLDEBCONF_ARGS)
+	dh_installemacsen -p$(cdbs_curpkg) $(if $(DEB_EMACS_PRIORITY),--priority=$(DEB_EMACS_PRIORITY)) $(if $(DEB_EMACS_FLAVOR),--flavor=$(DEB_EMACS_FLAVOR)) $(DEB_DH_INSTALLEMACSEN_ARGS)
+	dh_installcatalogs -p$(cdbs_curpkg) $(DEB_DH_INSTALLCATALOGS_ARGS)
+	dh_installpam -p$(cdbs_curpkg) $(DEB_DH_INSTALLPAM_ARGS)
+	dh_installlogrotate -p$(cdbs_curpkg) $(DEB_DH_INSTALLLOGROTATE_ARGS)
+	dh_installlogcheck -p$(cdbs_curpkg) $(DEB_DH_INSTALLLOGCHECK_ARGS)
+	dh_installmime -p$(cdbs_curpkg) $(DEB_DH_INSTALLMIME_ARGS)
+	dh_installchangelogs -p$(cdbs_curpkg) $(DEB_DH_INSTALLCHANGELOGS_ARGS) $(DEB_INSTALL_CHANGELOGS_ALL) $(DEB_INSTALL_CHANGELOGS_$(cdbs_curpkg))
+	$(if $(wildcard /usr/bin/dh_installudev),dh_installudev -p$(cdbs_curpkg) $(DEB_DH_INSTALLUDEV_ARGS))
+	dh_install -p$(cdbs_curpkg) $(if $(DEB_DH_INSTALL_SOURCEDIR),--sourcedir=$(DEB_DH_INSTALL_SOURCEDIR)) $(DEB_DH_INSTALL_ARGS)
+	dh_link -p$(cdbs_curpkg) $(DEB_DH_LINK_ARGS) $(DEB_DH_LINK_$(cdbs_curpkg))
+	
+binary-post-install/linux-uvc-source:: binary-install/linux-uvc-source
+binary/linux-uvc-source:: testdir testroot common-binary-indep install/linux-uvc-source
+install-indep: install/linux-uvc-source
+common-binary-indep:: testdir testroot install/linux-uvc-source
+install/linux-uvc-source:: testdir testroot common-install-indep build/linux-uvc-source
+binary-post-install/linux-uvc-source:: binary-install/linux-uvc-source
+common-binary-post-install-indep:: binary-post-install/linux-uvc-source
+binary-strip/linux-uvc-source:: common-binary-post-install-indep binary-strip-IMPL/linux-uvc-source
+
+\end{commandline}
+
+
+実行されているおかげで、debhelper 関連のコードをハードコードする必要が無
+くなりました。
+
+ただ、madwifiはモジュールのビルドを分離しています。
+cdbsで実施していません。それはなぜでしょうか?
 
 \subsection{参考文献}
 

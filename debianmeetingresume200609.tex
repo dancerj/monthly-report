@@ -315,6 +315,45 @@ Oprofile system profiling (experimental)}\footnote{2.6.18-rc1 現在}
 \texttt{oprofile}パッケージです。
 \texttt{apt-get install oprofile}でインストールしましょう。
 
+\subsection{oprofile が自分の利用しているCPUをサポートしていない場合}
+
+残念ながら7月現在時点で、Intel core duo CPU 上ではoprofileが動作しません。
+oprofile は認識できていない場合、cpu\_type 変数が unset という値になりま
+す。カーネル側は cpu\_type として i386/core を出力しているので、この時点
+でどうやらカーネル側のサポートは追加されているらしいということがわかりま
+す。
+
+\begin{commandline}
+$ sudo opcontrol --init
+cpu_type 'unset' is not valid
+$ opcontrol --list-events
+Unable to open cpu_type file for reading
+Make sure you have done opcontrol --init
+cpu_type 'unset' is not valid
+$ cat /dev/oprofile/cpu_type
+i386/core
+$ uname -a
+Linux coreduo 2.6.18-rc1dancer #2 SMP Sun Jul 9 09:57:01 JST 2006 i686 GNU/Linux
+\end{commandline}
+
+プロファイルを取得するという目的を考えると手段としてはいくつか考えられます。
+
+\begin{itemize}
+ \item プロファイルの仕組はあまりかわらないだろうと見込み、
+       \url{arch/i386/oprofile/nmi_int.c}の ppro\_init を修正、
+       piiiとかに見せてしまう
+
+ \item まじめにoprofileのユーザ空間アプリケーションを修正、core duo　の
+       仕様書を読み、対応を追加
+
+ \item おそらくすでに修正されていることを見越して、oprofile の CVS レポ
+       ジトリをみにいく       
+
+ \item 実験することが目的なのでサポートされているCPUのマシンを準備する
+
+\end{itemize}
+
+
 \subsection{dpkg と apt をコンパイルしなおす}
 
 dpkg と apt のプロファイル出力はデフォルトではデバッグ情報がたりないため、
