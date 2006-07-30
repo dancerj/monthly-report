@@ -367,6 +367,49 @@ Linux coreduo 2.6.18-rc1dancer #2 SMP Sun Jul 9 09:57:01 JST 2006 i686 GNU/Linux
 
 \end{itemize}
 
+今回はoprofileの開発メーリングリストを見たところ、5月の時点でだれかがパッ
+チを書いているのを発見したので、それをとりこみます。
+念のため、今後作業する人のためにBTSにも登録しました。%\debianbug{XXXX}
+
+確認してみると、どうやら動作してくれてそうです。ここで、当面重要なのは、
+CPU\_CLK\_UNHALTEDでしょう。CPUサイクルがどの関数で消費されているのかと
+いうことをトラッキングできます。まずCPUの処理がかたまっている部分を目指
+して、何か問題がないかを眺めてみて、何も問題なく、それなりに問題が追求で
+きにくくなった後に、L2キャッシュのイベントの発生度合とかを確認していけば
+よいでしょう。
+
+\begin{commandline}
+$ sudo opcontrol --init
+$ sudo opcontrol --list-events
+oprofile: available events for CPU type "Core Solo / Duo"
+
+See Intel Architecture Developer's Manual Volume 3, Appendix A and
+Intel Architecture Optimization Reference Manual (730795-001)
+
+CPU_CLK_UNHALTED: (counter: all)
+        Unhalted clock cycles (min count: 6000)
+        Unit masks (default 0x0)
+        ----------
+        0x00: Unhalted core cycles
+        0x01: Unhalted bus cycles
+        0x02: Unhalted bus cycles of this core while the other core is halted
+INST_RETIRED: (counter: all)
+        number of instructions retired (min count: 6000)
+L2_RQSTS: (counter: all)
+        number of L2 requests (min count: 6000)
+        Unit masks (default 0xf)
+        ----------
+        0x08: (M)odified cache state
+        0x04: (E)xclusive cache state
+        0x02: (S)hared cache state
+        0x01: (I)nvalid cache state
+        0x0f: All cache states
+        0x10: HW prefetched line only
+        0x20: all prefetched line w/o regarding mask 0x10.
+
+[省略]
+
+\end{commandline}
 
 \subsection{dpkg と apt をコンパイルしなおす}
 
