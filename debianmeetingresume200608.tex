@@ -688,23 +688,65 @@ binary-install/linux-uvc-source::
  $(DEB_DH_INSTALL_ARGS) 
 	dh_link -p$(cdbs_curpkg) $(DEB_DH_LINK_ARGS) $(DEB_DH_LINK_$(cdbs_curpkg))
 	
-binary-post-install/linux-uvc-source:: binary-install/linux-uvc-source
-binary/linux-uvc-source:: testdir testroot common-binary-indep install/linux-uvc-source
-install-indep: install/linux-uvc-source
-common-binary-indep:: testdir testroot install/linux-uvc-source
-install/linux-uvc-source:: testdir testroot common-install-indep build/linux-uvc-source
-binary-post-install/linux-uvc-source:: binary-install/linux-uvc-source
-common-binary-post-install-indep:: binary-post-install/linux-uvc-source
-binary-strip/linux-uvc-source:: common-binary-post-install-indep binary-strip-IMPL/linux-uvc-source
-
 \end{commandline}
 
+実行されているおかげで、debhelper 関連のコードを直接記述する必要が無くな
+りました。
 
-実行されているおかげで、debhelper 関連のコードをハードコードする必要が無
-くなりました。
+ただ、linux-uvcはモジュールのビルド用の rules ファイルを分離しています。
+cdbs の記述ときれいに分離するための措置です。
+\texttt{debian/rules.modules}というものを別途用意しており、それをモジュー
+ルのソースの\texttt{debian/rules}として利用しています。module-assistant 
+は cdbs を必要としないので、モジュールソースパッケージをインストールする
+エンドユーザに追加で cdbs をインストールすることを強要しないという点も重
+要です。
 
-ただ、madwifiはモジュールのビルドを分離しています。
-cdbsで実施していません。それはなぜでしょうか?
+\begin{commandline}
+#!/usr/bin/make -f
+
+PACKAGE := linux-uvc-modules
+MA_DIR ?= /usr/share/modass
+-include $(MA_DIR)/include/generic.make
+-include $(MA_DIR)/include/common-rules.make
+
+.PHONY: kdist_config
+kdist_config: prep-deb-files
+
+.PHONY: binary-modules
+binary-modules: kdist_config
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	# Build modules
+	$(MAKE) -C $(CURDIR) uvcvideo \
+	KERNELPATH=$(KSRC) KERNELRELEASE=$(KVERS) KERNELCONF=$(KSRC)/.config 
+	# Install modules
+	$(MAKE) -C $(CURDIR) install \
+	KERNELPATH=$(KSRC) KERNELRELEASE=$(KVERS) KERNELCONF=$(KSRC)/.config \
+	INSTALL_MOD_PATH=$(CURDIR)/debian/$(PKGNAME)
+ KMODPATH=/lib/modules/$(KVERS)/kernel/drivers/usb/media 
+	# remove depmod result
+	-rm -f $(CURDIR)/debian/$(PKGNAME)/lib/modules/$(KVERS)/modules.*
+
+	dh_installdocs
+	dh_installchangelogs
+	dh_compress
+	dh_fixperms
+	dh_installmodules
+	dh_installdeb
+	dh_gencontrol -- -v$(VERSION)
+	dh_md5sums
+	dh_builddeb --destdir=$(DEB_DESTDIR)
+
+.PHONY: kdist_clean
+kdist_clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+	$(MAKE) -C $(CURDIR) clean \
+	KERNELPATH=$(KSRC) KERNELRELEASE=$(KVERS) KERNELCONF=$(KSRC)/.config 
+ 
+\end{commandline}
 
 \subsection{参考文献}
 
