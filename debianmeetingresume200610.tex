@@ -420,6 +420,64 @@ rpmstrap の使いどころを妄想してみました。
 
 \end{itemize}
 
+
+\dancersection{gentoo を chroot にインストールしてみる}{上川}
+\label{sec:gentoo-chroot}
+
+Debian 上で、 gentoo を chroot にインストールする方法について説明します。
+変態度合が伝われば幸いです。
+この手順、つくってから気づきましたが、実はあまり Debian 関係ないです。
+
+
+\subsection{gentoo の最低限のインストール}
+
+まず、gentoo の stage1 の tarball を取得してきます。適当なミラーにおいて
+あります。ここでは
+\url{http://mirror.datapipe.net/gentoo/releases/amd64/2006.0/stages/}か
+ら取得してきました。
+適当な場所にインストール先のディレクトリを作成し、そこで stage1 の
+tarball を展開します。
+アプリケーションの動作に最低限必要な proc ファイルシステムをマウントし、
+ resolv.conf を chroot 内部にコピーし、chroot します。
+これで emerge ができる状況になったので、 emerge しまくるようです。
+
+\begin{commandline}
+Debian$ sudo tar xfjp stage1-amd64-2006.0.tar.bz2 
+Debian$ sudo mount -t proc proc/ proc/
+Debian$ sudo cp /etc/resolv.conf etc/resolv.conf
+Debian$ sudo chroot . 
+Gentoo# env-update 
+>>> Regenerating /etc/ld.so.cache...
+Gentoo# source /etc/profile
+Gentoo# emerge --sync 
+
+ここで大量の出力
+
+Gentoo# emerge portage
+\end{commandline}
+
+\subsection{gentoo 自身のブートストラップ}
+
+wikiの手順では下記のようにすると順番にブートストラップしてくれるようです。
+あらゆるプログラムをコンパイルしてインストールするので時間が非常にかかり
+ます。個人的にはすでに飽きてしまったのでもう検証していません、続きはまた
+誰かが後でやってくれることを期待しつつ。
+
+\begin{commandline}
+Gentoo# env-update && source /etc/profile && emerge --oneshot --nodeps gcc-config && USE="-* build bootstrap" emerge linux-headers && \
+/usr/portage/scripts/bootstrap.sh && emerge -O libperl && emerge -O python && emerge --deep system && \
+emerge syslog-ng xinetd grub hotplug coldplug vixie-cron reiserfsprogs reiser4progs sysfsutils udev dhcpcd && \
+emerge --nodeps acpid ntp && rc-update add syslog-ng default && rc-update add net.eth0 default && rc-update add vixie-cron default && \
+rc-update add xinetd default && rc-update add sshd default && rc-update add hotplug default && rc-update add coldplug default && \
+rc-update add acpid default
+\end{commandline}
+
+\subsection{参考文献}
+
+\begin{itemize}
+ \item Gentoo wiki \url{http://gentoo-wiki.com/HOWTO_Install_Gentoo_-_The_Gentoo_Developers_Method_with_NPTL_and_2.6_from_Stage1}
+\end{itemize}
+
 \dancersection{グループワーク}{全員}
 \label{sec:groupwork}
 
