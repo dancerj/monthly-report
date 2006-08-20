@@ -15,3 +15,14 @@ all: $(PDFFILES)
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz
+
+deb:
+	-rm ../*.deb
+	debuild -us -uc 
+	[ ! -f ../aliothweb/mountpoint ] || sshfs -o nonempty alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs ../aliothweb
+	[ ! -f ../aliothweb/mountpoint ]
+	cd ../ && dpkg-scanpackages . . > Packages
+	gzip ../Packages
+	cp ../Packages.gz ../*.deb ../aliothweb/deb/
+
+.PHONY: deb clean all
