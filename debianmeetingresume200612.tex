@@ -242,6 +242,99 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 \subsection{東京エリアDebian勉強会22回目報告}
 % (query-replace-regexp "<.*>" "")
 
+\dancersection{Debian勉強会資料の作成方法}{上川}
+\label{sec:debmtg2006res}
+
+\subsection{レポジトリを取得し、パッケージの準備を行う}
+
+レポジトリをチェックアウトします。
+
+\begin{commandline}
+$ cvs -d :ext:cvs.alioth.debian.org:/cvsroot/tokyodebian . 
+\end{commandline}
+
+ディレクトリ構成は次のようになっています。
+
+\begin{itemize}
+ \item monthly-report: TeXのソースが全部フラットにおいてあります。ファイ
+       ル名は、 debianmeetingresumeYYYYMM.texという名前になっています。
+       プレゼンテーションファイルは
+       debianmeetingresumeYYYYMM-presentation.tex　という名前になってい
+       ます。
+       \begin{itemize}
+	\item imageYYYYMM:各月用の画像ファイル
+	\item debian: デビアンパッケージ用ディレクトリ
+       \end{itemize}
+ \item muse: ウェブ（wiki)
+ \item meetinglog: 議事録置場
+\end{itemize}
+
+
+
+ビルドに必要なパッケージをインストールします。
+
+\begin{commandline}
+apt-get install ptex-bin dvipdfmx latex-beamer \
+ okumura-clsfiles gs-esp xpdf xpdf-japanese 
+
+\end{commandline}
+
+編集に便利なツールもついでにインストールしてみてもよいでしょう。
+
+\begin{commandline}
+ apt-get install whizzytex advi emacs21 yatex
+\end{commandline}
+
+
+\subsection{pLaTeXで文書作成}
+
+make 
+PDFファイルまで、コンパイルすることができます。
+Makefile には、あらゆる debianmeeting*.texファイルに関して .pdf ファイルを作成するよう
+にルールが作成されています。
+
+\begin{commandline}
+SOURCE:=$(wildcard debianmeeting*.tex)
+DVIFILES:=$(SOURCE:%.tex=%.dvi)
+PDFFILES:=$(SOURCE:%.tex=%.pdf)
+all: $(PDFFILES)
+
+%.pdf: %.dvi
+	dvipdfmx $< 
+
+%.dvi: %.tex
+	# check kanji-code of the tex file.
+	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
+	platex $<
+	platex $<
+	platex $<
+
+clean:
+	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz
+
+\end{commandline}
+
+
+\subsubsection{画像ファイルの処理}
+
+画面写真の画像を追加するときは、できるだけサイズの小さい png などを利用
+してください。グラフなどの線画であれば、epsでかまいません。png であれば、 
+ebb コマンドを利用してbounding box を作成してください。
+
+\begin{commandline}
+ ebb XXX.png
+\end{commandline}
+
+ps であれば、 eps2epsでバウンディングボックスを追加してあげるとうまくい
+きます。sodipodi の出力する ps を eps2epsで処理すれば sodipodi で画像を
+作成することができます。
+
+\subsection{pLaTeX+latex-beamerで文書作成}
+
+残念ながら whizzytex でプリビューはうまく動かないです。
+
+がりがりと作成し、xpdfでプリビューしながらがんばって作成してください。
+
 \dancersection{Debian勉強会2006年結果統計}{上川}
 \label{sec:debmtg2006}
 
