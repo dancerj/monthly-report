@@ -710,10 +710,10 @@ chroot　内部では、chroot外部のファイルにアクセスすることができません。
  # mount -t oprofilefs nodev /dev/oprofile >/dev/null
 \end{commandline}
 
-chroot$B　で調べてみると、perlが一番重たい処理をしているというこ
-とがわかりました。こりゃチューニングしにくいですね。依存関係の解決などの
-処理に時間がかかっているかと仮説をたてていたのですが、実はそんなところで
-は時間はとられておらず、perlが時間をとっているということがわかりました。
+chroot　で調べてみると、perlが一番重たい処理をしているということがわかり
+ました。こりゃチューニングしにくいですね。依存関係の解決などの処理に時間
+がかかっているかと仮説をたてていたのですが、特露骨にめだって負荷の高い関
+数というのは見付けることはできませんでした。
 
 \begin{commandline}
 apt-get install -y dsh; apt-get remove -y libdshconfig1
@@ -721,47 +721,107 @@ apt-get install -y dsh; apt-get remove -y libdshconfig1
 CPU: Core Solo / Duo, speed 1833 MHz (estimated)
 Counted CPU_CLK_UNHALTED events (Unhalted clock cycles) with a unit mask of 0x00 (Unhalted core cycles) count 180000
 samples  %        image name               app name                 symbol name
-48879    32.1023  processor                processor                (no symbols)
-20915    13.7364  perl                     perl                     (no symbols)
-7787      5.1143  libc-2.3.6.so            apt-get                  (no symbols)
-6775      4.4496  libc-2.3.6.so            dpkg                     (no symbols)
-5198      3.4139  vmlinux                  vmlinux                  read_hpet
-4202      2.7598  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+51258    32.2132  processor                processor                (no symbols)
+7929      4.9830  libc-2.3.6.so            apt-get                  (no symbols)
+7321      4.6009  libc-2.3.6.so            dpkg                     (no symbols)
+5239      3.2925  vmlinux                  vmlinux                  read_hpet
+4377      2.7507  libc-2.3.6.so            perl                     (no symbols)
+4282      2.6910  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  pkgDepCache::CheckDep(pkgCache::DepIterator, int,
  pkgCache::PkgIterator&) 
-4167      2.7368  libc-2.3.6.so            perl                     (no symbols)
-2778      1.8245  libstdc++.so.6.0.8       apt-get                  (no symbols)
-2587      1.6991  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+2888      1.8150  libstdc++.so.6.0.8       apt-get                  (no symbols)
+2570      1.6151  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  debVersioningSystem::CmpFragment(char const*, char const*, char const*,
  char const*) 
-2561      1.6820  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+2548      1.6013  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  pkgProblemResolver::MakeScores() 
-2103      1.3812  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+2045      1.2852  dpkg                     dpkg                     parsedb
+2019      1.2688  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  debVersioningSystem::DoCmpVersion(char const*, char const*, char
  const*, char const*) 
-1865      1.2249  dpkg                     dpkg                     parsedb
-1669      1.0962  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+1722      1.0822  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  pkgDepCache::Update(OpProgress*) 
-1506      0.9891  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+1571      0.9873  dpkg                     dpkg                     findnamenode
+1558      0.9791  perl                     perl                     Perl_sv_gets
+1461      0.9182  perl                     perl                     Perl_yyparse
+1408      0.8849  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  debVersioningSystem::CheckDep(char const*, int, char const*) 
-1384      0.9090  dpkg                     dpkg                     findnamenode
-1211      0.7954  vmlinux                  vmlinux                  __copy_to_user_ll
-1148      0.7540  vmlinux                  vmlinux                  get_page_from_freelist
-1107      0.7270  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+1222      0.7680  vmlinux                  vmlinux                  __copy_to_user_ll
+1181      0.7422  vmlinux                  vmlinux                  get_page_from_freelist
+1129      0.7095  perl                     perl                     S_hv_fetch_common
+1055      0.6630  perl                     perl                     Perl_yylex
+1054      0.6624  ldconfig                 ldconfig                 (no symbols)
+1051      0.6605  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  OpProgress::CheckChange(float) 
-955       0.6272  vmlinux                  vmlinux                  page_fault
-912       0.5990  ldconfig                 ldconfig                 (no symbols)
-872       0.5727  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+1050      0.6599  vmlinux                  vmlinux                  page_fault
+911       0.5725  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  pkgPolicy::GetCandidateVer(pkgCache::PkgIterator) 
-826       0.5425  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+816       0.5128  dpkg                     dpkg                     filesdbinit
+815       0.5122  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
  pkgDepCache::DependencyState(pkgCache::DepIterator&) 
-787       0.5169  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
- pkgProblemResolver::ScoreSort(void const*, void const*) 
-752       0.4939  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  .plt
-748       0.4913  dpkg                     dpkg                     filesdbinit
-680       0.4466  vmlinux                  vmlinux                  delay_tsc
-679       0.4459  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
- pkgCache::PkgIterator::operator++(int) 
+793       0.4984  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  .plt
+\end{commandline}
+
+まず、opreportの結果を確認します。カーネル空間で16\%, apt-get で 10\%,
+perl　で 7\%　であることがわかります。ここで重要なのは、この時点ではdpkg
+をチューニングしても大して結果に反映しなさそうだということが明確になった
+ことでしょう。
+
+\begin{commandline}
+# opreport 
+CPU: Core Solo / Duo, speed 1833 MHz (estimated)
+Counted CPU_CLK_UNHALTED events (Unhalted clock cycles) with a unit mask of 0x00 (Unhalted core cycles) count 180000
+CPU_CLK_UNHALT...|
+  samples|      %|
+------------------
+   182440 51.3356 processor
+    59664 16.7885 vmlinux
+    38517 10.8380 apt-get
+        CPU_CLK_UNHALT...|
+          samples|      %|
+        ------------------
+            25578 66.4070 libapt-pkg-libc6.3-6.so.3.11.0
+             7929 20.5857 libc-2.3.6.so
+             2888  7.4980 libstdc++.so.6.0.8
+             1701  4.4162 apt-get
+              381  0.9892 ld-2.3.6.so
+               12  0.0312 anon (tgid:31689 range:0xb7f47000-0xb7f48000)
+               11  0.0286 anon (tgid:31917 range:0xb7f49000-0xb7f4a000)
+                9  0.0234 anon (tgid:31841 range:0xb7fcb000-0xb7fcc000)
+                8  0.0208 anon (tgid:31765 range:0xb7f9d000-0xb7f9e000)
+    27091  7.6230 perl
+        CPU_CLK_UNHALT...|
+          samples|      %|
+        ------------------
+            22216 82.0051 perl
+             4377 16.1567 libc-2.3.6.so
+              273  1.0077 libpthread-2.3.6.so
+              214  0.7899 ld-2.3.6.so
+                3  0.0111 libnss_compat-2.3.6.so
+                2  0.0074 libdl-2.3.6.so
+                2  0.0074 Fcntl.so
+                1  0.0037 libnss_files-2.3.6.so
+                1  0.0037 libnss_nis-2.3.6.so
+                1  0.0037 IO.so
+                1  0.0037 gettext.so
+    23916  6.7296 opreport
+        CPU_CLK_UNHALT...|
+          samples|      %|
+        ------------------
+            14091 58.9187 opreport
+             5445 22.7672 libc-2.3.6.so
+             4119 17.2228 libstdc++.so.6.0.8
+              257  1.0746 ld-2.3.6.so
+                3  0.0125 libgcc_s.so.1
+                1  0.0042 libpopt.so.0.0.0
+    16010  4.5049 dpkg
+        CPU_CLK_UNHALT...|
+          samples|      %|
+        ------------------
+             8611 53.7851 dpkg
+             7321 45.7277 libc-2.3.6.so
+               74  0.4622 ld-2.3.6.so
+ 
 \end{commandline}
 
 \subsection{最適化の必要な部分の解析}
