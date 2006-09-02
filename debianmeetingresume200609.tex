@@ -524,63 +524,162 @@ L2_RQSTS: (counter: all)
 %$
 その後、インストールします。
 
+まず、oprofileを実行するのを便利にするために、スクリプトを仕込みます。
+入力されたコマンドを10回実行してそのプロファイルを取得するというものです。
+
+\begin{commandline}
+ read CMD
+ sudo opcontrol --shutdown
+ sudo opcontrol --reset
+ sudo opcontrol --setup \
+  --vmlinux=/lib/modules/$(uname -r)/build/vmlinux \
+    --event=CPU_CLK_UNHALTED:180000:0:1:1 --separate=library
+    sudo opcontrol --start
+ for A in $(seq 1 10); do
+   $CMD
+ done
+ opcontrol --dump && \
+ opreport -l -p /lib/modules/$(uname -r)/kernel 2>/dev/null \
+  | head -30
+\end{commandline}
+
 まず、デバッグ用のバイナリが正常に作成できているか簡単に確認します。まず、
 apt-get update をループでまわしてみます。libapt-pkgのシンボルレベルで確
 認できているので、デバッグシンボルが存在しているということがわかります。
 
 \begin{commandline}
- $ while true; do sudo apt-get update ; done
+sudo apt-get update
 \end{commandline}
-%$
 
 \begin{commandline}
- Every 10.0s: opcontrol --dump && opreport -l 2>/dev/null | head -30 ;
- opcontrol --reset                                             Mon Jul
- 31 08:28:16 2006 
-CPU: Core Solo / Duo, speed 2061.84 MHz (estimated)
+CPU: Core Solo / Duo, speed 1833 MHz (estimated)
 Counted CPU_CLK_UNHALTED events (Unhalted clock cycles) with a unit mask of 0x00 (Unhalted core cycles) count 180000
 samples  %        image name               app name                 symbol name
-43117    42.3446  libapt-pkg-libc6.3-6.so.3.11.0 apt-get            SHA1Transform(unsigned int*, unsigned char const*)
-23991    23.5612  libapt-pkg-libc6.3-6.so.3.11.0 apt-get            MD5Transform(unsigned int*, unsigned int const*)
-6551      6.4337  vmlinux                  vmlinux                  sys_set_thread_area
-5027      4.9370  libc-2.3.6.so            apt-get                  (no symbols)
-3280      3.2212  vmlinux                  vmlinux                  cfq_dispatch_requests
-3264      3.2055  libfb.so                 Xorg                     fbCopyAreammx
-739       0.7258  gpgv                     gpgv                     (no symbols)
-614       0.6030  libc-2.3.6.so            http                     (no symbols)
-606       0.5951  ld-2.3.6.so              http                     (no symbols)
-510       0.5009  libc-2.3.6.so            file                     (no symbols)
+23823    46.3519  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  SHA1Transform(unsigned int*, unsigned char const*)
+12732    24.7724  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  MD5Transform(unsigned int*, unsigned int const*)
+4282      8.3314  processor.ko             processor                acpi_processor_idle
+2584      5.0276  libc-2.3.6.so            apt-get                  (no symbols)
+2012      3.9147  vmlinux                  vmlinux                  __copy_to_user_ll
+503       0.9787  gpgv                     gpgv                     (no symbols)
+222       0.4319  vmlinux                  vmlinux                  timer_interrupt
+166       0.3230  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  MD5Summation::Add(unsigned char const*, unsigned long)
+160       0.3113  vmlinux                  vmlinux                  page_fault
+158       0.3074  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  SHA1Summation::Add(unsigned char const*, unsigned long)
+140       0.2724  libstdc++.so.6.0.8       apt-get                  (no symbols)
+134       0.2607  vmlinux                  vmlinux                  find_get_page
+125       0.2432  ld-2.3.6.so              http                     do_lookup_x
+123       0.2393  vmlinux                  vmlinux                  sysenter_past_esp
+95        0.1848  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  .plt
+94        0.1829  ld-2.3.6.so              gpgv                     do_lookup_x
+89        0.1732  libc-2.3.6.so            http                     (no symbols)
+89        0.1732  vmlinux                  vmlinux                  do_generic_mapping_read
+88        0.1712  ld-2.3.6.so              file                     do_lookup_x
+87        0.1693  vmlinux                  vmlinux                  memcpy
+72        0.1401  ld-2.3.6.so              http                     strcmp
+69        0.1343  vmlinux                  vmlinux                  _spin_lock
+65        0.1265  vmlinux                  vmlinux                  vfs_read
+64        0.1245  ld-2.3.6.so              gpgv                     _dl_elf_hash
+62        0.1206  vmlinux                  vmlinux                  __handle_mm_fault
+60        0.1167  ld-2.3.6.so              http                     _dl_elf_hash
+58        0.1128  oprofiled                oprofiled                (no symbols)
 \end{commandline}
 
-dpkgについてもプロファイリングしてみます。しかしここで問題が出ます。
+dpkgについてもプロファイリングしてみます。\footnote{ここで問題が出ました。
 libc6 の dbg　パッケージの情報を oprofile が処理できていないようです。
 straceで解析してみましたが、ファイルをひらくところまでは何かできているよ
-うで、深入りすると深そうです。
+うです。これは別途バグ報告してみます。}
 
 \begin{commandline}
- $ while true; do sudo dpkg -i ../dselect_1.13.22_i386.deb ; done
+sudo dpkg -i ../dselect_1.13.22_i386.deb
 \end{commandline}
-%$
 
 \begin{commandline}
-CPU: Core Solo / Duo, speed 2061.84 MHz (estimated)
+CPU: Core Solo / Duo, speed 1833 MHz (estimated)
 Counted CPU_CLK_UNHALTED events (Unhalted clock cycles) with a unit mask of 0x00 (Unhalted core cycles) count 180000
 samples  %        image name               app name                 symbol name
-44592    33.3795  libc-2.3.6.so            dpkg                     (no symbols)
-24191    18.1083  vmlinux                  vmlinux                  sys_set_thread_area
-16423    12.2935  dpkg                     dpkg                     parsedb
-4416      3.3056  dpkg                     dpkg                     findnamenode
-2904      2.1738  dpkg                     dpkg                     findpackage
-2216      1.6588  dpkg                     dpkg                     f_dependency
-1654      1.2381  dpkg-deb                 dpkg-deb                 inflate_fast
-1647      1.2329  dpkg                     dpkg                     .plt
+41009    32.6009  libc-2.3.6.so            dpkg                     (no symbols)
+27485    21.8497  processor.ko             processor                acpi_processor_idle
+14863    11.8156  dpkg                     dpkg                     parsedb
+4845      3.8516  dpkg                     dpkg                     findnamenode
+2691      2.1393  dpkg                     dpkg                     findpackage
+1994      1.5852  dpkg                     dpkg                     f_dependency
+1742      1.3848  vmlinux                  vmlinux                  get_page_from_freelist
+1660      1.3196  dpkg-deb                 dpkg-deb                 inflate_fast
+1552      1.2338  dpkg                     dpkg                     iterpkgnext
+1520      1.2084  dpkg                     dpkg                     .plt
+1500      1.1925  dpkg                     dpkg                     varbufaddbuf
+1192      0.9476  dpkg                     dpkg                     filesdbinit
+1080      0.8586  dpkg                     dpkg                     w_dependency
+1001      0.7958  dpkg                     dpkg                     varbufdependency
+988       0.7854  dpkg                     dpkg                     nfmalloc
+884       0.7028  dpkg                     dpkg                     illegal_packagename
+849       0.6749  vmlinux                  vmlinux                  page_fault
+802       0.6376  vmlinux                  vmlinux                  __copy_from_user_ll_nocache_nozero
+687       0.5461  dpkg                     dpkg                     ensure_packagefiles_available
+633       0.5032  dpkg                     dpkg                     varbufaddc
+568       0.4515  dpkg                     dpkg                     f_filecharf
+516       0.4102  vmlinux                  vmlinux                  __copy_to_user_ll
+473       0.3760  dpkg                     dpkg                     copy_dependency_links
+458       0.3641  dpkg                     dpkg                     parseversion
+427       0.3395  dpkg                     dpkg                     ensure_package_clientdata
+406       0.3228  dpkg                     dpkg                     nfstrsave
+384       0.3053  dpkg                     dpkg                     varbufrecord
 \end{commandline}
 
-\subsection{テストケースの作成}
+パッケージをインストールして削除する、というループを回してみましょう。
+\texttt{apt-listbugs}と\texttt{apt-listchanges}が含まれており、ruby と
+pythonの処理負荷が高いことがわかります。また、libc6のなかで何か重たい処
+理をしているのがわかります。
 
-テストケースを作成します。今回はchroot　内部で大量の apt-get update,
+\begin{commandline}
+ sudo apt-get install -y dsh; sudo apt-get remove -y libdshconfig1
+\end{commandline}
+
+\begin{commandline}
+Counted CPU_CLK_UNHALTED events (Unhalted clock cycles) with a unit mask of 0x00 (Unhalted core cycles) count 180000
+samples  %        image name               app name                 symbol name
+195383   24.3783  processor                processor                (no symbols)
+114285   14.2595  libc-2.3.6.so            dpkg                     (no symbols)
+67157     8.3793  libruby1.8.so.1.8.4      ruby1.8                  (no symbols)
+48893     6.1005  libc-2.3.6.so            dpkg-query               (no symbols)
+41537     5.1826  dpkg                     dpkg                     parsedb
+30685     3.8286  perl                     perl                     (no symbols)
+28353     3.5377  dpkg-query               dpkg-query               parsedb
+26135     3.2609  python2.4                python2.4                (no symbols)
+13951     1.7407  libc-2.3.6.so            ruby1.8                  (no symbols)
+10023     1.2506  libc-2.3.6.so            apt-get                  (no symbols)
+9138      1.1402  dpkg                     dpkg                     findnamenode
+7914      0.9874  vmlinux                  vmlinux                  get_page_from_freelist
+7656      0.9553  dpkg                     dpkg                     findpackage
+5963      0.7440  vmlinux                  vmlinux                  read_hpet
+5777      0.7208  libc-2.3.6.so            perl                     (no symbols)
+5465      0.6819  dpkg                     dpkg                     f_dependency
+5108      0.6373  dpkg-query               dpkg-query               findpackage
+4525      0.5646  dpkg                     dpkg                     filesdbinit
+4452      0.5555  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  pkgDepCache::CheckDep(pkgCache::DepIterator, int, pkgCache::PkgIterator&)
+4237      0.5287  vmlinux                  vmlinux                  page_fault
+4182      0.5218  dpkg                     dpkg                     .plt
+4101      0.5117  dpkg                     dpkg                     varbufaddbuf
+3874      0.4834  dpkg-query               dpkg-query               f_dependency
+3744      0.4671  dpkg                     dpkg                     iterpkgnext
+3645      0.4548  libstdc++.so.6.0.8       apt-get                  (no symbols)
+3287      0.4101  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  pkgProblemResolver::MakeScores()
+3277      0.4089  vmlinux                  vmlinux                  delay_tsc
+\end{commandline}
+
+\subsection{テスト環境の作成}
+
+テスト用の環境を作成します。今回はchroot　内部で大量の apt-get update,
 apt-get install と apt-get remove をループで実行してベンチマークをとって
 みましょう。
+
+dpkgとaptを変更すると最悪システムが動作しなくなるため、テスト用に環境
+を準備することは大切です。
+
+\begin{commandline}
+ $sudo cowbuilder --login --bindmount $(pwd)
+\end{commandline}
+
 
 \subsection{最適化の必要な部分の解析}
 
