@@ -325,7 +325,130 @@ Haskell が異様にはやっていたのと、ウェブフレームワークでがりがりとやって
 \label{sec:sawadadebianspecific}
 
 \subsection{はじめに}
-\subsection{おわりに}
+
+Debianパッケージを管理するためのツールであるaptやdpkgなどは一目で
+Debian specificとわかります。
+しかし、日常的に利用しているコマンド、設定ファイルなど
+でも実はDebian固有のものであったり
+パッケージ化する際に変更が加えられていたりするものがあります。
+ここではそのようなあなたの知らないDebian specificを紹介します。
+
+\subsection{adduser}
+
+Debianで
+
+\begin{commandline}
+# adduser hoge
+\end{commandline}
+
+を実行するとhogeユーザが作られパスワードの入力が求められます。
+Fedoraで同じコマンドラインを実行した場合、hogeユーザは作られますが
+パスワード入力は求められません。パスワードは別途passwdコマンドで設定する
+必要があります。
+
+この違いはDebianのadduserとFedoraでadduserの実体の違いによるものです。
+Fedoraのadduserはuseraddへのシンボリックリンクです。
+DebianのadduserはPerlスクリプトで、useradd、passwd等を
+呼び出してユーザを作成しています\footnote{パスワード入力のプロンプトは
+passwdコマンドが表示しています}。
+
+ちなみに、FreeBSDのadduserはシェルスクリプトで書かれており、pwというコマ
+ンドを呼び出すことでユーザの追加を行っているようです。
+Debian GNU/kFreeBSDはFreeBSDカーネルの上にGNUのツールやglibc、Debianのツー
+ルを乗せたものであるため、Debianのadduserが使われており、useraddとpasswd
+でユーザの追加を行っていました。
+
+\subsection{Xsession}
+
+startxのmanを見るとXの起動時に実行されるスクリプトは~/.xinitrcとなって
+います。しかし、Debianでは~/.xsessionに書いておけばstartxを実行したと
+きでもグラフィカルログインしたときでも同じ環境にすることができます。
+
+これは、Debianでは素のXに対して変更を加えているためです。
+
+startxしたときのフローは次のようになっています。
+\begin{enumerate}
+\item /usr/bin/startx
+\item ~/.xinitrcがあったら~/.xinitrcを実行。なかったら
+	  /etc/X11/xinit/xinitrc(Debian向けに修正されています)を実行
+\item /etc/X11/Xsessionを実行
+\end{enumerate}
+
+グラフィカルログイン(xdm)した場合のフローは次のようになります。
+\begin{enumerate}
+\item /etc/X11/xdm/xdm-configのDisplayManager*sessionに書かれたコマンド
+	  (通常、/etc/X11/xdm/Xsession(Debian向けに修正されています))を実行
+\item /etc/X11/Xsessionを実行
+\end{enumerate}
+
+というわけでどちらの場合も/etc/X11/Xsessionが実行されます。
+この/etc/X11/XsessionはDebian specificなもので/etc/X11/Xsession.dディレ
+クトリにあるスクリプトを順に実行します。
+このうち、50x11-common\_determine-startupで起動プログラムの検出が行われ、
+~/.xsessionがある場合、~/.xsessionが起動プログラムに選ばれます。
+99x11-common\_startで50x11-common\_determine-startupで選ばれたプログラム
+が実行されることで~/.xsessionに書かれた内容が有効になります。
+
+ちなみに、Fedoraでは~/.Xclientsに書くとstartxでもグラフィカルログインで
+もスクリプトを実行してくれるようです。ただし、/etc/X11/Xsession.dディレ
+クトリのような仕組みはないようです。
+
+\subsection{which}
+
+Debianではwhichはdebianutilsパッケージで提供されるシェルスクリプトです。
+
+\subsection{lesspipe}
+
+lessでgzip圧縮されたファイルを開こうとすると通常次のようになります。
+
+\begin{commandline}
+$ less hoge.txt.gz
+"hoge.txt.gz" may be a binary file.  See it anyway?
+\end{commandline}
+
+ひょっとしたら上のようなメッセージは表示されずに
+hoge.txtの内容が表示されている方もいらっしゃるかもしれません。
+その場合、次の環境変数が設定されているはずです。
+
+\begin{commandline}
+$ printenv | grep ^LESS
+LESS=-M
+LESSOPEN=| /usr/bin/lesspipe '%s'
+LESSCLOSE=/usr/bin/lesspipe '%s' '%s'
+\end{commandline}
+
+lessにはLESSOPENという環境変数が設定されているとファイルを読み込む前
+にLESSOPENで指定されたコマンドにファイル名を渡してコマンドの標準出力をファ
+イルの内容として読み込むという機能があります。
+これにより、gzip圧縮されたファイルを
+
+\begin{commandline}
+$ less hoge.txt.gz
+\end{commandline}
+
+というコマンドラインで表示することができます。
+また、この機能を応用することで
+
+\begin{commandline}
+$ less hoge.tar.gz
+\end{commandline}
+
+とした場合にtarされているファイルの一覧を取得するといったこともできます。
+
+/usr/bin/lesspipeはDebian specificなものです。他のディストリビューション
+にも同様の機能を持つものが含まれていることが多いのですが、Debianの
+lesspipeは対応している拡張子の数が多いことが特徴です。
+
+language-envを実行するとLESSOPENの設定をしてくれるため
+気づかず使っているという方もいらっしゃるのではないでしょうか。
+
+\subsection{manページ}
+
+
+
+\subsection{Debian specificの見つけ方}
+
+manを見るとDebianと書いてあるのでDebian specificとわかりますが、
 
 %% さわださんここまで
 %% 小林さんここから
