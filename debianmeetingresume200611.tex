@@ -1,0 +1,272 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2006 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "xpdf " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200611; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage[dvipdfm]{graphicx}
+\usepackage{fancybox}
+\usepackage{longtable}
+\usepackage{ascmac}	% 囲み (screen,itembox)
+\usepackage{fancyvrb}   % 囲み Verbatim のために必要
+\usepackage[dvipdfm]{hyperref}
+\usepackage{url}
+\usepackage[dvipdfm]{color}
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+%% spacing の設定をする。外枠を減らす。
+\setlength\headheight{0mm}
+\setlength\topmargin{-20mm}
+\setlength\headsep{0mm}
+\setlength\topskip{3mm}
+\setlength\maxdepth{4pt}
+\setlength\columnsep{6mm}
+\setlength\textheight{252mm}
+\setlength\topmargin{-5mm}
+\setlength\textwidth{170mm}
+\setlength\oddsidemargin{-5mm}
+\setlength\evensidemargin{-5mm}
+
+% commandline環境を定義。画面入出力についてはcommandline環境
+% で表記する
+\newenvironment{commandline}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{15cm}\begin{fontsize}{7.3}{7.3} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}\fbox{\TheSbox}}
+
+
+%%% start of santaku
+\makeatletter
+\newwrite\tf@jqz
+\immediate\openout\tf@jqz\jobname.jqz\relax
+\makeatother
+\newcounter{santakucounter}
+\newcommand{\santaku}[5]{%
+\addtocounter{santakucounter}{1}
+
+\addtocontents{jqz}{\arabic{santakucounter}. #5\\}
+\begin{minipage}{1\hsize}
+問題\arabic{santakucounter}. 
+#1\\
+□ A #2\\
+□ B #3\\
+□ C #4
+\end{minipage}
+\hspace{1cm}
+\\
+
+}
+%%% end of santaku
+
+\newcommand{\emptyspace}{(\underline{\hspace{1cm}})}
+
+\newcommand{\subsubsubsection}[1]{%
+\vspace{1zw}{\bf #1}\\}
+
+
+% sectionをセンタリングする
+\makeatletter
+  \renewcommand{\section}{\@startsection{section}{1}{\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}% 前アキ
+    {.5\Cvs \@plus.3\Cdp}% 後アキ
+    {\normalfont\Huge\headfont\raggedright\centering}} % style
+\makeatother
+
+% section の代わりの環境
+\newcommand{\dancersection}[2]{%
+\newpage
+東京エリアDebian勉強会 2006
+\hrule
+\vspace{0.5mm}
+\hrule
+%\hfill{}\includegraphics[width=3cm]{image200502/openlogo-nd.eps}\\
+\hfill{}\includegraphics[width=16cm]{image2006-natsu/guruguru-sand-light.png}\\
+\vspace{-5cm}
+\begin{center}
+\section{#1}
+\end{center}
+\hfill{}\colorbox{white}{#2}\hspace{3cm}\space\\
+\vspace{1cm}
+\hrule
+\vspace{0.5mm}
+\hrule
+\vspace{1cm}
+}
+
+% BTSの番号を見るためのコマンド
+\newcommand{\debianbug}[1]{#1\footnote{\url{http://bugs.debian.org/#1}}}
+
+% for dancerj
+\newcommand{\fgref}[1]{図\ref{#1}}
+\newcommand{\tbref}[1]{表\ref{#1}}
+
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分, 本文の末尾も修正することをわすれずに
+\title{\includegraphics[width=7cm]{image200502/openlogo-nd.eps}\\
+ 第22回 東京エリア Debian 勉強会\\事前資料}
+\date{2006年11月19日}
+\author{Debian勉強会会場係 上川純一\thanks{Debian Project Official Developer}} 
+\maketitle
+\thispagestyle{empty}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+
+\dancersection{Introduction To Debian 勉強会}{上川純一}
+
+今月のDebian勉強会へようこそ。
+これからDebianのあやしい世界に入るという方も、すでにどっぷりとつかってい
+るという方も、月に一回Debianについて語りませんか？
+
+目的として下記の二つを考えています。
+
+\begin{itemize}
+ \item メールではよみとれない、もしくはよみとってられないような情報を情
+       報共有する場をつくる
+ \item まとまっていないDebianを利用する際の情報をまとめて、ある程度の塊と
+       して出してみる
+\end{itemize}
+
+また、東京にはLinuxの勉強会はたくさんありますので、Debianに限定した勉強
+会にします。Linuxの基本的な利用方法などが知りたい方は、他でがんばってくださ
+い。
+Debianの勉強会ということで究極的には参加者全員がDebian Packageを
+がりがりと作りながらスーパーハッカーになれるような姿を妄想しています。
+
+Debianをこれからどうするという能動的な展開への土台としての空間を提供し、
+情報の共有をしたい、というのが目的です。
+次回は違うこと言ってるかもしれませんが、御容赦を。
+
+\subsection{講師紹介}
+
+\begin{itemize}
+ \item{上川純一} 宴会の幹事です。
+\end{itemize}
+
+\subsection{事前課題紹介}
+
+今回の事前課題は
+「XXX」
+というタイトルで200-800文字程度の文章を書いてください。
+というものでした。
+その課題に対して下記の内容を提出いただきました。
+
+\subsubsection{}
+
+\subsubsection{上川}
+
+
+%%% trivia quiz
+\dancersection{Debian Weekly News trivia quiz}{上川純一}
+
+ところで、Debian Weekly News (DWN)は読んでいますか？
+Debian 界隈でおきていることについて書いているDebian Weekly News.
+毎回読んでいるといろいろと分かって来ますが、一人で読んでいても、解説が少
+ないので、
+意味がわからないところもあるかも知れません。みんなでDWNを読んでみましょう。
+
+漫然と読むだけではおもしろくないので、DWNの記事から出題した以下の質問にこたえてみてください。
+後で内容は解説します。
+
+\subsection{2006年XX号}
+\url{http://www.debian.org/News/weekly/2006/XX/}
+にある5月XX日版です。
+
+\santaku
+{}
+{}
+{}
+{}
+{}
+
+\santaku
+{}
+{}
+{}
+{}
+{}
+
+\santaku
+{}
+{}
+{}
+{}
+{}
+
+\santaku
+{}
+{}
+{}
+{}
+{}
+
+\dancersection{最近のDebian関連のミーティング報告}{上川純一}
+
+\subsection{東京エリアDebian勉強会21回目報告}
+% (query-replace-regexp "<.*>" "")
+
+\dancersection{翻訳の招待}{小林さん}
+\label{sec:ZZZ}
+
+\dancersection{XXXX}{岩松さん}
+\label{sec:XXX}
+
+\dancersection{YYYY}{上川}
+\label{sec:YYY}
+
+\dancersection{グループワーク}{全員}
+\label{sec:groupwork}
+
+\dancersection{次回}{}
+
+未定です。
+内容は本日決定予定です。
+
+参加者募集はまた後程。
+
+\newpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\ \\
+\noindent \normalfont 2006年11月19日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
