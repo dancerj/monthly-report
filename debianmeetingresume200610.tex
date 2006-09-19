@@ -560,9 +560,69 @@ rc-update add acpid default
 
 プロファイル結果を利用して、解析します。
 
+\texttt{apt-get update}の結果を確認したところ、下記のようになるということ
+がわかりました。どうも、SHA1Transform　と MD5Transform という関数の負荷
+が高いようです。
+
+\begin{commandline}
+sudo apt-get update
+[中略]
+CPU: Core Solo / Duo, speed 1833 MHz (estimated)
+Counted CPU_CLK_UNHALTED events (Unhalted clock cycles) with a unit mask of 0x00 (Unhalted core cycles) count 180000
+samples  %        image name               app name                 symbol name
+23823    46.3519  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  
+SHA1Transform(unsigned int*, unsigned char const*)
+12732    24.7724  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+ MD5Transform(unsigned int*, unsigned int const*) 
+4282      8.3314  processor.ko             processor                acpi_processor_idle
+2584      5.0276  libc-2.3.6.so            apt-get                  (no symbols)
+2012      3.9147  vmlinux                  vmlinux                  __copy_to_user_ll
+503       0.9787  gpgv                     gpgv                     (no symbols)
+222       0.4319  vmlinux                  vmlinux                  timer_interrupt
+166       0.3230  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+ MD5Summation::Add(unsigned char const*, unsigned long) 
+160       0.3113  vmlinux                  vmlinux                  page_fault
+158       0.3074  libapt-pkg-libc6.3-6.so.3.11.0 apt-get
+ SHA1Summation::Add(unsigned char const*, unsigned long) 
+140       0.2724  libstdc++.so.6.0.8       apt-get                  (no symbols)
+134       0.2607  vmlinux                  vmlinux                  find_get_page
+125       0.2432  ld-2.3.6.so              http                     do_lookup_x
+123       0.2393  vmlinux                  vmlinux                  sysenter_past_esp
+95        0.1848  libapt-pkg-libc6.3-6.so.3.11.0 apt-get                  .plt
+94        0.1829  ld-2.3.6.so              gpgv                     do_lookup_x
+89        0.1732  libc-2.3.6.so            http                     (no symbols)
+89        0.1732  vmlinux                  vmlinux                  do_generic_mapping_read
+88        0.1712  ld-2.3.6.so              file                     do_lookup_x
+87        0.1693  vmlinux                  vmlinux                  memcpy
+72        0.1401  ld-2.3.6.so              http                     strcmp
+69        0.1343  vmlinux                  vmlinux                  _spin_lock
+65        0.1265  vmlinux                  vmlinux                  vfs_read
+64        0.1245  ld-2.3.6.so              gpgv                     _dl_elf_hash
+62        0.1206  vmlinux                  vmlinux                  __handle_mm_fault
+60        0.1167  ld-2.3.6.so              http                     _dl_elf_hash
+58        0.1128  oprofiled                oprofiled                (no symbols)
+\end{commandline}
+
 \subsection{最適化例}
 
 今回の結果で適用できる最適化を分析します。
+
+\texttt{apt-pkg/contrib/sha1.cc}, \texttt{apt-pkg/contrib/md5.cc} を見る
+と md5 については、 dpkg の実装を、 sha1についてはどこからか拾ってきた実
+装を利用しており、 C++ で書かれた汎用のコードを利用しているということが
+わかります。
+
+てっとり早く GPL　互換の既存の sha1 と md5 の高速な実装を探してみます。
+GNUTLSに含まれている sha1 / md5　の実装は、 \texttt{gl/sha1.c},
+\texttt{gl/md5.c} にあり、特に高速化されていないようです。
+
+gitのソースを見てみます。ppc と arm 用の最適化されている sha1 の実装が含
+まれていますが、 i386 用はないようです。
+
+予備試験をしてみます。600MB程度の iso ファイルの sha1 をとるのに、
+mozilla 実装と openssl 実装でどらくらい違うのかを比較してみました。
+mozilla 実装で　14 秒程度、 openssl 実装で　12　秒程度です。この時点で非
+常にやる気が失せています。
 
 \subsection{結果の検証}
 
