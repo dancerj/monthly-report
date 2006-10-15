@@ -37,6 +37,7 @@
 \usepackage[dvipdfm]{hyperref}
 \usepackage{url}
 \usepackage[dvipdfm]{color}
+\usepackage{wrapfig} % 図のまわりこみ
 
 %http://www.naney.org/diki/dk/hyperref.html
 %日本語EUC系環境の時
@@ -300,6 +301,384 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 	  
 	    二次会はデニーズでデビルズチョコレートサンデー。
 	    誰も電車にのれない状況になって、解散。
+
+
+\dancersection{Jamon, tinto vino, por favor. 〜スペインExtremadura州Debian i18n会議報告}{武藤 健志 \texttt{<kmuto@debian.org>}}
+\label{sec:extremadura}
+
+去る2006年9月7日〜9月9日の期間、スペインExtremadura州Casar de C\'{a}ceres(図\ref{fig:casar})において開催された「第1回Debian国際化会議 (\emph{The first Debian internationalisation meeting})」の模様を、技術トピックを中心に紹介する。
+
+\begin{figure}[htbp]
+  \begin{center}
+    \includegraphics[width=6cm]{image200610/cesar.eps}
+    \includegraphics[width=6cm]{image200610/creofonte.eps}
+  \end{center}
+  \caption{Extremadura州C\'{a}ceres(39$^{\circ}$.28'15.72"N/6$^{\circ}$22'18.87"W) CREOFONTE}
+  \label{fig:casar}
+\end{figure}
+
+\subsection{概要}
+\label{sec:extremadura-abstract}
+
+スペインExtremadura州は、支出の圧縮のために官公庁や教育機関にDebian GNU/Linuxベースのディストリビューション\textbf{LinEx}(\url{http://www.linex.org/})の導入を進めているが、その過程で、Debian Projectへの謝意および、今後の開発と改良を継続への期待を込めて、Debian Projectが必要とする各種会議を支援している。今回の会議も、この一環として行われ、各国から集まった参加者たちの航空券、食事、宿泊兼会議場「CREOFONTE」の提供といったすべてが同州の支援によって賄われた。
+
+本会議は、Debian公式開発者でありDebianインストーラなどの翻訳のとりまとめやドキュメント整備でリーダーシップを発揮している、フランスのChristian Perrier氏の呼びかけで開催に至ったもので、世界各国から国際化に関して積極的な活動を行っている23名\footnote{\url{http://wiki.debian.org/I18n/Extremadura2006}を参照。出身国はスペイン、ルーマニア、リトアニア、フランス、オーストリア、ベルギー、ドイツ、イタリア、イギリス、イスラエル、南アフリカ、ブラジル、米国、インド、カンボジア、バングラデシュ、日本と幅広い。}が集まり、3日間にわたって充実した議論を行った。
+
+主な議題については次のとおりである。
+
+\begin{itemize}
+\item Pootle翻訳支援システムの採用推進
+\item DDTP/DDTSSの本格的な活用
+\item i18nタスクフォースの結成と活動の開始
+\item Debianインストーラおよび安定版における国際化の諸問題とその対策
+\item 非ラテン文字圏における、フォントおよび入力メソッドの概要紹介とドキュメント化の必要性
+\item その他国際化作業に向けたインフラストラクチャ整備
+\end{itemize}
+
+以降で、それぞれの技術詳細を述べていこう。
+
+\begin{screen}
+  \paragraph*{キーワード}
+  \begin{wrapfigure}{r}{3cm}\includegraphics[width=3cm]{image200610/jamon.eps}\end{wrapfigure}
+  \begin{description}
+  \item[i18n] 「Internationalization\footnote{-sationとzの代わりにsで表記されることもある。}」(国際化)の略称。一般に、アプリケーションを、技術的に大きな変更を要することなく、特定の言語・地域・文化に依存する部分(メッセージ、アイコンなど)を分離してほかの言語・地域・文化に対応できるようにした設計およびその作業を指す。
+  \item[l10n] 「Localization」(地域化)の略称。特定の言語・地域・文化に合わせた作業およびその成果を指す。たとえば翻訳は、l10n活動の1つである。
+%  \item[m17n] 「Multilingualization」(多国語化)の略称。1つのアプリケーションインスタンス上で複数の言語を同時に利用する設計およびその作業を指す。Emacs/Muleは多国語表現実装の代表例。
+  \item[po] 「Portable Object」の略称。GNU gettextで実装されたi18nフレームワークにおける、メッセージカタログファイル。原文メッセージと対訳が1対1で構成され、短い翻訳については作業や再利用が容易である。詳しくは後述。
+  \end{description}
+\end{screen}
+
+\subsection{gettextで実現されるi18nとpoファイルの概要}
+\label{sec:extremadura-po}
+
+本題に入る前に、Debianのアプリケーションのi18nおよびl10nで欠かすことのできない、GNU gettextのi18nフレームワークと、その中で重要な役割を担うpoファイルについて簡単に説明しておく。
+
+\textbf{GNU gettext}は、GNUアプリケーション向けに開発された、メッセージカタログ向けi18nフレームワークで、GNU libcで全面的にサポートされている(図\ref{fig:extremadura-gettext})。元々の概念は、UniforumによってNLS標準として発案され、SunのSolarisで実装されたものだ。
+
+% * GNU gettext
+%  GNU Internationalization utilities
+%  Interesting for authors or maintainers of other packages or programs
+%  which they want to see internationalized.
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[width=8cm]{image200610/gettext.eps}
+  \end{center}
+  \caption{GNU gettextの仕組みの概略}
+  \label{fig:extremadura-gettext}
+\end{figure}
+
+GNU gettextの動作の流れは大まかに次のようになる。まず、i18n化対象のアプリケーションのコードから\texttt{xgettext}などのツールを利用してメッセージ部分をテキスト形式の\textbf{potファイル}(\emph{Portable Object Template})として抜き出し、コードをgettextフレームワークを利用するよう改変する\footnote{基本的には\texttt{\_("メッセージ")}のようにアンダースコア1文字の関数で囲む。その他設定の詳細についてはGNU gettextのInfoファイルを参照。}。
+
+生成されたpotファイルは原文メッセージのマスターファイルとなる。このファイルを\textbf{$<$言語コード$>$.po}の名前を持つ\textbf{po}ファイル(\emph{Portable Object})としてコピーし、実際の翻訳を進めることになる。たとえば日本語であれば、\texttt{ja.po}がpoファイル名となる。poファイルには翻訳ファイル自体のエンコーディングや、訳者名、日付などを記したいくつかのヘッダの後に、原文となる\texttt{msgid}とその対訳指定箇所となる\texttt{msgstr}のペアが羅列される。次にいくつかの例を示す。
+
+\begin{screen}
+\begin{verbatim}
+# msgidに原文文字列、msgstrに訳を記述する
+msgid "Japanese"
+msgstr "日本語"
+
+# plural指示で単数型と複数型を分けることができる
+msgid "an apple"
+msgid_plural "apples"
+msgstr[0] "1個のリンゴ"
+msgstr[1] "複数のリンゴ"
+
+# 複数型を無視する場合はmsgstr[1]に同じ文字列を並べるのでは
+# なく、[0]だけにする
+msgid "an apple"
+msgid_plural "apples"
+msgstr[0] "リンゴ"
+
+# printf書式の変換指定子を使う(実装依存)
+msgid "user %s has %d files"
+msgstr "ユーザ %s は %d 個のファイルを持っている"
+
+# printf書式文字列を使い、順序を入れ替える(実装依存)
+# 順序を指定する場合、すべての変換指定子に番号付けする必要がある
+msgid "%d files in %s directory"
+msgstr "%2$s ディレクトリに %1$d 個のファイル"
+\end{verbatim}
+\end{screen}
+
+GNU gettextの場合、poファイルのままでは\texttt{msgid}からのメッセージ取り出しが複雑(時間がかかる)になるので、\texttt{msgfmt}コマンドを利用してバイナリ形式の\textbf{moファイル}(\emph{Machine Object})に変換する。さらに、libcのgettextサポートを使ってこのmoファイルを読ませるために、\texttt{/usr/share/locale/$<$言語$>$/LC\_MESSAGES/}配下に「$<$アプリケーション名$>$.mo」(正確には「ドメイン名」)で配置しておく。
+
+これで準備は完了である。アプリケーション側でアプリケーション名(ドメイン名)を宣言してバインディングした後、翻訳対象の\texttt{msgid}文字列と、現在のメッセージロケール(\texttt{LC\_MESSAGES}環境変数。定義されていない場合は\texttt{LANG}環境変数)で問い合わせると、ロケールに基いた上述のディレクトリから検索され、対応する\texttt{msgstr}文字列が返される。このとき、メッセージロケールのエンコーディング情報に基いてエンコーディング変換も行われる。
+
+GNU gettextはこのようにmoファイルとlibcのサポートを利用しているが、poファイルの構成自体は比較的単純であり、Debianにおける各i18nフレームワークでも流用されている。たとえば、パッケージの構成についての質問やインストーラの質問を司るdebconfインターフェイステンプレートの翻訳にはpoを流用したpo-debconf機構が使われており、これから説明するPootleやpo4aは、poをベースにしたより汎用的なi18n翻訳手法である。
+
+poファイルはテキストファイルなので、どのようなテキストエディタでも操作可能であるが、未翻訳あるいは\texttt{msgid}が更新されたために曖昧(fuzzy)になった翻訳などを順に追っていったり、訳語候補を提供したりできる支援ツールを使うことで、生産性を向上できる。このようなオフラインのpo翻訳支援ツールとしては、Emacsのpo-mode、KDEのKBabel、GNOMEのGtranslatorなどがある(図\ref{fig:extremadura-assist})。
+
+\begin{figure}[htbp]
+  \begin{center}
+    \includegraphics[height=3cm]{image200610/emacs-po.eps}
+    \includegraphics[height=3cm]{image200610/kbabel.eps}
+    \includegraphics[height=3cm]{image200610/gtranslator.eps}
+  \end{center}
+  \caption{Emacs po-mode、KBabel、Gtranslator}
+  \label{fig:extremadura-assist}
+\end{figure}
+
+\subsection{Pootle翻訳支援システム}
+\label{sec:extremadura-pootle}
+
+さて、今回の会議での主要な議論の1つが、Pootle翻訳支援システムである。\textbf{Pootle}(\url{http://pootle.wordforge.org/})は、WordForge Project(\url{http://www.wordforge.org/})で開発が進められているWebベースのオンライン翻訳管理サーバーだ。GNU GPLv2でライセンスされており、Debianでもpootleパッケージをインストールすることで自身のサーバーを構築できる。なお、メインプログラムはPythonで記述されている。
+
+% Pootle is:
+% Web-based translation and translation management tool
+%  Pootle provides a rich set of features for managing a translation
+%  project.  It integrates components of the Translate Toolkit to provide
+%  error checkers for translation messages and the ability to download files
+%  in a number of formats: PO, XLIFF, CSV.  Pootle can also provide compiled
+%  PO files for download. You can use it to assign work to translators in
+%  your team, and you can define goals to help focus the efforts of your
+%  translation.  Pootle can run without a Web server or be proxied through
+%  your existing Apache server.  The Translate Toolkit is a set of software
+%  and documentation designed to help make the lives of localizers both more
+%  productive and less frustrating.
+
+類似のものとしては、Canonical社(Ubuntu GNU/Linuxの開発元)のコラボレーションサイトLaunchpad.net(\url{https://launchpad.net/})で使われている\textbf{Rosetta}システム(\url{https://launchpad.net/rosetta})があるが、RosettaはまだDebianフリーソフトウェアガイドラインに沿ったソースコード公開はなされていない\footnote{「\emph{Rosetta is not Open or Free Software at the moment. Rosetta will become open source sometime in the future but we don't have a date, although some parts of the Launchpad have already been released under the GPL by Canonical Ltd.}」}という問題があり、Debianでの積極的な採用には反対の声が大きい。
+
+% * launchpad (https://launchpad.net/)
+% Launchpad is a collection of services for products in the open source universe.
+% You can register your product, then collaborate with the open source community
+% on translations, bug tracking and code. For more information, see our
+% Frequently Asked Questions.
+% * Rosetta (https://launchpad.net/rosetta)
+% Rosetta is a Web-based translation system. You can easily collaborate
+% with translators for your software through Rosetta.
+% Rosetta is a Web-based system for translating open source software into any
+% language. All you need to start translating is a Web browser, a good knowledge
+% of the application you are translating, and a knowledge of English.
+
+\begin{wrapfigure}{l}{3.5cm}\includegraphics[width=3.5cm]{image200610/pootle.eps}\end{wrapfigure}
+
+会議では、Wordforge Project創設者のJavier Sol\'{a}氏、Pootle開発者のFriedel Wolff氏、Google Summer of Code(GSoC)でPootleの改善を進めるGintautas Milauskas氏、それにDebianでのパッケージメンテナNicolas Francois氏を中心に、Pootleの実装と今後の改良方針について議論が行われた。
+
+Pootleは、その名のとおりpo形式を中核として翻訳を管理しており(内部表現はUTF-8エンコーディング)、poの特性を生かしてデータベース内に存在する同一メッセージの再利用が可能となっている。po形式のほかに、XLIFF形式(\emph{XML Localization Interchange File Format})、Qt.ts形式(XMLカタログ)、CSV形式での入出力をサポートしている。
+
+実際にPootleのサイトに行き、使ってみればわかるように、Pootleはまだ開発中であり、実用に耐え得るほどの出来ではない。特にWebインターフェイスの能力が不十分であり、これをクライアントとして利用するにはかなりの苦難が予想される。Webインターフェイスの向上は今後の大きな課題ではあるが、GSoCの支援でMilauskas氏がデータベースバックエンドとWebフロントエンドの分離(抽象化)に成功したと会議において表明したこともあり、今後は既存のオフラインフロントエンドとの連携や、新たなオンラインフロントエンドの開発が進められるかもしれない\footnote{なお、Pootleの実験台および後述のi18nタスクフォースのためのインフラストラクチャとして、i18n.debian.netがセットアップされ、Extremaduraのデータセンターでホスティングされている。}。Pootleについてのドキュメントの整備はまだ追いついていないが、Pootleの開発メーリングリストでは日々活発な議論が行われており、我と思わん方はぜひ参加して頂きたい。
+
+また、会議において提案され現在継続議論中の話題として、Pootleに「翻訳の翻訳」を実装してほしいという希望(wishlist)がある。忘れがちなことであるが、世界各地の翻訳従事者の誰もが英語を理解できるわけではない。たとえば母国語以外の第二言語としてスペイン語・フランス語・ロシア語といった言語を使っている国は存在し、こういった国々で英語を解釈し無償で作業に従事する翻訳者を見つけるのは容易でない。たとえばPootle側で英語のほかに指定の第二言語が訳出済みであれば、次のようにそれを提示すれば、訳者は第二言語に従って翻訳できる。
+
+\begin{screen}
+\begin{verbatim}
+  msgid "English"
+  msgid[es] "Spanish"
+  msgstr "スペイン語を読んだ上での翻訳"
+\end{verbatim}
+\end{screen}
+
+将来的にはDebianにおける全翻訳をPootleで賄うという壮大な構想が予定されているが、その上で必要となるのが既存の各種フォーマットと、Pootleで使うpo形式との相互変換である。
+
+Debianパッケージの質問インターフェイスであるdebconfの翻訳テンプレートに対しては、Denis Barbier氏の開発した\textbf{po-debconf}というテンプレート$\leftrightarrow$po間の相互変換の仕組みがある(テンプレート利用の際にはpo-debconfの利用を強制するようなポリシー改訂も本会議で提案された)。
+
+その他のフォーマットへの対応としては、\textbf{poxml}と\textbf{po4a}(\emph{po for anything})がある。poxmlはXML$\leftrightarrow$po間の相互変換ツールであり、po4aは、XML、SGML、LaTeX、Diaダイアグラム、POD(Perlの\emph{Plain Old Document})、manページ、カーネルヘルプメッセージと多種に対応した相互変換ツールである。たとえば、Debianインストーラのドキュメントにはpoxmlが採用されており、現在XMLファイルを直接扱っている日本語についてもいずれは採用が求められることになるだろう。po4aは各種マニュアルやaptitudeのドキュメントなどに使われており、実際の使い方については、小林儀匡氏の日記に詳しい(\texttt{http://dolphin.c.u-tokyo.ac.jp/\textasciitilde nori1/w/?cmd=view;name=Log200610})。
+
+% * po4a
+%  tools for helping translation of documentation
+%  The po4a (po for anything) project goal is to ease translations (and
+%  more interestingly, the maintenance of translations) using gettext
+%  tools on areas where they were not expected like documentation.
+%  .
+%  This package contains the main libraries of po4a, and the following
+%  sub-modules:
+%  .
+%    - KernelHelp: Help messages of each kernel compilation option.
+%    - Man: either roff or mdoc format.
+%    - Pod: Perl documentation format.
+%    - Sgml: either debiandoc or docbook DTD.
+%    - Dia: uncompressed Dia diagrams.
+%    - LaTeX: generic TeX or LaTeX format.
+%    - XML: very configurable, docbook DTD preconfigured.
+
+% po-debconf
+% manage translated Debconf templates files with gettext
+%  This package is an alternative to debconf-utils and provide tools
+%  to manage translated Debconf templates files with common gettext
+%  utilities.
+
+なお、多数のpoファイルを格納して翻訳の再利用や用語集(glossary)作成が可能であることがPootleその他の管理ツールにおける最大のメリットであるが、debian-www@debian.or.jpメーリングリストにおいてSeiji Kaneko氏が疑念を呈したとおり、特に日本語においては英文の単語とユニークに1対1対応できることが少なく、訳者の著作権を認められ得る文が構成されるため、翻訳のライセンスの衝突に注意を払う必要がある。たとえばある用語集や翻訳がGNU GPLと衝突するライセンスのソフトウェアに由来する場合、GNU GPLのソフトウェアの翻訳においてそれを利用することは、ライセンス上の問題を抱えかねない。これについては、候補提供時にライセンス衝突の可能性を警告したり、今後翻訳者に何らかの(翻訳についての扱いをできるだけ自由にするための)「翻訳ライセンス同意書」を求めていくといった必要が出てくるだろう。
+
+% たとえばSunグロッサリなど。
+% Fedora USのWarren Togami氏と相談した結果。→翻訳者にライセンス同意書(Licence Agreement)を求める必要があるだろう
+% Pootleではほかのpoで同一のものがあった場合は埋めるのではなく候補を出す
+
+
+\subsection{DDTP/DDTSSの展望}
+\label{sec:extremadura-ddtp}
+
+\textbf{DDTP}(\emph{Debian Description Translation Project})は、Michael Bramer氏らによって長らく開発と作業が進められてきた、Debianの各パッケージの1行説明および長文説明(Description)の翻訳インフラストラクチャである。再設計を行ったりサーバーがクラッシュしたりと長期にわたる活動停止をたびたび起こしていたが、ようやく簡易かつ堅固なサーバーシステムが実装され、活動が再開した。日本では現在角田慎一氏と田村一平氏が``\textbf{ものすごい勢いで}''(\copyright tsuno氏)翻訳を進めており、1位のドイツに次ぐ翻訳数を叩き出している(\url{http://svana.org/kleptog/temp/ddts-stats.html})。
+
+\begin{wrapfigure}{r}{5cm}\includegraphics[width=5cm]{image200610/grisu.eps}\end{wrapfigure}
+
+現在のDDTPは、メールインターフェイスを使って翻訳対象の要求および提出を行うようになっており、内部表現はUTF-8エンコーディングで統一されている。詳しくはWebのDDTPの説明(\url{http://www.debian.org/international/l10n/ddtp})を参照されたい。
+
+\textbf{DDTSS}(\emph{Debian Distributed Translation Server Satelite}。\url{http://kleptog.org/cgi-bin/ddtss2-cgi/xx})は、DDTPのWebフロントエンドで、メールインターフェイス同様に翻訳対象の要求と提出、ほかの訳者によって提出された翻訳のレビューおよびコメント添付をWebブラウザ上で容易に行うことができる。
+% DDTSS It provides facilities to request translations, enter a translation and review other peoples translations. Afterwards the updated translation can be sent via email to the DDTS server.
+
+このように、DDTP/DDTSSは強力で、かつ協力者の参入障壁の低いシステムだが、唯一の難点は翻訳データを実際に利用できる場面が極めて限られていることである。翻訳データは各Debianミラーにはかつて伝播されていたものの、現在はddtp.debian.netホストのみでの提供となっている上(ミラーにあるものは古くて更新されていない)、現時点でユーザー環境で利用するには、次のようにexperimental版からAPTパッケージを取得しなければならない。
+
+\begin{enumerate}
+\item unstableまたはtesting環境において、experimental版のAPTリポジトリを加える。
+
+  \begin{screen}
+\begin{verbatim}
+deb http://ftp.jp.debian.org/debian experimental main
+\end{verbatim}
+  \end{screen}
+\item \texttt{apt-get update; apt-get install apt/experimental\return}を実行し、experimental版のAPTをインストールする。このとき、ライブラリバージョンがunstableのものと異なるため、aptitudeなどのAPTライブラリを利用しているパッケージは一旦removeされることになる。
+\item ddtp.debian.netのAPTリポジトリを加える(\texttt{etch}も存在)。
+
+  \begin{screen}
+\begin{verbatim}
+deb http://ddtp.debian.net/debian sid main
+\end{verbatim}
+  \end{screen}
+\item 環境変数\texttt{LANG}に\texttt{ja\_JP.UTF-8}(あるいは\texttt{ja\_JP.EUC-JP})を設定した状態で、\texttt{apt-get update\return}を実行する\footnote{デフォルトとなっているAPT設定\texttt{APT::Acquire::Translation "environment";}を\texttt{environment}の代わりに\texttt{ja}などとすれば環境変数に寄らずとも設定できるはずなのだが、現時点では\texttt{environment}が優先されることを避けられないようだ。}。これにより、DDTP日本語翻訳データである\texttt{$<$公式ミラー$>$/dists/sid/main/i18n/Translation-ja.\\gz}(古い。5月16日以来更新されておらず、エンコーディングはEUC-JP)、および\texttt{http://ddtp.debian.net/\\dists/sid/main/i18n/Translation-ja.gz}(最新。エンコーディングはUTF-8)がダウンロードされる。% FIXME:この行、強制改行を入れている
+\item 環境変数\texttt{LANG}に\texttt{ja\_JP.UTF-8}(あるいは\texttt{ja\_JP.EUC-JP})を設定した状態で、たとえば\texttt{apt-cache show apt\return}を実行することで、日本語翻訳文が表示される(図\ref{fig:apti18n})。
+
+  \begin{figure}[htbp]
+    \begin{center}
+      \includegraphics[width=5cm]{image200610/apti18n.eps}
+    \end{center}
+    \caption{DDTPから取得した日本語メッセージ}
+    \label{fig:apti18n}
+  \end{figure}
+
+  ただし、ddtp.debian.netにPackagesファイルが存在しないために、毎回警告メッセージが出てしまうという問題がある。aptitudeやsynapticなどのAPTフロントエンドは、experimental版のAPTライブラリでビルドし直すことで、同様にDDTP翻訳を扱える。
+\end{enumerate}
+
+今回の会議においては、Bramer氏自ら現状のDDTP/DDTSSの説明の後、PootleとDDTPの連携について可能かどうかの検討が行われた。現在のDDTPはシンプルながらそれなりに機能しており、あえてPootleのように比較的複雑なシステムと連携する必要がどこまであるかという懸念をBramer氏は示していたが、用語の統一や訳の再利用という面でメリットがあることも同時に認めていた。なお、DDTPの試験的なPootleへの投入はすでに行われており、Pootleにおいて改善すべきパフォーマンス上の問題があることがわかっている。
+
+既存のexperimental版APTのDDTP対応実装が安定しており、各種派生パッケージでもうまく動作していることからEtchにマージを試みることが会議において提案されたが、残念ながら、このDDTP対応のAPTは、ABI変更を伴うために現在リリースフリーズ中のEtchへの収録は見送られることが決定した。今後、より検証を重ねた上で、Debian unstableへのマージが行われる予定だ。現時点で見る限り、experimental APTの動作はunstableのものと同程度に安定しており、ABI変更を受けるパッケージを再ビルドしなければならないことを除けば、試用して問題になることも少ないだろう。また、せめてWeb版のパッケージ説明である\texttt{http://packages.debian.org/}においてDDTPの成果を使えないかという提案が出されており、こちらも作業が進められることを期待したい。
+
+\subsection{i18nタスクフォース}
+\label{sec:extremadura-taskforce}
+
+\begin{wrapfigure}{l}{4cm}\includegraphics[width=4cm]{image200610/taskforcemeet.eps}\end{wrapfigure}
+
+翻訳などのl10nや、関連するi18n改善を行う上で重要となるのがパッケージメンテナとの協調である。しかし不幸なことに、必ずしもメンテナがこのような改善に積極的であるとは限らず、翻訳が放置されたりあるいは理解の浅さからパッチが拒絶されたりすることが多々発生している。
+
+リリース作業の一環として、リリースアシスタントLuk Claes氏の合意の下、本会議ではDebian \textbf{i18nタスクフォース}の結成と、\textbf{NMUキャンペーン}の実施が決定された。
+
+i18nタスクフォースは、i18n/l10nにおける各種の問題についてのスペシャリスト集団として、窓口となるグループである。具体的な活動予定としては、ユーザーからのi18n/l10nにおけるバグ報告の追跡と返答、メンテナや上流開発者への働きかけ、翻訳者/チームへの連絡を行う(図\ref{fig:i18ntaskforce})。
+
+\begin{figure}[h]
+  \begin{center}
+    \includegraphics[width=5cm]{image200610/i18ntaskforce.eps}
+  \end{center}
+  \caption{i18nタスクフォース}
+  \label{fig:i18ntaskforce}
+\end{figure}
+
+メーリングリスト\texttt{debian-i18n@lists.debian.org}、Wikiサイト\url{http://i18n.debian.net/}、IRCチャネル\texttt{\#debian-i18n@irc.oftc.net}で活動する。図からも予想されるように、タスクフォースのメンバーの負荷は著しく高くなる恐れがある。各部分での自動化やテンプレート化、メンバーの勧誘といったことが今後の課題となるだろう。
+
+NMUキャンペーンは、i18nタスクフォースの作業の1つである。i18n/l10nの翻訳・パッチ(特にpo-debconf関連とgettext 0.15への移行)を受けていながら動きの見られないメンテナのパッケージに対し、一定の過程\footnote{NMU campaign for pending l10n bugs (\url{http://people.debian.org/\textasciitilde lwall/i18n/})}を踏んだ後にi18nタスクフォースに属するDebian公式開発者が、NMU(\emph{Non-Maintainer-Upload})と呼ばれるパッケージの修正アップロードを行う。すでにこのミッションは開始しており、メーリングリストdebian-i18nにおいてNMUに際して未翻訳言語の取り込みも行う旨の声明がPerrier氏などからたびたび出されている。po-debconf翻訳者・翻訳希望者の方はメーリングリストでの連絡に注意を払っておくとよいだろう。
+
+\subsection{インストーラおよび安定版の問題と解決}
+\label{sec:extremadura-installer}
+
+\begin{wrapfigure}{r}{4cm}\includegraphics[width=4cm]{image200610/d-i.eps}\end{wrapfigure}
+
+現在、Debianインストーラには世界人口の67\%に対応する74種の言語が登録されており、今後もDebianの普及のために全世界の言語をカバーすべくさらなる増加が予想される\footnote{Sargeでは42言語(50\%)、Etchでは現時点で62言語(61\%)。\url{http://d-i.alioth.debian.org/i18n-doc/languages.html}を参照。}。しかし、この言語データの増加は、当然ながらその翻訳を収録するパッケージのサイズ増大を引き起こし、実メモリにRAMディスクを展開して作業を行うDebianインストーラにとっては、抜本的解決策がない限りこれ以上の言語収容は厳しいというインストーラマネージャFrans Pop氏からの非公式見解が示されている。また、インストーラに限らず、各パッケージの翻訳データの種類やサイズが増大することは、インストール環境でのディスクの圧迫(特に組み込み環境)や、各言語の更新がパッケージメンテナにとって大きな負荷となり得る。さらに、翻訳は最終パッケージ形態になってからようやく追従されることも多く、安定版での翻訳更新のニーズもある。
+
+
+本会議のブレーンストーミングセッションでこれらの問題が取り上げられ、いくつかの提案が寄せられた。
+
+\subsubsection{翻訳データの分割}
+\label{sec:extremadura-shrink}
+
+DebianのインストーラはDebianパッケージとそのdebconf翻訳の仕組みを生かして設計されている。インストーラはudebパッケージというコンポーネントに分けられており、依存関係を使って動的にロードされる。翻訳は各udebごとに収録されている。
+
+前述したように、実メモリを利用するインストーラのサイズには、実用上、限りがある。これに対処する上で次の2つの提案がなされた。
+
+1つは、Christian Perrier氏らによる「言語ごとにインストーラを分ける」というものである。つまり、ラテン語圏、アラビア圏、アジア圏、…といった具合だ。付随して、インストーラの第1段階で起動して言語を選んだ後に本当の(各言語の)インストーラを起動するという案も出された。ただ、いずれにしてもこの方法ではパッケージの分割が煩雑になる上、たとえば「アジア圏」と一緒くたにできるほどこれらの言語は等質ではない。日本語・中国語・韓国語を一緒にすることは結局アジア圏のサイズがほかの言語圏に比して圧倒的膨大になる上、特にGUIインストーラの場合には日本語と中国語のフォントは形状の違いから共有できない上に同じ文字コード番号で衝突する箇所があるなど、問題が大きい(むしろ日本語、中国語、韓国語は互いに独立した関係にしたほうがましであろう)。
+
+もう1つは、武藤の提案した「選択した言語以外の言語については、インストーラコンポーネントの動的ロード時に取り除く」というものである。インストーラにはすでに「lowmem」という、メモリが少ないときに英語以外の言語データを切り詰める機構が用意されており、これを流用すれば比較的実装は容易だろう。Frans Pop氏からもdebian-bootメーリングリストにおいて同様の提案と賛同が寄せられており、おそらくこの方向で実装が進めることになる見込みだ。
+
+
+\subsubsection{ランゲージパックとtdeb}
+\label{sec:extremadura-langpack}
+
+インストール後環境での翻訳の増大と安定版における更新を行う上で提案されたのが、ランゲージパックとtdebである。
+
+\textbf{ランゲージパック}は、Ubuntuでも採用されている方式で、大きくなりがちなパッケージのmoファイルをひとまとめにし、言語ごとに別のdebパッケージとして一括化するものだ。現行のDebianにおけるFirefoxやOpenOffice.Org、KDEなどで採用されている言語パッケージ(firefox-locale-jaなど)を、もっとグローバルにして、各バイナリパッケージの翻訳を1つのパッケージにしたものと考えればよいだろう。Ubuntuではgccやaptitude、console-toolsなどの比較的大きなmoファイルを持つものがランゲージパックに分割されており、またGNU libcにパッチを当ててランゲージパックがインストールする\texttt{/usr/share/locale-langpack/$<$言語$>$/LC\_MESSAGES}の中からもメッセージカタログを参照するように手が加えられている。
+
+% 利点: リリース後も変更できる、異なるメンテナによってハンドリングできる、カスタムディストリビューションで新しい翻訳を入れられる
+% 欠点: 依存関係の問題。mainバイナリはdependsはできずrecommends。自動的に削除できない。バージョン依存。firefoxのように自己アップデートできる場合は衝突の可能性。バギーな翻訳パッケージでのクラッシュ。バイナリパッケージをあげずに翻訳だけ上げるとクラッシュするかも。
+
+\textbf{tdeb}(\emph{translation deb})も同様に、オリジナルのバイナリパッケージから翻訳部分を抜き出し、別配布とするアイデアである。ただし、既存のdebではなく各バイナリパッケージに対応する「tdeb」という新たなフォーマットを提唱している。Aigars Mahinovs氏の提案している手順は次のとおりだ。
+
+\begin{enumerate}
+\item パッケージメンテナのビルド時(debhelperでのフック)、またはアップロードしてアーカイブに入るまでの間に、バイナリパッケージから翻訳部分をtdebとして抽出する。たとえば日本語データの場合にはhello-1.0-4.ja.tdebのようにして、このパッケージには翻訳データのみを含める。
+\item 各FTPミラーは、tdebファイルと、\texttt{Translations.gz}のようなインデックスファイルを提供する。インデックスファイルは、「\emph{$<$packagename$>$-$<$version$>$: $<$separated-lang-list$>$}」の書式で、たとえば「\texttt{hello-1.0-4: es,fr,ja}」のようになる。
+\item APT側には、\texttt{/etc/apt/languages.list}のようなファイルでどの言語が必要かを指定しておく。パッケージのインストールやアップグレード時にバイナリdebと合わせてtdebをダウンロードする。
+\item パッケージの実際のインストールを担当するdpkgでは、バイナリパッケージがインストール済みであることを確認した後、tdebパッケージを展開・インストールし、そのファイル一覧情報をバイナリdeb同様\texttt{/var/lib/dpkg/info/tdebs/hello.ja.list}のような形で配置する。そして、システムのパッケージ状態を示す\texttt{/var/lib/dpkg/status}ファイルの該当パッケージに\texttt{Installed-Translations}フィールドを追加し、ここにインストール済み言語を記述する。
+\end{enumerate}
+
+% 利点: (リリース後も変更できる、異なるメンテナによってハンドリングできる、カスタムディストリビューションで新しい翻訳を入れられる。) +  選択した言語・パッケージのみについてインストールされる
+% 欠点: APT,DPKGの改変が必要。バージョンに強い束縛をつけすぎると、翻訳の更新が厳しくなる(mozillaの例)。+(firefoxのように自己アップデートできる場合は衝突の可能性。バギーな翻訳パッケージでのクラッシュ。バイナリパッケージをあげずに翻訳だけ上げるとクラッシュするかも。)
+
+% dpkg --install hello-1.0-4.ja.tdeb
+% dpkgはベースパッケージ名を見て、該当パッケージがインストールされていることを確認し、tdebを展開する
+% /var/lib/dpkg/info/tdebs/hello.ja.listに追加する
+% StatusのInstalled-Translationsフィールドに言語を追加
+
+% APT
+% /etc/apt/languages.list
+% パッケージのインストールまたはupgrade時にtdebを取り込み
+
+% ミラー
+% Sourcesと同じところにTranslationインデックスファイルを設置
+% パッケージ名-version: 利用可能な言語一覧(カンマ区切り)
+% 404は翻訳がないということ
+% debian/pool/main/s/sb/sbackup/tdebs/?
+
+% 開発者
+% 既存のパッケージから翻訳箇所を分離？
+% 大きなi18nシステムを構成し、そこから配布すべきか
+% build時かアップロード時か
+
+上記に示したとおり、ランゲージパックにせよtdebにせよ、実際の対応に当たっては、Cライブラリ、ソースパッケージ、dpkg、APT、ミラー等々と各所での大きな変更が必要となるため、紆余屈折が予想される。tdebの実装については、debian-i18nメーリングリストおよびWiki(\url{http://wiki.debian.org/TranslationDebs})で目下議論が行われているので、積極的にご参加頂きたい。
+
+% language-config
+% GDM
+
+\subsection{フォントと入力メソッド}
+\label{sec:extremadura-font-im}
+
+\begin{wrapfigure}{l}{4cm}\includegraphics[width=4cm]{image200610/javier.eps}\end{wrapfigure}
+
+非ラテン語圏の参加者も多かったため、この機会を使ってフォントと入力メソッドの説明も行われた。
+
+カンボジアのJavier Sol\'{a}氏は、クメール文字の入力のデモンストレーションを行った。この南インド文字に似た表音文字は、母音と子音の組み合わせで文字がどんどん変形し、また縦横に伸縮していくものであり、入力側のほか、表現する上でツールキット側の対応も必要となる\footnote{クメール文字の一部はUnicode 3.0以降に収録されている。}。デモはWindowsで行われたが、(未確認ではあるものの)SCIMとOpenOffice.orgの組み合わせで入力および表現できるようだ。
+
+
+インドのGuntupalli Karunakar氏は、ヒンディ語入力におけるコンソールとXのキーボードマップの差異の問題について語った。現在、コンソールのキーマップはconsole-toolsによって提供され、Xのキーマップはxkbによって提供されているが、両者のデータの持ち方に互換性がないため、管理が煩雑になっている。これについては、xkb側をマスターとして、動的にconsole-tools用のデータを生成できないかという提案がなされている。
+
+このほか、インド系アメリカ人のJaldhar Vyas氏はSCIMを、武藤は類似の仕組みとしてUIMを紹介した。
+
+これらのトピックについては、開発元などによってある程度のドキュメントは揃えられているものの、全体を俯瞰して体系だった開発者向け・ユーザ向けの文書というのはまだ不足している。久保田智広氏の筆によるi18nを俯瞰したドキュメント『Introduction to i18n』(\url{http://www.debian.org/doc/manuals/intro-i18n/})は本会議においても大きな賞賛を受けていたが、フォントや入力メソッドについてのガイドのさらなる拡充が必要であろうという見解で一致した。日本人にとってもこれらのトピックは関心の高い分野であり、積極的協力を期待する。
+
+\subsection{まとめ}
+\label{sec:extremadura-conclusion}
+
+少人数で形成された本会議の会期中は、ほぼすべての時間が議論に費やされ、食事の場でも激論が大いに繰り広げられることもあった。その甲斐あって、人数の多さのために個々の「いつものグループ」に分かれがちなDebconfカンファレンスとは一味違った、中身の濃い、相互の情報交換と各種の有益な提案が生み出されることとなった。現地のロジスティックスをすべて担当したC\'{e}sar G\'{o}mez Martin氏の奮闘と、 コーディネータ役のChristian Perrier氏の巧みな議事進行により、議論に集中できる環境が整っていたことも大きいだろう。
+
+\begin{center}
+  \includegraphics[width=12cm]{image200610/full.eps}
+\end{center}
+
+i18n/l10n活動は1人だけで行うものではないし、またこなし切れるものでもない。同時に、この活動はプログラミングやハッカー倫理に熟知しなくとも参入しやすく効果の見えやすい分野のひとつである。できるだけ多くの人々を活動に招き入れ、Debianにおける日本語を含めたi18n/l10nの質と量の向上を図っていこうではないか。
+
+なお、本会議の成功に伴い、来年も「Debian国際化会議」は開催される予定である。この第2回には、やはりDebianでのi18n/l10n活動を進めておられる鍋太郎(KURASAWA Nozomu)氏にバトンを渡し、人脈の形成や議論への積極的な参加をお願いする予定だ。
+
+\begin{flushright}
+  了\\
+  ---\emph{October 16th, 2006 Kenshi Muto}
+\end{flushright}
+
 
 \dancersection{rpmstrapを活用する}{岩松}
 \label{sec:iwamatsurpmstrap}
