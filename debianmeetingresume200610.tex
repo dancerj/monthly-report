@@ -66,7 +66,6 @@
 {\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
   \setlength{\fboxsep}{8pt}\fbox{\TheSbox}}
 
-
 %%% start of santaku
 \makeatletter
 \newwrite\tf@jqz
@@ -177,21 +176,730 @@ Debianをこれからどうするという能動的な展開への土台としての空間を提供し、
 \subsection{講師紹介}
 
 \begin{itemize}
+ \item{武藤さん} i18n meeting に参加してきた報告をします。
+ \item{松山さん} flash　について今日は語ります。
+ \item{岩松さん} 普段は SuperHっこなのですが、今日は RPM について説明し
+      ます。
  \item{上川純一} 宴会の幹事です。
 \end{itemize}
 
 \subsection{事前課題紹介}
 
 今回の事前課題は
-「XXX」
-というタイトルで200-800文字程度の文章を書いてください。
+「あなたの /etc/networking/interfaces をさらしてください」もしくは「Debian のネットワーク設定について思うこと」
+というタイトルで文章を書いてください。
 というものでした。
 その課題に対して下記の内容を提出いただきました。
 
-\subsubsection{}
+\subsubsection{柏木さん}
+
+
+インターネットサービスの開発の仕事をしております。
+Debianを使い始めて数年になり、すっかり手放せなくなりました。
+自作のソフトウェアはdeb化してますが、よくわかってません。
+
+これまで使ってばかりなので、いつか恩返しというか貢献したいと
+思っていましたが、Debianっていうくらいでなかなか敷居が高く、
+コミュニティに入って修行したいと思っていたところ、
+この勉強会のことを知りました。
+初めてですが参加させて頂きたく思います。よろしくお願いします。
+
+
+今回の課題ですが、
+まずは周囲のマシンの /etc/network/interfaces をいくつかさらします。
+幸か不幸か mapping とかを駆使するまでは至っていません。
+
+(1) Ethernet 4ポートある小型PCで、ブリッジとして使っています。
+
+bridge-utilsパッケージにより /etc/network/if-pre-up.d/bridge
+が作られ、ifupdownパッケージ自身に手をいれなくても
+このように新しい構文が使えるようになるというのは便利ですね。
+（そういえば、/etc/network/interfaces はてっきり
+ifupdown パッケージのconffileかと思ってましたが違うのですね）
+
+\begin{commandline}
+
+ auto lo
+ iface lo inet loopback
+
+ auto eth0
+
+ auto eth1
+
+ auto eth2
+
+ auto eth3
+
+ auto br0
+ iface br0 inet manual
+        bridge_ports all
+        bridge_stp off
+        bridge_maxwait 10
+        bridge_fd 3
+
+\end{commandline}
+
+(2) もうひとつ、IPv6ルータになっているサーバ機の例です。
+eth0 が上流、eth1-4 が内側です。NATやDHCP等を提供しています。
+
+\begin{commandline}
+ 
+ auto lo
+ iface lo inet loopback
+
+ auto eth0
+ iface eth0 inet static
+        address 210.xxx.xxx.154
+        netmask 255.255.255.240
+        broadcast 210.xxx.xxx.159
+        gateway 210.xxx.xxx.145
+
+ iface eth0 inet6 static
+        address 2001:db8:1234:5678::154
+        netmask 64
+        up route -6 add default gw fe80::10 dev eth0
+
+ auto eth1
+ iface eth1 inet static
+        address 172.20.0.1
+        netmask 255.255.255.0
+        broadcast 172.20.0.255
+ iface eth1 inet6 static
+        address 2001:db8:1234:1020::1
+        netmask 64
+
+ auto eth2
+ iface eth2 inet static
+        address 172.20.1.1
+        netmask 255.255.255.0
+        broadcast 172.20.1.255
+ iface eth2 inet6 static
+        address 2001:db8:1234:1021::1
+        netmask 64
+
+ auto eth3
+ iface eth3 inet static
+        address 172.20.2.1
+        netmask 255.255.255.0
+        broadcast 172.20.2.255
+ iface eth3 inet6 static
+        address 2001:db8:1234:1022::1
+        netmask 64
+
+ auto eth4
+ iface eth4 inet static
+        address 172.20.3.1
+        netmask 255.255.255.0
+        broadcast 172.20.3.255
+ iface eth4 inet6 static
+        address 2001:db8:1234:1023::1
+        netmask 64
+\end{commandline}
+
+
+さて、Debian のネットワーク設定について結構文句はあるので、
+いくつか愚痴らせていただきます。
+全体的にRedHat系に負けているような気がします。
+
+\begin{itemize}
+ 
+ \item   前述と矛盾するかもしれませんが、設定できるパラメータ一覧がないのは
+  わかりにくいです。/etc/network/if-*.d/ スクリプトには
+  設定可能パラメータを表示するオプションをつけることを義務化して
+  （イメージとしては init.d script の status 引数みたいなもの） 
+ 　ifup --list-options とかで全部表示できたらいいなと思います。
+
+ \item  iface ethX inet staticの中で、
+  今時、netmaskとbroadcastを両方指定しなければならないのは面倒。
+  ifconfig(8)がそうなのだから仕方ないが、
+  デフォルトで勝手に補ってくれてもよいのでは。
+
+ \item  IPv6まわりの設定方法がかなりいまいち。
+
+\begin{itemize}
+ \item  autoconf関係を制御できない。
+    inet6 staticと書いてもautoconfでアドレスが付いてしまう。
+    止めるには、/etc/sysctl.conf に 
+    net/ipv6/conf/default/autoconf=0 としなければならない。
+    ここで net/ipv6/conf/{all,eth0,...}/autoconf=0 のように書いても
+    動作しない。(/etc/init.d/procps.shでsysctlを行うタイミングがかなり
+    早く、インターフェースが作られる前だから？）
+ 　　inet6 autoconf なんてのがあるといいなあ。
+    （ちなみにRedhatでは変数で制御可能です）
+
+ \item    inet dhcp があるんだから inet6 dhcpもほしい。
+    DHCPv6で、IPv6のDNSサーバアドレスを配りたい。
+
+ \item    netmask 64 って当たり前だから省略させてほしい。
+    というかこれは用語が間違っていて、
+    netmask じゃなくて prefixlen なのですが。
+
+ \item  inet6 loopbackって意味あるのでしょうか。
+    マニュアルには書いてありますが、書かなくても勝手に ::1 が付きます。
+\end{itemize}
+
+ \item   ifupdownのエラーがわかりにくい。また、エラーがあったばあいに
+  /etc/network/run/ifstateがおかしくなり、--forceを連発することになる。
+  (そういえばifstateはなぜ /var にないのでしょう?)
+\end{itemize}
+
+長くなってしまいましたが以上です。
+
+\subsubsection{前田さん}
+
+\begin{commandline}
+ interfaces -> interfaces.static
+
+ interfaces.dhcp
+ ----------------------------
+ auto lo
+ iface lo inet loopback
+ auto eth0
+ iface eth0 inet dhcp
+
+ interfaces.static
+ ----------------------------
+ auto lo
+ iface lo inet loopback
+ auto eth0
+ iface eth0 inet static
+        address 192.168.222.xxx
+        netmask 255.255.255.0
+        network 192.168.222.0
+        gateway 192.168.222.1
+        broadcast 192.168.222.255
+
+ interfaces.union
+ ----------------------------
+ auto lo
+ iface lo inet loopback
+ auto eth0
+ iface eth0 inet static
+        address 192.168.77.xxx
+        netmask 255.255.255.0
+        network 192.168.77.0
+        gateway 192.168.77.254
+        broadcast 192.168.77.255
+\end{commandline}
+
+自宅サーバのは全て固定です。
+普段利用しているクライアント（ノートPC）は、下記のように設定ファイルをいくつか用意して、
+シンボリックリンクを張り直して使っています。
+もっとうまいやり方があればご教授ください。（とはいえ別に今でも困ってはいませんが）
+
+
+\subsubsection{須藤さん}
+
+\begin{commandline}
+# /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
+
+# The loopback interface
+auto lo
+iface lo inet loopback
+
+# The first network card - this entry was created during the Debian installation
+auto eth0
+iface eth0 inet dhcp
+    post-up wget -O /dev/null http://XXX:YYY@ZZZ.ZZZ.ZZZ.ZZZ/AAA.BBB.CCC.DDD/
+    post-up wget -O /dev/null http://XXX:YYY@ZZZ.ZZZ.ZZZ.ZZZ/AAA.BBB.CCC.DDD/
+
+auto eth1
+iface eth1 inet static
+    address 192.168.0.1
+    netmask 255.255.255.0
+    broadcast 192.168.0.255
+    network 192.168.0.0
+    pre-up /sbin/iptables -t nat -A POSTROUTING -s 192.168.0.0/24 -j MASQUERADE
+    post-down /sbin/iptables -t nat -D POSTROUTING -s 192.168.0.0/24 -j MASQUERADE
+
+#iface eth1 inet6 static
+#  address 2001:2f8:c2:201::fff3
+#  netmask 64
+#  gateway 2001:2f8:c2:201::1
+
+allow-hotplug wlan0
+iface wlan0 inet static
+    address 192.168.1.1
+    netmask 255.255.255.0
+    network 192.168.1.0
+    broadcast 192.168.1.255
+    wireless_essid ZZZ
+    wireless_mode master
+    wireless_key 0000-1111-2222-3333-4444-5555-66
+    pre-up /sbin/iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j MASQUERADE
+    pre-up /etc/init.d/dhcp stop
+    pre-up /etc/init.d/bind stop
+    post-up iwpriv wlan0 set_mac_mode 1
+    post-up /etc/init.d/dhcp start
+    post-up /etc/init.d/bind start
+    post-down /sbin/iptables -t nat -D POSTROUTING -s 192.168.1.0/24 -j MASQUERADE
+\end{commandline}
+
+\subsubsection{武藤 健志さん}
+
+
+常用のinterfacesファイルはnoauto eth0; iface eth0 inet dhcpという感じで
+たいして面白いものではない。んで、Debian(およびLinux)のネットワーク設定
+については不満だらけである。まず今のinterfaces+ifupdownのフォーマットが
+すでに考古学博物館収録に値する代物(有史以前遺産のnetbaseよりはマシだが)
+であり、CUI/GUI問わず未だにまともなセットアップツールを提供できていない。
+インストーラのセットアップのほうがまだ気合いが入ってるぞ。エディタでこう
+記述しろなんて言われて喜んでるのは設定オタだけで十分である。特に無線周り
+は、Windows辺りと比べてしまうと、そのヘタレっぷりにDebian CDを真っ二つに
+して窓から捨てたくなったとしても止めることはできないだろう。だいたい歴史
+的負の遺産な/etc/resolv.confなんてファイルも気味が悪い。こんなのはカーネ
+ル内部に持たせてやればDHCPのときにいちいち実ファイルを書き換える必要もな
+いじゃないか。追加NICだってネットワーク接続するために付けたのであろうか
+ら、いちいちエディタでinterfacesに追記する必要なく、新しいNICデバイスを
+発見した段階でとりあえずDHCPでつなぎに行っても罰は当たらなそうなもんだ。
+まぁこういったことはデスクトップ開発者には100も承知なことなわけで、GNOME
+やKDEではネットワークマネージャソフトの開発が進んでる。Debianはどうする。
+
+\subsubsection{野首さん}
+
+\begin{commandline}
+ auto lo
+ iface lo inet loopback
+ auto eth0
+ mapping eth0
+        script /usr/local/sbin/netenv
+        map vmware vmware
+        map native native
+ iface native inet static
+        address 10.0.22.147
+        netmask 255.255.252.0
+        network 10.0.20.0
+        broadcast 10.0.23.255
+        up route add -net 10.0.0.0 netmask 255.0.0.0 gw 10.0.20.1
+        up pon
+ iface vmware inet static
+        address 192.168.157.45
+        netmask 255.255.255.0
+        gateway 192.168.157.2
+\end{commandline}
+
+  netenvの中身はこんな感じです。
+
+\begin{commandline}
+ #!/bin/sh
+ lspci | grep -i vmware > /dev/null
+ if [ $? -eq 0 ]
+ then
+        echo vmware
+ else
+        echo native
+ fi
+ exit 0
+\end{commandline}
+
+  物理ディスクにインストールしたDebianを、native/vmwareのどちらでも起
+動できるようにしています。
+  ponしているのは、外部に出るためのVPNを張るためです。
+
+\subsubsection{鍋太郎さん}
+
+普段持ち歩いている Thinkpad の /etc/network/interfaces です。
+
+\begin{commandline}
+ 
+ # The loopback network interface
+ auto lo
+ iface lo inet loopback
+
+ # The primary network interface		職場の設定(有線)
+ noauto eth0
+ iface eth0 inet static
+	address 172.x.x.x		# 職場のIPアドレス
+	netmask 255.255.255.0		# 職場のネットマスク
+	network 172.x.x.0		# 職場のネットワークアドレス
+	gateway 172.x.x.x		# 職場のゲートウェイ
+ #	# dns-* options are implemented by the resolvconf package, if installed
+	dns-nameservers 172.x.x.x	# 職場のdnsサーバ
+
+ # The wireless network interface	自宅の設定(無線)
+ noauto eth1
+ iface eth1 inet dhcp
+	wireless_essid any
+
+ # 使ってないpppoeの設定
+ iface dsl-provider inet ppp
+ provider dsl-provider
+\end{commandline}
+
+
+この他に Air-EDGE を使ってるので、
+pppconfig で作った設定が /etc/ppp 以下にあります。
+
+また、見ての通り resolvconf パッケージで、
+/etc/resolv.conf を管理しようとしていますが、中途半端ですね。
+問題としては、Air-EDGE の ppp と 無線 LAN を切り替えると、
+通信に失敗するアプリケーションがあって、不便に思いながらも放置中。
+
+放置しっぱなしと言うのもアレなので、今後の予定を挙げておきます。
+
+\begin{enumerate}
+ 
+ \item まず、どのレイヤで通信ができていないのかを確認。
+  切り替え後にも通信できるプログラム (firefox等) があるので、
+  ルーティングがうまくいっていないわけではなさそう。
+  パケットキャプチャあたりで捕まえてみる必要あり。
+  おそらく、参照する DNS サーバが違っていて、名前解決に失敗してるのではないか?
+ \item ppp の on/off と ifup/ifdown で設定を切り替えなければならないが、
+  その方法の調査。
+\end{enumerate}
+
+……でも、sylpheed を立ち上げ直すだけで解消してるんで、
+優先順位が限りなく低くなってたりします……
+
+
+\subsubsection{キタハラさん}
+
+　　しれっと、下記の様に回答すると「もしかして罠にはめられている？！」
+と考えてしまうのは、少々被害妄想気味でしょうか？（実は本当に罠？）
+
+\begin{commandline}
+ k3@TPX22:~$ cat /etc/networking/interfaces
+ cat: /etc/networking/interfaces: No such file or directory
+ k3@TPX22:~$
+\end{commandline}
+
+　　Debianのメインマシンは、有線Only接続でこんな感じ。
+
+\begin{commandline}
+ k3@TPX22:~$ cat /etc/network/interfaces
+ # This file describes the network interfaces available on your system
+ # and how to activate them. For more information, see interfaces(5).
+
+ # The loopback network interface
+ auto lo
+ iface lo inet loopback
+
+ # The primary network interface
+ auto eth0
+ iface eth0 inet dhcp
+
+ k3@TPX22:~$
+\end{commandline}
+
+　　某所で設定中の colinux はこんな感じ。
+
+\begin{commandline}
+ colinux:~# cat /etc/network/interfaces
+ # Used by ifup(8) and ifdown(8). See the interfaces(5) manpage or
+ # /usr/share/doc/ifupdown/examples for more information.
+
+ auto lo eth0
+
+ iface eth0 inet static
+     address 192.168.0.2
+     gateway 192.168.0.1
+     netmask 255.255.255.0
+
+ iface lo inet loopback
+
+ colinux:~#
+\end{commandline}
+
+
+　　共に、まったく面白みが無いのですが、こんなのでよいのかな？
+
+
+\subsubsection{mhatta}
+
+
+「あなたの /etc/networking/interfaces をさらしてください」ということで、
+そもそも/etc/{\em networking}/interfacesというファイルは存在しないような気
+もしますが、私の/etc/network/interfacesは以下の通りです。
+
+\begin{commandline}
+ # This file describes the network interfaces available on your system
+ # and how to activate them. For more information, see interfaces(5).
+
+ # The loopback network interface
+ auto lo
+ iface lo inet loopback
+
+ # This is a list of hotpluggable network interfaces.
+ # They will be activated automatically by the hotplug subsystem.
+ mapping eth0
+        script grep
+        map eth0
+
+ # The primary network interface
+ allow-hotplug eth0
+
+ iface eth0 inet dhcp
+ iface eth1 inet dhcp
+\end{commandline}
+
+なんのひねりもなくてすみません。
+
+
+\subsubsection{高杉さん}
+
+
+debian のネットワーク設定に関しては、マシンの用途、接続方法などでいくつ
+か設定方法があると思います。私の知る限りでは以下の設定があります。
+
+
+\begin{enumerate}
+ \item /etc/network 以下
+	interfacesとインターフェース起動時の処理のスクリプト群
+ \item /etc/ppp 以下
+	ppp 接続時の処理のスクリプト群
+ \item dhcp 接続時
+ \item network-manager を使った設定
+\end{enumerate}
+
+これらの設定の解説や設定例があるとよいとおもいます。
+
+\begin{commandline}
+ ******* DMZ 家庭内LAN間FW *******
+ # /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
+
+ # The loopback interface
+ # automatically added when upgrading
+ auto lo
+ iface lo inet loopback
+
+ # The first network card - this entry was created during the Debian
+ installation
+ # (network, broadcast and gateway are optional)
+ # automatically added when upgrading
+ auto eth0 eth1
+ iface eth1 inet static
+	address 210.150.XXX.XXX
+	netmask 255.255.255.XXX
+	network 210.150.XXX.XXX
+	broadcast 210.150.XXX.XXX
+	gateway 210.150.XXX.XXX
+
+ #IP Masquarade
+	up iptables -t nat -A POSTROUTING -s 192.168.X.0/24 -o eth1 -j MASQUERADE
+ #For Diablo
+ #	up iptables -t nat -A PREROUTING -p tcp --dport 4000 -i eth0 -j DNAT
+ --to 192.168.X.37:4000
+ #	up iptables -t nat -A PREROUTING -p udp --dport 4000 -i eth0 -j DNAT
+ --to 192.168.X.37:4000
+ #	up iptables -t nat -A PREROUTING -p tcp --dport 6112:6119 -i eth0 -j
+ DNAT --to 192.168.X.37:6112-6119
+ #	up iptables -t nat -A PREROUTING -p udp --dport 6112:6119 -i eth0 -j
+ DNAT --to 192.168.X.37:6112-6119
+
+ #Filtering
+	up iptables -N block
+	up iptables -A block -i eth1 -j DROP -p tcp --dport 137:139
+	up iptables -A block -i eth1 -j DROP -p udp --dport 137:139
+	up iptables -A block -o eth1 -j DROP -p tcp --dport 137:139
+	up iptables -A block -o eth1 -j DROP -p udp --dport 137:139
+	up iptables -A INPUT -j block
+	up iptables -A FORWARD -j block
+ #routing
+	up route add -net 192.168.X.0 netmask 255.255.255.0 eth0
+
+ iface eth0 inet static
+	address 192.168.X.1
+	netmask 255.255.255.0
+	network 192.168.X.0
+	broadcast 192.168.X.255
+\end{commandline}
+
+\begin{commandline}
+ ********** 家庭内ファイルサーバ ********
+ 注）DHCPでIPを取得してますが、DHCPでIP取得時にBINDに名前を登録しているの
+ で、書いていないでの運用上大きな問題はない。
+ # This file describes the network interfaces available on your system
+ # and how to activate them. For more information, see interfaces(5).
+
+ # The loopback network interface
+ auto lo
+ iface lo inet loopback
+
+ # This is a list of hotpluggable network interfaces.
+ # They will be activated automatically by the hotplug subsystem.
+ mapping eth0
+	script grep
+	map eth0
+
+ # The primary network interface
+ allow-hotplug eth0
+ iface eth0 inet dhcp
+\end{commandline}
+
+\subsubsection{小林儀匡さん}
+
+「あなたの/etc/networking/interfacesをさらしてください」。
+これに対する正しい回答は「そんなファイルありません」ですよね?
+間違ってわざわざ恥ずかしい/etc/network/interfacesをさらしてしまった人はお疲れ様、
+という罠……。
+でも折角なので (?)、その罠に健気にまんまとはめられてみます。
+
+以下、某所のもの (一部編集済み) です。……まったく面白くありませんが。
+
+\begin{commandline}
+# The loopback interface
+auto lo
+iface lo inet loopback
+
+# eth1 = Realtek (outer side)
+auto eth1
+iface eth1 inet static
+  address xxx.xxx.xxx.xxx
+  netmask 255.255.254.0
+  gateway xxx.xxx.xxx.xxx
+
+# eth0 = Intel PRO/100 VE (inner side)
+auto eth0
+iface eth0 inet static
+  address 192.168.1.xxx
+  netmask 255.255.255.0
+\end{commandline}
+
+これだけでは面白くないし折角なので、
+「Debianのネットワーク設定について思うこと」についても簡潔に回答してみます。
+
+「\textbf{ダサい}」。以上。
+
+DebianというかLinux全般の問題だと思いますが、
+新しいデバイスが次々とカーネルでサポートされ、
+新しいソフトウェアがどんどん開発され、
+デスクトップも (まだまだという評価も否めませんが) 見違えるようにカッコよく使いやすくなっている一方で、
+なんだかダサいところは誰も (興味がないのか) 手をつけずダサいままになっているような気がします。
+別に設定ファイル全般が悪だとは思いませんが、
+設定まわりのインタフェースはもう少し改良できるのではないでしょうか。
+まぁ、だったらお前やれと言われても今の自分にはできないので、
+いつかその辺りが改善されるといいですね、と無難にまとめて回答とします。
+
+\subsubsection{やまねさん}
+
+vi で \texttt{/etc/network/interfaces} をいじるのもいいのですが、対話的インターフェイスが欲しい今日この頃です。base-config には設定がなかったっぽい。どこでやるんだっけ？やっぱりない？
+あとは
+\begin{itemize}
+ \item  無線の設定がもっと簡単にならないかなーとか
+ \item  一旦スリープ後、復帰したときにさくっとDHCPでIP取ってくれないかなーとか思います。
+\end{itemize}
+
+あとは VPN なども統一して管理などできればいいんですが。色々と弄れるのはいいんだけど、簡単にある程度まで設定というのは難しいもんだなぁ、と。Windows だと AccessConnections\footnote{\url{http://www-06.ibm.com/jp/pc/think/thinkvantagetech/accessconnections.shtml}} などを使ってるんですが、同様に扱えればいいですよね。
+
+\subsubsection{中野さん}
+
+　/etc/network/interfaces は下記の通りです。　普通の
+ゲートウェイですね。
+
+　ネットワーク周りで昔嵌まったことですが、普段は dhcp で
+アドレスを取っているノート PC を、スイッチ周りのデバッグ
+に用いたときのこと。
+
+　NIC のアドレスを sudo ifconfig で直接書換えたりしたかった
+のですが、どうも ifup/down と変は風に絡んで動いたり動かなく
+なったりで悩んだ結果、結局 interfaces を書換えて ifup / ifdown
+という面倒な手順を踏むことになった記憶があります。
+
+　ifup が単に ifconfig (とか route とか) のラッパではなく、
+なんか妙なことをしているのかなあ、と思いつつ深追いせずに
+放置して現在に至るのですが、このへんちゃんと理解したい、
+という気がしないでもありません。
+
+
+\begin{commandline}
+ # The loopback interface
+ auto lo
+ iface lo inet loopback
+
+ # The first network card - this entry was created during the Debian installation
+ # (network, broadcast and gateway are optional)
+ auto eth1
+ iface eth1 inet static
+        address 133.220.xxx.yyy
+        netmask 255.255.255.0
+        network 133.220.125.0
+        broadcast 133.220.xxx.255
+        gateway 133.220.xxx.zzz
+
+ auto eth0
+ iface eth0 inet static
+        address 192.168.0.1
+        netmask 255.255.255.0
+        network 192.168.0.0
+        broadcast 192.168.0.255
+\end{commandline}
+
+\subsubsection{ysjjさん}
+
+
+\begin{commandline}
+ $ cat /etc/network/interfaces
+ # /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
+ auto lo eth0 eth0:1
+
+ # The loopback interface
+ iface lo inet loopback
+
+ iface eth0 inet dhcp
+ iface eth0:1 inet static
+    address 192.168.1.2
+    netmask 255.255.255.0
+ iface eth0:2 inet static
+    address 192.168.2.2
+    netmask 255.255.255.0
+\end{commandline}
+
+
+\subsubsection{えとーさん}
+
+IP等は変更しました。
+madwifiのバグでレジュームからの復帰やインターフェースを落すと
+反応しなくなるのでどうにもちゃんと設定詰められていない。
+
+wpasupplicantは wpa2 で AES にして AP の制限の最大値の値をキーにしています。
+BSSIDも使ってるかな、、
+
+\begin{commandline}
+ # This file describes the network interfaces available on your system
+ # and how to activate them. For more information, see interfaces(5).
+
+ # This entry denotes the loopback (127.0.0.1) interface.
+ auto lo
+ iface lo inet loopback
+
+ # This entry was created during the Debian installation
+ # (network, broadcast and gateway are optional)
+ #auto eth0
+ #iface eth0 inet dhcp
+ iface eth0 inet static
+        address 192.168.XXX.XXX
+        netmask 255.255.255.0
+        network 192.168.XXX.XXX
+        broadcast 192.168.XXX.255
+        gateway 192.168.XXX.XXX
+
+ allow-hotplug ath0
+ iface ath0 inet manual
+        wpa-driver madwifi
+        wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+
+ # no id_str, 'default' is used as the fallback mapping target
+ iface default inet dhcp
+
+ iface room inet static
+   address 192.168.XXX.XXX
+        netmask 255.255.255.0
+        network 192.168.XXX.0
+        broadcast 192.168.XXX.255
+        gateway 192.168.XXX.XXX
+
+ iface dsl-provider inet ppp
+     provider dsl-provider
+ # please do not modify the following line
+     pre-up /sbin/ifconfig eth0 up # line maintained by pppoeconf
+
+\end{commandline}
 
 \subsubsection{上川}
 
+
+/etc/network/interfacesであり、/etc/networking/interfacesではありません
+でしたね。無駄にハードルあげちゃいました。
 
 %%% trivia quiz
 \dancersection{Debian Weekly News trivia quiz}{上川純一}
@@ -200,43 +908,53 @@ Debianをこれからどうするという能動的な展開への土台としての空間を提供し、
 Debian 界隈でおきていることについて書いているDebian Weekly News.
 毎回読んでいるといろいろと分かって来ますが、一人で読んでいても、解説が少
 ないので、
-意味がわからないところもあるかも知れません。みんなでDWNを読んでみましょう。
+意味がわからないところもあるかも知れません。みんなでDWNを読んでみましょ
+う。
 
-漫然と読むだけではおもしろくないので、DWNの記事から出題した以下の質問にこたえてみてください。
-後で内容は解説します。
 
-\subsection{2006年XX号}
-\url{http://www.debian.org/News/weekly/2006/XX/}
-にある5月XX日版です。
-
-\santaku
-{}
-{}
-{}
-{}
-{}
-
+\subsection{2006年38号}
+\url{http://www.debian.org/News/weekly/2006/38/}
+にある9月19日版です。
 
 \santaku
-{}
-{}
-{}
-{}
-{}
+{Josselin Mouette が GNOME 2.16 について説明したのは}
+{stable へのバックポート}
+{experimental への投入}
+{unstable への投入}
+{B}
 
 \santaku
-{}
-{}
-{}
-{}
-{}
+{Russel Coker が議論する際の道具として提案したのは？}
+{意味の無い議論をベイジアンフィルタではじく}
+{killfile の積極的な活用}
+{議論のサマリをまとめるためのwikiの利用}
+{C}
 
 \santaku
-{}
-{}
-{}
-{}
-{}
+{最近 Debian にはいったパッケージである「ttf-vlgothic」のvlはどういう意味か？}
+{ディストリビューションの名前}
+{私の名前はやまねです。}
+{very local }
+{A}
+
+
+\subsection{2006年39号}
+\url{http://www.debian.org/News/weekly/2006/39/}
+にある9月26日版です。
+
+\santaku
+{プロジェクトリーダーを罷免する決議が出たのはなぜか？}
+{Dunk-Tank プロジェクトを発足したから}
+{やるきがまったくみられないから}
+{タイの政変の影響}
+{A}
+
+\santaku
+{一般決議に関しての規則がかわったのはなぜか}
+{現在多数提起されているから}
+{くだらないものが提起されすぎだから}
+{Dunk-Tank が気に入らないから}
+{A}
 
 \dancersection{最近のDebian関連のミーティング報告}{上川純一}
 
@@ -1032,7 +1750,7 @@ rc-update add xinetd default && rc-update add sshd default && rc-update
 rc-update add acpid default
 \end{commandline}
 
-\subsection{参考文献}
+\subsection*{参考文献}
 
 \begin{itemize}
  \item Gentoo wiki \url{http://gentoo-wiki.com/HOWTO_Install_Gentoo_-_The_Gentoo_Developers_Method_with_NPTL_and_2.6_from_Stage1}
@@ -1043,7 +1761,7 @@ rc-update add acpid default
 前回までで、oprofile を利用して aptのプロファイリングをしてみました。そ
 れでは、実際にどういう考え方で高速化を検討するか、を考えてみましょう。
 
-\subsection{最適化の必要な部分の解析}
+\subsection*{最適化の必要な部分の解析}
 
 プロファイル結果を利用して、解析します。
 
@@ -1070,7 +1788,7 @@ SHA1Transform(unsigned int*, unsigned char const*)
  MD5Summation::Add(unsigned char const*, unsigned long) 
 \end{commandline}
 
-\subsection{最適化方法の検討}
+\subsection*{最適化方法の検討}
 
 プロファイル結果解析ををうけて適用できる最適化方法を検討します。
 
