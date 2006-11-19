@@ -1086,7 +1086,7 @@ Debian BTS は、ウェブとメールフロントエンドをもつバグトラッキングシステ
 かできないという点と、情報が全て完全に公開されるという点があります。
 また、バグレポートをパッケージ単位で分類しているという点も特徴です。
 
-\subsection{つかわれかた}
+\subsection{使われ方}
 
 深刻なバグ（RC バグ）を登録すると、そのパッケージのバージョンはリリース
 できない、という意味になります。各ユーザはapt-listbugs を経由してそのよ
@@ -1096,17 +1096,71 @@ Debian BTS は、ウェブとメールフロントエンドをもつバグトラッキングシステ
 
 \subsection{アーキテクチャ}
 
-バックエンドデータベースはテキストファイルが大量にある形式です。
+バックエンドデータベースはプレーンのテキストファイルです。ファイル構造は
+下記のようになっています。
 
-SOAP のフロントエンドがありますが、ドキュメントは一行もありません。
+\begin{itemize}
+ \item /org/bugs.debian.org/spool
+       \begin{itemize}
+	\item incoming/
+	\item db-h/
+	      \begin{itemize}
+	       \item 00/
+		     \begin{itemize}
+		      \item ..
+		      \item 314200.log
+		      \item 314200.report
+		      \item 314200.status
+		      \item 314200.summary
+		     \end{itemize}
+	       \item ..
+	       \item 99/
+	      \end{itemize}
+	\item archive/
+	      \begin{itemize}
+	       \item 00/
+	       \item ..
+	       \item 99/
+	      \end{itemize}
+	\item index.db -- index.db.realtimeへのシンボリックリンク
+	\item index.archive -- index.archive.realtimeへのシンボリックリ
+	      ンク
+	\item nextnumber
+       \end{itemize}
+\end{itemize}
+
+メールを受信したら、そのメールが incoming 以下にスプールされます。
+そのメールを15分に一回 cron から起動されるスクリプトが処理します。
+
+
+ウェブ経由でバグ報告を確認するためのcgi があります。その cgi 経由では 
+BTS は内容の閲覧だけができ、変更はしません。
+
+また、スクリプトなどから利用するために、SOAP のフロントエンドがあります。
+ドキュメントは一行もありません。
+
+現状 \url{http://bugs.donarmstrong.com/cgi-bin/soap.cgi} でステージング
+されています。今後は \url{http://bugs.debian.org} に移行したいようです。
+ネームスペースは\url{Debbugs/SOAP/Status}で、そこで\verb!get_status!とい
+う関数が定義されています。\verb!get_status!は複数の数字パラメータをうけ、
+そのあたえられた数字に対応するバグレポートの情報をかえします。
+\verb!get_status!は、バグ報告の本文ではなく、メタデータを返します。
+
 
 \subsection{文化}
 
-たまにBSP などのまつりがあります。
+たまに BSP などの祭があります。バグトラッキングシステムに登録されている
+バグで最初に対応されないものについては、そのまま放置され時間だけが過ぎて
+しまう傾向があります。それらに対して新たな気持ちで対応しようというもので
+す。
 
 \subsection{参考文献}
 
-あとで書きます。
+\begin{itemize}
+ \item Debian勉強会 2005年10月資料 「debbugs internal」
+ \item Debian勉強会 2005年10月資料 「apt-listbugs の生い立ちと実装」
+ \item \url{/usr/share/doc/debian/bug-maint-mailcontrol.txt}など
+\end{itemize}
 
 \dancersection{次回}{}
 
