@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # http://home.gna.org/pychart/doc/index.html
+# apt-get install python-pychart
 
 from pychart import *
 
