@@ -382,14 +382,16 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 たものです。
 それらをサポートするシステムがあり、パッケージ管理システムといいます。
 
-例えば、あるフリーソフトウェアを入手し、使おうとした場合、 \\
+例えば、あるフリーソフトウェアを入手し、使おうとした場合、 
+
 \begin{commandline}
 % ./autogen.sh
 % ./configure
 % make 
-% make install
+# make install
 \end{commandline}  
-\\
+
+
 として、ライブラリ等をチェック、コンパイル、インストールという作業を行う必要が
 あります。
 これらの過程でライブラリのチェックで新たにライブラリが必要だったり、コンパイル
@@ -417,41 +419,6 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 
 %このパッケージングされたものを使用することにより楽をしようということなのです。
 
-%#  パッケージを取り寄せる
-%# パッケージをビルド／バイナリ配布／ソース配布する
-%# パッケージを検証する
-%# パッケージの依存関係を解決す
-%# メンテナンスの自動化を行う
-%# パッケージの中身をカスタマイズする
-
-%パッケージング、ぱっけーじしすてむの違いとかを考慮
-%
-%以下の情報がプログラムと一緒にデータとして格納されています。
-%
-%\begin{itemize}
-%	\item パッケージ情報
-%		パッケージ管理者や、ライセンス、ダウンロード先などの情報。
-%		修正した内容を記録した changelog .
-%	\item 設定ファイル
-%		プログラムを動作させるために必要な設定ファイル。
-%		
-%	\item ドキュメント
-%		プログラムの使い方やCopyrightのファイルなど。
-%		
-%	\item ファイル位置情報
-%		インストールを行う時にどのファイルをどの位置にコピーするのか、
-%		アンインストールを行うときに削除すべきファイル位置の情報。
-%		
-%	\item 依存関係
-%		プログラムを動作させるために必要なライブラリやアプリケーションの情報。
-%		
-%	\item コンパイル方法
-%		プログラムをコンパイルするための情報。
-%		
-%\end{itemize}
-%
-%パッケージングをする際にはパッケージング専用のツールを使います。
-%GNU/Linux の場合、様々なパッケージング専用ツールがあり、ディストリビューションによって採用しているツールが異なります。
 
 \subsection{Debian でのパッケージ管理/Debian パッケージについて}
 
@@ -515,8 +482,6 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 	大変になってきためです。そこで開発されたのが、パッケージをまとめて管理する apt です。
 	dpkg 用のフロントエンドになっており、中では dpkg が呼ばれています。
 	
-	適当な図を入れる。
-	
 	APTの役目として
 	\begin{itemize}
 		\item パッケージの管理
@@ -575,7 +540,7 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 \subsubsection{dpatch}
 
 	Debianのソースパッチを管理するツールです。
-	Debuan パッケージの差分は *.diff.gz という差分ファイルとして管理されるため， どの部分がどういうパッチであるか
+	Debian パッケージの差分は *.diff.gz という差分ファイルとして管理されるため， どの部分がどういうパッチであるか
 	ということを管理していません。 その部分を実装するのが dpatch です。
 
 %\subsubsection{pbuilder}
@@ -586,7 +551,7 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 \subsection{実際にパッケージを作成してみる}
 
 	Debian 用のパッケージを作成する方法を簡単に説明します。	
-	対象となるソフトウェアは cairo-dock\footnote{http://www.gnome-dock.org/trac} 
+	今回のパッケージ化の説明で使用するソフトウェアは cairo-dock\footnote{http://www.gnome-dock.org/trac} 
 	というMac OS X Dock風のDockアプリケーションです。
 	
 	\begin{center}
@@ -654,6 +619,7 @@ chat.svg       email.svg        logout.svg         start-cairo-dock.sh  tango-co
 		
 				cdbs ( Common Debian Build System ) を使ったパッケージを作成する。
 		\end{itemize}
+		
 
 		実行すると、debian ディレクトリが作成されます。
 		--createorig を指定しない場合はオリジナル用のディレクトリ( 今回の場合は cairo-dock-0.0.1b.orig )が作成されません。
@@ -678,6 +644,7 @@ check that the cairo-dock Makefiles install into $DESTDIR and not in / .
 	\end{commandline}
 	
 	\item debianディレクトリ内を編集します。
+
 		dh\_make を行ったあとの debian ディレクトリは以下のようになっています。
 		これらはテンプレートファイルなので、パッケージによって必要のないものも含まれています。
 		\begin{itemize}
@@ -741,40 +708,74 @@ check that the cairo-dock Makefiles install into $DESTDIR and not in / .
 		
 	\item *.ex および *.EX ファイルを削除します。
 
-	\item control ファイルの変更
+		今回のソフトウェアのパッケージ化には *.ex や *.EX は必要ないので、削除します。
+ 
+	\item control ファイルの編集
 
+		control ファイルを編集します。
 	\begin{itemize}
 		\item Source	
 
-			ソースパッケージ名
+			ソースパッケージ名を記述します。
+			今回は ソースの名前から cairo-dock とします。
+
+			詳細は Debian-Policy の {\bf 5.6.1 Source} を参照してください。
 		\item Section
 
-			パッケージの種類
+			パッケージの種類を指定します。
+			cairo-dock は x11 用のソフトウェアなので、x11 とします。
+
+			詳細は Debian-Policy の {\bf 2.4 Sections} を参照してください。
 		\item Priority
 	
-			パッケージの優先度
+			パッケージの優先度を指定します。
+			今回のパッケージは特に重要でもないので、optional を指定します。
+
+			詳細は Debian-Policy の {\bf 2.5 Priorities} を参照してください。
+
 		\item Maintainer
 
-			パッケージメンテナ名とメールアドレス
+			パッケージメンテナ名とメールアドレスを指定します。
+			私がメンテナンスしますので、私の名前（ローマ字）と連絡用のメールアドレスを
+			記述します。
+
+			詳細は Debian-Policy の {\bf 5.6.2 Maintainer} を参照してください。
+			
 		\item Build-Depends
 			
-			パッケージのコンパイルするため依存するパッケージ
+			パッケージのコンパイルするため依存するパッケージを指定します。
+			依存しているパッケージを調べるためには {\bf configure -h} で指定可能なオプションから調べたり、
+			ヘッダファイルやコンパイルエラーメッセージなどから調べるといいでしょう。
+
+			詳細は Debian-Policy の {\bf 7.6 Relationships between source and binary packages} を参照してください。
 		\item Standards-Version
 
-			Debian Policy バージョン
+			Debian Policy バージョンを指定します。
+
+			詳細は Debian-Policy の {\bf 5.6.11 Standards-Version} を参照してください。
 		\item Package
 
-			バイナリパッケージ名
+			バイナリパッケージ名を指定します。今回は cairo-dock となります。
+
+			詳細は Debian-Policy の {\bf 5.6.7 Package} を参照してください。
 		\item Architecture
 
-			アーキテクチャ依存(any/各アーキテクチャ)、非依存の指定(all)、
+			アーキテクチャ依存(any/各アーキテクチャ)、非依存の指定(all)を行います。
+
+			詳細は Debian-Policy の {\bf 5.6.8 Architecture} を参照してください。
+
 		\item Depends,Recommends,Suggests,Conflicts,Provides,Replaces
 
-			パッケージの依存関係の指定\\
-			コンパイルオプションなどから調査します
+			パッケージの依存関係を記述します。
+			
+			詳細は Debian-Policy の {\bf .6.10 Package interrelationship fields} を参照してください。
 		\item Description
-			パッケージの簡単な説明と詳細な説明
+			パッケージの簡単な説明と詳細な説明を記述します。
+
+			詳細は Debian-Policy の {\bf 5.6.13 Description} を参照してください。
 	\end{itemize}
+
+		以下が今回のパッケージの control ファイルです。
 
 		\begin{commandline}
 Source: cairo-dock
@@ -795,9 +796,16 @@ Description: Dock application like dock of MacOS X
 		\\
 	\item copyright の変更
 
-		Upstreamのコピーライト、パッケージのコピーライト、Upstreamのソース取得先
+		Upstreamのコピーライト、ソフトウェアのライセンス、パッケージのコピーライト、Upstreamのソース取得先
 		を記述します。\\
+		Upsteam のコピーライトはソースに含まれている（場合がある） COPYING 
+		ファイルやWeb サイトを参照にするといいでしょう。
+		ソフトウェアのライセンスに関しては、ソースに含まれている(場合がある）COPYING ファイルや LICENCE ファイル
+		を参照するといいでしょう。たまにソフトウェアのライセンスが書いていない場合があります。このときは開発者に
+		連絡を取り、ライセンスを確認する必要があります。
 
+		Debian-Policy の {\bf 12.5 Copyright information} を参照してください。
+		
 		\begin{commandline}
 Package Maintainers:
 Nobuhiro Iwamatsu <hemamu@t-base.ne.jp> from Thu,  9 Nov 2006 00:19:36 +0900.
@@ -1029,6 +1037,7 @@ Successfully signed dsc and changes files
 	にかかってくるように思います。
 	
 	作って分からないことがあれば debian-devel@jp\footnote{debian-devel@debian.or.jp}等で聞くといいでしょう。	
+	
 
 \dancersection{sid を日常環境として使うための注意}{上川}
 \label{sec:YYY}
