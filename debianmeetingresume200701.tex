@@ -356,11 +356,81 @@ apt-get install kvm でパッケージをインストールします。
 互換、むしろ qemu そのものを利用しているので、qemu と同じように動かすこ
 とができます。
 
+\subsection{実行例}
+
+kvm を活用していろいろと試してみましょう。qemu 用のディスクイメージを作
+成し、適当なディストリビューションのディスクイメージを利用して、インストー
+ルします。おそらく、-monitorコマンドで stdio をモニタにするほうが便利で
+しょう。
+
+\begin{commandline}
+$ qemu-img create -f qcow hda 10G
+$ sudo chown dancer:dancer /dev/kvm
+$ kvm -hda hda -cdrom /home/iso/RHEL4-U4-i386-AS-disc1.iso
+   -boot d -m 512 -monitor stdio
+(qemu) change cdrom /home/iso/RHEL4-U4-i386-AS-disc2.iso
+(qemu) change cdrom /home/iso/RHEL4-U4-i386-AS-disc3.iso
+(qemu) change cdrom /home/iso/RHEL4-U4-i386-AS-disc4.iso
+(qemu) change cdrom /home/iso/RHEL4-U4-i386-AS-disc5.iso
+(qemu) change cdrom /home/iso/RHEL4-U4-i386-AS-disc1.iso
+(qemu) eject cdrom
+\end{commandline}
+
+ここでは某CDROMが5枚あるディストリビューションを例にとっていますが、
+CDROMが5枚あっても、qemu モニターにてCDROMを入れ換えながらGUI操作を行う
+ことで無事にインストール完了します。リブートするところでゲストOSがカーネ
+ルパニックを起こしますが、そこは適当に kvm 自体を起動しなおせば問題あり
+ません。
+
+\begin{commandline}
+$ kvm -hda hda  -boot c -m 512 -monitor stdio -localtime 
+ -redir tcp:2222::22
+
+
+
+\end{commandline}
+
 \subsection{ベンチマークしてみた}
 
 qemu を使った場合と kvm を使った場合の速度比較をしてみました。まず、ユー
 ザ空間で完結する例として単純に while でループを回すだけのプログラムです。
 qemu の場合は 6s かかったものが、 kvm の場合は 0.6s で完了しました。
+
+\subsection{パフォーマンスの見えかた}
+
+kvm を実行しているホストOSからどのように見えるのか確認してみましょう。
+kvm の仕組だと、システムコールを実行して処理を行うことになるのでしょう。
+
+\texttt{mpstat -P ALL 1} の出力を一部みてみると、一つのCPUの システム時
+間がとられているように見えます。
+
+\begin{commandline}
+00時28分51秒  CPU   %user   %nice    %sys %iowait    %irq   %soft  %steal   %idle    intr/s
+00時28分52秒  all    0.00    0.00   50.00    0.50    0.00    0.50    0.00   49.00   1421.78
+00時28分52秒    0    0.00    0.00   92.08    0.00    0.00    0.99    0.00    6.93    430.69
+00時28分52秒    1    0.00    0.00    6.93    0.99    0.00    0.00    0.00   91.09    991.09
+\end{commandline}
+
+\texttt{top}コマンドで見た場合には、kvmは通常のプロセスと同様にCPU時間を
+消費し、メモリを消費しているように見えます。
+
+\begin{commandline}
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND
+ 3746 dancer    25   0  308m 252m 246m R   82 25.7 100:36.60 kvm
+ 2512 root      10  -5     0    0    0 S    0  0.0   0:11.32 kjournald
+ 2806 root      15   0  2556  932  804 S    0  0.1   1:09.36 syslogd
+\end{commandline}
+
+\texttt{iostat 1 /dev/dm-1 }の出力を確認してみます。
+ゲストOSのディスクIOによってホストOSのディスクIOが発生しているのが見れます。
+
+\begin{commandline}
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.00    0.00   42.50   42.00    0.00   15.50
+
+Device:            tps   Blk_read/s   Blk_wrtn/s   Blk_read   Blk_wrtn
+dm-1            805.94       102.97      6400.00        104       6464
+\end{commandline}
 
 \subsection{他との比較}
 
