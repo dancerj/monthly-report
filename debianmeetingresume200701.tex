@@ -358,10 +358,6 @@ Debianが今提供している付加価値は「\underline{\hspace{8cm}}」です。
 \dancersection{Quilt}{小林さん}
 \label{sec:quilt}
 
-\dancersection{apt-torrent}{岩松さん}
-\label{sec:apt-torrent}
-
-
 \dancersection{仮想マシンモニタKVM}{上川純一}
 \label{sec:kvm}
 
@@ -471,6 +467,173 @@ Xen, qemu, qemu+kqemu, openvz, vserver, user-mode-linux などと機能を比較
 してみましょう。と思ったらすでにやられていたので、このURLを参照してくだ
 さい。\url{http://virt.kernelnewbies.org/TechComparison}
 
+\dancersection{apt-torrent}{岩松 信洋}
+\label{sec:apt-torrnet}
+
+Debian パッケージのレポジトリを bittorrent ネットワーク上置き、それを apt で取得するというものが apt-torrent です。
+
+まだ Debian としては頒布されておらず、フランス人の方が一人でシコシコやっているようです。\url{http://sianka.free.fr/} で開発が行われています。
+
+\subsection{bittorrent とは}
+bittorrent とは、P2P を用いたファイル転送用プロトコルとその通信を行うソフトウェアの事を指します。
+特徴としては、P2P でファイルの一部をお互いに送受信しあうというプロトコルになっているところです。
+
+通常の P2P ソフトウェアではファイルを提供元に集まるようになっているが、このプロトコルを使うこと
+により、ネットワーク帯域のないピアもファイルの配布に協力できるようになっています。
+
+このプロトコル上で Debian パッケージを頒布し、aptで取得するようにしたものがapt-torrentです。
+
+\subsection{使い方}
+
+\subsubsection{ダウンロード}
+先にも書いたように Debian としては頒布されていません。
+
+以下のサイトからダウンロードし、使用します。
+
+\url{http://sianka.free.fr/download/apt-torrent_0.5.0-1_all.deb}
+
+apt-line も提供されており、以下のapt-line を使用可能です。
+\begin{itemize}
+	\item \url{deb http://sianka.free.fr/apt-torrent testing main}
+	\item \url{deb-src http://sianka.free.fr/apt-torrent testing main}
+	\item \url{deb http://sianka.free.fr/apt-torrent unstable main}
+	\item \url{deb-src http://sianka.free.fr/apt-torrent unstable main}
+\end{itemize}
+
+\subsubsection{設定}
+パッケージをインストールすると、自動的に /etc/apt/sources.list に追記されます。
+
+以下が追加された apt-torrent 用の apt-line です。
+
+\begin{commandline}
+### BEGIN APT-TORRENT SOURCE LIST
+# Do not edit or remove the markers, they are used by the apt-torrent package
+
+# Uncomment one of the following:
+# deb http://127.0.0.1:6968/debian/ unstable main
+# deb http://127.0.0.1:6968/debian/ testing main
+
+### END APT-TORRENT SOURCE LIST
+\end{commandline}
+
+自分の環境に合わせて apt-line のコメントを外します。
+
+\subsubsection{apt-get update してみる}
+apt-torrent 用の apt-line だけ有効にし、apt-get update を実行してみます。
+
+\begin{commandline}
+iwamatsu@chimagu:~$ LANG=C sudo apt-get update
+Get:1 http://127.0.0.1 unstable Release.gpg [189B]
+Get:2 http://127.0.0.1 unstable Release [776B]
+Ign http://127.0.0.1 unstable/main Packages/DiffIndex
+Get:3 http://127.0.0.1 unstable/main Packages [27.9kB]
+Fetched 28.9kB in 3s (8118B/s)
+Reading package lists... Done
+\end{commandline} 
+
+\subsubsection{ 何かパッケージをインストールしてみる }
+いつも使っているapt-get / aptutide / dselect で torrent ネットワークから Debian Package を取得することが可能です。
+
+しかし、実はどのようなパッケージが torrent 上にあるのか分りません。
+ドキュメントを読む限り先の URI のサイトで公開されている apt 用のレポジトリ \url{deb http://sianka.free.fr/debian unstable main} にあるものが公開されているようです。
+
+apt のフロントエンドである aptitude を使い、インストールしたときの例を以下に示します。
+
+\begin{commandline}
+# aptitude install frozen-bubble
+Reading Package Lists... Done
+Building Dependency Tree
+Reading extended state information
+Initializing package states... Done
+Reading task descriptions... Done
+The following NEW packages will be automatically installed:
+ fb-music-high frozen-bubble-data
+The following packages have been kept back:
+ galeon galeon-common
+The following NEW packages will be installed:
+ fb-music-high frozen-bubble frozen-bubble-data
+0 packages upgraded, 3 newly installed, 0 to remove and 2 not upgraded.
+Need to get 12.1MB/12.2MB of archives. After unpacking 17.3MB will be used.
+Do you want to continue? [Y/n/?]
+Writing extended state information... Done
+Get:1 http://127.0.0.1 unstable/main fb-music-high 0.1.1 [6950kB]
+Get:2 http://127.0.0.1 unstable/main frozen-bubble-data 1.0.0-6 [5155kB]
+Fetched 12.1MB in 24s (488kB/s)
+Selecting previously deselected package fb-music-high.
+(Reading database ... 208931 files and directories currently installed.)
+Unpacking fb-music-high (from .../fb-music-high_0.1.1_all.deb) ...
+Selecting previously deselected package frozen-bubble-data.
+Unpacking frozen-bubble-data (from .../frozen-bubble-data_1.0.0-6_all.deb) ...
+Selecting previously deselected package frozen-bubble.
+Unpacking frozen-bubble (from .../frozen-bubble_1.0.0-6_i386.deb) ...
+Setting up fb-music-high (0.1.1) ...
+Setting up frozen-bubble-data (1.0.0-6) ...
+Setting up frozen-bubble (1.0.0-6) ...
+
+Reading Package Lists... Done
+Building Dependency Tree
+Reading extended state information
+Initializing package states... Done
+Reading task descriptions... Done
+\end{commandline}
+
+2007/01/18 現在では正常にパッケージが取得できません。\footnote{作者に連絡取り中}
+
+\subsection{仕組み}
+
+apt-torrent は torrent ネットワーク用のデーモンと、パッケージを取得するデーモンの二種類があります。
+プロセスを見ると、apt-torrent のプロセスがあることがわかります\footnote{btlaunchmany は複数の seed 管理用デーモン}。
+
+\begin{commandline}
+23404 ?        Ssl    0:00 /usr/bin/pike7.6 /usr/bin/apt-torrent
+23411 ?        S      0:00 /usr/bin/pike7.6 /usr/bin/apt-torrent-httpd
+23412 ?        S      0:00 /usr/bin/python /usr/bin/btlaunchmany /var/cache/apt-torrent --max_upload_rate -1 --parse_dir_interval 7
+23644 pts/0    R+     0:00 ps ax
+\end{commandline}
+
+apt-torrnet は ファイルを取得するデーモン、apt-torrent-httpd はデータを管理する httpd server です。
+これら2つのデーモンが通信を行い、 bittorrent網から Debian Package を取得します。
+
+\includegraphics[width=15cm]{image200701/apt-torrent00.png}
+
+簡単な流れは以下のようになります。
+\begin{enumerate}
+	\item クライアントで apt-get update を行います。
+
+		行うと、apt-torrent-proxyを介して、通信を行います。
+
+	\item apt-torrent-proxy を介して apt-torrent 用の http server と通信します。
+
+		通信を行い、/etc/apt/sources.list に指定してある apt-line のサーバーから情報を取得を試みます。
+	\item bittorrent 網 にアクセスします。
+	
+	\item apt-torrent server から一覧を取得します。
+
+		apt-torrent は seeder\footnote{対象ファイルのデータを全て持っているピア} と 
+		tracker\footnote{bittorrentファイルを管理するサーバー}を行っている apt-torrent にアクセスします。
+	
+	\item apt-get install xxxxxxxx を行います
+		apt-torrent-proxy を介して、seeder からデータの取得を試みます。
+		取得したデータは Debian Package なので aptが後は勝手に処理をします。
+ 	
+\end{enumerate}
+
+apt-torrent 用 http server を介して bittorrent 網にアクセスしているので、httpで公開されている apt-line から
+パッケージを取得しているのと変わらない動きをします。
+
+\subsection{apt との比較}
+	今では、apt-get 時に http / ftpサーバーに負荷が集中していますが、apt-torrent を使用することによって
+	ひとつのパッケージを ピア同士で共有することが可能になります。apt-torrnet は http / ftpサーバーに
+	負荷がかからなくなるひとつの方法になるのではないかと個人的に考えています。
+	変化が激しい unstable / testing は無理としても、stable のパッケージを apt-torrnet で頒布するのはいい方法
+	だと思います。今後、開発者と連絡を取り合い、自宅でも apt-torrent serverを立てて、実験してみようと模索し
+	ているところです。
+	
+\subsection{その他}
+ 同じような機能を持った Winny のプロトコルを使い、apt-winnyを実装してみると面白いと思いました。
+ 2ch で winny の Linux版である Linny を開発しているようなので（コードはまだない。）期待したいと思います。
+
+\dancersection{次回}{}
 
 \dancersection{コミックマーケット報告}{岩松さん}
 \label{sec:comikeXX}
