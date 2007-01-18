@@ -355,8 +355,1229 @@ Debianが今提供している付加価値は「\underline{\hspace{8cm}}」です。
 
 }
 
-\dancersection{Quilt}{小林さん}
-\label{sec:quilt}
+\dancersection{パッチ管理ツールquiltの使い方}{小林さん}
+%\label{sec:quilt}
+
+本節ではパッチ管理ツールquilt\footnote{\url{http://savannah.nongnu.org/projects/quilt}}を取り上げ、
+その基本操作を中心に説明します。
+quiltはDebianに特有な (つまりDebian-specificな) ソフトウェアではなく、
+Debianとは全く関係のない場所で開発されています。
+しかし、このツールがDebianパッケージの作成に有用であることを理解し、
+実際に作成に使用してもらえたら嬉しい限りです。
+
+\subsection{はじめに}
+
+\subsubsection{パッチとは}
+
+開発者であれば当然のように作成したり読んだり当てたりしたことがある\textbf{パッチ}ですが、
+一般ユーザには見慣れないものだと思います。
+そこで、最初にパッチについて説明しておきます。
+
+パッチとは、2つのファイルの差分を含むファイルのことです。
+次のような2つのファイルがあるとしましょう。
+
+\begin{commandline}
+nori1[3:57]%  cat file1.txt                                        saba:~/tmp/q
+あいうえお
+かきくけこ
+さしすせそ
+たちつてと
+なにぬねの
+はひふへほ
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+nori1[3:58]%  cat file2.txt                                        saba:~/tmp/q
+あいうえお
+ばびぶべぼ
+たちつてと
+なにぬねの
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+\end{commandline}
+
+これらのファイルのどこが違っているかすぐにわかりますか?
+一々目で比べる必要はありません。
+\texttt{diff}コマンドでこれらの差分をとることができます。
+
+\begin{commandline}
+nori1[3:57]%  diff file1.txt file2.txt                             saba:~/tmp/q
+2,3c2
+< かきくけこ
+< さしすせそ
+---
+> ばびぶべぼ
+6d4
+< はひふへほ
+\end{commandline}
+
+\texttt{file1.txt}と\texttt{file2.txt}の内容や行番号を考えれば、
+なんとなく意味がわかると思います。
+それでかまいません。
+もちろん、この出力を手で書けるようにならなくてかまいません。
+
+この形式でもよいのですが、
+通常は\texttt{diff}コマンドに\texttt{-u}オプションをつけ、
+次のような\textbf{unified diff}という形式で出力させます。
+
+\begin{commandline}
+nori1[3:57]%  diff -u file1.txt file2.txt                          saba:~/tmp/q
+--- file1.txt   Thu Jan 18 03:57:14 2007
++++ file2.txt   Thu Jan 18 03:57:22 2007
+@@ -1,9 +1,7 @@
+ あいうえお
+-かきくけこ
+-さしすせそ
++ばびぶべぼ
+ たちつてと
+ なにぬねの
+-はひふへほ
+ まみむめも
+ や　ゆ　よ
+ らりるれろ
+\end{commandline}
+
+こちらのほうが、
+追加・削除された行がどちらのファイルに所属するのか、
+そしてファイルのどのような部分が異なるのかがわかりやすいでしょう。
+
+パッチとは要は、次のようにしてこういった出力をファイルに収めたものです。
+
+\begin{commandline}
+nori1[3:58]%  diff -u file1.txt file2.txt > file.diff              saba:~/tmp/q
+\end{commandline}
+
+ただし、全く縁のない2つのファイルであれば差分はわざわざファイルに収める必要はないでしょう。
+わざわざパッチを作成するのは、
+ファイルに変更を加える前後の差分を見たり、
+後で紹介するように機械的な処理で変更を加えられるようにしたりするためです。
+そこで、
+ここまでは\texttt{file1.txt}と\texttt{file2.txt}は無縁のファイルとしてきましたが、
+ここからは\texttt{file1.txt}を改変したものが\texttt{file2.txt}であると考えてください。
+つまり\texttt{file1.txt}が改変前のファイルで、
+\texttt{file2.txt}が改変後のファイル、
+パッチ\texttt{file.diff}には\texttt{file1.txt}を\texttt{file2.txt}にするための変更が含まれている、
+と考えてください。
+
+さて、作成したパッチは、\texttt{patch}コマンドを用いて、
+その中に含む変更を該当ファイルに\textbf{適用する} (\textbf{当てる}) ことができます。
+
+\begin{commandline}
+nori1[4:00]%  patch < file.diff                                    saba:~/tmp/q
+patching file file1.txt
+\end{commandline}
+
+こうして\texttt{file1.txt}の内容は\texttt{file2.txt}の内容と同一になります。
+
+\begin{commandline}
+nori1[4:01]%  cat file1.txt                                        saba:~/tmp/q
+あいうえお
+ばびぶべぼ
+たちつてと
+なにぬねの
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+nori1[4:02]%  cmp file1.txt file2.txt                              saba:~/tmp/q
+\end{commandline}
+
+また、\texttt{-R}オプションを指定して逆向きに当てることもできます。
+
+\begin{commandline}
+nori1[4:18]%  patch -R < file.diff                                 saba:~/tmp/q
+patching file file1.txt
+nori1[4:19]%  cat file1.txt                                        saba:~/tmp/q
+あいうえお
+かきくけこ
+さしすせそ
+たちつてと
+なにぬねの
+はひふへほ
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+\end{commandline}
+
+\texttt{file1.txt}の内容は元に戻りました。
+
+パッチは必ずしもうまく当たらないことを忘れてはなりません。
+次のように、\texttt{file1.txt}の2行目を手元で改変したとします。
+
+\begin{commandline}
+nori1[5:29]%  cat file1.txt                                        saba:~/tmp/q
+あいうえお
+がぎぐげご
+さしすせそ
+たちつてと
+なにぬねの
+はひふへほ
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+\end{commandline}
+
+これに先程のパッチを当てようとすると次のようにエラーになります。
+
+\begin{commandline}
+nori1[5:30]%  patch < file.diff                                    saba:~/tmp/q
+patching file file1.txt
+Hunk #1 FAILED at 1.
+1 out of 1 hunk FAILED -- saving rejects to file file1.txt.rej
+\end{commandline}
+
+これは、手元で与えた変更とパッチが加えたい変更が競合しているからです。
+
+もちろん、\texttt{file1.txt}の2行目を改変する代わりに、
+次のように最終行に1行加えたとします。
+
+\begin{commandline}
+nori1[5:32]%  cat file1.txt                                        saba:~/tmp/q
+あいうえお
+かきくけこ
+さしすせそ
+たちつてと
+なにぬねの
+はひふへほ
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+むふふふふ
+\end{commandline}
+
+この場合、
+手元で加えた変更はパッチが含む変更とは被らないので、パッチはうまく当たります\footnote{ただしあくまで形式的にであって、意味的に適切かどうかは確認する必要があります。}。
+
+\begin{commandline}
+nori1[5:36]%  patch < file.diff                                    saba:~/tmp/q
+patching file file1.txt
+nori1[5:52]%  cat file1.txt                                        saba:~/tmp/q
+あいうえお
+ばびぶべぼ
+たちつてと
+なにぬねの
+まみむめも
+や　ゆ　よ
+らりるれろ
+わ　を　ん
+むふふふふ
+\end{commandline}
+
+これまでは1つのファイルの変更を1つのパッチに収めてきましたが、
+1つのパッチに複数のファイルの変更を収めることも可能です。
+以下は、\texttt{diff}に\texttt{-r}オプションを渡して、
+内容の一部が異なる2つのファイルを含む2つのディレクトリの差分をパッチとして出力させた例です。
+
+\begin{commandline}
+nori1[5:14]%  diff -ur skkdic.orig skkdic > skkdic.diff              saba:~/tmp
+nori1[5:14]%  cat skkdic.diff                                        saba:~/tmp
+diff -ur skkdic.orig/debian/changelog skkdic/debian/changelog
+--- skkdic.orig/debian/changelog        Fri Dec 15 03:36:49 2006
++++ skkdic/debian/changelog     Mon Dec 25 17:39:10 2006
+@@ -1,5 +1,7 @@
+ skkdic (20061130-2~pre1) unstable; urgency=low
+ 
++  * debian/rules: Pass the `-k' option to dh_installchangelogs so that
++    all of ChangeLog* are installed equally.
+   * debian/skkdic{,-cdb,-extra}.docs: Deleted since their settings are
+     now moved into debian/rules.
+ 
+diff -ur skkdic.orig/debian/rules skkdic/debian/rules
+--- skkdic.orig/debian/rules    Fri Dec 15 03:36:49 2006
++++ skkdic/debian/rules Mon Dec 25 17:39:10 2006
+@@ -2,6 +2,7 @@
+ include /usr/share/cdbs/1/rules/debhelper.mk
+ include /usr/share/cdbs/1/class/makefile.mk
+ 
++DEB_DH_INSTALLCHANGELOGS_ARGS := -k
+ DEB_INSTALL_CHANGELOGS_ALL := ChangeLog
+ DEB_INSTALL_DOCS_ALL := ChangeLog.* READMEs/committers.txt
+ 
+\end{commandline}
+
+以上で簡単なパッチの説明は終わりです。
+こういったパッチは、
+修正した部分を確認したり他人と修正内容をやりとりしたりするのに非常に便利で、
+開発作業はこれなしではやっていけないと言っても過言ではないでしょう。
+実際に使うに当たってはpatch(1)やdiff(1)を参照することをお勧めします。
+
+\subsubsection{パッチ管理ツールとは}
+
+今回説明するquiltはパッチ管理ツールです。
+これは、複数のパッチを管理するためのものです。
+どのような場合に必要になるのでしょう?
+
+先程パッチとは「修正した部分を確認したり他人と修正内容をやりとりしたりするのに非常に便利」だと書きました。
+その言葉に基づけば、一般にはパッチとは使い捨ての一時ファイルで短寿命です。
+管理する必要はありません。
+
+しかし、以下のようなケースを考えてみてください。
+\begin{itemize}
+ \item ある団体がソフトウェアfooを公開し、定期的にリリースしている。
+ \item Aさんはfooを改変して使ったり再配布したりする必要がある。
+ \item Aさんの改変内容には複数の論理的に異なる変更が混ざっており、fooに取り込まれるものもあれば取り込まれないものもある。
+\begin{itemize}
+ \item fooのバグの修正1 (小さな変更なので次のマイナーリリースで適用される。)
+ \item fooのバグの修正2 (大きめの変更なので次のメジャーリリースまで適用されない。)
+ \item fooのバグの修正3 (バグを回避するためのAさん独自の次善策で、開発元からのリリースでは適用されない。)
+ \item :
+ \item fooのバグの修正N
+ \item Aさんの環境に合わせるためのMakefileの修正
+\end{itemize}
+\end{itemize}
+
+Aさんが全体の変更を1つのパッチとして管理するのは不可能に近いでしょう。
+fooの新しいリリースが出たときに、
+元のパッチを当てても (うまく当たる部分もあるでしょうが) 間違いなくうまく当たりません。
+しかも複数の変更が混ざっているのでそれを解決するのは非常に大変でしょう。
+
+変更を複数の論理的なパッチに分割すれば、少しは管理が楽になるでしょう。
+1つずつパッチを当て、うまく当たるものと当たらないものを区別できます。
+当たらないもののうち、
+既に開発元で加えられた修正のパッチは削除し、
+残すべきなのに他の変更の影響で部分的にうまく当たらないパッチはうまく当たるよう調整します。
+それらの作業は面倒かもしれませんが、
+1つのパッチとして管理するのに比べれば楽でしょう。
+ただし、作業中に、
+現在どのパッチが当たっていてどれが当たっていないかを一々覚えておかなければならないのが大変です。
+
+そこで登場するのがパッチ管理ツールです。
+パッチ管理ツールは、複数のパッチの取り扱いを楽にするためのツールです。
+具体的には、どのパッチが当たっておりどれが当たっていないかを管理できます。
+また、一度に複数のパッチを当てたり外したりできるので、
+全ての (あるいはある一群の) パッチがうまく当たるかどうかを概観するのも楽にできます。
+Aさんがやっているような作業にはうってつけのツールです。
+
+さて、実はDebianパッケージのメンテナ (保守担当者) はこのAさんのような作業をする必要があります。
+すなわち、
+開発元のリリースに複数のパッチを独自に当て、それらを管理する必要があるのです。
+というのも、
+一般に開発元とDebianとではリリースサイクルや品質の基準が異なるからです。
+管理すべきパッチは、ソフトウェアの規模が大きくなればなるほど増えるでしょう。
+そこでDebianパッケージメンテナはパッチ管理ツールを使用することが推奨されています。
+
+ここではquiltを使用したパッチ管理を紹介します。
+Debianでよく使われるパッチ管理ツールには、dpatchというものもあります。
+こちらはDebianパッケージメンテナンスに特化したツールですが、
+機能的にはquiltとそんなに違いはありません。
+興味がある方は、2005年7月勉強会\footnote{\url{http://www.netfort.gr.jp/~dancer/column/2005-debianmeeting.html.ja\#6th}}の資料を参照してください。
+
+\subsection{インストール}
+
+quiltは、Debianでは\texttt{quilt}パッケージに含まれており、
+\texttt{apt-get}や\texttt{aptitude}で普通にインストールできます。
+
+\subsection{quiltの基本操作}
+
+\subsubsection{最初に知っておくべきこと}
+
+quiltでは一般に、\texttt{quilt <コマンド>}という書式で様々なコマンドが利用できます。
+利用可能なコマンドの一覧は次のようにして参照できます。
+
+\begin{commandline}
+nori1[13:19]%  quilt --help                                             whale:~
+使い方: quilt [--trace[=verbose]] [--quiltrc=XX] command [-h] ...
+       quilt --version
+コマンド一覧:
+        add       files   import   previous  setup
+        annotate  fold    mail     push      snapshot
+        applied   fork    new      refresh   top
+        delete    graph   next     remove    unapplied
+        diff      grep    patches  rename    upgrade
+        edit      header  pop      series
+
+全コマンド共通オプション:
+
+--trace
+        コマンドをbashのトレースモード(-x)で実行。内部デバッグ用。
+
+--quiltrc file
+        ~/.quiltrc (存在しない場合は代わりに /etc/quiltrc) 以外のコン
+        フィギュレーションファイルを指定。内容の詳細については PDFのド
+        キュメントを参照。
+
+--version
+        バージョン情報を出力して終了。
+\end{commandline}
+
+また各コマンドのヘルプメッセージは各コマンドに\texttt{-h}オプションを指定すれば表示できます。
+以下の例では\texttt{quilt add}のヘルプメッセージを表示させています。
+
+\begin{commandline}
+nori1[13:45]%  quilt add -h                                             whale:~
+Usage: quilt add [-P patch] {file} ...
+
+Add one or more files to the topmost or named patch.  Files must be
+added to the patch before being modified.  Files that are modified by
+patches already applied on top of the specified patch cannot be added.
+
+-P patch
+        Patch to add files to.
+\end{commandline}
+
+\subsubsection{パッチスタック}
+
+実際にquiltを使う前に、quiltのデータ構造を知っておきましょう。
+quiltは、あるツリーに対する一連のパッチを一列に並べてスタックとして管理します。
+
+あるソースツリーに、以下のような5つのパッチを順に加えたいとします。
+
+\begin{enumerate}
+ \item r1091-remove-trailing-garbage.diff
+ \item r1092-implement-distclean.diff
+ \item r1094-add-readme.diff
+ \item fix-ftbfs-on-m68k.diff
+ \item work-around-an-error-of-libtool.diff
+\end{enumerate}
+
+このとき、
+これらのパッチは\textbf{patchesディレクトリ}に含まれていなければなりません。
+そして、パッチの整列順序を収めた次のような内容の\textbf{seriesファイル}がパッチディレクトリに含まれている必要があります。
+
+\begin{screen}
+\begin{verbatim}
+r1091-remove-trailing-garbage.diff
+r1092-implement-distclean.diff
+r1094-add-readme.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+\end{verbatim}
+\end{screen}
+
+つまり現在は次のようになっている必要があります。
+
+\begin{commandline}
+nori1[14:22]%  ls patches/*             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+patches/fix-ftbfs-on-m68k.diff
+patches/r1091-remove-trailing-garbage.diff
+patches/r1092-implement-distclean.diff
+patches/r1094-add-readme.diff
+patches/series
+patches/work-around-an-error-of-libtool.diff
+nori1[14:22]%  cat patches/series       whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+r1092-implement-distclean.diff
+r1094-add-readme.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+\end{commandline}
+
+quiltのパッチデータはこれが全てです。
+
+なおこのデータ構造は、
+\ref{subsubsec:quilt-create-patch}で後述するパッチ作成作業時にquiltが自動的に作成してくれるので、
+通常は手でいじる必要はありません。
+次のセクションでは、
+このようなpatchesディレクトリを既にもったツリーでパッチを当てたり外したりしてみましょう。
+
+\subsubsection{パッチスタックの操作}
+
+さて、ではquiltを使ってみます。
+まずはスタック管理のための操作を眺めてみましょう。
+スタック管理に必要な操作は、もちろんpushとpopです。
+
+最初は何もパッチが当たっていないとします。
+この状態で\texttt{quilt push}を実行すると、
+1番目のパッチ、つまり (\texttt{r1091-remove-trailing-garbage.diff}) が当たります。
+このパッチは\texttt{Makefile.in}に修正を加えるものです。
+
+\begin{commandline}
+nori1[14:30]%  quilt push               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+
+Now at patch r1091-remove-trailing-garbage.diff
+\end{commandline}
+
+きちんと当たったようですね。
+\texttt{quilt push}は、引数を与えなければ「次のパッチ」を当てるコマンドです。
+これで現在ツリーは、
+\texttt{r1091-remove-trailing-garbage.diff}だけが当たった状態になりました。
+
+もう一度\texttt{quilt push}を実行します。
+
+\begin{commandline}
+nori1[15:08]%  quilt push               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+
+Now at patch r1092-implement-distclean.diff
+\end{commandline}
+
+次のパッチ\texttt{r1092-implement-distclean.diff}も当たりました。
+これを「\texttt{r1092-implement-distclean.diff}が\textbf{一番上に来た}状態」と言うことにしましょう。
+スタック (stack) とは英語で「積み重ねたもの」の意味です。
+push操作ではその上にもの (quilt ではパッチ) を次々に載せていくので、
+「パッチ○○まで当てられた状態」は、
+言い換えれば「パッチ○○が一番上に来た状態」です。
+
+pushの逆はpopです。
+すなわち現在一番上にあるパッチを外すのは\texttt{quilt pop}です。
+
+\begin{commandline}
+nori1[15:15]%  quilt pop                whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch r1092-implement-distclean.diff
+Restoring Makefile.in
+
+Now at patch r1091-remove-trailing-garbage.diff
+nori1[15:15]%  quilt pop                whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+\end{commandline}
+
+\texttt{quilt push}や\texttt{quilt pop}に引数としてパッチ名を与えると、
+そのパッチが一番上に来た状態になるように一連のパッチを当てたり外したりします。
+また引数として数値を与えると、その数だけパッチを当てたり外したりできます。
+\texttt{-a}をオプションとして指定すると全てのパッチを当てたり外したりできます。
+
+\begin{commandline}
+nori1[15:17]%  quilt push 3             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+
+Applying patch r1094-add-readme.diff
+patching file README
+
+Now at patch r1094-add-readme.diff
+nori1[15:17]%  quilt pop r1091-remove-trailing-garbage.diff
+Removing patch r1094-add-readme.diff
+Removing README
+
+Removing patch r1092-implement-distclean.diff
+Restoring Makefile.in
+
+Now at patch r1091-remove-trailing-garbage.diff
+nori1[15:18]%  quilt push -a            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+
+Applying patch r1094-add-readme.diff
+patching file README
+
+Applying patch fix-ftbfs-on-m68k.diff
+patching file Makefile.in
+
+Applying patch work-around-an-error-of-libtool.diff
+patching file Makefile.in
+
+Now at patch work-around-an-error-of-libtool.diff
+nori1[15:18]%  quilt pop -a             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch work-around-an-error-of-libtool.diff
+Restoring Makefile.in
+
+Removing patch fix-ftbfs-on-m68k.diff
+Restoring Makefile.in
+
+Removing patch r1094-add-readme.diff
+Removing README
+
+Removing patch r1092-implement-distclean.diff
+Restoring Makefile.in
+
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+\end{commandline}
+
+現在一番上にあるパッチは\texttt{quilt top}で確認できます。
+現在一番上にあるパッチの次のパッチと前のパッチはそれぞれ、\texttt{quilt next}と\texttt{quilt previous}で確認できます。
+現在当てられているパッチと当てられていないパッチはそれぞれ、\texttt{quilt applied}と\texttt{quilt unapplied}で確認できます。
+そして、全てのパッチ、つまりseriesファイルの内容は\texttt{quilt series}で確認できます。
+
+\begin{commandline}
+nori1[15:31]%  quilt top                whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+No patches applied
+nori1[15:31]%  quilt next               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+nori1[15:31]%  quilt previous           whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+No patches applied
+nori1[15:31]%  quilt applied            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+No patches applied
+nori1[15:31]%  quilt unapplied          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+r1092-implement-distclean.diff
+r1094-add-readme.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+nori1[15:32]%  quilt push 2             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+
+Now at patch r1092-implement-distclean.diff
+nori1[15:32]%  quilt top                whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1092-implement-distclean.diff
+nori1[15:32]%  quilt next               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1094-add-readme.diff
+nori1[15:32]%  quilt previous           whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+nori1[15:32]%  quilt applied            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+r1092-implement-distclean.diff
+nori1[15:33]%  quilt unapplied          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1094-add-readme.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+nori1[15:33]%  quilt series             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+r1092-implement-distclean.diff
+r1094-add-readme.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+nori1[15:33]%  quilt pop -a             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch r1092-implement-distclean.diff
+Restoring Makefile.in
+
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+\end{commandline}
+
+ある特定のファイルを変更するパッチの一覧は\texttt{quilt files}で参照可能です。
+逆に、ある特定のパッチが変更するファイルの一覧は\texttt{quilt patches}で参照可能です。
+
+\begin{commandline}
+nori1[15:35]%  quilt files r1091-remove-trailing-garbage.diff
+Patch r1091-remove-trailing-garbage.diff is not applied
+nori1[15:35]%  quilt push r1091-remove-trailing-garbage.diff
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+
+Now at patch r1091-remove-trailing-garbage.diff
+nori1[15:35]%  quilt files              whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Makefile.in
+nori1[15:36]%  quilt files r1091-remove-trailing-garbage.diff
+Makefile.in
+nori1[15:36]%  quilt pop -a             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+nori1[15:36]%  quilt patches Makefile.in
+r1091-remove-trailing-garbage.diff
+r1092-implement-distclean.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+\end{commandline}
+
+これでパッチスタックの操作の説明は終わりです。
+パッチを含んだpatchesディレクトリが存在していれば、
+その中のパッチを自由自在に当てたり外したり、
+現在当たっているパッチを調べたりできるようになりました。
+しかしこれだけでは何の役にも立ちません。
+次のセクションではパッチを新たに追加する方法について説明します。
+
+\subsubsection{パッチの追加}
+\label{subsubsec:quilt-create-patch}
+
+いよいよpatchesディレクトリに新たなパッチを追加します。
+quiltでは\texttt{quilt new}で新たなパッチに名前をつけて作成を開始し、
+適当な変更を加えた後、\texttt{quilt refresh}でパッチとして保存します。
+
+新たなパッチを追加する場合、
+まずはパッチをスタックのどこに入れるか決めます\footnote{\ref{subsec:quilt-Debian-packaging}にパッチの並べ方に関する簡単なアドバイスがあります。}。
+今回は (特に意味はありませんが) 1つ目のパッチである\texttt{r1091-remove-trailing-garbage.diff}の後に入れましょう。
+パッチの名前は\texttt{love-debian.diff}とし、その内容は、
+次のようなlove-debianターゲットを\texttt{Makefile.in}に加えるものにしましょう。
+
+\begin{screen}
+\begin{verbatim}
+love-debian:
+        echo "I love debian!!"
+\end{verbatim}
+\end{screen}
+
+では作成を開始します。
+
+\begin{commandline}
+nori1[17:29]%  quilt push r1091-remove-trailing-garbage.diff
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+
+Now at patch r1091-remove-trailing-garbage.diff
+nori1[17:29]%  quilt new love-debian.diff
+Patch love-debian.diff is now on top
+\end{commandline}
+
+早速\texttt{Makefile.in}を編集したいところですが、少し待ってください。
+実はquiltでは、
+パッチに含めるファイルは予め\texttt{quilt add}で追加しておかなければなりません。
+
+\begin{commandline}
+nori1[17:29]%  quilt add Makefile.in    whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+File Makefile.in added to patch love-debian.diff
+\end{commandline}
+
+その上でファイルの編集をし、その内容を\texttt{quilt diff}で確認します。
+
+\begin{commandline}
+nori1[17:35]%  vim Makefile.in          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+[snip]
+nori1[17:38]%  quilt diff               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Index: serf-0.1.0/Makefile.in
+===================================================================
+--- serf-0.1.0.orig/Makefile.in	2007-01-18 17:35:11.000000000 +0900
++++ serf-0.1.0/Makefile.in	2007-01-18 17:38:38.000000000 +0900
+@@ -99,6 +99,9 @@
+ 		$(INSTALL) -m 644 $$i $(DESTDIR)$(includedir); \
+ 	done
+ 
++love-debian:
++	echo "I love debian!!"
++
+ clean:
+ 	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+ 
+\end{commandline}
+
+最後に\texttt{quilt refresh}で保存します。
+
+\begin{commandline}
+nori1[17:39]%  quilt refresh            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Refreshed patch love-debian.diff
+\end{commandline}
+
+さて、実は\texttt{love-debian.diff}は1番目のパッチの後に挿入しました。
+ということは、残りのパッチがうまく当たるか確認しておかなければなりません。
+
+\begin{commandline}
+nori1[17:40]%  quilt push -a            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+Hunk \#1 succeeded at 104 (offset 3 lines).
+
+Applying patch r1094-add-readme.diff
+patching file README
+
+Applying patch fix-ftbfs-on-m68k.diff
+patching file Makefile.in
+
+Applying patch work-around-an-error-of-libtool.diff
+patching file Makefile.in
+
+Now at patch work-around-an-error-of-libtool.diff
+\end{commandline}
+
+新たな行を挿入したので「\texttt{Hunk \#1 succeeded at 104 (offset 3 lines).}」というメッセージが出ましたが、
+問題なく当たりました。
+
+\texttt{quilt series}を実行すると、
+きちんと\texttt{love-debian.diff}が適切な位置に挿入されていることがわかります。
+
+\begin{commandline}
+nori1[17:41]%  quilt series             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+love-debian.diff
+r1092-implement-distclean.diff
+r1094-add-readme.diff
+fix-ftbfs-on-m68k.diff
+work-around-an-error-of-libtool.diff
+nori1[17:41]%  quilt pop -a             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch work-around-an-error-of-libtool.diff
+Restoring Makefile.in
+
+Removing patch fix-ftbfs-on-m68k.diff
+Restoring Makefile.in
+
+Removing patch r1094-add-readme.diff
+Removing README
+
+Removing patch r1092-implement-distclean.diff
+Restoring Makefile.in
+
+Removing patch love-debian.diff
+Restoring Makefile.in
+
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+\end{commandline}
+
+さて、パッチを作成した後になって気付いたのですが、
+love-debianターゲットが表示する文字列の中の「debian」は「Debian」と大文字にした方がよさそうです。
+このようなときはパッチを改変しましょう。
+\texttt{quilt push}ないし\texttt{quilt pop}で目的のパッチ (\texttt{love-debian.diff}) を一番上に持ってきて、
+エディタで\texttt{Makefile.in}に変更を施した上で\texttt{quilt refresh}で保存すればOKです。
+\texttt{Makefile.in}は既にパッチ\texttt{love-debian.diff}の変更対象に含まれているので、
+エディタでの編集前に\texttt{quilt add}で追加する必要はありません。
+
+\begin{commandline}
+nori1[17:54]%  quilt push love-debian.diff
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+
+Applying patch love-debian.diff
+patching file Makefile.in
+
+Now at patch love-debian.diff
+nori1[17:59]%  vim Makefile.in          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+[snip]
+nori1[18:01]%  quilt diff               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Index: serf-0.1.0/Makefile.in
+===================================================================
+--- serf-0.1.0.orig/Makefile.in	2007-01-18 17:38:38.000000000 +0900
++++ serf-0.1.0/Makefile.in	2007-01-18 18:01:35.000000000 +0900
+@@ -99,6 +99,9 @@
+ 		$(INSTALL) -m 644 $$i $(DESTDIR)$(includedir); \
+ 	done
+ 
++love-debian:
++	echo "I love Debian!!"
++
+ clean:
+ 	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+ 
+nori1[18:01]%  quilt refresh            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Refreshed patch love-debian.diff
+\end{commandline}
+
+さて、このパッチを眺めているうちにまた気が変わって、
+\texttt{design-guide.txt}という別のファイルにも変更を加え、
+このパッチに含めようと思い立ちました。
+\texttt{design-guide.txt}は今のところ\texttt{love-debian.diff}の変更対象外なので、
+今度は、
+編集する前に\texttt{quilt add}で変更対象に追加しておかなければなりません。
+\texttt{quilt add design-guide.txt}を実行した上でエディタで\texttt{design-guide.txt}を開いてもよいのですが、
+面倒なのでここでは\texttt{quilt edit}コマンドを実行しましょう。
+このコマンドは、
+「引数のファイルを\texttt{quilt add}で追加した上で、
+環境変数\texttt{EDITOR}で指定されたエディタでそのファイルを開く」という、
+2つの操作をまとめて実行するためのものです。
+
+\begin{commandline}
+nori1[18:19]%  quilt edit design-guide.txt
+[snip]
+nori1[18:21]%  quilt diff               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Index: serf-0.1.0/Makefile.in
+===================================================================
+--- serf-0.1.0.orig/Makefile.in	2007-01-18 17:55:20.000000000 +0900
++++ serf-0.1.0/Makefile.in	2007-01-18 18:01:35.000000000 +0900
+@@ -99,6 +99,9 @@
+ 		$(INSTALL) -m 644 $$i $(DESTDIR)$(includedir); \
+ 	done
+ 
++love-debian:
++	echo "I love Debian!!"
++
+ clean:
+ 	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+ 
+Index: serf-0.1.0/design-guide.txt
+===================================================================
+--- serf-0.1.0.orig/design-guide.txt	2007-01-18 18:19:30.000000000 +0900
++++ serf-0.1.0/design-guide.txt	2007-01-18 18:20:40.000000000 +0900
+@@ -9,6 +9,7 @@
+   4. Bucket Read Functions
+   5. Versioning
+   6. Bucket lifetimes
++  7. Love Debian
+ 
+ 
+ -----------------------------------------------------------------------------
+@@ -150,3 +151,10 @@
+ 
+ 
+ -----------------------------------------------------------------------------
++
++7. LOVE DEBIAN
++
++Hey, please love Debian.
++
++
++-----------------------------------------------------------------------------
+nori1[18:22]%  quilt refresh            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Refreshed patch love-debian.diff
+\end{commandline}
+
+これで新たなパッチ\texttt{love-debian.diff}の内容は完成です。
+しかしこれだけだと後で何をしたいパッチだかわからなくなりそうです。
+最後に、パッチの説明を加えておきましょう。
+quiltでは、
+パッチの内容を説明するヘッダを操作するコマンドは\texttt{quilt header}です。
+\texttt{-e}オプションを指定してコマンドを実行すると、
+環境変数\texttt{EDITOR}のエディタでパッチのヘッダを編集できます。
+また、何もオプションを与えずに実行するとヘッダを表示できます。
+
+\begin{commandline}
+nori1[18:37]%  quilt header             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+nori1[18:37]%  quilt header -e          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+[snip]
+nori1[18:41]%  quilt header             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+A patch to show my love for Debian.
+\end{commandline}
+
+本セクションでは、
+新たにパッチを作成する手順を学びました。
+これで自由にパッチを追加・編集できます。
+次のセクションでは、
+開発元が加えた変更への対応方法を学びます。
+
+\subsubsection{開発元が加えた変更への対応}
+
+パッチをいじれるようになったところで、
+開発元が新しいリリースなどで加えた変更に対応してみましょう。
+この作業では、\texttt{quilt push}の\texttt{-f}オプションが役立ちます。
+
+開発元が加えた変更をマージする前に、まずやっておかなければならないことがあります。
+それは、ツリーにパッチが適用されていない状態にすることです。
+既に説明したように、
+適用されているパッチを全て外すには\texttt{quilt pop -a}を実行します。
+
+\begin{commandline}
+nori1[20:00]%  quilt pop -a             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch love-debian.diff
+Restoring Makefile.in
+Restoring design-guide.txt
+
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+\end{commandline}
+
+その上で、ツリーのファイルを、開発元が新しくリリースしたものに差し替えます (つまり開発元が加えた変更をマージします)。
+ここでは以下のような変更が入ったとします。
+
+\begin{itemize}
+ \item \texttt{Makefile.in}へのloveターゲットとclean-loveターゲットの追加 (\texttt{love-debian.diff}が変更する部分と同じ部分を改変するので、競合)
+ \item \texttt{README}ファイルの追加 (\texttt{r1094-add-readme.diff}の修正内容そのもの)
+\end{itemize}
+
+さあ、新しいツリーにパッチを当てようとするとどうなるでしょうか。
+とりあえず\texttt{quilt push -a}で一度に全て当てようとしてみましょう。
+
+\begin{commandline}
+nori1[20:32]%  quilt push -a            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+Hunk #1 succeeded at 103 with fuzz 2 (offset 3 lines).
+
+Applying patch love-debian.diff
+patching file Makefile.in
+Hunk #1 FAILED at 99.
+1 out of 1 hunk FAILED -- rejects in file Makefile.in
+patching file design-guide.txt
+Patch love-debian.diff does not apply (enforce with -f)
+nori1[20:32]%  quilt top                whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+r1091-remove-trailing-garbage.diff
+\end{commandline}
+
+\texttt{love-debian.diff}を当てるのに失敗して、
+そこでパッチの適用が止まってしまいました。
+そこで、\texttt{-f}オプションを\texttt{quilt push}につけて、
+\texttt{love-debian.diff}を強制的に適用してみます。
+
+\begin{commandline}
+nori1[20:33]%  quilt push -f            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch love-debian.diff
+patching file Makefile.in
+Hunk #1 FAILED at 99.
+1 out of 1 hunk FAILED -- saving rejects to file Makefile.in.rej
+patching file design-guide.txt
+Applied patch love-debian.diff (forced; needs refresh)
+\end{commandline}
+
+\texttt{Makefile.in}がどうなったか眺めてみると、
+先程love-debianターゲットを加えた箇所に、
+次のようにloveターゲットとclean-loveターゲットが追加されています。
+
+\begin{commandline}
+nori1[20:37]%  cat Makefile.in          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+[snip]
+		$(INSTALL) -m 644 $$i $(DESTDIR)$(includedir); \
+	done
+love:
+	echo "Making love..."
+clean-love:
+	echo "Clearing my old love..."
+clean:
+	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+[snip]
+\end{commandline}
+
+\texttt{quilt push -f}からのメッセージにあるように、
+パッチ適用の拒否の理由は\texttt{Makefile.in.rej}に記されています。
+念のため覗いてみましょう。
+
+\begin{commandline}
+***************
+*** 99,104 ****
+  		$(INSTALL) -m 644 $$i $(DESTDIR)$(includedir); \
+  	done
+  
+  clean:
+  	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+  
+--- 99,107 ----
+  		$(INSTALL) -m 644 $$i $(DESTDIR)$(includedir); \
+  	done
+  
++ love-debian:
++ 	echo "I love Debian!!"
++ 
+  clean:
+  	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+  
+\end{commandline}
+
+これは\textbf{context diff}と呼ばれる形式ですが、意味が掴めればかまいません。
+上で説明したように、
+love-debianターゲットを加えるための、cleanターゲットの前の3行がうまく当たらなかったことがわかるでしょう。
+
+強制的にパッチを適用した結果がどうなったかわかったところで、
+削除されてしまった大切なlove-debianターゲットを\texttt{Makefile.in}に再度追加した上で、
+\texttt{quilt push -f}からのメッセージにあるようにパッチを更新 (refresh) しましょう。
+
+\begin{commandline}
+nori1[20:45]%  vim Makefile.in          whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+[snip]
+nori1[20:54]%  quilt diff               whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Index: serf-0.1.0/Makefile.in
+===================================================================
+--- serf-0.1.0.orig/Makefile.in	2007-01-18 20:32:13.000000000 +0900
++++ serf-0.1.0/Makefile.in	2007-01-18 20:52:22.000000000 +0900
+@@ -102,6 +102,10 @@
+ 	echo "Making love..."
+ clean-love:
+ 	echo "Clearing my old love..."
++
++love-debian:
++	echo "I love Debian!!"
++
+ clean:
+ 	rm -f $(TARGET_LIB) $(OBJECTS) $(OBJECTS:.lo=.o) $(PROGRAMS) $(TEST_OBJECTS) $(TEST_OBJECTS:.lo=.o)
+ 
+Index: serf-0.1.0/design-guide.txt
+===================================================================
+--- serf-0.1.0.orig/design-guide.txt	2007-01-18 20:31:56.000000000 +0900
++++ serf-0.1.0/design-guide.txt	2007-01-18 20:36:10.000000000 +0900
+@@ -9,6 +9,7 @@
+   4. Bucket Read Functions
+   5. Versioning
+   6. Bucket lifetimes
++  7. Love Debian
+ 
+ 
+ -----------------------------------------------------------------------------
+@@ -150,3 +151,10 @@
+ 
+ 
+ -----------------------------------------------------------------------------
++
++7. LOVE DEBIAN
++
++Hey, please love Debian.
++
++
++-----------------------------------------------------------------------------
+nori1[20:54]%  quilt refresh            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Refreshed patch love-debian.diff
+\end{commandline}
+
+さあ、これで\texttt{love-debian.diff}の問題は解決しました。
+再び\texttt{quilt push -a}で残りのパッチを全て当てようとしてみましょう。
+
+\begin{commandline}
+nori1[20:55]%  quilt push -a            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+Hunk #1 succeeded at 108 (offset 7 lines).
+
+Applying patch r1094-add-readme.diff
+The next patch would create the file README,
+which already exists!  Applying it anyway.
+patching file README
+Patch attempted to create file README, which already exists.
+Hunk #1 FAILED at 1.
+1 out of 1 hunk FAILED -- rejects in file README
+Patch r1094-add-readme.diff can be reverse-applied
+\end{commandline}
+
+今度は\texttt{r1094-add-readme.diff}を当てるのに失敗して、
+そこでパッチの適用が止まってしまいました。
+メッセージによれば、このパッチは逆に当てることができます。
+それはすなわち、このパッチが既に当たった状態であることを意味します。
+開発元で\texttt{README}を追加してくれたので、
+\texttt{README}を追加するための\texttt{r1094-add-readme.diff}は不要になったのでした。
+そこで、このパッチは削除することにします。
+
+\begin{commandline}
+nori1[21:05]%  quilt delete r1094-add-readme.diff
+Removed patch r1094-add-readme.diff
+\end{commandline}
+
+これで\texttt{r1094-add-readme.diff}の問題も解決です。
+再び\texttt{quilt push -a}で残りのパッチを全て当てようとしてみましょう。
+
+\begin{commandline}
+nori1[21:05]%  quilt push -a            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch fix-ftbfs-on-m68k.diff
+patching file Makefile.in
+
+Applying patch work-around-an-error-of-libtool.diff
+patching file Makefile.in
+
+Now at patch work-around-an-error-of-libtool.diff
+\end{commandline}
+
+全てうまく当たりました。
+これで一連のパッチはうまく当たるようになりました。
+
+\begin{commandline}
+nori1[21:06]%  quilt pop -a             whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Removing patch work-around-an-error-of-libtool.diff
+Restoring Makefile.in
+
+Removing patch fix-ftbfs-on-m68k.diff
+Restoring Makefile.in
+
+Removing patch r1092-implement-distclean.diff
+Restoring Makefile.in
+
+Removing patch love-debian.diff
+Restoring Makefile.in
+Restoring design-guide.txt
+
+Removing patch r1091-remove-trailing-garbage.diff
+Restoring Makefile.in
+
+No patches applied
+\end{commandline}
+
+\subsubsection{パッチの依存関係の可視化}
+
+quiltの\texttt{quilt graph}コマンドとGraphvizを使うと、
+適用されたパッチの依存関係を可視化できます。
+
+最初に、全てのパッチを当てておきます。
+
+\begin{commandline}
+nori1[22:18]%  quilt push -a            whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+Applying patch r1091-remove-trailing-garbage.diff
+patching file Makefile.in
+Hunk #1 succeeded at 103 with fuzz 2 (offset 3 lines).
+
+Applying patch love-debian.diff
+patching file Makefile.in
+patching file design-guide.txt
+
+Applying patch r1092-implement-distclean.diff
+patching file Makefile.in
+Hunk #1 succeeded at 108 (offset 7 lines).
+
+Applying patch fix-ftbfs-on-m68k.diff
+patching file Makefile.in
+
+Applying patch work-around-an-error-of-libtool.diff
+patching file Makefile.in
+
+Now at patch work-around-an-error-of-libtool.diff
+\end{commandline}
+
+この状態で何も与えずに\texttt{quilt graph}を実行すると、
+Graphviz用のソースファイルが出力されます。
+これは、同じファイルを変更する複数のパッチの間に依存関係がある、
+として計算した結果です。
+
+\begin{commandline}
+nori1[22:18]%  quilt graph              whale:~/svnwc/deb/serf/trunk/serf-0.1.0
+digraph dependencies {
+        n0 [label="r1091-remove-trailing-garbage.diff"];
+        n1 [label="love-debian.diff"];
+        n2 [label="r1092-implement-distclean.diff"];
+        n3 [label="fix-ftbfs-on-m68k.diff"];
+        n4 [style=bold,label="work-around-an-error-of-libtool.diff"];
+        n0 -> n1 [len="1.39"];
+        n1 -> n2 [len="1.39"];
+        n2 -> n3 [len="1.39"];
+        n3 -> n4 [len="1.39"];
+}
+\end{commandline}
+
+このソースを例えば\texttt{graph.dot}というファイルに保存すると、
+Graphvizを使って (例えば\texttt{dot -Tpng graph.dot -o graph.png}などと実行して) 様々な形式のファイルが生成できます。
+しかし、psを出力するのであれば次のように直接出力するのが楽でしょう。
+
+\begin{commandline}
+nori1[22:35]%  quilt graph -T ps > patchdep-1.eps
+\end{commandline}
+
+生成された図は図\ref{fig:patchdep-file}のようになります。
+
+\begin{figure}[htbp]
+  \begin{center}
+   \includegraphics[scale=0.8]{image200701/patchdep-1.eps}
+  \end{center}
+  \caption{同じファイルを変更する複数のパッチの間に依存関係がある、として計算した依存関係}
+  \label{fig:patchdep-file}
+\end{figure}
+
+他方で、
+同じファイルを変更するだけでなくその変更領域が被っている場合に依存関係がある、
+として計算すると次のようになります。
+変更領域の被りが1行の場合 (図\ref{fig:patchdep-overlap-1line}) と2行 (図\ref{fig:patchdep-overlap-2line}) の場合です。
+
+\begin{commandline}
+nori1[22:44]%  quilt graph --lines=1 -T ps > patchdep-2.eps
+nori1[22:44]%  quilt graph --lines=2 -T ps > patchdep-3.eps
+\end{commandline}
+
+\begin{figure}[htbp]
+  \begin{center}
+   \includegraphics[scale=0.8]{image200701/patchdep-2.eps}
+  \end{center}
+  \caption{変更領域が1行被っている場合に依存関係がある、として計算した依存関係}
+  \label{fig:patchdep-overlap-1line}
+\end{figure}
+
+\begin{figure}[htbp]
+  \begin{center}
+   \includegraphics[scale=0.8]{image200701/patchdep-3.eps}
+  \end{center}
+  \caption{変更領域が2行被っている場合に依存関係がある、として計算した依存関係}
+  \label{fig:patchdep-overlap-2line}
+\end{figure}
+
+\subsubsection{環境変数}
+\label{subsubsec:quilt-env}
+
+quiltでは以下のような環境変数を指定できます。
+ここでは省略していますが、他にもdiff関連の環境変数がいくつかあります。
+
+\begin{description}
+ \item[\texttt{QUILT\_PATCHES}] patchesディレクトリを指定します。指定されていない場合は\texttt{patches}がパッチファイル (およびseriesファイル) の格納に使用されます。
+ \item[\texttt{QUILT\_PC}] .pcディレクトリを指定します。.pcディレクトリは、どのパッチが当てられたかを管理するためのもので、指定されていない場合は\texttt{.pc}となります。
+\end{description}
+
+\subsection{Debianパッケージ作成時のquiltの使用}
+\label{subsec:quilt-Debian-packaging}
+
+Debianパッケージ作成時のパッチの管理にquiltを使用するときは、
+以下を参考にしてください。
+
+\begin{itemize}
+ \item quiltはデフォルトではパッチファイルをpatchesディレクトリに入れます。しかし、Debianパッケージ作成用のパッチは、パッケージ作成に用いる他のファイルと同様\texttt{debian}ディレクトリの下にまとめて入れておくことが推奨されています。\ref{subsubsec:quilt-env}で説明した環境変数\texttt{QUILT\_PATCHES}に\texttt{debian/patches}を設定しておくとよいでしょう。
+ \item cdbsではquiltをパッチ管理に使用するのに便利なルールが用意されています。使用する場合は\texttt{debian/rules}内で\texttt{/usr/share/cdbs/1/rules/patchsys-quilt.mk}をincludeしてください。なお、cdbsのこのクラスはpatchesにdebian/patchesへのsymlinkを作成します。
+ \item やや一般的な話ですが、パッチを並べる順序は開発元に近い順にするとよいでしょう。つまり、開発元に既に取り込まれている変更が最初に適用され、開発元には取り込まれることのないDebian独自の変更は最後に適用されるようにすることをお勧めします。
+\end{itemize}
+
+%% FIXME:dpatchとのコマンドの対応を追加?
 
 \dancersection{仮想マシンモニタKVM}{上川純一}
 \label{sec:kvm}
