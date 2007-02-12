@@ -298,6 +298,204 @@ svn-buildpackage などとの連携もこうやったらできます。
 
 
 
+\dancersection{dbs}{岩松}
+\label{sec:dbs}
+
+\subsection{dbs とはなにか}
+
+%今年の正月にmake-kpkg をいじっていたのですが、いじっているときに kernel-package パッケージはパッチを管理するツールとして
+%dbs\footnote{http://packages.debian.org/ubstable/devel/dbs}を使っていることに気がつきました。今回はこのdbsについて調べた
+%ことをまとめてみました。
+
+ 
+dbs は Debian Build System の略です。dpatch や quilt はパッチを管理する方法に重点を置いているのですが、
+dbs は名前のとおり、ビルドまでの面倒を見るためのツールです。
+使いかたとしては、dbs も dpatch もあまり変わりません。debian/rules で専用のライブラリをincludeして使うだけです。
+ただ、作法がありところどころ違うところもあります。今回はdpatch と比べてどこが違うのかを比べてみようと思います。
+
+\subsection{インストールのしかた}
+
+\begin{commandline}
+# apt-get install dbs
+\end{commandline}
+
+\subsection{使いかた}
+
+dbs の使うためののサンプルとして hello-dbs\footnote{http://packages.debian.org/unstable/devel/hello-dbs} というパッケージが存在します。
+これを使ってどのように dbs を使うのか見ていこうと思います。
+
+
+\subsubsection{hello-dbs を取得}
+hello-dbs のソースパッケージを取得します。
+
+\begin{commandline}
+# apt-get source hello-dbs
+\end{commandline}
+
+\subsubsection{展開されたソースパッケージ}
+展開されたソースパッケージ内をみると、以下のような構成になっています。
+
+\begin{commandline}
+iwamatsu@chimagu:~/dev/debian/dbs/hello-dbs-1.3$ ls
+debian  hello-1.3.tar.gz
+\end{commandline}
+
+ここでわかる dbs を使ったパッケージの特徴として、ソースパッケージは tar.gz 形式で提供されている点です。
+dh\_make を使って生成されたパッケージではこのような構成にはなっていません。
+upstream のソースパッケージは Debain標準の形ではないということです。
+
+しかし、debian ディレクトリは、他のパッケージの構成とあまり変わりません。
+
+\begin{commandline}
+iwamatsu@chimagu:~/dev/debian/dbs/hello-dbs-1.3$ ls debian/
+README.Debian  README.build  changelog  compat  control  copyright  dirs  hello.1  patches  rules
+\end{commandline}
+
+\subsubsection{debian/rules ファイル}
+dbs では debian/rules に設定項目を書くことによって、細かい設定を行うことができます。
+hello-dbs では以下の設定を行っています。
+
+\begin{commandline}
+# DBS options
+
+package         := hello-dbs
+PWD             := $(shell pwd)
+CFLAGS          := -O2 -Wall
+INSTALL = install
+INSTALL_DATA    := $(INSTALL) -m644
+INSTALL_DIR     := $(INSTALL) -p -d -o root -g root  -m  755
+INSTALL_FILE    := $(INSTALL) -p    -o root -g root  -m  644
+INSTALL_PROGRAM := $(INSTALL) -m755
+INSTALL_SCRIPT  := $(INSTALL) -p    -o root -g root  -m  755
+SCRIPT_DIR     = /usr/share/dbs
+
+# the dbs rules
+TAR_DIR := hello-1.3.orig
+include $(SCRIPT_DIR)/dbs-build.mk
+
+\end{commandline}
+
+以下に各設定項目の内容を示します。
+
+\begin{itemize}
+\item package\\
+	パッケージ名
+
+\item PWD \\
+	パッケージカレントディレクトリ
+
+\item CFLAGS\\
+	C コンパイラに設定するオプション
+
+\item INSTALL\_DATA\\
+	インストールするデータのパーミッション
+
+\item INSTALL\_DIR\\
+	インストール先ディレクトリのパーミッション 
+
+\item INSTALL\_FILE\\
+	インストールするファイルのパーミッション
+
+\item INSTALL\_PROGRAM\\ 
+	インストールするプログラムのパーミッション
+
+\item INSTALL\_SCRIPT\\
+	インストールするスクリプトのパーミッション
+
+\item SCRIPT\_DIR\\
+	dbs スクリプトディレクトリパス
+
+\item TAR\_DIR\\
+	tar 解凍後ディレクトリ名
+\end{itemize}
+
+これら以外に
+
+{\bf include \$(SCRIPT\_DIR)/dbs-build.mk }でinclude することにより、dbs を使うことができるようになります。
+
+\subsubsection{パッチ}
+dbs では dpatch と同様、{\bf debian/patches} ディレクトリにパッチを格納する必要があります。
+パッチはユニファイド diff 形式 で書かれている必要があり、ファイル名の先頭には数字を付けます。
+数字とファイル名の間はアンダースコアで区切ります。特に拡張子等は必要ありません。
+dbs はこの数字が割り当てられている順にパッチをソースコードに適用していきます。
+
+dpatch では 00list というファイルにパッチ名を書き、書かれた順にパッチを適用していきます。
+パッチの順番が変わったときは、00list ファイルを修正すればいいだけですが、dbs の場合は
+パッチの順が変わったときはファイル名を変更しないといけません。
+
+また、hello-dbs パッケージでは {\bf 00\_maillocation} パッチがあります。
+
+\begin{commandline}
+% ls -l debian/patches
+00_maillocation
+\end{commandline}
+
+\subsubsection{パッケージのビルド}
+
+パッケージのビルドが行われるとき、以下の図の順でターゲットが呼ばれます。
+
+\includegraphics{image200702/dbs00.png}
+
+\begin{enumerate}
+\item create build-tree ディレクトリ \\
+	\$BUILD\_TREE で指定されたディレクトリを作成します。
+	デフォルトでは {\bf build-tree} になっています。
+
+\item decompression tar.gz \\
+	ソースコードが圧縮されている tar.gz を build-tree ディレクトリに解凍します。
+
+\item \$(patched) target  \\
+	debian/patches ディレクトリにあるパッチを適用します。
+
+\item \$(STAMP\_DIR)\/stamp-configure target \\
+	stamp-configure ターゲットを実行します。
+	hello-dbs では \$BUILD\_TREE ディレクトリに移動し、configure を実行します。
+
+\item \$(STAMP\_DIR)/stamp-build target \\
+	stamp-build ターゲットを実行します。
+	hello-dbs では \$BUILD\_TREE ディレクトリに移動し、make を実行します。 
+\end{enumerate}
+
+build 時の dpatch との違いは、
+
+\begin{itemize}
+\item パッチを当てるためのターゲット名が異なる
+	dbs は \$(patched)、dpatch は patch-stamp。
+
+\item マーク用のファイル名が異なる
+	stamp-configure や stamp-build というマーク用のファイル名が逆だったりします。
+	( 通常は configure-stamp / build-stamp )
+\end{itemize}
+
+\subsubsection{パッケージのclean}
+dbs の ソースのcleanターゲットはいたってシンプルです。
+dpatch は 既に展開されているソースにパッチを適用するため、cleanターゲット時には適用されたパッチを外す処理が必
+要になりますが、dbs では、build 時に生成されたマークファイル用ディレクトリやソース格納先ディレクトリ
+(\$BUILD\_TREE)をばっさり削除します。これには、適用されたパッチの管理等を行わずに済むというメリットがあります。
+
+しかし、dbs は パッケージビルド毎に 
+\begin{enumerate}
+	\item ディレクトリを削除
+	\item tar.gz を解凍
+	\item パッチ適用
+\end{enumerate}
+とするので、サイズの大きい tar.gz をパッケージ化するときは時間がかかるというでデメリットもあります。
+
+\subsection{まとめ}
+今回、dbs を触ってみたのですが、
+\begin{itemize}
+	\item ソース見えない
+		ソースがtar で固まっているため、見ることができない。
+		見るには コマンドを使って解凍する必要がある。
+
+	\item 
+
+
+
+
+
+\end{itemize}
+
 \dancersection{次回}{}
 
 未定です。
