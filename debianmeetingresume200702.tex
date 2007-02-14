@@ -257,8 +257,57 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 \dancersection{Debian勉強会 2007年度計画検討結果}{上川純一}
 \label{sec:debmtg2007plandone}
 
+2007　年度の計画を検討した結果次のような内容が出てきました。
+
+
+Debian が現在市場に提供している付加価値としては 
+
+\begin{itemize}
+ \item[] 	 デプロイしやすいしくみであること、
+ \item[]	 ライセンスが明確であること
+ \item[]	 たくさんソフトウェアがあること
+ \item[]	 アップグレードが平穏であること
+ \item[]	 くだらないパッケージもはいっていること
+ \item[]	 ソースコードが簡単にとってこれること
+ \item[]	 ユーザが多いこと
+ \item[]	 学ぶことがおおいこと
+\end{itemize}
+というものがある。
+
+また外部的な要因として
+\begin{description}
+ \item[Windows] VISTA の公開βテスト開始
+ \item[	 Mac OSX] iPhone, Leopard
+ \item[	 他のディストリビューション] FC, SUSE, RHEL の新リリースが出る、Ubuntu も出るが、宇宙に再度いってしまうのではないか？
+ \item[	 ハードウェア] Quad core, Wii/PS3/.. などが出る
+ \item[ユーザの期待として] 次はさすがにGUIでD-iできるだろう
+\end{description}
+というのがある。
+
+ユーザの拡大方向としては、
+\begin{itemize}
+ \item 	 主婦
+ \item	 学生ー＞教育にDebianを利用するべきだ
+\end{itemize}
+
+また、今年の活動は、来年を考えて動くべきだろう。
+
+以上をふまえての今年度の計画は
+\begin{itemize}
+ \item[２] 小林さん幹事
+ \item[３] 岩松さん担当でOSC
+ \item[４] えとーさんでエッチインストール大会
+ \item[５] ごとむさん主催でgoogle開催（！？）
+ \item[６] やぶきさんでえじんばら開催
+ \item[７] Debconf参加報告会
+ \item[８] Debian１４周年
+ \item[９以降] 後で考える。
+\end{itemize}
+
 \dancersection{dpatch updates 2007}{上川純一}
 \label{sec:dpatch2007}
+
+dpatch を使うときにもしかすると便利かもしれない小ネタを報告します。
 
 \subsection{インストールのしかた}
 
@@ -266,26 +315,55 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
  apt-get install dpatch
 \end{commandline}
 
+でインストールできます。
+
+
+
 \subsection{作業のしかた}
 
-debian/rules を適切に変更。
+debian/rules を適切に変更したあと、
+dpatch-edit-patch で編集します。
+\footnote{\texttt{/usr/share/doc/dpatch/examples/rules/rules.dh.gz}参照}
 
-dpatch-edit-patch で編集。
+パッチは debian/patches 以下で管理されます。
+debian/patches/00list ファイルに適用するパッチの一覧があり、それを参照し
+て パッチを適用します。
 
-\subsection{svn-buildpackage などとの連携方法}
+\subsection{各種ツールを利用してみる}
 
-svn-buildpackage などとの連携もこうやったらできます。
-
-\subsection{各種ツールを分析してみる}
-
-こんなツールがあります。
+各種ツールがあるのでみてみましょう。
 
 \begin{description}
- \item[dpatch] メインのツール
- \item[dpatch-edit-patch] 編集のツール
- \item[dpatch-convert-diffgz] .diff.gz から生成する
- \item[dpatch-get-origtargz] dpatch-edit-patch が内部的に利用するツール
+ \item[dpatch] メインのツールです。表立って直接利用することはありません。
+	    debian/rules などから呼び出されます。
+ \item[dpatch-edit-patch] 編集のツールです。パッチを作成、もしくは編集する際に利用しま
+	    す。\texttt{dpatch-edit-patch パッチ名 適用するパッチ} とい
+	    う形で指定すると、指定した適用するパッチまでが適用された状態
+	    のソースツリーが一時ディレクトリに展開された状態でシェルが起
+	    動します。そこで編集し、シェルを終了 ( ctrl-D もしくは exit
+	    )するとパッチが作成され、debian/patches 以下にファイルが生成されます。
+ \item[dpatch-convert-diffgz] .diff.gz から dpatch ファイルを生成するた
+	    めのツールです。
+ \item[dpatch-get-origtargz] dpatch-edit-patch が内部的に利用するツール。
 \end{description}
+
+\subsection{debian/ディレクトリのみを展開したパッケージのメンテナンスを
+  する}
+
+dpatch で管理すると、Debianのソースパッケージのうち、
+debian/以下のディレクトリに対しての変更しか発生しなくなります。
+.orig.tar.gz を展開した状態でのパッケージのメンテナンスは実は必要なく、
+debian/ 以下だけをバージョン管理ツールで管理して、orig.tar.gzは必要に応
+じてアップストリームからダウンロードしてくるというスタイルで開発をするこ
+とができます。
+
+dpatch-get-origtargz はそのためのツールで、現在の debian/ ディレクトリに
+対応した .orig.tar.gz を環境変数 \verb!DPGO_ORIGTARDIR! で指定したパス上に存在
+する .orig.tar.gz から探してきます。ローカルで見付からなければ uscan や apt-get
+source なども利用して、ネットワークからとってきてくれたりもします。
+
+svn-buildpackage などは、この方法を利用して dpatch と連携することが可能です。
+
 
 \subsection{今後の開発指針}
 
