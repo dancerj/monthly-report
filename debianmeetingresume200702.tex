@@ -487,8 +487,6 @@ include $(SCRIPT_DIR)/dbs-build.mk
 	tar $B2rE`8e%G%#%l%/%H%jL>(B
 \end{itemize}
 
-$B$3$l$i0J30$K(B
-
 {\bf include \$(SCRIPT\_DIR)/dbs-build.mk }$B$G(Binclude $B$9$k$3$H$K$h$j!"(Bdbs $B$r;H$&$3$H$,$G$-$k$h$&$K$J$j$^$9!#(B
 
 \subsubsection{$B%Q%C%A(B}
@@ -538,12 +536,16 @@ build $B;~$N(B dpatch $B$H$N0c$$$O!"(B
 
 \begin{itemize}
 \item $B%Q%C%A$rEv$F$k$?$a$N%?!<%2%C%HL>$,0[$J$k(B
-	dbs $B$O(B \$(patched)$B!"(Bdpatch $B$O(B patch-stamp$B!#(B
+
+	dbs $B$O(B \$(patched)$B!"(Bdpatch $B$O(B patch-stamp$B!#(B\\
+	\$(patched) $B$O(B {\bf /usr/share/dbs/dbs-build.mk}$BFb$G(B \$(STAMP\_DIR)/patchapply $B$H@k8@$5$l$F$$$^$9!#(B
 
 \item $B%^!<%/MQ$N%U%!%$%kL>$,0[$J$k(B
+
 	stamp-configure $B$d(B stamp-build $B$H$$$&%^!<%/MQ$N%U%!%$%kL>$,5U$@$C$?$j$7$^$9!#(B
 	( $BDL>o$O(B configure-stamp / build-stamp )
 \end{itemize}
+
 
 \subsubsection{$B%Q%C%1!<%8$N(Bclean}
 dbs $B$N(B $B%=!<%9$N(Bclean$B%?!<%2%C%H$O$$$?$C$F%7%s%W%k$G$9!#(B
@@ -559,20 +561,84 @@ dpatch $B$O(B $B4{$KE83+$5$l$F$$$k%=!<%9$K%Q%C%A$rE,MQ$9$k$?$a!"(Bclean$B%?
 \end{enumerate}
 $B$H$9$k$N$G!"%5%$%:$NBg$-$$(B tar.gz $B$r%Q%C%1!<%82=$9$k$H$-$O;~4V$,$+$+$k$H$$$&$G%G%a%j%C%H$b$"$j$^$9!#(B
 
+\subsection{$B%Q%C%A$NJQ99(B}
+dbs $B$G%Q%C%A$NJQ99$r9T$&$?$a$K0J2<$N%3%^%s%I$,Ds6!$5$l$F$$$^$9!#(B
+\subsubsection{dbs-edit-patch}
+	$B$3$N%3%^%s%I$O8=:_$N%=!<%9$+$i%Q%C%A$r:n@.$9$k4D6-$r9=C[$7$F$/$l$^$9!#(B
+	hello-dbs $B$G?7$7$$%Q%C%A$r:n$j$?$$$H$$$&>u67$K$J$C$?$H$7$^$9!#(B
+	$B0J2<$N%3%^%s%I$r<B9T$7$^$9!#(B
+
+\begin{commandline}
+% dbs-edit-patch  01mogeri_patch
+\end{commandline}
+
+	$B<B9T$9$k$H(B /tmp $B%G%#%l%/%H%j$K(B 01mogeri\_patch $B$H$$$&%G%#%l%/%H%j$,:n@.$5$l$^$9!#(B
+	$B%G%#%l%/%H%j$NCf$O0J2<$N$h$&$K$J$C$F$$$^$9!#(B
+
+\begin{commandline}
+% ls -l /tmp/01mogeri_patch/
+-rwxr-xr-x 1 iwamatsu iwamatsu  546 2007-02-15 06:00 dbs-update-patch
+drwxr-xr-x 2 iwamatsu iwamatsu 1024 1996-08-04 23:48 hello-1.3.orig
+drwxr-xr-x 2 iwamatsu iwamatsu 1024 1996-08-04 23:48 hello-1.3.orig-old
+\end{commandline}
+
+	hello-1.3.orig $B$O=$@5BP>]$N%G%#%l%/%H%j$G!"(Bhello-1.3.orig-old $B$O=$@5A0$N%G%#%l%/%H%j$G$9!#(B
+	hello-1.3.orig $B$r=$@5$7$?FbMF$H(B hello-1.3.orig-old $B$G:9J,$r<h$j!"(B
+	$B%Q%C%A$r@8@.$7!"%Q%C%A$r%3%T!<$7$F$/$l$k%9%/%j%W%H$,(B dbs-update-patch $B$K$J$C$F$$$^$9!#(B
+	
+\begin{commandline}
+#!/bin/sh -e
+cd "/tmp/01mogeri_patch"
+HOOK_DIR=/home/iwamatsu/dev/debian/dbs/hello-dbs-1.3/debian/dbs-hooks
+test -d "$HOOK_DIR" && run-parts "$HOOK_DIR" --arg update-patch-prediff
+find -name "*.bak" -print0 | xargs -0 --no-run-if-empty rm
+find -name "*~" -print0 | xargs -0 --no-run-if-empty rm
+: > new_patch
+diff -ruN  hello-1.3.orig-old hello-1.3.orig >> new_patch || test $? -eq 1
+mv new_patch "/home/iwamatsu/dev/debian/dbs/hello-dbs-1.3/debian/patches/01mogeri_patch"
+test -d "$HOOK_DIR" && run-parts "$HOOK_DIR" --arg update-patch-postdiff
+\end{commandline}
+	
+	$BNc$($P!"(B
+
+
+\begin{commandline}
+cat  /tmp/01mogeri_patch/hello-1.3.orig/MOGERI
+mogemogeri
+\end{commandline}
+
+	$B$H$$$&=$@5$r9T$$!"(B{\bf /tmp/dbs-update-patch} $B$r<B9T$7$?>l9g!"(B
+
+\begin{commandline}
+% /tmp/01mogeri_patch/dbs-update-patch
+% ls -l debian/patches/01mogeri_patch
+-rw-r--r-- 1 iwamatsu iwamatsu 212 2007-02-15 06:08 debian/patches/01mogeri_patch
+% cat debian/patches/01mogeri_patch
+diff -ruN hello-1.3.orig-old/MOGERI hello-1.3.orig/MOGERI
+--- hello-1.3.orig-old/MOGERI   1970-01-01 09:00:00.000000000 +0900
++++ hello-1.3.orig/MOGERI       2007-02-15 06:06:54.000000000 +0900
+@@ -0,0 +1 @@
++mogemogeri
+\end{commandline}
+
+	$B$H$J$j$^$9!#(B
+
 \subsection{$B$^$H$a(B}
 $B:#2s!"(Bdbs $B$r?($C$F$_$?$N$G$9$,!"(B
 \begin{itemize}
-	\item $B%=!<%98+$($J$$(B
-		$B%=!<%9$,(Btar $B$G8G$^$C$F$$$k$?$a!"8+$k$3$H$,$G$-$J$$!#(B
+	\item $B%=!<%9$,8+$($J$$(B
+
+		$B%=!<%9$,(B tar $B$G8G$^$C$F$$$k$?$a!"8+$k$3$H$,$G$-$J$$!#(B
 		$B8+$k$K$O(B $B%3%^%s%I$r;H$C$F2rE`$9$kI,MW$,$"$k!#(B
 
-	\item 
+	\item dpatch $B$HHf$Y$F%=!<%9$NJT=8$,$7$:$i$$(B
 
-
-
-
+		$B%3%^%s%I$OMQ0U$5$l$F$$$k$s$@$1$I!"0l2s(B tmp$BEy$K;}$C$F$$$C$F=$@5$7$F(B.... $B$H$$$&(B
+		$B:n6H$,H/@8$9$k$N$G!"$a$s$I$&$/$5$$$H$3$m$,$"$k!#(B
 
 \end{itemize}
+	$B$H$$$&46A[$G$9!#$^$?!"(Bdbs $B$r;H$C$F$$$?%Q%C%1!<%8$b(B $B$@$s$@$s(B dpatch $B$K0\9T$7$D$D$"$k$N$G(B
+	$B$b$&LrL\$ODI$($?$N$G$O$J$$$+$H$$$&5$$b$7$^$9!#(B
 
 \dancersection{$B<!2s(B}{}
 
