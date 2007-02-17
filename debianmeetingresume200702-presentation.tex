@@ -200,24 +200,27 @@
 
 \begin{frame}{「パッケージングをしてみて感じたこと、または何故パッケージングをしないか」}
 
- aptに足りなそうな機能とすると処理のロールバック機能だと思います。例えば、dis
- t-upgradeしてみた→壊れてるパッケージがあってdist-upgradeが完了できなかった
- →とりあえず壊れてるパッケージを削除したくても中途半端な状態だと言われて削除
- できないorz→dist-upgradeする前に戻れたら・・・といった感じです。ググってみ
- るとそれっぽい試みはあるようですがaliothとかで引っ掛からないのだから形になっ
- ているものはないのかな？
+aptに足りなそうな機能とすると処理のロールバック機能だと思います。例えば、
+\texttt{dist-upgrade} してみた→壊れてるパッケージがあって
+\texttt{dist-upgrade}が完了できなかった→とりあえず壊れてるパッケージを
+削除したくても中途半端な状態だと言われて削除できないorz→
+\texttt{dist-upgrade}する前に戻れたら・・・といった感じです。ググってみ
+るとそれっぽい試みはあるようですがaliothとかで引っ掛からないのだから形に
+なっているものはないのかな？
+
 \end{frame}
 
 \begin{frame}{「パッケージングをしてみて感じたこと、または何故パッケージングをしないか」}
 
- パッケージングして感じたこととすると・・・、いい言葉が思いつかないので具体例
- を示します。うちのサーバには日本語パッチを当ててパッケージングしたsquirrelma
- ilが入っているのですが、DSAが出るたびに本家の最新とひとつ前をdiff→diffを見
- てローカルパッケージに手動パッチしてパッケージをビルド、しています。ここらへ
- ん、行番号は違っても回りから判断してパッチを当ててくれるツールがあるとうれし
- いなと思います。どっちかというとmore intelligent patchな話ですが本家配布のも
- のをいじったパッケージを入れてるって場合に重要な気がします。調べたことないか
- らひょっとしたらあるのかも。もしかして今回のネタそのもの？
+ パッケージングして感じたこととすると・・・、いい言葉が思いつかないので
+ 具体例を示します。うちのサーバには日本語パッチを当ててパッケージングし
+ た\texttt{squirrelmail}が入っているのですが、DSAが出るたびに本家の最新とひとつ前
+ をdiff→diffを見てローカルパッケージに手動パッチしてパッケージをビルド、
+ しています。ここらへん、行番号は違っても回りから判断してパッチを当てて
+ くれるツールがあるとうれしいなと思います。どっちかというとmore
+ intelligent patchな話ですが本家配布のものをいじったパッケージを入れてるっ
+ て場合に重要な気がします。調べたことないからひょっとしたらあるのかも。
+ もしかして今回のネタそのもの？
 \end{frame}
 
 \subsection{キタハラさん}
@@ -360,6 +363,27 @@
 \end{frame}
 
 
+\subsection*{上川}
+\begin{frame}[containsverbatim]{解答}
+
+みなさまの不満は wajig でほとんど解決されているものですね。
+
+\begin{texttt}
+ Description: simplified Debian package management front end
+ Wajig is a single commandline wrapper around apt, apt-cache, dpkg,
+ /etc/init.d scripts and more, intended to be easy to use and providing
+ extensive documentation for all of its functions.
+
+ With a suitable sudo(1) configuration, most (if not all) package installation
+ as well as creation tasks can be done from a user shell. Wajig is also
+ suitable for general system administration.
+
+ A Gnome GUI command 'gjig' is also included in the package.
+\end{texttt}
+
+
+\end{frame}
+
 \section{DWNQuiz}
 %% debianmeetingresume200702.texから以下コピー
 \subsection{2007年01号}
@@ -464,12 +488,94 @@
 
 \section{dpatch}
 
-\begin{frame}{dpatch}
+\begin{frame}{agenda}
+\begin{minipage}[t]{0.4\hsize}
+ dpatch とはなにものか
+\end{minipage}
+\begin{minipage}[t]{0.4\hsize}
 \begin{itemize}
- \item dpatch とは
- \item 以前紹介したので詳細については省略
+ \item dpatch ツール紹介
+ \item dpatch の使いかた紹介
+ \item マニアックな使いかた
 \end{itemize}
- \end{frame}
+\end{minipage}
+\end{frame}
+
+\subsection{dpatchツール紹介}
+\begin{frame}{dpatchツール紹介}
+
+dpatch は Debianのソースパッチを管理するツールです。
+
+Debianパッケージでは，ソースパッケージは以下の構成になってます。
+\begin{description}
+    \item[.orig.tar.gz] オリジナルのtarball
+    \item[.diff.gz] Debianで作成した差分
+    \item[.dsc] dpkg用制御ファイル
+\end{description}
+
+この中で、.diff.gzは一つの大きな差分ファイルとして管理されます。そのため、
+どの部分がどういうパッチであるかは管理してはくれません。
+そこで dpatch が活躍します。
+
+通常の.diff.gzであると \texttt{debian/}ディレクトリ以下のDebianパッケー
+ジング用の情報と それ以外のソフトウェア自体への修正が混合していますが、
+それを整理してくれます。
+
+\end{frame}
+
+\begin{frame}{ソースのディレクトリ構成}
+
+dpatch で管理しているソースのディレクトリ構成は下記のようになります。
+ 
+\begin{description}
+ \item[debian/patches/00list] 適用するパッチの一覧の記述したファイル
+ \item[debian/patches/XXxxxx.dpatch] パッチファイル
+ \item[debian/patched/] dpatch がパッチを適用したか管理するためのフラグファイル
+\end{description}
+
+\end{frame}
+
+\begin{frame}
+{使えるツール} 
+
+一番よく利用するのは、dpatch-edit-patch でしょう。
+
+\begin{description}
+ \item[dpatch] メインのツールです。表立って直接利用することはありません。
+	    debian/rules などから呼び出されます。
+ \item[dpatch-list-patch] パッチの一覧を出力します。
+ \item[dpatch-edit-patch] 編集のツールです。パッチを作成、もしくは編集する際に利用しま
+	    す。
+ \item[dpatch-convert-diffgz] .diff.gz から dpatch ファイルを生成するた
+	    めのツールです。
+ \item[dpatch-get-origtargz] dpatch-edit-patch が内部的に利用するツール。
+\end{description}
+\end{frame}
+
+\subsection{dpatchの使いかた}
+\begin{frame}{dpatchの使いかた}
+\begin{enumerate}
+ \item  \url{/usr/share/doc/dpatch/examples/rules/rules.new.dh.gz} を参照して、
+ \texttt{ debian/rules} を書き換えます
+ \item dpatch-edit-patch でパッチを作成します。
+ \item debian/patches/00list を編集します
+\end{enumerate}
+\end{frame}
+
+\subsection{マニアックな使いかた}
+\begin{frame}{マニアックな使いかた}
+
+\begin{itemize}
+ \item  dbs のような使いかたもできる!
+
+ \item  debian/ ディレクトリしか展開されていない場合でも。
+
+ \item  デモ:\\
+ cd demo/dpatch/
+\end{itemize}
+
+\end{frame}
+
 
 \section{今後のイベント}
 
@@ -483,6 +589,92 @@
   \item 2007年7月 Debian Conference 参加報告会
   \item 2007年7月 OSC関西？
  \end{itemize}
+\end{frame}
+
+\begin{frame}{OSC企画会議}
+\begin{itemize}
+ \item Debian勉強会と仮想化友の会で勉強会を開催
+ \item 何ができるか?
+ \item 何をする必要があるか?
+\end{itemize}
+\end{frame}
+
+\begin{frame}{ターゲット}
+\begin{minipage}[t]{0.4\hsize}
+\begin{itemize}
+ \item 仮想化使っている人
+ \item 仮想化知っている人
+ \item 仮想化知らない人
+\end{itemize}
+\end{minipage}
+\begin{minipage}[t]{0.5\hsize}
+\begin{itemize}
+ \item Debianの開発者
+ \item Debianのユーザ
+       \begin{itemize}
+	\item サーバ管理
+	\item 開発者
+	\item なぜかデスクトップユーザ
+	\item その他
+       \end{itemize}
+ \item ユーザじゃない人
+\end{itemize}
+\end{minipage}
+\end{frame}
+
+\begin{frame}{前提}
+
+
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & Debian開発者 & Debianユーザ& ユーザでない人 \\
+\hline
+仮想化使っている & & & \\
+\hline
+仮想化知っている & & & \\
+\hline
+仮想化知らない & & & \\
+\hline
+\end{tabular}
+\end{frame}
+
+\begin{frame}{テーマ}
+Debianがホストだという前提。
+
+仮想化ってどうやってつかうの?
+\begin{itemize}[<+->]
+ \item 開発・検証用
+ \item セキュリティーのサンドボックス
+ \item Windows を動かす/EDY チャージ、年賀状、winny
+ \item 教育用・試験用
+ \item テンプレート配布
+ \item ?
+\end{itemize}
+\end{frame}
+
+\begin{frame}{OSC出し物案}
+\begin{minipage}[t]{0.4\hsize}
+\begin{itemize}
+ \item Introduction to Debian 勉強会
+ \item やらせでSocial Contract 唱和
+ \item やらせで事前課題をする
+ \item 仮想化常識 Quiz (立ってください)
+\end{itemize}
+\end{minipage}
+\begin{minipage}[t]{0.4\hsize}
+\begin{itemize}
+ \item Windows
+ \item 仮想化技術紹介
+ \item iSCSIでライブマイグレーションとか
+ \item 最後の挨拶
+%  \item パネルディスカッション
+%        「仮想化時代のDebianディストリビューション(仮)」
+%        \begin{itemize}
+% 	\item 仮想化の各代表
+% 	\item Debian の代表
+%        \end{itemize}
+\end{itemize}
+\end{minipage}
 \end{frame}
 
 \begin{frame}
