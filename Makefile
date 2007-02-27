@@ -5,7 +5,7 @@ RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 
 all: $(PDFFILES)
 
-release: $(RELEASEFILES)
+publish: $(RELEASEFILES)
 
 %.release-stamp: %.pdf
 	touch $@
@@ -34,5 +34,5 @@ deb:
 	gzip ../Packages
 	cp ../Packages.gz ../*.deb ../aliothweb/deb/
 
-.PHONY: deb clean all release
+.PHONY: deb clean all publish
 
