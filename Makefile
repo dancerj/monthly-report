@@ -5,6 +5,7 @@ all: $(PDFFILES)
 
 %.pdf: %.dvi
 	dvipdfmx $< 
+	scp $@ alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
 
 %.dvi: %.tex
 	# check kanji-code of the tex file.
