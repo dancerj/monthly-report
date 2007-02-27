@@ -1,11 +1,18 @@
 SOURCE:=$(wildcard debianmeeting*.tex)
 DVIFILES:=$(SOURCE:%.tex=%.dvi)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
+RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
+
 all: $(PDFFILES)
 
+release: $(RELEASEFILES)
+
+%.release-stamp: %.pdf
+	touch $@
+	scp -p $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
+
 %.pdf: %.dvi
-	dvipdfmx $< 
-	scp $@ alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
+	umask 002 ; dvipdfmx $< 
 
 %.dvi: %.tex
 	# check kanji-code of the tex file.
@@ -26,4 +33,5 @@ deb:
 	gzip ../Packages
 	cp ../Packages.gz ../*.deb ../aliothweb/deb/
 
-.PHONY: deb clean all
+.PHONY: deb clean all release
+
