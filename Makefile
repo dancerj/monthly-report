@@ -23,6 +23,7 @@ release: $(RELEASEFILES)
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz
+	-touch $(RELEASEFILES)
 
 deb:
 	-rm ../*.deb
