@@ -1,5 +1,5 @@
-%%Title: ./goodbyemicrosoftcom1.png
+%%Title: ./janken-B.png
 %%Creator: ebb Version 0.5.2
-%%BoundingBox: 0 0 508 448
+%%BoundingBox: 0 0 92 92
 %%CreationDate: Wed Mar 14 20:39:01 2007
 

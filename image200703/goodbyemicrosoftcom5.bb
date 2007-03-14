@@ -1,5 +1,5 @@
 %%Title: ./goodbyemicrosoftcom5.png
 %%Creator: ebb Version 0.5.2
 %%BoundingBox: 0 0 361 246
-%%CreationDate: Mon Mar  5 21:02:35 2007
+%%CreationDate: Wed Mar 14 20:39:01 2007
 
