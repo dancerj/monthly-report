@@ -1,0 +1,56 @@
+// (let* ((dot buffer-file-name) (utfdot (concat dot "-u"))  (eps (replace-regexp-in-string "dot$" "eps" dot)) (svg (replace-regexp-in-string "dot$" "svg" dot))) (shell-command (concat "iconv -f euc-jp -t utf-8 "dot" > "utfdot" ; LC_ALL=ja_JP.UTF-8 dot "utfdot" -T svg > "svg"; inkscape "svg" -p \"> "eps"\" ; gv "eps)))
+digraph structure {
+node [shape=box, fontname="GothicBBB-Medium-EUC-H", fontsize=10, 
+       width=0.5, margin=0.3]
+edge [fontname="GothicBBB-Medium-EUC-H", fontsize=8, margin=0.8]
+mindist=1
+
+subgraph cluster_A{
+bgcolor=lightgrey
+label="リモートレポジトリ"
+
+リモートレポジトリ1 ;
+
+}
+
+subgraph cluster_B {
+bgcolor=lightgrey
+label="ローカル"
+
+ローカルレポジトリ1 ; 
+ローカルレポジトリ2 ; 
+ワーキングツリー1 ; 
+ワーキングツリー2 ; 
+
+リモートレポジトリ1 -> ローカルレポジトリ1 [label="git-pull"] ;
+ローカルレポジトリ1 -> リモートレポジトリ1 [label="git-push"] ;
+リモートレポジトリ1 -> ローカルレポジトリ2 [label="git-pull"] ;
+ローカルレポジトリ2 -> リモートレポジトリ1 [label="git-push"] ;
+
+ローカルレポジトリ1 -> ワーキングツリー1 ;
+ローカルレポジトリ2 -> ワーキングツリー2 ;
+ワーキングツリー1 -> ローカルレポジトリ1 [label="git-commit"]; 
+ワーキングツリー2 -> ローカルレポジトリ2 [label="git-commit"]; 
+}
+
+subgraph cluster_C {
+bgcolor=lightgrey
+label="他のユーザ"
+
+ローカルレポジトリ3 ; 
+ローカルレポジトリ4 ; 
+ワーキングツリー3 ; 
+ワーキングツリー4 ; 
+
+リモートレポジトリ1 -> ローカルレポジトリ3 [label="git-pull"] ;
+ローカルレポジトリ3 -> リモートレポジトリ1 [label="git-push"] ;
+リモートレポジトリ1 -> ローカルレポジトリ4 [label="git-pull"] ;
+ローカルレポジトリ4 -> リモートレポジトリ1 [label="git-push"] ;
+
+ローカルレポジトリ3 -> ワーキングツリー3 ;
+ローカルレポジトリ4 -> ワーキングツリー4 ;
+ワーキングツリー3 -> ローカルレポジトリ3 [label="git-commit"]; 
+ワーキングツリー4 -> ローカルレポジトリ4 [label="git-commit"]; 
+
+}
+}
