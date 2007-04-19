@@ -285,6 +285,58 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
  \item AGNULA project: \url{http://www.agnula.info/}
 \end{itemize}
 
+\dancersection{git の実行速度をベンチマークしてみる}{上川}
+\label{sec:gitbench}
+
+git　がどれくらい高速なのか調べるために、1kB のファイル 100 個が毎回変更
+されるようなケースを100コミット分するのにどれくらいの時間がかかるのか計
+測してみました。
+
+\begin{commandline}
+git-init 
+for A in $(seq 1 100); do touch test$A; done
+git-add test*
+time ( for A in $(seq 1 100); do for A in $(seq 1 100); do 
+ dd if=/dev/urandom of=test$A bs=1024 count=1 ; 
+ done ; 
+ git-commit -a -m 'commit' ; done )
+\end{commandline}
+
+この処理に1分34秒程度かかりました。
+
+さて、それでは、Mercurial の場合はどうでしょうか。
+同じようなケースを考えて試験してみました。
+
+\begin{commandline}
+hg init 
+for A in $(seq 1 100); do touch test$A; done
+hg add test*
+time ( for A in $(seq 1 100); do for A in $(seq 1 100); do 
+ dd if=/dev/urandom of=test$A bs=1024 count=1 ; 
+ done ; 
+ hg commit -m 'commit' ; done )
+\end{commandline}
+
+この処理に1分20秒程度。同じマシン上の同じような条件で試験した結果、
+Mercurialのほうがはやいようです。
+
+また、データ容量を比較してみると、内容の差が明確になります。gitはデフォ
+ルトではそのまま圧縮データを別のブロックに保存するため、mercurial のよう
+に差分のみを保持するのに比べると不利です。ただし、gitにも repack コマン
+ドがあり、 Mercurial 風のデータを保持することができます。そうするとあま
+り差がないことがわかりますね。
+
+\begin{tabular}{|c|c|}
+\hline
+ コマンド & サイズ (du -s) \\
+\hline
+ git& 41284\\
+ hg& 9196\\
+ git(git-repack -a -d 後)& 10836\\
+\hline
+\end{tabular}
+
+
 \dancersection{次回}{}
 
 未定です。
