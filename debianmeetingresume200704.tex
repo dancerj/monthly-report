@@ -581,6 +581,154 @@ realksh で　「panic()」するところで終了しました。
 \dancersection{darcs 使いかた}{David Smith}
 \label{sec:darcs}
 
+
+darcsはソースコード管理ツールの一つです。Haskellで開発されている注目プロ
+ジェクトとしてEmacs、Common Lisp、そしてHaskellのコミュニティでは大好評で
+す。\footnote{大好評は多分言い過ぎます。せいぜい部分的に気に入られていま
+す。}
+
+git、Mercurial、monotone、他の数多くの分散ソース管理ツールの仲間であ
+ります。しかし、gitなどの分散ソース管理ツールと違い、バージョンは管理しな
+く、パッチを管理します。その二つの理念の違い、つまりバージョン管理対パッ
+チ管理、についてdarcsを活用しながら説明します。
+
+\subsection{基本なdarcs}
+
+\subsubsection{とりあえず使ってみよう}
+
+先ず、新規リポジトリを作ってみます。
+
+\begin{commandline}
+exponent,1102:~/workspace> mkdir myproject
+exponent,1103:~/workspace> cd myproject
+exponent,1104:~/workspace/myproject> darcs ini
+exponent,1105:~/workspace/myproject> ls
+_darcs
+exponent,1106:~/workspace/myproject> echo 'Hello Darcs!' > README
+exponent,1107:~/workspace/myproject> darcs whatsnew
+No changes!
+exponent,1108:~/workspace/myproject> darcs add README
+exponent,1109:~/workspace/myproject> darcs whatsnew
+\{
+addfile ./README
+hunk ./README 1
++Hello Darcs!
+\}
+exponent,1110:~/workspace/myproject> darcs record
+Darcs needs to know what name (conventionally an email address) to use as the
+patch author, e.g. 'Fred Bloggs <fred@bloggs.invalid>'.  If you provide one
+now it will be stored in the file '_darcs/prefs/author' and used as a default
+in the future.  To change your preferred author address, simply delete or edit
+this file.\footnote{残念ながら、国際化はまだまだ出来ていません。}
+
+What is your email address? David Smith <davidsmith@acm.org>
+addfile ./README
+Shall I record this change? (1/?)  [ynWsfqadjkc], or ? for help: y
+
+hunk ./README 1
++Hello Darcs!
+Shall I record this change? (2/?)  [ynWsfqadjkc], or ? for help: y
+
+What is the patch name? Say hello to darcs
+Do you want to add a long comment? [yn]n
+
+Finished recording patch 'Say hello to darcs'
+exponent,1111:~/workspace/myproject> darcs changes
+Fri Apr 20 15:43:45 JST 2007  David Smith <davidsmith@acm.org>
+  * Say hello to darcs
+\end{commandline}
+
+darcsではリポジトリの状態はパッチ集合だけで成り立ちます。パッチ
+を作るのはファイルをdarcsに登録し、内容を記録し、最後に名前付けで完成し
+ます。ちなみにパッチは名前だけで識別され、バージョン番号は一切ありません。
+\footnote{自分の名前とメール先を\$HOME/.darcs/authorに書いたら聞かれませ
+ん。}
+
+\begin{tabular}{|l|l|p{15em}|l|}
+\hline
+\hline
+コマンド名 & 例 & 意味\\
+\hline
+init & darcs init & 
+ リポジトリを初期化する\\
+\hline
+whatsnew & darcs whatsnew -v &
+ 現在のリポジトリと記録済みの情報との差分を明示する\\
+\hline
+record & darcs record -m 'バグ\#103を修正' &
+ パッチをリポジトリに記録する\\
+\hline
+changes & darcs changes --summary &
+ パッチによるチェンジログを生成する\\
+\hline
+add & darcs add realcsh.c &
+ 新しいファイルをdarcsに教える\\
+mv & darcs mv realcsh.c dangershell.c &
+ ファイル名前変更\\
+\hline
+\hline
+\end{tabular}
+
+\subsubsection{他のリポジトリとの同期}
+
+darcsはリポジトリ内のブランチをサポートしてません。複数リポジトリに同じパッ
+チを一個も共有すれば、ブランチと呼んでもいいとのことです。つまり、リポジ
+トリのコピーしかブランチが作れません。darcs getで既に存在するロカールリポ
+ジトリ又はネットワークを通して取得出来るリポジトリでコピーできます。
+\footnote{現在、HTTP及びSSHのみの通信になっています。}もちろん、ローカル
+の場合にgetを使わずcpでも大丈夫です。
+
+\begin{commandline}
+exponent,1049:~/workspace> darcs get myproject myproject2
+Copying patch 1 of 1... done!
+Finished getting.
+exponent,1050:~/workspace> cd myproject2
+exponent,1051:~/workspace/myproject2> echo 'Darcs rules!' >> README
+exponent,1052:~/workspace/myproject2> darcs record -m 'Add more darcs love'
+hunk ./README 2
++Darcs rules!
+Shall I record this change? (1/?)  [ynWsfqadjkc], or ? for help: y
+
+Finished recording patch 'Add more darcs love'
+exponent,1054:~/workspace/myproject2> darcs push ../myproject
+
+Fri Apr 20 18:04:37 JST 2007  David Smith <davidsmith@acm.org>
+  * Add more darcs love
+Shall I push this patch? (1/1)  [ynWvpxqadjk], or ? for help: y
+
+Finished applying...
+
+exponent,1055:~/workspace/myproject2>
+\end{commandline}
+
+この時、先方のリポジトリに書き込み権利がありましたが、公開されている一般
+的なプロジェクトでは開発者以外はコミット出来ませんでしょう。そのため、
+push/pullの代わりにsend/applyを使います。sendは指定するパッチをメールで送
+り、applyはファイルにあるdarcs形式パッチをリポジトリに記録。
+
+\includegraphics{image200704/darcs/pushpull.jpg}
+
+ここまでdarcsの機能がほとんど普通だと言えますでしょう。しかしながら
+パッチとパッチの依存関係を計算するための「パッチ代数」により
+Cherry Picking（桜取り）というワークフローが他より余程手軽に
+できます。残念ですが、例を造るのにdarcsが無限ループに落ちているばかり
+のようなので、とにかく素晴らしいと信用してください。
+
+\subsubsection{darcs-buildpackage}
+
+Debianパッケージ支持とHaskellを習うためにJohn Goerzenさんが
+darcs-buildpackageを開発しました。現在、ほとんどソース管理ツールでは
+Debianパッケージ作業のための'-buildpackage'パッケージはあるよう、
+その中でdarcs-buildpackageの使い方も同様ですので共通できます。
+
+残念ながら、darcsは実際にリポジトリサイズに対して操作がとても
+遅くなることもあるし、小さいリポジトリでもパッチ代数問題の解決
+でものすごく負荷かかります。darcsの上流開発はgitとMercurialほど遅いとも
+言えますが、理論的にリポジトリの内容に一切障害を与えなく最適化が
+ちゃくちゃく行われています。私としては改善するはずだと思いますが
+Mercurialに大抵負けています。\footnote{John Goerzenさんも既にdarcsよりhg
+に変更しました}
+
 \dancersection{git-buildpackage の使いかた}{上川純一}
 \label{sec:git}
 
