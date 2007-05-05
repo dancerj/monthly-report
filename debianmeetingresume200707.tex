@@ -38,9 +38,9 @@
 
 % 日付を定義する、毎月変わります。
 \newcommand{\debmtgyear}{2007}
-\newcommand{\debmtgdate}{19}
-\newcommand{\debmtgmonth}{5}
-\newcommand{\debmtgnumber}{28}
+\newcommand{\debmtgdate}{21}
+\newcommand{\debmtgmonth}{7}
+\newcommand{\debmtgnumber}{30}
 
 %http://www.naney.org/diki/dk/hyperref.html
 %日本語EUC系環境の時
@@ -268,7 +268,91 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 \subsection{その他の情報源}
 
 
-\dancersection{Debconf7 発表計画}{岩松さん+上川}
+\dancersection{Debian Multimedia Project 進捗確認}{上川純一}
+\label{sec:debianmm2007}
+
+2006年2月に一度確認しました。Debian Multimedia Project の成果が現在どう
+なっているのか、確認してみましょう。
+
+\subsection{派生ディストリビューションの状況}
+
+\begin{itemize}
+ \item agnula:
+       最近ドメイン名が expire してしまうという失態をおかしたようです。
+       \url{http://www.agnula.info/} に移行しました。
+ \item regret:
+       日本人の方でマルチメディア用のディストリビューションを開発してい
+       る方がいらっしゃるようです。関西オープンソースの会場で御挨拶しま
+       した。
+ \item ubuntu:
+       マルチメディアのためのプロジェクトが存在しています。
+\end{itemize}
+
+\subsection{動作確認してみる}
+
+\subsubsection{qjackctl}
+
+動かないっす。
+
+\subsubsection{aconnectgui}
+
+\includegraphics[width=6cm]{image200702/aconnectgui.png}
+
+\subsection{参考文献}
+\begin{itemize}
+ \item AGNULA project: \url{http://www.agnula.info/}
+\end{itemize}
+
+\dancersection{git の実行速度をベンチマークしてみる}{上川}
+\label{sec:gitbench}
+
+git　がどれくらい高速なのか調べるために、1kB のファイル 100 個が毎回変更
+されるようなケースを100コミット分するのにどれくらいの時間がかかるのか計
+測してみました。
+
+\begin{commandline}
+git-init 
+for A in $(seq 1 100); do touch test$A; done
+git-add test*
+time ( for A in $(seq 1 100); do for A in $(seq 1 100); do 
+ dd if=/dev/urandom of=test$A bs=1024 count=1 ; 
+ done ; 
+ git-commit -a -m 'commit' ; done )
+\end{commandline}
+
+この処理に1分34秒程度かかりました。
+
+さて、それでは、Mercurial の場合はどうでしょうか。
+同じようなケースを考えて試験してみました。
+
+\begin{commandline}
+hg init 
+for A in $(seq 1 100); do touch test$A; done
+hg add test*
+time ( for A in $(seq 1 100); do for A in $(seq 1 100); do 
+ dd if=/dev/urandom of=test$A bs=1024 count=1 ; 
+ done ; 
+ hg commit -m 'commit' ; done )
+\end{commandline}
+
+この処理に1分20秒程度。同じマシン上の同じような条件で試験した結果、
+Mercurialのほうがはやいようです。
+
+また、データ容量を比較してみると、内容の差が明確になります。gitはデフォ
+ルトではそのまま圧縮データを別のブロックに保存するため、mercurial のよう
+に差分のみを保持するのに比べると不利です。ただし、gitにも repack コマン
+ドがあり、 Mercurial 風のデータを保持することができます。そうするとあま
+り差がないことがわかりますね。
+
+\begin{tabular}{|c|c|}
+\hline
+ コマンド & サイズ (du -s) \\
+\hline
+ git& 41284\\
+ hg& 9196\\
+ git(git-repack -a -d 後)& 10836\\
+\hline
+\end{tabular}
 
 
 \dancersection{次回}{}
