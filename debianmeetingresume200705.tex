@@ -271,6 +271,199 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 \dancersection{Debconf7 発表計画}{岩松さん+上川}
 
 
+
+\dancersection{What's up with pbuilder?}{上川}
+
+
+この文書は pbuilder とは何か、そして、最近は何がおきたのか、そしてこれか
+ら近い将来になにがおきることが予測されるのかということを紹介する記事です。
+
+Debconf7で紹介する予定の内容です。
+
+\subsection{pbuilder の利用コンセプト}
+
+pbuilder はchroot のイメージを管理し、ビルドのたびに新しいイメージを展開
+することを通し、試験用にクリーンルーム環境を利用する行為を簡便にします。
+
+操作のために利用する単純なコマンドがいくつかあります。\texttt{pbuilder
+create}、 \texttt{pbuilder update}、 \texttt{pbuilder
+build}\footnote{pdebuild命令のほうが便利な場合があります}命令がよく利用
+される例です。詳細な情報が必要であれば、 pbuilder のマニュアルを参照して
+ください。\url{/usr/share/doc/pbuilder/pbuilder-doc.html}にあります。
+
+設定が適切に行われ初期化が終了していれば、
+\texttt{pbuilder build} コマンドは
+\texttt{.dsc} ファイル(Debianのソースパッケージ)をあたえられると chroot
+内部でパッケージをビルドします。
+
+\begin{tabular}{|l|l|l|}
+\hline
+操作 & 操作頻度 & 意味 \\
+\hline
+create & base.tgz を作成するのに一度 & ベースファイルシステムの作成 \\
+update & 一日一回 (unstable のアップデートに伴う) & ベースファイルシステ
+ ムの更新 \\
+build & パッケージビルドのたび & Debianパッケージを chroot 内部でビルド
+ する \\
+\hline
+\end{tabular}
+
+Debian Developer の通常の一日に発生するイベントを検討してみましょう。
+
+%\begin{wrapfigure}{rt}{0.4\hsize}\includegraphics[width=1\hsize]{image200705/develcycle.eps}\end{wrapfigure}
+
+\begin{center}
+ \includegraphics[width=0.6\hsize]{image200705/develcycle.eps}
+\end{center}
+
+pbuilder は確認するためにパッケージのビルドのプロセスに組み込まれていま
+す。
+\footnote{これはひとつの例です。例えば、一部の開発者はローカルでビルドするという
+ことをせず、chroot 内部で全部の作業を完結しているようです。}  これは、
+Build-Dependsを正しく設定できているのか試験するのに便利です。
+また簡単な再帰テストのフレームワークとして活用できます。
+
+\subsection{pbuilder 自身の開発の仕組み}
+
+pbuilder 自身がどう開発されているのか解説します。
+現在、 alioth で提供されているリソースを活用して co-maintain(共同メンテ
+ナンス) されていま
+す。最近の主要な開発メンバーは Lo\"ic Minier と上川です。
+
+プロジェクトページは
+\url{http://alioth.debian.org/projects/pbuilder}にあり、
+ホームページは
+\url{http://pbuilder.alioth.debian.org/}
+にあります。ホームページはpbuilderマニュアルになっています。
+
+
+ソースコードの管理にはgitを利用しています。
+レポジトリは下記のコマンドのいずれかを利用してチェックアウトできます。
+\footnote{sshアクセスには alioth のアカウントが必要です}
+
+\begin{verbatim}
+git-clone git://git.debian.org/git/pbuilder/pbuilder.git
+git-clone http://git.debian.org/git/pbuilder/pbuilder.git
+git-clone ssh://git.debian.org/git/pbuilder/pbuilder.git
+\end{verbatim}
+
+\subsection{派生物とその状況}
+
+pbuilder にはいくつかの派生物があり、異なるバックエンドをサポートしてい
+ます。
+それらは別の方法をクリーンルーム試験環境を提供するのに利用しています。
+それらを簡単に紹介します。
+
+\subsubsection{LVM スナップショット版}
+
+だれかがLVMスナップショットをbase.tgz の管理用に利用する仕組みを提案しま
+した。
+どっかにメールで投稿されています。ただ、誰も採用して開発を継続しようとは
+していないようです。
+環境の分離方法は chroot を利用しています。
+LVMスナップショットの利点としては、 tar アーカイブの展開より格段に高速だ
+という点があげられます。
+
+\subsubsection{user-mode-linux 版}
+
+pbuilder-uml が存在します。どうやらほとんどの人が利用できているようです。
+Mattia Dongili たちがこの移植版の開発に携わっています。
+
+base.tgz の展開のかわりに UML cow デバイスでクリーンルーム環境の維持が実
+現されています。また、 chroot のかわりに user-mode-linux を活用しており、
+結果として各種システムコールが遅くなり全体としては実行オーバヘッドがあります。
+
+\subsubsection{cowdancer 版}
+
+上川は　cowdancer 版の作業を 2005 年くらいから行っています。
+安定しているようです。
+ base.tgz の展開が
+\texttt{cp -la } におきかわっており、高速です。
+
+ただし、 cowdancer  が libc のコールをフックして実現しているため、
+一部のパッケージのビルドに影響が出る可能性があります。\footnote{Etchのリ
+リースの際には、残念ながら Bug 413912 のような問題が発生しました。}
+
+\subsubsection{qemu 版}
+
+上川は  qemu/kqemu/kvm 版の開発を2007年初頭から始めました。
+ QEMUの COW ブロックデバイス機能を活用しているため、base.tgzの展開が不要にな
+ ります。
+
+qemu版は別アーキテクチャ向けのビルド(クロスビルド)機能を提供するという特
+徴があります。
+たとえば i386 マシン上でARM用のパッケージをビルドすることだってできるは
+ずです。
+
+\subsection{さらなる開発のアイデア}
+
+\subsubsection{インストールテスト}
+
+There are other projects such as piuparts which can be leveraged by
+pbuilder.  
+
+pbuilder does provide example script for testing installation:
+\url{/usr/share/doc/pbuilder/examples/execute_installtest.sh}.
+
+\begin{verbatim}
+pbuilder execute \
+  /usr/share/doc/pbuilder/examples/execute_installtest.sh \
+  pbuilder
+\end{verbatim}
+
+This command will try to install the package using apt-get into the
+chroot.
+
+\subsubsection{Package testing}
+
+Package testing is a feature that is usually useful, especially since
+developer time is limited, and repeated manual testing is no fun.
+pbuilder includes an example hook script
+\url{/usr/share/doc/pbuilder/examples/B92test-pkg} which will test
+package after a successful build.
+
+The test files are shell scripts placed in
+\verb!debian/pbuilder-test/NN_name! (where NN is number) following
+run-parts standard for file names \footnote{no '.' in file names!}.
+
+\subsubsection{aptitude}
+
+pbuilder exclusively depends on apt-get.  It might be time to look at
+what is missing to get aptitude working.
+
+\subsubsection{apt-key support}
+
+pbuilder currently lacks apt-key support.  Since apt-key support is
+definitely available in the current stable releases, it is about time to
+start considering supporting apt-key.
+
+\subsubsection{build-dependency parser}
+
+Build-dependency parser has been somewhat old and suboptimal.  Lo\"ic
+Minier has been working on refreshing it.
+
+\subsubsection{buildd.net-like support}
+
+pbuilder creates a bunch of useful build logs, but it lacks the notion
+of history. It does not have an infrastructure to aggregate and put them
+to use.  \footnote{Some projects to create \texttt{pbuildd} did exist,
+but I am not sure if it still exists today.  } Collecting past build
+logs even locally and comparing them between builds may alert problems,
+used in conjunction with tools like debdiff.
+
+\subsection{References}
+
+\begin{itemize}
+ \item \url{http://pbuilder.alioth.debian.org/} or
+ \url{/usr/share/doc/pbuilder/pbuilder-doc.html}: pbuilder manual
+ \item cowdancer package
+ \item piuparts package
+ \item autodebtest: Ubuntu automatic testing system
+ \item schroot / dchroot 
+ \item buildd
+\end{itemize}
+
+
 \dancersection{次回}{}
 
 未定です。
