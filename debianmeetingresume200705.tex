@@ -258,14 +258,145 @@ Debian 界隈でおきていることについて書いているDebian Weekly News.
 みんなのアップグレード結果を聞いてみましょう。
 
 
-\dancersection{もう、エッチになってる?}{小室あや}
-\label{sec:etch2}
+\dancersection{サーバをエッチにしてみました}{小室 文}
 
-\subsection{はじめに}
-\subsection{exim}
-\subsection{mysql}
-\subsection{php}
-\subsection{その他の情報源}
+\subsection{intro}
+エッチがリリースされてから早一ヵ月たちました。debian-users mlでは助けを求める亡者の投稿でMLはかつて無い程の盛り上がりを見せていました(います？現在進行形？)。
+woodyからsargeへのアップグレード時の盛り上がりを知らないのであれですが、初めてのリリースにちょっとした祭を感じました。
+と言う訳でちょうどGWだったので、サーバ２台をsargeからエッチにアップグレードしてみました。
+
+\subsection{やること〜リリースノートを読んでみる〜}
+GW前後に日本語のリリースノートが出たので、読んでみました。\\
+Debian GNU/Linux 4.0 -- リリースノート\\
+http://www.debian.org/releases/stable/releasenotes
+
+\subsubsection{リリースノートのポイント}
+\begin{enumerate}
+\item データや設定情報のバックアップを取り、パッケージ状態のチェック (hold状態の物は解決をしておく)
+\item sargeで最新状態にする
+
+\item エッチでupdate とupgrade
+\item いろいろパッケージをいれる
+
+\item dist-upgrade
+\item 最終チェック・再起動・動作確認
+\end{enumerate}
+\subsubsection {エッチの事(個人的に)}
+\begin{itemize}
+\item 全体のパッケージ数 18200〜 / エッチでの新しいパッケージ 6500〜 / sargeから約65％のパッケージが更新された
+\item default encoding がUTF-8に
+\item installerが結構変わったらしい
+\item debian-volatile公式リリース
+\item Exim4.5からExim4.63に/ Apache2からApache2.2に / PHP5 / Bind9からBind9.3に
+\end{itemize}
+\subsection{やってみた}
+\begin{enumerate}
+\item バックアップを取る\\
+/etc/以下、/var/lib/dpgkの中身、dpgk --get-selection '*'の出力、/var/backupsなど。後あまり影響はないが/home/以下の隠れファイルとかもXなど使用している場合はバックアップ対象としていたほうがよい
+\item パッケージ状態のチェック ＆ セッションの記録
+\item (sargeでの)パッケージの更新 \\
+/etc/apt/source.listはsargeのままで aptitude update\\
+更新候補:libapache-mod-php4 libapache2-mod-php4 libc6 libkrb53 libmagic1 locales man-db php4 php4-comm
+\item (エッチでの)パッケージ情報の更新
+/etc/apt/source.listをエッチ(stable)にして\\
+aptitude update\\
+aptitude upgrade\\
+削除されたパッケージ：libruby1.6 ruby1.6
+\item パッケージの確認・インストール
+
+\begin{enumerate}
+\item aptitude install initrd-tools (すでに入っている場合もある)\\
+新規に入ったパッケージ：libdevmapper1.02 libselinux1 libsepol1 tzdata\\
+削除されたパッケージ：base-config
+\item デスクトップ環境があれば\\
+aptitude install libfam0 xlibmesa-glu x11-common(入っていたら)\\
+新規に入るパッケージ：libfontenc1 libfs6 libx11-data libxau6 libxdmcp6 libxfont1 xbitmaps xcursor-themes xfonts-encodings xfonts-utils xutils-dev\\
+削除されたパッケージ：xfree86-common
+\item カーネルのアップグレード\\
+aptitude install linux-image-2.6-◎◎(すでに2.6系であれば今すぐに更新をする必要は無い)
+\end{enumerate}
+\item aptitude dist-upgrade\\
+アップグレード中に(主にExim4とApache2設定ファイル)各種変更部分の選択を迫られる\\
+使われてないから削除されたパッケージ： libfam0c102 libreadline4 ntp ntp-simple\\
+新規インストールされたパッケージ：apache2.2-common courier-authlib courier-authlib-userdb cpp-4.1 debian-archive-keyring dmidecode gnupg gpgv laptop-detect libapr1 libaprutil1 libbind9-0 libdb4.3 libdb4.4 libdns22 libedit2 libfribidi0 libgnutls13 libisc11 libisccfg1 libltdl3 liblwres9 libncursesw5 libnewt0.52 libpcap0.8 libpci2 libpq4 libreadline5 libsigc++-2.0-0c2a libslang2 libsp1c2 libsqlite3-0 libssl0.9.8 libtasn1-3 mktemp modconf openbsd-inetd openssh-client openssh-server readline-common sysvinit-utils tasksel-data update-inetd\\
+削除されたパッケージ：libnewt0.51 libsp1 netkit-inetd ntp-server apache2-common {\bf exim4-daemon-heavy}\\
+
+\item 確認・再起動
+\begin{itemize}
+\item /proc/mounts に 'devfs'があればdevfs スタイルのデバイス名の変更をする。
+\item liloをブートローダーとして使用している場合、もう一度実行させておく
+\item {/}etc/kernel-img.conf の内容を調べ、do\underline  bootloader = Yes と書かれていることを確認
+\item grubの場合、/etc/kernel-img.conf を編集、update-grub=/sbin/update-grub を/usr/sbin/update-grub に変更する
+
+\end{itemize}
+\end{enumerate}
+
+\subsection{怒られた！}
+以下のパッケージの処理中にエラーが発生しました: \\
+exim4-config postgresql-7.4 postgresql-contrib-7.4 tcsh-kanji postgresql exim4-base postgresql-contrib exim4-daemon-heavy mailagent at exim4 qpopper amavisd-new mutt spamassassin 
+
+怒られた原因と解決方法
+\begin{itemize}
+\item debconf: unable to initialize frontend: Gnome\\
+dpkg-reconfigure debconfにして設定をDialogに変更。なんでgnomeを選んだ自分でも不明
+\item tcsh conflicts with tcsh-kanji \\
+ tcsh-kanji: Depends: tcsh ($\geq $ 6.14.00-6) but it is not installable\\
+一番分からずはまった。tcsh-kanji depends on tcshだと思い込んでのとちゃんとエラーを読んでいなかったのが原因。\\
+aptitude show tcsh\\
+パッケージ: tcsh \\
+バージョン: 6.14.00-7 \\
+依存: libc6 ($\geq $ 2.3.6-6), libncurses5 ($\geq $ 5.4-5) \\
+{\bf 競合: tcsh-kanji (＜ 6.14.00-6)}\\
+置換: tcsh-kanji ( ＜ 6.14.00-6) \\
+提供: c-shell, tcsh-kanji\\
+上記を見る限りtcshとtcsh-kanjiがconflictsしているようなので、tcsh-kanjiをremove/purgeする
+
+\item /etc/exim4/update-exim4.conf.conf: line 32: acl＿check＿helo:: command not found \\
+昔追加した文を削除してupdate-config.confをして/etc/init.d/exim4 reloadをする(今は使ってないはず)
+\item Errors were encountered while processing: exim4-config\\
+dpkg -l exim4-configでは Failed-configになっているのでdpkg --configure exim4-configをする
+
+\item exim4-daemon-heavyが exim4-daemon-lightにreplace\\
+exim4-daemon-heavyが入っているサーバをアップグレードしたらheavyからlightに置き換わった。なぜ。
+
+以下の新しいパッケージがインストールされます:\\
+  apache2.2-common courier-authlib courier-authlib-userdb cpp-4.1
+  debian-archive-keyring dmidecode {\bf exim4-daemon-light} gnupg gpgv
+  laptop-detect libapr1 libaprutil1 libbind9-0 libdb4.3 libdb4.4 libdns22
+  libedit2 libfribidi0 libgnutls13 libisc11 libisccfg1 libltdl3 liblwres9
+  libncursesw5 libnewt0.52 libpcap0.8 libpci2 libpq4 libreadline5
+  libsigc++-2.0-0c2a libslang2 libsp1c2 libsqlite3-0 libssl0.9.8 libtasn1-3
+  mktemp modconf openbsd-inetd openssh-client openssh-server
+  readline-common sysvinit-utils tasksel-data update-inetd\\
+以下のパッケージが削除されます:\\
+  apache2-common {\bf exim4-daemon-heavy} libnewt0.51 libsp1 netkit-inetd
+  ntp-server
+\end{itemize}
+\subsection{ついで：エッチをstableにした}
+もともとtestingの時からetchにしていたPCの/etc/apt/source.listをtestingから stableに直してaptitude updateしたらこんなエラーが。
+
+パッケージリストを読み込んでいます... 完了\\
+W: GPG error: http://security.debian.org stable/updates Release:\\
+公開鍵を利用できないため、以下 の署名は検証できませんでした: \\
+NO PUBKEY A70DAF536070D3A1\\
+W: GPG error: http://cdn.debian.or.jp stable Release: \\
+公開鍵を利用できないため、以下の署名は検 証できませんでした:\\
+NO PUBKEY A70DAF536070D3A1 NO PUBKEY B5D0C804ADB11277\\
+W: これらの問題を解決するためには apt-get update を実行する必要があるかもしれません
+
+
+なので
+
+gpg  {--}keyserver wwwkeys.eu.pgp.net --recv-keys A70DAF536070D3A1\\
+gpg {--}keyserver wwwkeys.eu.pgp.net --recv-keys B5D0C804ADB11277\\
+gpg {--}armor {--}export A70DAF536070D3A1 {|} apt-key add {-}\\
+gpg {--}armor {--}export B5D0C804ADB11277 {|} apt-key add {-}
+
+とするとエラーが出なくなった。/etc/apt/source.listで指定している名前が違う＝パッケージも違う？のだろうか。
+
+\subsection{まとめ}
+エッチにアップグレードはそんなに難しくない、という事で。
+リリースノートとaptitude show パッケージ名があれば大方のトラブルには対応出来るかと思います。
 
 
 \dancersection{Debconf7 発表計画}{岩松さん+上川}
