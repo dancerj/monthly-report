@@ -27,12 +27,8 @@ clean:
 
 deb:
 	-rm ../*.deb
-	debuild -us -uc 
-	[ ! -f ../aliothweb/mountpoint ] || sshfs -o nonempty alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs ../aliothweb
-	[ ! -f ../aliothweb/mountpoint ]
-	cd ../ && dpkg-scanpackages . . > Packages
-	gzip ../Packages
-	cp ../Packages.gz ../*.deb ../aliothweb/deb/
+	debian/rules local-make-orig
+	debuild -us -uc -i'.*pdf$'
 
 .PHONY: deb clean all publish
 
