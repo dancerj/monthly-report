@@ -30,5 +30,8 @@ deb:
 	debian/rules local-make-orig
 	debuild -us -uc -i'.*pdf$'
 
-.PHONY: deb clean all publish
+listtopic:
+	lgrep dancersection *-{natsu,fuyu}.tex | sed -n 's/\\dancersection{\([^}]*\)}.*/\1/p'
+
+.PHONY: deb clean all publish listtopic
 
