@@ -18,11 +18,12 @@ publish: $(RELEASEFILES)
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
 	platex $<
+	mendex $(<:%.tex=%)
 	platex $<
 	platex $<
 
 clean:
-	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz
+	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx
 	-touch $(RELEASEFILES)
 
 deb:
