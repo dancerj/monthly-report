@@ -36,7 +36,7 @@ CreateItems(datastruct * ds, GtkWidget *vbox)
   gtk_box_pack_start(GTK_BOX(vbox), ds->progress, TRUE, TRUE, FALSE);
   gtk_widget_show(ds->progress);  
 
-  ds->text = gtk_label_new("Hours");
+  ds->text = gtk_label_new("time");
   gtk_box_pack_start(GTK_BOX(vbox), ds->text, 
 		     TRUE,
 		     TRUE,
@@ -100,8 +100,15 @@ int main (int ac, char**av)
   /* general initialization. */
   setlocale(LC_TIME, "");
   gtk_init (&ac, &av);
+  if (ac < 2)
+    {
+      fprintf(stderr, "Usage:\n\t%s minutes\n\n", 
+	      av[0]);
+      return 1;
+    }
+  
   start_time=time(NULL);
-  time_max= 5*60;
+  time_max= atoi(av[1])*60;
   CreateMainWindow(&ds);
   hTimeout = gtk_timeout_add(1000, timeout_command, &ds);
   gtk_main();
