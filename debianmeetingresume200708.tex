@@ -301,13 +301,144 @@ DVD
 
 配布量、売上紹介
 
-\dancersection{cdn.debian.or.jp}{荒木 靖宏}
+\dancersection{cdn.debian.or.jpの紹介}{荒木 靖宏 (yasu@debian.or.jp, ar@debian.org)}
 \label{sec:cdndebianorjp}
 \index{debianjp@Debian JP}
 \index{cdn.debian.or.jp}
+\index{Content Delivery Network}
 
-\subsection{XXX}
-\subsection{YYY}
+\subsection{CDNとは}
+
+Content Delivery Network（CDN）はウェブコンテンツ配置および配送方法として
+Akamai\index{Akamai} 社によりサービスされ広く知られることになった。当初か
+ら一部の人気の高いサーバへのトラフィック集中によるサーバ停止の回避、海外
+のリッチコンテンツ取得の高速化、トラフィック分散によるネットワークおよび
+サーバの利用平準化などの理由で広く受け入れられた。
+
+CDNという用語自体はWWWに限ることなく、一般にコンテンツを取得するための配
+送手段や方法全体を指す場合がある。たとえば、Winny\index{Winny} や
+Bittorrent\index{Bittorrent}などのコンテンツを取得するために特別に設計さ
+れたプロトコルを用いて、P2Pネットワークを構成するような手法も含まれる。
+
+\subsection{DebianにおけるCDNの現状}
+\subsubsection{利用法とユーザから見た動作}
+
+\url{cdn.debian.or.jp}ではDebianでインストール時から広くdebファイルの入手に使
+われるaptで使えるCDNとして設計し、運用している。そのため、Debianにおける
+CDNの利用法は至極簡単である。\url{/etc/apt/source.list} に記述するAPT リポジト
+リとして、
+
+\begin{commandline}
+ deb http://cdn.debian.or.jp/debian/ stable main contrib non-free
+ deb-src http://cdn.debian.or.jp/debian/ stable main contrib non-free
+\end{commandline}
+
+以上のように指定するだけでユーザは今までとなんら変わることなくaptコマンド
+を使用できる。サービス時の手順と構成は以下のようになる。
+（\fgref{fig:usercdndebianorjp}）
+
+\begin{enumerate}
+ \item  ユーザがapt-get コマンドを行うとcdn.debian.or.jpをDNSで問い合わせる
+ \item  \url{cdn.debian.or.jp}を管理するDNSはサーバ候補(surrogate)選択する
+ \item  選択結果をDNSのリプライとして返す
+ \item  aptは\url{cdn.debian.or.jp}としてSurrogate Cを使用する
+\end{enumerate}
+
+\begin{figure}[H]
+\includegraphics[width=\hsize]{image200708/surrogate.png}
+
+ \caption{ユーザから見たcdn.debian.or.jpの動作}
+ \label{fig:usercdndebianorjp}
+\end{figure}
+
+\subsubsection{cdn.debian.or.jpのシステムと動作}
+CDNシステムが完全に動作しユーザから使用されるためには、システムが完全な
+ファイルを提供すること、システムが安定して動作すること、そしてCDNを使っ
+た場合に高速に動作していることが求められる。
+
+\subsubsubsection{提供ファイルの完全性}
+
+このために以下二点を満たさねばならない。
+\begin{itemize}
+ \item  個々のファイルがコンテンツ提供者たるdebファイル配布元と同一であること
+ \item  apt-get updateの結果取得するファイル群がどのSurrogateでも入手できること
+\end{itemize}
+前者については、debはそのファイルのmd5値、sha1値とともに配布され、ユーザ
+が使用するaptで確認後に利用されるためCDNを使用した場合でも問題にならない。
+
+後者についてはユーザがapt-get updateを行ったときに接続するSurrogateと
+apt-get dist-upgradeを行ったときに接続するSurrogateは同一であるとは限らな
+いため、DNSがSurrogateとして返すサーバが保持するファイルは同一である必要
+がある。\url{cdn.debian.or.jp}ではDebianプロジェクトで一般に行われている
+方法と同様に、rsyncプロトコルを用い、pushミラーを行っている（図２）。その
+ため、\url{cdn.debian.or.jp}のサロゲート内で最上流にあるサーバとミラーが
+同一であることを2分毎にrsyncミラー終了時に作成されるスタンプファイルを確
+認して、同一でないサーバはサロゲート候補から一時的に除外している。
+
+\begin{figure}[H]
+ \caption{Debianサロゲートのrsyncによるミラー}
+ \label{fig:rsyncsurrogatemirror}
+\end{figure}
+
+
+\subsubsubsection{システムの安定動作}
+先に述べたように、ユーザはCDNを使用する際にはDNSを最初に使用するため、
+DNSの安定運用がカギとなる。そのため、\url{cdn.debian.or.jp}を管理するDNSサーバ
+はまったく独立に動作するサーバで行っている。
+
+また、サーバの動作を確認は、5秒以内にHTTPのレスポンスを返さないサーバは
+サロゲート候補から一時的に除外している。
+
+\subsubsubsection{高速動作}
+\url{cdn.debian.or.jp}ではDNSで問い合わせされるとサロゲートリストとして複数の
+IPアドレスを返す。このIPアドレスはラウンドロビンで選択しているわけではな
+く、サーバキャパシティやネットワーク速度を考慮し、設定している。
+
+\subsection{将来の展望}
+
+ここまで説明してきた、\url{cdn.debian.or.jp}の動作には改善すべき点が多数存在す
+る。改善の展望としていくつか挙げる。
+
+\subsection{apt-getコマンドのHTTP REDIRECT}
+apt-getコマンドはHTTP REDIRECTに対応していない。
+
+HTTP REDIRECTは、いったんHTTP GETなどで接続してきたクライアントに対して、
+新たにそのリソースが存在するURLを通知するものである。この仕組みをうまく
+つかったCDNとして、Coral Content Distribution Network (Coral CDN)がある。
+Coral CDNはサロゲート間でP2Pによるファイル配置し、そのインターフェースと
+して、HTTPを使用し、しかも使用にはインターネットから取得可能なファイルで
+あれば制限をかけていない。さらに、Apacheを使った一時配布サーバではHTTP
+REDIRECTをつかってCoral　CDNに誘導することも推奨されている。ただし、現状
+で、Coral CDNを使うために、
+
+\begin{commandline}
+ deb http://cdn.debian.or.jp.nyud.net:8090/debian/ stable main contrib non-free
+\end{commandline}
+を指定することも可能だが、少なくとも日本においてはCoral CDNを担うサロゲー
+トが存在しないこともあって非常に低速である。ただし韓国や中国では広くつか
+われており、将来の拡張に使用したい。
+
+\subsubsection{IPアドレスの位置情報を使用したサーバ選択}
+
+globalにCDNを展開する場合には地理的に近いサーバ群からある程度絞込むのが
+有効である。現在、GeoIPなど無料でIPと地理情報のマッピング提供者が現れて
+おり、この活用は\url{cdn.debian.or.jp}の次の拡張として最有力だと考えている。
+
+\subsubsection{aptのP2P対応}
+
+現在、\url{http://wiki.debian.org/DebTorrent} や
+\url{http://www.cs.sfu.ca/~camerond/personal/GoogleSoCDebian.html}でaptの
+Bittorrent対応が進められており、有力な候補である。ただし、Bittorrentプロ
+トコルをクライアントで直接使うものであり、ネットワーク利用ポリシーとの競
+合やinstall時に利用可能なのかなど今後検証すべき問題も多い。
+
+
+\subsection{おわりに}
+
+いつでも必要なソフトウェアやコンテンツを安価に入手する手段としてCDNはこ
+れからも様々な発展を続けると考える。Debianはdebの安定入手手段の有無がシ
+ステムの信頼性を左右するシステムであり、CDNの広範な活用が今後ますます求
+められるようになると考える。
 
 \dancersection{今後の予定}{上川 純一}
 
