@@ -30,7 +30,7 @@ clean:
 deb:
 	-rm ../*.deb
 	debian/rules local-make-orig
-	debuild -us -uc -i'.*pdf$'
+	debuild -us -uc -i'.*pdf$$|.git'
 
 listtopic:
 	lgrep dancersection *-{natsu,fuyu}.tex | sed -n 's/\\dancersection{\([^}]*\)}.*/\1/p'
