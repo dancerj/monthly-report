@@ -1,4 +1,4 @@
-/*BINFMTC: $(gtk-config --libs --cflags)
+/*BINFMTC: $(pkg-config --cflags --libs gtk+-2.0)
  */
 #define _GNU_SOURCE
 #include <stdio.h>
