@@ -18,9 +18,9 @@ publish: $(RELEASEFILES)
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
 	platex $< # create draft input
-	mendex $(<:%.tex=%)
+	-mendex $(<:%.tex=%)
 	platex $< # create draft content with correct spacing for index and toc
-	mendex $(<:%.tex=%) # recreate index with correct page number
+	-mendex $(<:%.tex=%) # recreate index with correct page number
 	platex $< # recreate toc with correct page number
 
 clean:
