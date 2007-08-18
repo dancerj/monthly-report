@@ -9,6 +9,23 @@
 
 time_t start_time, time_max;
 
+typedef struct
+{
+  int threshold;
+  const char* command;
+} timeout_t;
+
+timeout_t timeout[] = 
+  {
+    /* reverse order of timeout */
+    {5*60, "mpg321 image200708/ato5fun.mp3"},
+    {0, "mpg321 image200708/ended.mp3"},
+    {-1, NULL}			/* NULL will end program */
+  };
+
+int current_timeout=0;
+
+
 typedef struct datastruct
 {
   GtkWidget * progress;
@@ -88,7 +105,16 @@ gint timeout_command (gpointer data)
 	    time_current % 60);
 
   gtk_label_set_text (GTK_LABEL(ds->text), strbuf);
-  free (strbuf);  
+  free (strbuf);
+
+  if (time_current < timeout[current_timeout].threshold)
+    {
+      system(timeout[current_timeout].command);
+      current_timeout++;
+      if (!timeout[current_timeout].command)
+	exit (1);
+    }
+  
   return 1;  
 }
 
