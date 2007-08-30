@@ -24,7 +24,9 @@ publish: $(RELEASEFILES)
 	platex $< # recreate toc with correct page number
 
 clean:
-	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx
+	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
+
+
 	-touch $(RELEASEFILES)
 
 deb:
