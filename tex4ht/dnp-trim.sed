@@ -1,0 +1,16 @@
+s/dmjkata/dmj/g
+s/dmjkeisen/dmj/g
+s/dmjk[a-z]/dmj/g
+s/dmjhira/dmj/g
+s/dmjsy/dmj/g
+s/dmjgreek/dmj/g
+s/dmjroma/dmj/g
+s/dmjrussian/dmj/g
+s/dgjkata/dgj/g
+s/dgjkeisen/dgj/g
+s/dgjk[a-z]/dgj/g
+s/dgjhira/dgj/g
+s/dgjsy/dgj/g
+s/dgjgreek/dgj/g
+s/dgjroma/dgj/g
+s/dgjrussian/dgj/g
