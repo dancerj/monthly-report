@@ -191,6 +191,154 @@ debian-devel-announce の内容から出題しました。
 \dancersection{Exim 再発見}{小室 文}
 \label{debianexim}
 \index{exim}
+\subsection{intro}
+私達の日常ではメールは欠かせないコミュニケーションツールです。
+それを実現する為に、導入される MTA( Mail Transfer Agent )は、どのソフトを使ったら
+一番コストパフォーマンスが良いか、またどうやったら会社、グループ、個人のニーズに答える事が
+出来るか、システム管理者は日夜頭を悩ましているはずです。そして一度導入したメールサーバーの
+仕組みは、なかなか別の仕組みに乗り換えるのは、時間と費用がかかり、問題があったとしてもなか
+なか移行しづらいという現状もあり、MTAを決めるのは人生でなかなか訪れない大決心の一つである
+事は明白です。
+MTA の一つ、Exim は Debian の Default MTA と呼ばれながらも、今や Postfix の人気に
+すっかり影を潜めて過去の栄光に甘んじているのが現実です。
+今日は Exim の歴史、利点・不利点、導入方法を御紹介します。 皆さんの MTA に選ばれなかった
+としても、Exim はこういうパッケージなのか！と知って頂ければ幸いです。
+
+\subsection{Eximとは}
+Exim\footnote{Exim の名前の由来は EXperimental Internet Mailer (Exim)}
+ とは、Unixもしくは Unix like なOSの上で動く Mail Transfer Agent です。Cygwin 
+を使えば Windows の上でも動かす事が出来ます。Exim はケンブリッジ大学で 1995 年に Philip Hazel 
+さんによって開発されました。\\
+
+\subsection{Exim の歴史}
+ケンブリッジ大学では、複数の MTA が動いていて(Sendmail, Smail, PP？などなど)、そんな環境
+にうんざりしてたがどうかは不明ですが、Philip Hazel さんは Smail を拡張して MTA を大学のニーズ
+に合わせて作ろうと試みました。しかし残念ながら、Smail 拡張はあっさり諦め、Hazel さんはスクラッチ
+から MTA を作ろうと試みる事にしました。
+その作業が、彼が所属した Computer Sceince の仲間に知れわたり、FTP サーバーを立てられ、配布され
+るようになりました。
+書いている途中で配布がされるようになった為、正式な Exim 0 もしくは 1 はリリースしていません
+(少なくとも Hazel さんはリリース出来なかったと思っているようです)。\\
+元々 Sendmail, Smail を触っていた Hazel さんは Sendmail に代わる MTA を作ろうと Exim 
+を設計されています。 \\
+\begin{tabular}[htb]{|l|l|} \hline
+1995年？月 & Exim 開発開始\\ \hline
+1995年11月 & 同僚が FTP サーバをつくりパッケージを配布始める。クチコミで広がる\\ \hline
+1998年夏 & Perl の正規表現ライブラリーがなかったので作る(PCRE)\\ \hline
+1999年3月 & コードネーム Slink の Debian 2.1 リリース。 Exim をディフォルト MTA として起用する \\ \hline
+1999年9月 & ケンブリッジ大学で Exim の講座を開始する。 \\ \hline
+2000年8月 & コードネーム potato の Debian 2.2 リリース\\ \hline
+2002年7月 & コードネーム woody の Debian 3.0 リリース\\ \hline
+2004年5月 & ケンブリッジ大学が Exim を正式にサポートすると宣言\\ \hline
+2005年6月 & コードネーム sarge の Debian 3.1 リリース\\ \hline
+2007年4月 & コードネーム etch のDebian 4.0 リリース\\ \hline
+\end{tabular}
+
+\subsection{Exim と Debian の関係}
+\subsubsection{現在の Exim のメンテナー}
+現在の Exim のメンテナーは
+\begin{itemize}
+\item Andreas Metzler  \url{ametzler@debian.org}
+\item Marc Haber \url{mh@debian.org}
+\end{itemize}
+です。
+Slink で Exim が搭載されるようになる前から、Sendmail や Smail から Exim へ移行を試みる人が沢山いた
+ようです。
+日本ではマニュアルの日本語可があまり進まず(現在も小数の人達が作業しているのみ)、Slink で Exim が搭載され
+たので、移行した、という人が多かったようです。
+
+\subsubsection{なぜ Exim は Debian の Default MTA になったのか！？}
+
+\begin{tabular}[htb]{|l|l|} \hline
+1996年09月 & Tim Cutt が Debian で Exim をパッケージとして提供する為に作業を始める \\ \hline
+1997年05月 & Exim がunstable に入る by David Sewell \\ \hline
+1999年03月 & Slink で Exim をディフォルト MTA として起用する。\\ \hline
+\end{tabular}
+
+当時は Postfix、Sendmail, Smail などがあったりましたが、ライセンス問題
+\footnote{ライセンス形態：GNU General Public License (GPL)  ver2}
+、機能の充実度合などがあり、
+Debian の Defualt MTA になったようです。
+
+\subsection{Exim と他の MTA の相違点}
+
+\begin{tabular}[htb]{|l|ccc|} \hline
+MTA&ライセンス形態 & メイン製作者 & リリース状態 \\ \hline
+qmail&DJBライセンス&D. J. Bernstein& 1997年に出したっきり\\ \hline
+Postfix&IBM Public License&Wietse Zweitze Venema&1997年にリリース後、都度都度にリリース \\ \hline
+Exim&GPL&Philip Hazel&1995年にリリース後、都度都度リリース \\ \hline
+\end{tabular}
+
+{\Large qmail}
+\begin{itemize}
+\item 1997年からリリースされていない。IPv6 に対応してない。ライセンス形態、導入が難しい
+\item 大量メールを配信する場合、セキュリティー面
+\end{itemize}
+
+{\Large Postfix}
+\begin{itemize}
+\item Exim ほど機能の実装がない
+\item 移行が簡単、コミュニティーがアクティブ、日本でも使っているユーザーが多い(本も多い)
+\end{itemize}
+
+{\Large Exim}
+\begin{itemize}
+\item 日本語のマニュアルがない
+\item コミュニティーがアクティブ、Debian の Default MTA、ライセンス、ドキュメントが豊富(英語)
+\end{itemize}
+
+\subsection{Exim の設定方法}
+\subsubsection{既存パッケージ一覧}
+現在の Debian の stable である etch には以下の Exim 向けパッケージが用意されています。
+
+\begin{tabular}[htb]{|l|l|} \hline
+exim4&Exim 4 を簡単にインストールする為にメタパッケージ\\ \hline
+exim4-base&全 Exim 4 パッケージ支援パッケージ\\ \hline
+exim4-config&Exim 4 設定用パッケージ \\ \hline
+exim4-daemon-heavy&追加機能(exiscan-acl含む)を搭載しているデーモンパッケージ\\ \hline
+exim4-daemon-light&簡易機能を搭載しているデーモンパッケージ\\ \hline
+exim4-daemon-light-dbg&debug用\\ \hline
+exim4-dbg&debug用\\ \hline
+exim4-dev&ヘッダーファイル用の Exim 4 パッケージ \\ \hline
+exim4-doc-html&Exim 4 の html 形式のドキュメントパッケージ\\ \hline
+exim4-doc-info& Exim 4 の info 形式のドキュメントパッケージ\\ \hline
+\end{tabular}
+
+\subsubsection{インストール方法}
+
+\begin{commandline}
+aptitude install exim4 exim4-base exim4-config exim4-daemon-heavy
+\end{commandline}
+か
+\begin{commandline}
+aptitude install exim4 exim4-base exim4-config exim4-daemon-light
+\end{commandline}
+を実行します。
+
+exim-config によって必要な情報入力はプロンプトが出るので指示に従います。 \\
+\begin{enumerate}
+\item 設定ファイルを分割するか、否か
+\item メールの扱いについて(送信サーバの決定)
+\item メールドメイン名について
+\item 受けつけるメール送信元の IP 制限の決定( IPv6 対応)
+\item Virtual Domain の下準備
+\item オープンメールの設定
+\item ローカルネットワークからの送信の決定
+\item ダイヤルアップ時のDNS look upの決定
+\item メール形式の決定(mbox/Maildir)
+\end{enumerate}
+
+\subsection{Exim のこれから}
+ Philip Hazel さんは2007年2月8日付で、9月末に Exim から引退したいと申し出ましたが、
+まだ決着はついていません。
+すでに Exim を Hazel さんと同等に知っているメンテナーが世界中にいるので、肝はそれを統
+括するマネージャーのような人を立てる、という事が大事になってくると思われます。\\
+メインで動いている人達は Exim の新機能や、Exim をどのように運営、更新をしていくか 
+\url{Exim-future@exim.org} という場所で会議をしようと試みています。\\
+Debian では、 Exim 5 がリリースされるタイミングが現在もなお不透明な為、例え Lenny 
+が近い未来リリースされる事があっても、その時に Exim 5 が間に合うとは保障出来ません。
+日本では私がとりあえずマニュアルの翻訳をしようとExim ユーザー会を作ってみました。\\
+\url{https://sourceforge.jp/projects/exim-jp}
 
 \dancersection{あなたの知らないかもしれない apt-xxx}{岩松 信洋}
 \label{aptxxx}
