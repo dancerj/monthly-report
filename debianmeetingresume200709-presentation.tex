@@ -4,6 +4,8 @@
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2007 Junichi Uekawa
+%                   2007 Nobuhiro Iwamatsu
+%                   2007 Aya Komuro
 
 %     This program is free software; you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -207,47 +209,38 @@ Debian の常識、もちろん知ってますよね?
 会長がこの目で確認しちゃうぞ!
 
 
-今回の出題範囲は\url{http://www.debian.org/vote/2007/vote_003} にある投票
-結果と、\url{http://lists.debian.org/debian-devel-announce/} にある最近の
-アナウンス文書です。
+今回の出題範囲は\url{debian-devel@lists.debian.org} に投稿された内容からです。
 \end{frame}
 
 \subsection{問題}
 
-\santaku{Debian Maintainers の提案は何をするものか}
-{気に入らない Debian Developer を投票により追放する}
-{Debian Developer より制限された権限をもつ Debian Maintainers を定義する}
-{Debian Developer の品質を改善する}
-{B}
-
-\santaku{
-Bits from the DPL: FTP assistants, DM, APT, sharing patches
-で Sam Hocever が主張したのは
-}
-{パッチを共有しよう}
-{もう会長としての仕事は終わった}
-{Debian としては Ubuntu の殲滅が目標}
+\santaku
+{Albert Einstein が作った Debian ベースのディストリビューションは何か}
+{ice linux}
+{fantasy linux}
+{fire linux}
 {A}
 
-\santaku{
-apt-get install の仕組みで大きな変化が発生したのは何か
-}
-{Suggests  をデフォルトでインストールするようになった}
-{Recommends をデフォルトでインストールするようになった}
-{Depends を無視するようになった}
+\santaku
+{そしてこのAlbert Einstein が debian-devel で質問した内容は何でしょう}
+{なぜ Internet Explorer が Debian にないのですか。}
+{なぜ Opera が Debian にないのですか。}
+{なぜ Safari が Debian にないのですか。}
 {B}
 
-\santaku{lenny のリリースゴールに入っているのはどれか}
-{Debian の市場シェア40\% 以上の獲得}
-{debian/rules が国際化対応}
-{debian/changelog と debian/control は UTF-8}
-{C}
-
-\santaku{sparc32 になにがおきたか}
-{次のリリースではサポートされなくなる}
-{急にユーザが増えたので開発者を募集している}
-{arm とバイナリ互換になった}
+\santaku
+{Luk Claes が RCバグについて提案したのはどのような内容か}
+{RCバグが出たパッケージのメンテナへのペナルティを考える提案}
+{RCバグの 0-day NMU についての提案}
+{RCバグをいかにして無視するか、という HowTo.}
 {B}
+
+\santaku
+{packages.debian.orgにいろいろ新機能が追加されました。どのような機能が追加されましたか}
+{メールフォワード機能}
+{カルマ付加機能}
+{Webからパッケージ乗っ取り機能}
+{A}
 
 \section{最近の話題}
 
@@ -255,9 +248,268 @@ apt-get install の仕組みで大きな変化が発生したのは何か
 \emtext{コミケ}
 \emtext{1st Debian JP BSP}
 
-\section{cdn.debian.or.jp}
-\emtext{事前課題の紹介}
+\section{あなたが知らないかもしれない apt-xxx}
+\emtext{あなたが知らないかもしれない apt-xxx}
+\begin{frame}
+ あまり知られていない apt-xxx について調べてみました。
+\end{frame}
 
+\begin{frame}{apt-key}
+ \begin{itemize}%[<+->]
+ \item apt の GPG鍵リングを制御するフロントエンド
+
+   2006年から secure apt 導入
+ \item GUI で操作したい向けパッケージも用意
+
+   gui-apt-key
+ \begin{figure}[h]
+ \begin{center}
+ \includegraphics[width=8cm]{image200709/gui-apt-key.png}
+ \caption{gui-apt-key}
+ \end{center}
+ \end{figure}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apt-spy}
+\begin{itemize}%[<+->]
+ \item ネットワークの情報から最適な apt-line を生成することができるツール
+   \begin{commandline}
+# apt-spy -d stable -s JP
+   \end{commandline}
+
+ \item 今は cdn.debian.or.jp があるのですでに役目は終えた気がします。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{auto-apt}
+\begin{itemize}%[<+->]
+ \item 世間では検索用のツールとして有名
+ \begin{commandline}
+ % auto-apt upate
+ % auto-apt search stdio.h
+ usr/include/stlport/stdio.h     libdevel/libstlport5.1-dev
+ usr/include/fcgi_stdio.h        libdevel/libfcgi-dev
+ usr/include/H5FDstdio.h libdevel/libhdf5-lam-dev,libdevel/libhdf5-mpich-dev,\
+  libdevel/libhdf5-serial-dev
+ usr/include/stdio.h     libdevel/libc6-dev
+ \end{commandline}
+ \item しかし、ファイル検索用として apt-file というコマンドがある
+ \end{itemize}
+ \end{frame}
+\begin{frame}[containsverbatim]{auto-apt}
+ \begin{itemize}%[<+->]
+ \item 実は auto-apt は コマンド実行時に足りないパッケージをインストールしてくれるツール
+ \begin{commandline}
+ # auto-apt run apt-get source hello
+ \end{commandline}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{cron-apt}
+ \begin{itemize}%[<+->]
+ \item apt を cronで動作させるためのツール
+
+	わざわざ cron で書かなくてもよい
+
+ \item apticron
+
+	aptitude の cron-apt 版ではなく、セキュリティアップデート情報
+	をメールで送信してくれるツール。名前にだまされるな。
+	
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{apt-proxy / apt-cacher}
+ \begin{itemize}%[<+->]
+ \item Debian パッケージのキャッシングプロキシを構築するパッケージ
+ \begin{figure}[h]
+使用しない場合
+
+ \begin{center}
+ \includegraphics[width=10cm]{image200709/apt-proxy.png}
+ \end{center}
+ \end{figure}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{apt-proxy / apt-cacher}
+ \begin{figure}[h]
+使用した場合
+ \begin{center}
+ \includegraphics[width=7cm]{image200709/apt-proxy-e.png}
+ \end{center}
+ \end{figure}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{apt-ftparchive}
+ \begin{itemize}%[<+->]
+ \item Packages.gz などのパッケージ情報用ファイルを作成するためのツール
+ 
+ 自分で作ったパッケージを apt-line として公開したい場合などに使用する。
+\begin{commandline}
+  % apt-ftparchive packages . | gzip -9 > Packages.gz 
+  % apt-ftparchive sources . | gzip -9 > Sources.gz
+  % apt-ftparchive release . > Release 
+\end{commandline}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apt-sortpkgs}
+ \begin{itemize}%[<+->]
+ \item Packages.gz および Sources.gz ファイルをソートする
+
+   apt-ftparchive で作成したファイルはソートされていない場合がある。
+   apt-sortokgs を使い、アルファベット順にソートする。
+   
+\begin{commandline}
+ % apt-sortpkgs Packages > Packages.sort
+\end{commandline} 
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apt-extracttemplates}
+ \begin{itemize}%[<+->]
+ \item Debian パッケージから debconf の設定とテンプレート情報を抽出する
+
+\begin{commandline}
+ % wget http://http.us.debian.org/debian/pool/main/x/xorg/ \
+xserver-xorg_7.3~rc1_all.deb
+ % apt-extracttemplates xserver-xorg_7.3~rc1_all.deb
+ % ls
+ xserver-xorg.config.34261
+ xserver-xorg.template.34260
+\end{commandline}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apt-build}
+ \begin{itemize}
+  \item apt-get 感覚でパッケージをビルドできるツール
+  
+  \item apt-build を使用せず、Debian パッケージをリビルドする場合
+   \begin{commandline}
+ % apt-get update
+ % apt-get source hello
+ % cd hello-x.x
+ % debuild -us -uc
+ % sudo dpkg-i ../hello_xxxx.deb
+   \end{commandline}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apt-build}
+ \begin{itemize}%[<+->]
+  \item apt-build を使用した場合
+   \begin{commandline}
+ % sudo apt-get build-source hello
+   \end{commandline}
+ 
+ \item apt-build の設定ファイル
+  \begin{commandline}
+ /etc/apt/apt-build.conf
+  \end{commandline}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{apt-cross}
+ \begin{itemize}%[<+->]
+ \item クロスコンパイル用 apt 
+
+ Debian package を apt を使い、クロスコンパイル用パッケージに変換してインストールする。
+
+ \end{itemize}
+\end{frame}
+
+
+\begin{frame}{apt-cross}
+ \begin{figure}[h]
+apt-cross を使用しない場合
+ \begin{center}
+ \includegraphics[width=3cm]{image200709/apt-cross.png}
+ \end{center}
+ \end{figure}
+\end{frame}
+
+
+\begin{frame}{apt-cross}
+ \begin{figure}[h]
+apt-cross を使用した場合
+ \begin{center}
+ \includegraphics[width=3cm]{image200709/apt-cross-e.png}
+ \end{center}
+ \end{figure}
+
+\end{frame}
+
+
+\begin{frame}{apt-transport-https}
+ \begin{itemize}%[<+->]
+ \item https 経由で apt-get を行うためのツール
+
+ apt-get はftp/http で行うが、このパッケージを使うことによって
+ https 経由で apt を行うことができるようになる。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{apt-zip}
+ \begin{itemize}%[<+->]
+ \item リムーバブルメディアの ZIP からの apt をサポートするためのツール
+ \begin{figure}[h]
+ \begin{center}
+ \includegraphics[width=3cm]{image200709/zip_750usb.jpg}
+ \end{center}
+ \end{figure}
+
+ 同じようなツールで apt-cdrom がありますが、違いがいまいちわかりません。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{aptsh}
+ \begin{itemize}%[<+->]
+ \item apt の操作をができる Shell.
+ \item 使い方
+\begin{commandline}
+% sudo aptsh
+Generating and mapping caches...
+Reading commands history...
+aptsh>
+\end{commandline} 
+ 
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{aptsh}
+例えば
+\begin{commandline}
+% ls
+glibc-cross-sh4
+snort-rules-default
+python-tclink
+pipenightdreams
+osgcal-doc
+mpg123-alsa
+...
+diatheke
+darkice
+cyrus-admin-2.2
+aspell-bg
+libungif4g
+libsmpeg0
+\end{commandline}
+ を実行すると、インストール可能なパッケージ一覧が表示されます。
+\end{frame}
+ 
+\begin{frame}{まとめ}
+
+今回はさわりだけを説明しました。今回の紹介で気になるapt-xxx がありましたら
+詳細を説明していきたいと思っています。
+
+\end{frame}
+
+\section{Exim 再発見}
+\emtext{Exim 再発見}
 
 \section{事前課題紹介}
 \emtext{事前課題の紹介}
@@ -276,12 +528,6 @@ apt-get install の仕組みで大きな変化が発生したのは何か
 
 \begin{frame}{サマリー}
 
-\begin{tabularx}{\hsize}{|l|X|X|}
-\hline
- & 要素 & 例 \\
-\hline
-\hline
-\end{tabularx}
 \end{frame}
 
 \section{最近のイベント}
