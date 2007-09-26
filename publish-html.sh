@@ -15,7 +15,7 @@ for A in *.tex; do
     esac
 done
 sudo apt-get remove -y dvi2ps-fontdata-a2n
-rm *.dvi
+rm -f *.dvi *.html
 
 # c.f. bug #XXXX
 for A in html/*.html; do
