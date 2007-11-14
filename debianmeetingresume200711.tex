@@ -392,7 +392,491 @@ livehelper の料理方法を臨場感たっぷりに説明し、大盛況でした。
 \dancersection{live-helper}{岩松 信洋}
 \label{live-helper}
 \index{live-helper}
+\subsection{live-helperとは}
+live-helper は Debian の Live-CD / USBboot イメージを作成するための
+ツールです。
+作成するためのスクリプトが各種用意され、Live-CD の仕組みを知らない人でも容易
+に Live-CD を作成することができます。
 
+\subsection{コマンド}
+live-helper はlh\_xxx という形式でコマンドが提供されています。
+たくさんのコマンド\footnote{2007/11/02 現在で、67個}が用意されていますが、
+基本的に使用するのは、
+\begin{itemize}
+  \item lh\_config
+  \item lh\_build
+  \item lh\_clean
+\end{itemize}
+です。他のコマンドは細かい設定を行うためや、内部処理で使用されます。
+
+\subsection{雛型の作成}
+まず、lh\_config コマンドを使って、Live-CD の雛形を作成します。
+\begin{commandline}
+% lh_config
+\end{commandline}
+
+{\bf lh\_config} 実行時にオプションを指定することにより、さまざまな設定を
+行うことが可能です。
+また、これらのオプションは環境変数としても指定することができます。
+例えば、{\bf --union-filesystem} というオプションがあるのですが、この場合は
+\begin{commandline}
+LH_UNION_FILESYSTEM
+\end{commandline}
+として、設定することが可能です。
+% 環境変数と、オプションで指定した場合の有線順位はどちらが高いか調べること
+
+\subsection{作成された設定ファイルの説明}
+lh\_config を実行した後、config ディレクトリ以下に以下のディレクトリが作成されます。
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+ディレクトリ名 & 説明 \\ \hline \hline
+binary & 作成される Live-CD イメージに関する設定が書かれています。\\ \hline
+bootstrap & Live-CD 作成環境に関する設定が書かれています。\\ \hline
+chroot & Live-CD のユーザーランドに関する設定が書かれています\\ \hline
+common & live-helper の基本設定が書かれています。\\ \hline
+source & source イメージに関する設定が書かれています。\\ \hline
+\end{tabular}\\
+\end{center}
+
+これらの設定はテキストファイルになっています。なので、適当なエディタで編集可能ですが、
+実際には {\bf lh\_config} コマンドを使い、設定ファイルを書き換えます。
+
+
+\subsection{細かい設定方法}
+live-helper は雛形を作成し、作成された各設定ファイルに追記することによって
+細かいカスタマイズが可能になっています。以下にカスタマイズの方法について説明します。
+
+\subsubsection{アーキテクチャの指定}
+
+lh\_config の -a オプションを使用することによって、
+作成する Live-CD イメージのアーキテクチャを指定することができます。
+
+\begin{commandline}
+% lh_config -a アーキテクチャ名
+\end{commandline}
+
+\subsubsection{ディストリビューションの指定}
+lh\_config -d オプションを使用することにより、作成する Live-CD のディストリビューション
+を指定することができます。
+
+\begin{commandline}
+% lh_config -d ディストリビューション名
+\end{commandline}
+
+\subsubsection{言語の指定}
+lh\_config -l オプションを使用することにより、Live-CD で使用するデフォルトの言語を設定
+することができます。
+例えば、デフォルトの言語を日本語にする場合は
+\begin{commandline}
+% lh_config -l ja
+\end{commandline}
+とします。
+
+\subsubsection{ブートローダーの指定}
+lh\_config の --bootloader オプションを指定することにより、Live-CD で使用する
+ブートローダーを指定することができます。
+
+\begin{commandline}
+% lh_config --bootloader grub
+\end{commandline}
+
+指定することができる ブートローダーは以下の3つです。
+\begin{itemize}
+\item grub
+\item syslinux
+\item yaboot
+\end{itemize}
+
+\subsubsection{作成するイメージの指定}
+live-helperでは、
+\begin{itemize}
+\item iso 
+
+ISO9660 イメージ
+\item net
+
+NET ブート用イメージ 
+\item tar 
+
+tar 形式でまとめたもの
+
+\item usb-hdd
+
+USBメモリやUSB-HDD で起動することができるイメージ
+
+\end{itemize}
+のイメージを作成することができます。
+
+lh\_config の --binary-images\footnote{-b でも可能} 
+オプションを指定することにより、作成するイメージを指定することができます。
+
+\begin{commandline}
+% lh_config --binary-images iso
+\end{commandline}
+
+\subsubsection{bootstrap および live-image 内で使用する apt-line の変更方法}
+live-helper で使用する apt-line は
+\begin{itemize}
+\item Live-CD 作成に使用する apt-line
+\item Live-CD 内の /etc/apt/sources.list に書き込まれる apt-line
+\end{itemize}
+の2種類があります。
+
+これらは特に指定しない場合、
+\begin{commandline}
+http://ftp.debian.org/debian/
+\end{commandline}
+が指定されています。
+
+変更する場合は {\bf lh\_config} コマンドを利用して変更します。
+その他に以下の オプションを指定することによって各々の apt-line を変更する事ができます。
+
+\begin{itemize}
+\item --mirror-bootstrap-security URL
+
+Live-CD 作成時に使用する セキュリティアップデート向け apt-line を設定します。 
+\item --mirror-bootstrap URL
+
+Live-CD 作成時に使用する apt-line を設定します。
+\item -m \verb+|+ --mirror-binary-security URL
+
+Live-CD 内で設定される、セキュリティアップーデート向け apt-line を設定します。
+\item --mirror-binary URL
+
+Live-CD 内で設定される、　apt-line を設定します。
+\end{itemize}
+
+
+\subsubsection{Debian パッケージの追加}
+Live-CD に Debian Project で配布されているパッケージを追加したい場合は、
+\begin{commandline}
+lh_config --packages "パッケージ名"
+\end{commandline}
+を実行します。パッケージ名のところは、スペースで区切り、複数パッケージを指定することが可能です。
+
+この方法でパッケージの追加を行った場合、再度実行してしまうと、上書きされてしまうためパッケージの
+追加ができません。\footnote{エディタで編集すれば対応できますが。}
+
+複数パッケージの追加や、パッケージの種類のよって管理したい場合は
+\begin{commandline}
+config/chroot_local-packageslists/
+\end{commandline}
+ディレクトリに適当なファイルを作成し、パッケージ名を列挙します。
+例えば、 bluetooth
+\footnote{http://packages.debian.org/sid/bluetooth} メタパッケージを追加したい場合は、
+
+\begin{commandline}
+% cat config/chroot_local-packageslists/bluetooth
+# bluetooth packages
+bluetooth
+\end{commandline}
+として、パッケージ名をファイルに列挙します。
+
+ファイル名は管理しやすい名前にしておくといいでしょう。
+
+\subsubsection{オリジナル Debian パッケージの追加}
+
+自分で作成した Debian パッケージや オリジナルのパッチを当てた Debian
+パッケージは以下の方法で Live-CD に追加することができます。
+
+まず、自分で作成したパッケージ用のレポジトリを作成します。
+次に
+\begin{commandline}
+config/chroot_sources/適当なファイル名.bootstrap
+\end{commandline}
+を作成し、作成した レポジトリを apt-line として追記します。
+
+\begin{commandline}
+config/chroot_local-packageslists/
+\end{commandline}
+に適当なファイルを作成し、追加したいパッケージ名を書きます。
+
+これにより、Live-CD 作成時に　作成した apt-line からパッケージがダウンロード
+され、インストールされます。
+
+作成したapt-line を Live-CD にも追加する場合は
+\begin{commandline}
+config/chroot_sources/適当なファイル名.binary
+\end{commandline}
+を作成し、作成した レポジトリを apt-line として追記します。
+
+\subsubsection{apt-line を使わない Debian Package の追加方法}
+\begin{commandline}
+config/chroot_local-packages/
+\end{commandline}
+ディレクトリに Debian パッケージをコピーします。
+コピーしておくことにより、自動的にLive-CD 内にインストールされます。
+依存関係は解決してないので、必要なパッケージは別途　apt を使ってインストール
+するように設定しておく必要があります。
+
+\subsubsection{すでに用意されているパッケージリスト}
+live-helper ではまとまった環境がパッケージリストとして用意されています。
+これらを使用することによって、ある程度容易に Live-CD を作成することが
+できるようになっています。
+パッケージリストは
+\begin{commandline}
+/usr/share/live-helper/lists/
+\end{commandline}
+にあり、これらを利用することが可能です。
+これらのリストを利用するには、{\bf lh\_config} オプションの {\bf --packages-lists | -p} 
+を使用します。
+gnome-desktop ベースの Live-CD を作成する場合、
+\begin{commandline}
+% lh_config -p gnome-desktop
+\end{commandline}
+とします。
+
+\subsection{ホスト名を変更する}
+live-cd のホスト名を変更するには、
+lh\_config の　--hostname オプションを使用します。
+\begin{commandline}
+% lh_config --hostname myhostname
+\end{commandline}
+を実行し、設定したいホスト名を指定します。
+
+\subsection{ユーザー名を変更する}
+
+live-cd に新しいユーザを追加するには、
+lh\_config の　--username オプションを使用します。
+\begin{commandline}
+% lh_config --username myname
+\end{commandline}
+を実行し、追加したいユーザ名を指定します。
+パスワードは{\bf live}になっています。
+
+\subsubsection{パッケージ化されていないソフトウェアの追加方法}
+アイコンや簡単なスクリプトをパッケージ化せず、Live-CD にインストールしたい
+場合があります。
+
+\subsubsection{カーネル用パッケージの追加}
+
+Debian で提供されているカーネル用パッケージをLive-CD に追加するには
+lh\_config の　--linux-packages オプションを使用します。
+\begin{commandline}
+% lh_config --linux-packages "追加したいパッケージ名"
+\end{commandline}
+
+追記ができず、上書きになってしまうため、パッケージを追加したい場合は
+\begin{commandline}
+config/chroot
+\end{commandline}
+ファイルの
+\begin{commandline}
+LH_LINUX_PACKAGES
+\end{commandline}
+の部分を編集するとよいでしょう。
+
+\subsubsection{フック機能}
+Live-CD イメージ作成に処理を入れたいときに使用します。
+
+\begin{commandline}
+config/chroot_local-hooks
+\end{commandline}
+ディレクトリにシェルスクリプトを入れることによって動作します。
+
+例えば、bluetooth パッケージを Live-CD 内にインストールし、
+起動時に有効にしたい場合は
+
+\begin{commandline}
+% cat config/chroot_local-hooks/enable-bluetooth.sh
+#!/bin/sh -x
+sed -ie 's/^BLUETOOTH_ENABLED=.*/BLUETOOTH_ENABLED=1/' /etc/default/bluetooth
+\end{commandline}
+というようなファイルを作成しておくと、　Live-CD　内でデフォルトで有効になっています。
+
+\subsubsection{CDROM 起動時のsplash 画面を変更する}
+
+\begin{commandline}
+% lh_config --syslinux-splash FILENAME
+\end{commandline}
+として、ファイル名を指定します。
+
+\subsubsection{GRUB 起動時のsplash 画面を変更する}
+
+\begin{commandline}
+% lh_config --grub-splash FILENAME
+\end{commandline}
+として、ファイル名を指定します
+
+\subsubsection{インタラクティブモード}
+live-helper では設定したあと、自動的に各イメージが作成されます。
+イメージ作成途中で、操作をしたいとき、インタラクティブモードに設定しておくことにより
+手動で細かい設定をすることが可能になります。
+
+\begin{commandline}
+% lh_config --interactive enable
+\end{commandline}
+
+
+\subsection{イメージの作成}
+作成した設定でイメージを作成するためには
+
+\begin{commandline}
+# lh_build
+\end{commandline}
+
+を実行します。実行すると、イメージの作成を開始します。
+再度イメージを作成する場合は、
+\begin{commandline}
+#lh_clean
+\end{commandline}
+を実行し、キャッシュをクリアしてから行います。
+
+\subsection{GUIを使った作成方法}
+live-helper は基本的に提供されているスクリプトを駆使して、イメージを作成しますが、
+GUI で作成するためのフロントエンドとして、live-magic というものが提供されています。
+簡単な使い方を説明します。
+
+\subsubsection{live-magic の起動}
+
+\begin{commandline}
+% sudo apt-get install live-magic
+\end{commandline}
+でインストールし、起動します。起動した直後の画面を以下に示します。
+
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic00.png}
+\end{center}
+\caption{live-magic 起動画面}
+\label{live-magic00}
+\end{figure}
+
+
+\subsubsection{基本システムの選択}
+次に基本システムを選択します。選択可能なシステムは以下の通りです。
+\begin{itemize}
+ \item Gnome
+ \item KDE
+ \item XFCE
+ \item non-Desktop
+ \item システム復旧用 
+\end{itemize}
+
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic01.png}
+\end{center}
+\caption{live-magic 基本システムの選択}
+\label{live-magic00}
+\end{figure}
+
+\subsubsection{作成イメージの選択}
+次に作成するイメージを選択します。選択可能なイメージは以下の通りです。
+\begin{itemize}
+ \item CD-ROM イメージ
+ \item HDD イメージ
+ \item NFS イメージ 
+\end{itemize}
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic02.png}
+\end{center}
+\caption{live-magic 作成イメージの選択}
+\label{live-magic00}
+\end{figure}
+
+\subsubsection{アーキテクチャの選択}
+次に対象のアーキテクチャを選択します。選択可能なアーキテクチャは以下の通りです。
+\begin{itemize}
+ \item i386
+ \item powerpc
+ \item amd64 
+\end{itemize}
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic03.png}
+\end{center}
+\caption{live-magic アーキテクチャの選択}
+\label{live-magic00}
+\end{figure}
+
+\subsubsection{ミラーサーバーの選択}
+次にミラーサーバーを選択します。
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic04.png}
+\end{center}
+\caption{live-magic ミラーサーバーの選択}
+\label{live-magic00}
+\end{figure}
+
+\subsubsection{イメージ作成実行}
+適用ボタンを押すと、イメージ作成を実行します。
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic05.png}
+\end{center}
+\caption{live-magic イメージ作成実行}
+\label{live-magic00}
+\end{figure}
+
+
+\subsubsection{rootパスワード要求}
+一般ユーザーで実行した場合、　rootのパスワードを要求されます。
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic06.png}
+\end{center}
+\caption{live-magic rootパスワード要求画面}
+\label{live-magic00}
+\end{figure}
+
+\subsubsection{作成中画面}
+イメージ作成中はプログレスバーが表示され、途中経過を確認することができます。
+\begin{figure}[H]
+\begin{center}
+  \includegraphics[width=0.6\hsize]{image200711/live-magic07.png}
+\end{center}
+\caption{live-magic 作成中画面}
+\label{live-magic00}
+\end{figure}
+
+
+\subsubsection{デバッグ方法}
+動作確認やデバッグのために、毎回作成した CD/DVD ISO イメージを 焼いていると
+時間もお金もかかりますので、作成した ISO イメージのデバッグ方法について簡単に説
+明したいと思います。
+
+デバッグ方法はいろいろありますが、自分はqemu\footnote{http://packages.debian.org/sid/qemu}を使って動作確認しています。
+\begin{commandline}
+# apt-get update
+# apt-get install qemu
+% qemu -cdrom binary.iso
+\end{commandline}
+qemu を使ったエミュレーション環境でデバッグすることにより、時間や CD-R 代の節約にもなります。
+他の方法としては、VMWare,VirtualPC を使ったデバッグ方法なども考えられます。
+
+\subsection{live-helper を使ってみて}
+\subsubsection{Live-CDからのインストールのサポート}
+現状、Live-CD からのインストールがサポートされていません。
+HDDイメージを作成することはできますが、一般ユーザーには敷居が高いと考えています。
+Live-CD が気に入ったなら、動作している PC にインストールが容易にできるようになれば
+ユーザーは増えるのではないでしょうか。
+
+\subsubsection{日本語環境のサポート}
+live-helper には、ある程度の環境をまとめたものとして、
+packages-selections というものが提供されています。
+これに日本語環境もサポートに入れることによって、日本語対応の Live-CD 作成が容易
+になると思います。
+
+\subsubsection{live-magic の日本語化}
+live-helper のフロントエンドである live-magic が英語のままなので、国際化をしたい
+ところです。
+
+
+\subsection{その他の情報}
+live-helper の情報は以下のサイトから得ることができます。
+\begin{enumerate}
+\item live-helper 公式サイト
+
+\url{http://debian-live.alioth.debian.org/}
+
+\item wiki.debian.org
+\url{http://wiki.debian.org}
+
+\end{enumerate}
 
 \dancersection{Debian Bluetooth}{野首 貴嗣}
 \label{debian-bluetooth}
