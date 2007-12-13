@@ -2953,6 +2953,135 @@ int main(void) {
 \end{itembox}
 
 % FIXME: 転記すること
+\newpage
+
+\dancersection{DebTorrent に触ってみた}{山下 尊也}
+
+\subsection{DebTorrentとは}
+DebTorrentは、Debianパッケージを配布するためのプロトコルです。BitTorrent
+と言うP2Pの技術を利用しています。具体的には、proxyでaptに渡しているみた
+い。
+
+BitTorrentの利点は、HTTPではパッケージのダウンロードが集中したときに、速度の低下
+などが考えられますが、協力してダウンロードする事により、より多くのユーザ
+に高速にファイルを配布出来ます。
+
+調べてみたら、岩松さんが2007年の1月に東京エリア Debian 勉強会で
+apt-torrentの話をしていたのですが、詳しく調べると、DebTorrentと
+apt-torrentは違うみたいです。また、apt-torrentは2007年9月15日現在、公式
+パッケージではありません。
+
+\begin{commandline}
+% aptitude show debtorrent
+パッケージ: debtorrent
+新規: yes
+状態: インストールされていません
+バージョン: 0.1.4.1
+優先度: 任意
+セクション: net
+メンテナ: Cameron Dale <camrdale@gmail.com>
+展開サイズ: 1217k
+依存: python, python-support (>= 0.2), adduser
+推奨: python-crypto, apt-transport-debtorrent
+提案: python-psyco
+提供: python-debtorrent
+説明: bittorrent proxy for downloading Debian packages
+ DebTorrent is a proxy for downloading Debian packages files with APT. It will
+ download any needed packages from other DebTorrent peers in a bittorrent-like
+ manner, and so reduce the strain on the Debian mirrors. 
+ 
+ The DebTorrent client runs as a daemon, automatically started on bootup, and
+ listens for requests from APT for files. Any non-package files are downloaded
+ and served to APT similarly to other proxying software (e.g. apt-proxy,
+ apt-cacher, and approx). The configuration is very simple, and only involves
+ prepending a server and port to your current sources.list files (similar to
+ apt-cacher). 
+ 
+ When downloading package files, the DebTorrent client will try to use any other
+ DebTorrent clients it can find to download from. This will use the uploading
+ bandwidth of other peers, while reducing the demand on the Debian mirror
+ network. However, if a package cannot be found on any peers, DebTorrent will
+ fall back to downloading from a mirror to ensure all packages are downloaded. 
+ 
+ Homepage: http://debtorrent.alioth.debian.org/
+
+%
+\end{commandline}
+
+\newpage
+
+\subsection{DebTorrentを用いてダウンロード}
+\begin{enumerate}
+ \item DebTorrentをインストールします。
+       aptitude install debtorrent
+ \item /etc/apt/sources.list を修正します。localhost:9988/cdn.debian.or.jp のようにする。
+
+       ポートはフォルトでは、9988を利用しています。
+       /etc/debtorrent/debtorrent-client.conf
+       を変更する事で、ポート番号を変える事が出来ます。
+ \item 後は、aptitude と一緒で、aptitude update
+ \item aptitude install {\it packagename} でインストール出来ます。
+\end{enumerate}
+
+\begin{commandline}
+# cat /etc/apt/sources.list
+deb http://localhost:9988/cdn.debian.or.jp/debian/ sid main contrib non-free
+\end{commandline}
+
+\subsection{実際にやってみる}
+
+残念ながら、Python 2.3以上でないと動かないため、etchでの利用は難しいと思
+います。また、Q\&Aを読んでいると、experimentalを2007年9月15日現在、サポートしていないようで
+す。
+
+\begin{commandline}
+# time apt-get source linux-source-2.6.22
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+Need to get 58.3MB of source archives.
+Get:1 http://localhost sid/main linux-2.6 2.6.22-4 (dsc) [4832B]
+Get:2 http://localhost sid/main linux-2.6 2.6.22-4 (tar) [57.4MB]                                                          
+Get:3 http://localhost sid/main linux-2.6 2.6.22-4 (diff) [889kB]                                                          
+Fetched 58.3MB in 26s (2165kB/s)                                                                                           
+sh: dpkg-source: command not found
+Unpack command 'dpkg-source -x linux-2.6_2.6.22-4.dsc' failed.
+Check if the 'dpkg-dev' package is installed.
+E: Child process failed
+
+real    0m28.620s
+user    0m7.280s
+sys     0m0.728s
+# 
+\end{commandline}
+
+実際に、この様にパッケージがある場所が見つかれば良いのですが、見つからない場合は、
+いつまで経ってもダウンロードが始まりません。プロセスが死んだのかと不安に
+なります。
+
+しかし、見つかってしまえば結構な速度が出ます。
+4回やった結果ですが最短は18秒。20秒、28秒、26秒と毎秒2MBほど出てるとなる
+と嬉しくなります。
+
+ちなみに、私は普段 cdn.debian.or.jp を使っていますが、同じ事を debtorrent を
+使わずにやってみると、49秒かかりました。
+
+ただ、今回の例では大きなファイルについてやっているので、小さなファイルで
+実行したり、小さなファイルをたくさんダウンロードするとなると、httpの方が
+速度が出ます。試しに、safe-upgradeをしてみましたが、ダウンロードに時間が
+かなりの時間がかかり、話になりませんでした。
+
+\subsection{まとめ}
+
+私が考えたのは、security.debian.org は、stableやtestingのユーザに
+いち早くセキュリティ修正されたパッケージを配っています。その際に、パッケー
+ジの更新があれば、世界中のユーザからのアクセス集中により繋がりにくい状況に陥っ
+たり、結果としてサーバダウンに繋がる事もあるので、DebTorrentはこのような
+状況で使われたら良いのではないかと思ったのがきっかけでした。
+
+ただ、今のstableには依存関係で導入が難しい事を考えると実際には、勧める事
+は難しくなります。また、パッケージを送る側になる事も難しいでしょう。
+しかし、おもしろい試みなので、今後も注目して、開発に期待したいと思います。
 
 
 \newpage
