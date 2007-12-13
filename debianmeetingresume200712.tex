@@ -525,6 +525,58 @@ Windows で全部できる状況ではありません。}。たとえば、emacs + yatex 
 			  (set-buffer-modified-p nil))))))
 \end{commandline}
 
+
+emacs $B$G$NJT=8$G!"outline-mode を利用すると、アウトラインをベースに編集す
+ることができ、便利です。tex ファイルの最後に以下のようなエントリーを追加
+しています。
+M-x outline-minor-mode で有効にできます。
+
+
+
+\begin{commandline}
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ <タブ記号>]*\\\\\\(documentstyle\\|documentclass\\|<改行しない>
+dancersection\\)\\*?[ <タブ記号>]*[[{]\\|[%<^L>]+\\)" ***
+;;; End: ***
+\end{commandline}
+
+\begin{itemize}
+ \item 
+ \verb!<タブ記号>!: タブを入力、
+ \item  \verb!<^L>!: ctrl-L を入力、
+ \item  \verb!<改行しない>!: ここの改行はみやすいように改行をいれているだけで、実際には改行は入力しない。
+\end{itemize}
+
+また、自動で適切な設定で outline-minor-mode に入るように .emacs に設定してもよいでしょう。
+
+\begin{commandline}
+(add-hook 
+ 'yatex-mode-hook
+ '(lambda ()
+    (make-variable-buffer-local 'outline-regexp)
+    (setq outline-regexp 
+	  "\\([ \t]*\\\\\\(documentstyle\\|documentclass\\|chapter\\|dancersection\\|
+section\\|subsection\\|subsubsection\\|paragraph\\)\\*?[ \t]*[[{]\\|[%\f]+\\)")
+    (setq 
+     outline-level 
+     (function
+      (lambda ()
+	(save-excursion
+		   (looking-at outline-regexp)
+		   (cond 
+		    ((equal (char-after (match-beginning 0)) 37) (- (match-end 0) (match-beginning 0)))
+		    (t (let ((bs (buffer-substring (match-beginning 2) (match-end 2))))
+			 (cond ((equal (substring bs 0 2) "do") 15)
+			       ((equal (substring bs 0 1) "c") 0)
+			       ((equal (substring bs 0 1) "p") 4)
+			       ((equal (substring bs 0 2) "da") 1) ; dancersection
+			       ((equal (substring bs 0 2) "se") 1) ;section
+			       ((equal (substring bs 0 5) "subse") 2) ;subsection
+			       ((equal (substring bs 0 8) "subsubse") 3) ;subsubsection
+			       (t (length bs))))))))))
+    (outline-minor-mode t)))
+\end{commandline}
+
 \subsubsection{ドキュメントのスタイル}
 
 スタイルファイルは monthlyreport.sty パッケージを利用します。過去の資料を参考にしてください。
