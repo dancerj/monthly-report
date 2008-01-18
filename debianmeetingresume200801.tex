@@ -224,6 +224,149 @@ lenny フリーズ！
 
 なので、いじられるところは特にありません。
 
+
+\subsection{Noriaki Sato}
+
+以前、Ruby on Rails で Oracle を使うために
+ruby-oci8 を install しようとしたら deb package が無かったので、
+package を作ってみようとした事がありました。
+\url{http://www.debian.org/doc/manuals/maint-guide/index.ja.html#contents}
+辺り（古い？）を斜め読みしながらやったのですが、
+\begin{commandline}
+ $ dpkg-buildpackage -r fakeroot
+\end{commandline}
+した所で、何故か /usr/local 配下に install されてしまいました。
+その時は、普通に install したのと同じ結果になっただけなので、
+まあいっか、とゆー事で終わりにしてしまったのですが、
+良い機会なので少し調べてみました。
+\begin{commandline}
+ 
+ $ tar xvfz ruby-oci8-1.0.0.tar.gz
+ $ cd ruby-oci8-1.0.0
+ $ dh_make -e mail_address -f ruby-oci8-1.0.0.tar.gz
+ $ dpkg-buildpackage -r fakeroot
+ (snip)
+ dh_installdirs
+ # Add here commands to install the package into debian/tmp
+ /usr/bin/make DESTDIR=/home/noriaki/tmp/deb/ruby-oci8-1.0.0/debian/tmp install
+ make[1]: ディレクトリ `/home/noriaki/tmp/deb/ruby-oci8-1.0.0' に入ります
+ ruby setup.rb install
+ ---> lib
+ mkdir -p /usr/local/lib/site_ruby/1.8/
+ install oci8.rb /usr/local/lib/site_ruby/1.8/
+ Permission denied - /usr/local/lib/site_ruby/1.8/oci8.rb
+ Try 'ruby setup.rb --help' for detailed usage.
+\end{commandline}
+ということで、いまさら Makefile を眺めてみた所、
+そもそも DESTDIR がなく、install 先が簡単に変更出来ない感じでした。
+Makefile から呼び出している setup.rb という script を読んで、
+Makefile を書き換えないとダメっぽいです。
+今回は時間がなく、ここまでで断念しました。
+そもそも、package の作り方はまだ良く分かっていない所が多いので、
+今日、ばっちり勉強して帰って、再度 try したいと思います。
+
+\subsection{高橋 昭之}
+
+「こんなDebianパッケージを作成してみました・作成してみようとしてみたらここまでしかできませんでした」
+
+作ってみたパッケージはGNU helloです。debian/rulesファイルを雛形のまま編集せずにdebuildが通ったので実力は全くついていませんが、dh\_makeなどの基本的なパッケージ作成コマンドの使い方は概ね把握しました。
+これからパッケージ作成で学びたいことは、debian/rulesファイルのスタイル・書き方についてとgpg署名です。
+
+「2008年のDebianの目玉を大胆に予想する」
+初心者なので、2007年の目玉がなんだったのかさえ知りません:-(
+
+\subsection{Aya Komuro}
+
+「こんなDebianパッケージを作成してみました・作成してみようとしてみたらこ
+こまでしかできませんでした」
+
+Debianパッケージは作成した事が無いです。以前作ったもの自体をパッケージ化
+したほうがいいか？と考えたときに即座に必要ないと判断したのでパッケージ化
+するネタが無いです。こんなのを作りたいなぁと妄想だけはあるんですけどね。
+
+\subsection{橋本 徹}
+
+\subsection{こんなDebianパッケージを作成してみました}
+
+Debianパッケージになっているソフトウェアは数多くあるし、非公式の
+パッケージを作っている人も多いので自分でパッケージングする必要に
+迫られることは少ないのだが、今までパッケージングしてみた数少ない
+例としては以下のものが挙げられる。
+
+* gnubg
+
+gnubgは公式パッケージになっているが、公式パッケージが全然更新され
+ていなかった時期にCVS版をビルドしてパッケージングしたことはあった。
+autoconfを使用したものだったのでインストール可能なレベルのパッケ
+ージを作るのは比較的容易だった。
+
+* gtkipmsg
+
+IP Messengerクライアントとしては、xipmsgは公式パッケージとして存在
+するが、GTK版クライアントのgtkipmsgのパッケージは存在しなかったので
+パッケージングしてみた。これもautoconf対応だったのでインストール可能
+なパッケージは比較的容易に作成できた。
+
+autoconfモノは比較的容易にパッケージングできることがわかった。
+が、autoconfを使っていないものについてはまだ経験がない。
+
+\subsection{森田尚}
+
+\subsection{「こんなDebianパッケージを作成してみました・
+作成してみようとしてみたらここまでしかできませんでした」}
+
+作ったパッケージ：
+
+仕事である編集業や、趣味である日曜プログラミングでの必要性や興味から、次
+の野良パッケージを作って使っています。
+
+\begin{description}
+ \item[vfdata-otf-ptex]
+  \url{http://psitau.at.infoseek.co.jp/otf.html}
+  OTFは、OpenTypeフォントをpTeXで使うためのTeXマクロパッケージおよび
+  フォントデータです。OTF版のヒラギノやモリサワをDebianで使いたかった
+  ので作りました。
+
+ \item[ideotype]
+  \url{http://ideotype.sourceforge.net/}
+  IdeoTypeは、商業出版の現場で編集制作を支援するためのツールです。
+  XHTML形式の原稿を本（PDF）に変換します。
+\end{description}
+
+これからパッケージ化しようと考えているもの：
+
+\begin{description}
+\item[libxsl-ruby]
+	   \url{https://rubyforge.org/projects/libxsl/}
+  libxsltをRubyで使うためのライブラリです（1文字違いのlibxslt-ruby
+  とは異なる）。Rubyの拡張ライブラリをDebianパッケージにする際の
+  作法がよく分からず、まだ眺めている程度です。
+
+\item[c-wrapper]
+	   \url{http://homepage.mac.com/naoki.koguro/prog/c-wrapper/index-j.html}
+  SchemeインタプリタGaucheから、C/Objective-Cで書かれたライブラリを
+  利用できる仕組み（FFI）です。
+\end{description}
+
+知りたいこと：
+
+  他のパッケージ形式との間での変換の仕方（例えばRubyGemsのGemから
+  dpkg形式への変換や、dpkg形式からRPMやMacPortsへの変換など）。Gem
+  の場合、ほぼ自動での変換が可能らしいことは分かったのですが、
+  ruby-pkg-toolsの使い方が分からず挫折中です。
+
+パッケージ化されてほしいその他のソフトウェア：
+
+\begin{description}
+ \item[rushcheck]        Ruby用のテスティングツール
+ \item[rspec]            Ruby用のテスティングツール
+ \item[cruisecontrol.rb] continuous integrationサーバ
+ \item[pdumpfs-rsync]    rsync越しのpdumpfs
+ \item[pdumpfs-clean]    pdumpfsによるバックアップデータの整理・削除
+ \item[color-moccur.el, moccur-edit.el]
+                   Emacsで複数バッファを一括して検索・編集
+\end{description}
+
 %%% trivia quiz
 \dancersection{Debian Trivia Quiz}{上川 純一}
 
@@ -239,34 +382,80 @@ lenny フリーズ！
  \subsection{問題}
 
  \santaku
- {}
- {}
- {}
- {}
- {}
+ {Debian Miniconf 7が開催される、Linux Conf Au はいつ開始か}
+ {1月28日}
+ {1月29日}
+ {1月19日}
+ {A}
 
  \santaku
- {}
- {}
- {}
- {}
- {}
-
-
- \santaku
- {}
- {}
- {}
- {}
- {}
-
+ {lintian は Debian パッケージのよくある間違いを検出してくれるツールであ
+ る。 lintian.debian.org は全アーカイブに対して実行した lintian の実行結果を報告してくれているページだが、
+ メンテナ単位のウェブページのURLが変更になった。どうかわったか？}
+ {http://www.youtube.com/email.html}
+ {http://people.ubuntu.com/~liw/lintian/gutsy-i386-main/reports/maintainer/email.html}
+ {http://lintian.debian.org/reports/maintainer/email.html}
+ {C}
 
  \santaku
- {}
- {}
- {}
- {}
- {}
+ {dpkg のシンボルファイルで何が実現できるか？}
+ {共有ライブラリなんてつかってられないので全部DLLにしてみた依存関係}
+ {共有ライブラリはどんなバージョンでもよくなるような依存関係}
+ {共有ライブラリのバージョン付きシンボルをベースにした依存関係}
+ {C}
+
+ \santaku
+ {http://wiki.debian.org/HelpDebian/Start には何がかかれているか}
+ {なぜDebianに貢献するべきか}
+ {Debianはなぜ存在するのか}
+ {GNUの存在意義}
+ {A}
+
+ \santaku
+ {d-iでの翻訳作業の省力化のための工夫を Christian Perrierが実施した。
+ それはメッセージを使われかたの優先度によって分割するものだったが、何分割にしたか}
+ {5}
+ {4}
+ {3}
+ {A}
+
+ \santaku
+ {Fonts task force (http://wiki.debian.org/Fonts)は週次で何を確認するス
+ クリプトを用意したか？}
+ {Debianパッケージとしてはたしてどれだけのフォントファイルが存在するのか
+ を棚卸する}
+ {いかがわしい形のフォントを検出する}
+ {うまく表示できないフォントを検出する}
+ {A}
+
+ \santaku
+ {Lennyリリースに標準として含まれる予定のKDEはどれか}
+ {KDE3.0}
+ {KDE4.0}
+ {KDE5.0}
+ {A}
+
+ \santaku
+ {Debian-i18n meeting で {main,contrib,non-free}/i18n/Translation-* に対
+ して何がおきたか}
+ {Grisuが悟りを開いた}
+ {AUTOBYHANDの仕組みを利用するようになった}
+ {あきらめて変更しないことにした}
+ {B}
+
+ \santaku
+ {FOSS.inの開催期間中にDDになったインド人は何人目のインド人DDか？}
+ {1}
+ {2}
+ {4}
+ {C}
+
+ \santaku
+ {insservでは何が実現できるか？}
+ {自動でデータベースにinsert してくれる}
+ {依存関係からinitスクリプトの実行順序を計算して実行}
+ {ネームサービスの提供}
+ {B}
 
 \end{multicols}
 
@@ -579,9 +768,11 @@ debian/以下のファイルを微調整して、パッケージをビルドします。
 dpkg-buildpackage を直接呼び出してもよいですが、devscripts パッケージの
 debuildコマンドを利用すればよいでしょう。
 
-debc, debdiff で生成されたパッケージにあきらかな変化がないことを確認しま
-す。
+lintian / linda で生成されたパッケージにあきらかな間違いがないことを確認
+します。
 
+debc, debdiff で生成されたパッケージにあきらかな間違いや意図しない大きな
+変化がないことを確認します。
 
 debi でパッケージをインストールして正常に動作することを確認します。
 
