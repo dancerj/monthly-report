@@ -20,7 +20,7 @@
 %     along with this program; if not, write to the Free Software
 %     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-%  preview (shell-command (concat "xpdf " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 % 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
 %(shell-command "cd image200801; ebb *.png")
 
@@ -390,7 +390,7 @@ Debianの人材が流出していくのではないか、人を育てる必要があ
 
 \begin{enumerate}
  \item 新年会「気合を入れる」
- \item OSC (3/1)
+ \item Open Source Conference Tokyo (3/1)
  \item データだけのパッケージを作成してみる、
        ライセンスの考え方
  \item バイナリ一つのパッケージを作成してみる
@@ -404,7 +404,7 @@ Debianの人材が流出していくのではないか、人を育てる必要があ
        、Debconf発表練習
  \item Debconf アルゼンチン、共有ライブラリパッケージ作成
 
- \item OSC-Fall、
+ \item Open Source Conference Tokyo/Fall、
        デーモン系のパッケージの作成、latex、 emacs-lisp、フォントパッケージ
  \item パッケージの cross-compile の方法、amd64 上で i386 のパッケージと
        か、OSC-Fall報告会、Debconf報告会
@@ -419,60 +419,143 @@ Debianの人材が流出していくのではないか、人を育てる必要があ
 
 %\begin{multicols}{2}
  
- 2008年のDebian勉強会では対応する種類別に Debian パッケージの作成の個別の
- 内容を検討していくことになります。Debian パッケージの作成の技術的詳細に
- はいる前に、全体的な作業の流れを確認してみましょう。
-
+2008年のDebian勉強会では対応する種類別に Debian パッケージの作成の個別の
+内容を検討していくことになります。Debian パッケージの作成の技術的詳細に
+はいる前に、まず基本に立ち返って全体的な作業の流れを確認してみましょう。
 
  \subsection{開発者からユーザにパッケージが到達するまで}
 
- Debian Developer はどこからかソースパッケージを取得し、パッケージをアッ
- プロードします。
+ Debian Developer はどこからかソースパッケージを取得してきて、パッケージ
+ をアップロードします。
 
- 公式パッケージの場合は、開発者が dput コマンドで ftp-master.debian.org にパッケージをアップロードすると da-katie が処理し、
- 一日二回のバッチのタイミングで ftp.debian.org ミラーネットワークにパッケー
- ジが配信されます。日本のユーザであれば、 cdn.debian.or.jp を利用し、
- apt-get update / aptitude update をしたタイミングで新しいパッケージが取
- 得できるようになります。
+ 公式パッケージの場合は、開発者が dput コマンドで ftp-master.debian.org 
+ にパッケージをアップロードすると da-katie が処理し、一日二回のバッチの
+ タイミングで ftp.debian.org ミラーネットワークにパッケージが配信されま
+ す。日本のユーザであれば、 cdn.debian.or.jp を利用し、apt-get update /
+ aptitude update をしたタイミングで新しいパッケージが取得できるようにな
+ ります。
 
- 自分で dput が実行できない場合は、Debian Developerの他の誰かに依頼して実
- 施します。定型の方法はありませんが、
- 最近は Debian Mentorsという仕組みが普及しています。
- \url{http://mentors.debian.net/} にパッケージをアップロードし、
- Debian Mentors のML
- \footnote{\url{http://lists.debian.org/debian-mentors/}}などで聞いてみる
- とよいでしょう。
+ Debian Developer でない場合には、自分で dput を実行して直接
+ ftp-master.debian.org にアップロードするということはできません。Debian
+ Developerの他の誰かに依頼して実施します。その際にこうしなければならない
+ という定型の方法はありませんが、最近
+ は Debian Mentorsという仕組みが普及しています。
+ \url{http://mentors.debian.net/} にパッケージをアップロードし、Debian
+ Mentors のML \footnote{\url{http://lists.debian.org/debian-mentors/}}な
+ どで聞いてみるとよいでしょう。
 
- \includegraphics[height=0.8\vsize]{image200801/maint-package.eps}
+%ps を出力させるとうまくいかないのでしかたがなくpng
+ \includegraphics[height=0.8\vsize]{image200801/maint-package.png}
 
  \subsection{開発者のパッケージングの契機}
 
- 開発者がパッケージを作成する契機は簡単にいうと三つあるでしょう
+開発者がパッケージを作成するタイミングとはどういうものがあるでしょうか。
+簡単にいうと三つあります:
 
  \begin{itemize}
- \item 新しいパッケージ(ITPからの一連の流れ)
- \item 新しいアップストリームバージョンがリリースされた
- \item BTSに登録されたバグ報告の内容を修正する場合
+ \item Debianに存在しない全く新しいパッケージ(ITPからの一連の流れをふむ)
+ \item Debianにすでに存在しているパッケージの新しいアップストリームバージョンがリリースされた
+ \item Debianにすでに存在しているパッケージにユーザがバグ報告をし、
+       BTSに登録されたバグ報告の内容に対応するにはパッケージの修正が必要になった
  \end{itemize}
 
- \includegraphics[width=1\hsize]{image200801/devel-logic.eps}
+\begin{figure}[h]
+%inkscape --export-text-to-path --export-eps=devel-logic-i.eps devel-logic-i.svg 
+ \begin{center}
+  \includegraphics[width=0.8\hsize]{image200801/devel-logic-i.eps}
+ \end{center} 
+ \caption{開発者のロジックの流れ}
+\end{figure}
 
  \subsection{作業の流れ}
  \subsubsection{アップストリームの取得}
 
- 新しいソースパッケージを取得します。
-tar.gz で公開されていればそのまま使えます。tar.bz2 であったり、よくわか
-らないアーカイブフォーマットだったり、gitレポジトリでしか公開されていな
-かったりするので、それなりに加工します。
+新しいソースパッケージを取得します。tar.gz で公開されていればそのまま使
+えます。tar.bz2 であったり、よくわからないアーカイブフォーマットだったり、
+gitレポジトリでしか公開されていなかったりするので、それなりに加工します。
+
+最初は適当に取得するわけですが、二回目移行はスクリプトで自動化して取得す
+るようにします。watch という仕組みがあり、 uscan / uupdate コマンドで新しいバージョ
+ンをダウンロードしてきてDebianパッケージ用のパッチを適用することができま
+す。
+
+\begin{figure}[h]
+ \begin{commandline}
+ version=3
+
+ http://ftp.imendio.com/pub/imendio/giggle/src/giggle-(.*)\.tar\.gz
+
+ \end{commandline}
+\label{watchfile}
+\caption{giggle パッケージの debian/watch ファイル}
+\end{figure}
+
+
+\subsubsection{パッケージング}
+
+二度めからは差分の適用などで対応できるのですが、最初の新規パッケージの場
+合はITPなどの処理を必要とします。また、新規にパッケージを作成するので、
+なんらかのテンプレートパッケージから debian/ ディレクトリを取得してきて
+修正するか、 dh\_make コマンドを利用してテンプレートを作成します。
+
+この段階で debhelper を利用するのか、 cdbs を利用するのかの選択を迫られ
+ます。cdbs は debhelper より新しい仕組みですが、2003年の登場から5年もたっ
+ているのでそろそろこなれています。簡単なパッケージであれば cdbs を利用す
+ればよいでしょう。現状の cdbs のフレームワークで不具合があるような場合で
+あれば debhelper で詳細に設定するのがよいでしょう。
+
+\begin{commandline}
+$ dh_make 
+
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b] b
+
+Maintainer name : Junichi Uekawa
+Email-Address   : dancer@debian.org 
+Date            : Fri, 18 Jan 2008 22:22:51 +0900
+Package Name    : tttt
+Version         : 2.2
+License         : blank
+Type of Package : cdbs
+Hit <enter> to confirm: 
+Could not find tttt_2.2.orig.tar.gz
+Either specify an alternate file to use with -f,
+or add --createorig to create one.
+[22:22:55]coreduo:tttt-2.2> 
+\end{commandline}
 
  \subsubsection{BTSとの対応}
 
 BTSに登録されているバグ報告に対してメールで対応したりします。
 報告されている不具合をちゃんと修正してみたりします。
 
+BTSは閲覧はWebでできますが、制御はWebではできません。BTSはメールで命令を
+直接うって制御できます。メールコマンドはすぐに忘れてしまうので、
+\url{/usr/share/doc/debian/bug-*} あたりを参照しながら作業します。BTSの
+操作に便利なツールがいくつかあるので、そちらを利用することをおすすめしま
+す。
+
+\begin{itemize}
+ \item  reportbug-ng 
+ \item  reportbug
+ \item  dpkg-dev-el 
+\end{itemize}
+
  \subsubsection{ChangeLog の管理}
 
-debian/changelog に対応内容を記述します。
+パッケージの新しいバージョンを作成する場合には、debian/changelog に対応
+内容を記述します。
+ここで活用できるツールには次があります。
+
+\begin{itemize}
+ \item devscripts の dch
+ \item dpkg-dev-el の debian-changelog.el
+ \item vim の debchangelog 
+\end{itemize}
+
+バージョン番号を自動で増加させてくれたり、いろいろなエントリーの補完など
+をしてくれます。BTSを参照して修正されたバグのタイトルから ChangeLog のエ
+ントリを生成してくれたりもします。
 
 \begin{commandline}
 pbuilder (0.177) unstable; urgency=low
@@ -490,9 +573,30 @@ pbuilder (0.177) unstable; urgency=low
 
 \end{commandline}
 
+\subsubsection{ビルド・テスト}
+
+debian/以下のファイルを微調整して、パッケージをビルドします。
+dpkg-buildpackage を直接呼び出してもよいですが、devscripts パッケージの
+debuildコマンドを利用すればよいでしょう。
+
+debc, debdiff で生成されたパッケージにあきらかな変化がないことを確認しま
+す。
+
+
+debi でパッケージをインストールして正常に動作することを確認します。
+
+pbuilder でビルドしてみて問題ないことを確認します。
+
+pbuilder のテストスクリプトpbuilder-test を利用してインストール・アンイ
+ンストール・アップグレードの試験をしてみるとさらによいでしょう。
+
  \subsubsection{アップロード}
 
-署名してアップロードします。
+署名してアップロードします。dpkg-buildpackage コマンドを利用してパッケー
+ジをビルドすると自動でgpgで署名することになります。あとで署名しなおす場
+合には、 debsign を利用します。
+
+アップロードは dput コマンドを利用します。
 
  \subsection{非公式パッケージレポジトリの作成方法}
 
@@ -527,8 +631,6 @@ pbuilder (0.177) unstable; urgency=low
  % apt-sortpkgs Packages > Packages.sort
 \end{commandline} 
 
-
-
  \subsection{参考文献}
 
  必読の文献として、以下があります。一通り読んだ後は、パッケージとしてイン
@@ -555,7 +657,7 @@ pbuilder (0.177) unstable; urgency=low
 
 \clearpage
 
-\printindex
+%\printindex
 
 \cleartooddpage
 
