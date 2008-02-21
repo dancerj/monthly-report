@@ -1,0 +1,386 @@
+%; whizzy section -pdf xpdf -latex ./whizzypdfptex.sh
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2007 Junichi Uekawa
+%     Copyright (C) 2008 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{ulem}
+\usepackage{tabularx}
+
+\usepackage{fancybox}
+\usepackage{fancyvrb}   
+\usepackage{float}
+
+% commandline環境を定義。画面入出力についてはcommandline環境
+% で表記する
+\newenvironment{commandline}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{7.3}{7.3} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandline
+
+\definecolor{dancerdarkblue}{rgb}{0,0.08,0.45}
+\definecolor{dancernormalblue}{rgb}{0.8,0.9,0.95}
+\definecolor{dancerlightblue}{rgb}{0.8,0.95,1}
+
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{東京エリア Debian 勉強会}
+\subtitle{Debian Package ハンズオン}
+\author{岩松 信洋 iwamatsu@debian.or.jp\\IRC nick: iwamatsu}
+\date{2008年03月01日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+
+% 間のタイトルページ用
+\newcommand{\emtext}[1]{
+\begin{frame}{}
+ 
+\begin{minipage}{0.55\hsize}
+\includegraphics[width=1\hsize]{image200707/gurutitle.jpg}
+\end{minipage}
+\begin{minipage}{0.39\hsize}
+ {\Huge #1
+ }
+\end{minipage}
+\end{frame}
+}
+
+\begin{document}
+\frame{\titlepage{}}
+
+\section{Intro}
+
+\emtext{Agenda}
+
+\section{}
+\begin{frame}
+ \frametitle{Agenda}
+  \begin{itemize}
+  \item 自己紹介
+  \item 今回の目的
+  \item Debian Package 作成環境
+  \item Debian Package を作成する前の準備
+  \item Debian Packageの雛形を作る
+  \item ソースファイルの変更
+  \item Debian Package の作成
+  \item 依存関係の解決  
+  \item パッケージのチェック
+  \item まとめ
+  \item 質疑応答
+ \end{itemize}
+\end{frame}
+
+\section{自己紹介}
+
+\begin{frame}{自己紹介}
+\begin{itemize}
+ \item 岩松 信洋（Iwamatsu Nobuhiro）
+ \item Debian JP Project 副会長/Debian Package Maintainer
+ \item Linux Kernel / Driver の開発など
+\end{itemize}
+\end{frame}
+
+\section{今回の目的}
+\emtext{今回の目的}
+
+\begin{frame}
+シングルバイナリの Debian Package を作成できるようになること。
+\end{frame}
+
+\section{Debian Package 作成環境}
+\emtext{Debian Package 作成環境}
+
+\begin{frame}
+以下の環境変数を設定しておくと便利です。
+
+\begin{itemize}
+  \item DEBFULLNAME の設定
+
+    Debian Pakcage のメンテナ名
+  \item DEBEMAIL の設定
+
+    Debain Package  メンテナンス用のメールアドレス
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+
+\begin{commandline}
+$ cat ~/.bashrc
+--略-
+export DEBFULLNAME="Nobuhiro Iwamatsu"
+export DEBEMAIL=iwamatsu@nigauri.org
+--略--
+\end{commandline}
+
+\end{frame}
+\begin{frame}{Debian Package の作成環境}
+必要なパッケージ
+\begin{itemize}
+ \item devscripts
+ \item debhelper
+ \item lintian/linda
+ \item gcc 
+ \item binutils 
+ \item libc6-dev
+\end{itemize}
+
+\end{frame}
+
+\section{今回の生贄}
+\emtext{今回の生贄}
+
+\begin{frame}[containsverbatim]
+sl
+\begin{commandline}
+
+
+      ====        ________                ___________
+  _D _|  |_______/        \__I_I_____===__|_________|
+   |(_)---  |   H\________/ |   |        =|___ ___|      _________________ 
+   /     |  |   H  |  |     |   |         ||_| |_||     _|                \_____A
+  |      |  |   H  |__--------------------| [___] |   =|                        |
+  | ________|___H__/__|_____/[][]~\_______|       |   -|                        |
+  |/ |   |-----------I_____I [][] []  D   |=======|____|________________________|_
+__/ =| o |=-~~\  /~~\  /~~\  /~~\ ____Y___________|__|__________________________|_
+ |/-=|___||    ||    ||    ||    |_____/~\___/          |_D__D__D_|  |_D__D__D_|
+  \_/      \__/  \__/  \__/  \__/      \_/               \_/   \_/    \_/   \_/
+
+\end{commandline}
+\end{frame}
+
+\section{Debian Package を作成する前の準備}
+\emtext{Debian Package を作成する前の準備}
+
+
+\section{Debian Package の雛形を作る}
+\emtext{Debian Package の雛形を作る}
+
+\begin{frame}[containsverbatim]
+
+Debian Package の雛形を作成するには、dh\_make コマンドを使います。
+\begin{commandline}
+$ mv sl sl-0.0.0
+$ cd sl-0.0.0
+$ dh\_make 
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\begin{commandline}
+iwamatsu@chimagu:~/sl-0.0.0$ dh_make
+
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b] 
+\end{commandline}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+  \item s: single binary
+  \item m: multiple binary
+  \item l: library
+  \item k: kernel module
+  \item b: cdbs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\begin{commandline}
+iwamatsu@chimagu:~/sl-0.0.0$ dh_make
+
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b] s
+Maintainer name : Nobuhiro Iwamatsu
+Email-Address   : iwamatsu@nigauri.org 
+Date            : Thu, 21 Feb 2008 15:46:57 +0900
+Package Name    : sl
+Version         : 0.0.0
+License         : blank
+Type of Package : Single
+Hit <enter> to confirm:
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\begin{commandline}
+iwamatsu@chimagu:~/sl-0.0.0$ dh_make
+
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b] s
+Maintainer name : Nobuhiro Iwamatsu
+Email-Address   : iwamatsu@nigauri.org 
+Date            : Thu, 21 Feb 2008 15:46:57 +0900
+Package Name    : sl
+Version         : 0.0.0
+License         : blank
+Type of Package : Single
+Hit <enter> to confirm:
+ 
+Could not find sl_0.0.0.orig.tar.gz
+Either specify an alternate file to use with -f,
+or add --createorig to create one.
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+xxx.orig.tar.gz がないと、エラーになります。\\
+--createorig オプションを加えて　dh\_makeを実行します。
+
+\begin{commandline}
+$ dh_make --createorig
+\end{commandline} 
+\end{frame}
+
+\section{}
+
+\begin{frame}[containsverbatim]
+
+dh\_make 実行後、debian ディレクトリが作成されます。
+\begin{commandline}
+README.Debian  control    dirs    emacsen-remove.ex   
+init.d.lsb.ex  manpage.xml.ex     mogeri.doc-base.EX  
+preinst.ex     watch.ex　　　　　　    changelog  copyright  
+docs           emacsen-startup.ex manpage.1.ex     
+menu.ex        postinst.ex        prerm.ex
+compat         cron.d.ex          emacsen-install.ex  
+init.d.ex      manpage.sgml.ex    sl-default.ex  
+postrm.ex      rules
+\end{commandline}
+*.ex / *.EX はサンプルなので、削除します。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+
+最低限必要名ファイルは以下の通りです。
+\begin{itemize}
+  \item README.Debian --　Package のREADME
+  \item control       -- Package の説明、ビルドに必要な情報など
+  \item dirs          -- Package で利用するディレクトリを記述
+  \item changelog     -- Package の変更履歴
+  \item copyright     -- Package のコピーライト
+  \item docs          -- ドキュメント
+  \item rules         -- Package 作成用のスクリプト(Makefile)
+  \item compat
+\end{itemize}
+\end{frame}
+
+
+\section{とりあえず Package を作成する}
+\emtext{とりあえず Package を作成する}
+\begin{frame}[containsverbatim]
+\begin{commandline}
+$ debuild -us -uc
+\end{commandline}
+\begin{frame}
+\end{frame}
+
+
+
+Makefile の編集
+install:
+clean:
+distclean:
+　DESTDIR の説明
+
+Debian Package の作成
+ debuild 
+  一回目でエラーコンパイルエラーが出るのが理想
+ 依存関係の解決
+ lintian / linda
+
+ パッケージ作成時のエラーを修正
+
+\end{frame}
+
+\section{Debian Packageのテスト}
+\emtext{Debian Package のテスト}
+
+\section{}
+\begin{frame}
+\begin{itemize}
+  \item pbuilder
+
+   最低限のDebian system から、パッケージを作成するためのツール。 
+
+  \item piuparts 
+
+   Debian Package の インストール/アンインストールのチェックをするためのツール。
+
+\end{itemize}
+\end{frame}
+
+\section{まとめ}
+\emtext{本日のまとめ}
+
+\section{}
+\begin{frame}
+\begin{itemize}
+  \item dh\_make でパッケージの雛形を作成
+  \item debuild でパッケージ作成
+  \item lintian/linda で パッケージのチェック
+  \item インストールして動作確認まで行う
+  \item アンインストールの確認も忘れずに
+\end{itemize}
+\end{frame}
+
+\section{終わりに}
+\emtext{終わりに}
+
+\section{}
+\begin{frame}
+今年のDebian勉強会では、毎月様々なDebian Pakcage の
+作成方法をみなさんに伝授します。
+\begin{itemize}
+  \item データだけのDebianPackage作成方法
+  \item VCSを使ったDebian Packageの作成方法
+  \item ライブラリのDebian Package 作成方法
+  \item などなど
+\end{itemize}
+\end{frame}
+
+
+\section{質疑応答}
+\emtext{質疑応答}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
