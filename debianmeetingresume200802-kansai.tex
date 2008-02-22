@@ -1,0 +1,546 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Kansai Debian Meeting resources
+%     Copyright (C) 2007 Takaya Yamashita
+%     Thank you for Tokyo Debian Meeting resources
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200708; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{kansaimonthlyreport}
+\usepackage{ascmac}
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2008}
+\newcommand{\debmtgdate}{23}
+\newcommand{\debmtgmonth}{2}
+\newcommand{\debmtgnumber}{10}
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分, 本文の末尾も修正することをわすれずに
+
+ 第\debmtgnumber{}回 関西 Debian 勉強会資料
+
+\vspace{2cm}
+
+\begin{center}
+% \includegraphics{image200712/top200712a.png}
+\includegraphics{image200712/kansaidebianlogo.png}
+\end{center}
+
+\begin{flushright}
+\hfill{}関西 Debian 勉強会担当者 山下 尊也\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+\end{flushright}
+
+\thispagestyle{empty}
+\end{titlepage}
+
+\begin{minipage}[b]{0.2\hsize}
+ {\rotatebox{90}{\fontsize{80}{80}
+{\gt 関西デビアン勉強会}}}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\setcounter{tocdepth}{1}
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{GIS on Debian GNU/Linux!}{清野 陽一}
+
+\subsection{はじめに}
+\subsubsection{社会的整備の進展}
+
+\begin{itemize}
+ \item 国際情勢
+       \begin{itemize}
+	\item 地図情報を電子化して扱おうという試みは1960年代ごろから始まってい
+	      る。当初は研究目的。
+	\item メインフレーム上ではなく、ワークステーションやパーソナルコンピュー
+	      タの発達に伴い、1980年代頃からこれらのコンピュータ上で動かせるシ
+	      ステムが普及し始める。
+	\item 後述する地上観測衛星（ランドサット衛星1号機の打ち上げは1972年）や
+	      スペースシャトルの運用により、リモートセンシングなどの活用が1970
+	      年代より行われるようになる。
+       \end{itemize}
+ \item 日本国内
+ \begin{itemize}
+  \item 行政サイド \\
+	日本においては、国土に関する数値情報の電子化
+	\begin{quotation}
+	 「平成7年1月の阪神・
+	 淡路大震災の反省等をきっかけに、政府において、GISに関する本格的な
+	 取組が始まった。」（国土地理院
+	 GIS(\url{http://www.gsi.go.jp/GIS/whatisgis.html})による） 
+	\end{quotation}
+	→国を挙げての政策実施。2002年の小泉内閣における「e-Japan重点計
+	画-2002」の重点政策のうち、4番目の「行政の情報化及び公共分野にお
+	ける情報通信技術の活用の推進」においてGISの推進が盛り込まれる。
+	ex)国土地理院の数値地図(CD-ROM版)は平成9(1997)年頃から整備される
+	ようになってきている。
+  \item 建設サイド
+	\begin{itemize}
+	 \item CAD(Computer Aided Design)の普及
+	 \item 電子納品・標準化
+	 \item 建設省・国土交通省の後押し
+	\end{itemize}
+ \end{itemize}
+\end{itemize}
+
+\subsubsection{個人レベル}
+\begin{itemize}
+ \item Google Earth、NASA World Windなどの無料かつ高性能なデスクトップ地
+       図ビューワーの登場 \\
+       →"Google Earthショック"
+ \item Google MapなどのWebマッピングサイト \\
+       →MashUpが流行\\
+       →空間情報を個人が扱う時代に。
+\end{itemize}
+
+\subsection{GISとは}
+\subsubsection{定義}
+\begin{itemize}
+ \item 国土地理院(\url{http://www.gsi.go.jp/GIS/whatisgis.html})の説明
+       \begin{quotation}
+	地理情報システム（GIS：Geographic Information System）は、地理的位置を手がかりに、位置に関する
+	情報を持ったデータ（空間データ）を総合的に管理・加工し、視覚的に表示し、高度な分析や迅速な判断
+	を可能にする技術である。 
+       \end{quotation}
+ \item GISポータルサイト
+       (\url{http://www.gis.go.jp/contents/about/whatis/index.html})の説
+       明
+       \begin{quotation}
+	GIS（Geographic Information System：地理情報システム）とは、位置や空間に関する様々な情報を、コ
+	ンピュータを用いて重ね合わせ、情報の分析・解析をおこなったり、情報を視覚的に表示させるシステム
+	です。元々は専門的な分野での利用が一般的でしたが、最近では、私たちの生活の中での身近な利用へと
+	、その活用範囲が広がってきています。 
+       \end{quotation}
+ \item 国土交通省国土計画局
+       (\url{http://www.mlit.go.jp/kokudokeikaku/gis/aboutgis/index.html})
+       の説明
+       \begin{quotation}
+	位置や空間に関する情報をもったデータ（空間データ）を総合的に管理・加工し、視覚的に表示できる高
+	度な分析や迅速な判断を可能にする技術です。 
+       \end{quotation}
+ \item ESRIジャパン社
+       (\url{http://www.esrij.com/whatisgis/gis/index.shtml})の説明
+       \begin{quotation}
+	GISとは、Geographic Information Systemの略で、広義には「実世界を空間的に管理することにより
+	、より合理的な意思決定を行おうとするアプローチ全般」を意味しますが、狭義には、「空間情報を作成
+	、加工、管理、分析、表現、共有するための情報テクノロジ」を意味します。 
+       \end{quotation}
+ \item インフォマティクス社
+       (\url{http://www.informatix.co.jp/sis/aboutgis/aboutgis.html})の
+       説明
+       \begin{quotation}
+	GISとは、Geographical Information Systems（地理情報システム）の略で地図上に様々な情報を重ね
+	合わせて表示・編集したり、分析するシステムのことをいいます。
+       \end{quotation}
+\end{itemize}
+
+\begin{itembox}[c]{"GIS"と"GPS"の違いってわかる？}
+混同している人を良く見かけます。GPS="Global Positioning System"の略。
+
+全地球測位システム、汎地球測位システム。アメリカの衛星システム。元軍事用。
+
+カーナビとか携帯電話に入っているヤツね。
+\end{itembox}
+
+\subsubsection{大別して2タイプ}
+\begin{itemize}
+ \item 管理系GIS
+       \begin{itemize}
+	\item 統合型・全庁型 \\
+	      商用製品が主流。ラージスケール指向。分析も出来る。\\
+	      →ESRI社ArcGIS、インフォマティクス社のSIS、MapInfo社のMapInfoなど。
+	      \\
+	      →実際、助成金などでお金がある人は、個人研究者でも導入する人は多
+	      い。\\
+	      →その場合、操作方法を知っていることで就職時のアドバンテージにも。
+	\item 表示系：Google Earth、Google Mapみたいなモノ。
+	\begin{itemize}
+	 \item mapserver:WebGISサーバ
+	       (\url{http://mapserver.gis.umn.edu/})
+	 \item ka-Map(\url{http://ka-map.maptools.org/})
+	\end{itemize}
+	\item CADとの関係\\
+	      設計・測量・建設・土木・防災と密接に連携\\
+	      →境目が曖昧になってきている\\
+	      →Autodesk(AutoCAD)社のオープンソースへの参入
+       \end{itemize}
+ \item 解析系GIS
+       \begin{itemize}
+	\item GRASS GIS(\url{http://grass.itc.it/})\\
+	      1980年代半ばから開発
+	\item Quantum GIS(\url{http://www.qgis.org/})\\
+	      高機能なビューワ。簡単な解析機能も持つ。
+	\item SAGA
+	      GIS(\url{http://www.saga-gis.uni-goettingen.de/html/index.php})\\
+	      Release 2.0.1はGentoo LinuxのPortage用が用意されてるみ
+	      たい。
+	\item Mandara(\url{http://www5c.biglobe.ne.jp/~mandara/})\\
+	      Windows用のGISソフト。初心者向け。GISがどういうものかをてっとり早
+	      く知りたい人にはお手軽かも。MS Excelとの連携も。
+       \end{itemize}
+\end{itemize}
+
+\subsection{最近の話題}
+\begin{itemize}
+ \item OSGeo財団(\url{http://www.osgeo.org/node/271})日本支部(\url{http://www.osgeo.jp/})\\
+       大阪市立大学や株式会社オークニーなどが中心
+ \item 関西オープンソース2007におけるカンファレンス(\url{http://www.osgeo.jp/?page_id=8})\\
+       「特別企画：OSGeo.JP　創造都市を支えるオープンソース GISの最前線」
+ \item 書籍の整備
+       \begin{itemize}
+	\item 『入門Webマッピング（\textit{Web Mapping Illustrated}）』(2006年5月、
+	      オライリー)(\url{http://www.oreilly.co.jp/books/4873112826/})
+	\item \textit{Open Source Gis: A Grass Gis Approach}(2007年末に3rd
+	      Editionが出た、Springer)(\url{http://www.grassbook.org/})
+       \end{itemize}
+\end{itemize}
+
+\subsection{なぜDebian GNU/Linuxか？}
+\subsubsection{Debian GNU/Linuxを選んだ同機(個人的経験)}
+\begin{itemize}
+ \item[★] オープンソースなソフトウェアが使いたかった。\\
+       →高機能なプロプライエタリなソフトウェアは沢山あるが、高価！組織や補助金で導入した場合
+	   はライセンスの問題が$\dots$。\\
+	→プログラマブルなのもいいかも(勉強になるかも)
+ \item[★] DebianGISのようなプロジェクトがある（最近は停滞気味？）
+ \item[○] 初心者的に、パッケージの管理が楽そうだった(APT万歳!!)。
+ \item[●] でも、使いこなせるなら他のディストリビューションでもOK？\\
+	   →ソースコードは公開されてることが多いし、Debian GNU/Linuxじゃ
+	   なきゃダメなバイナリというのは無いと思う。\\
+	   →Windows上で使える環境も着々と進んできている。まだUnix/Linux
+	   にアドバンテージがあるけど。\\
+	   →MacOSはGISはあんまり得意じゃないかも$\dots$。
+ \item[●] 海外ではMandrivaとか(かつてのArcheOSとか)Gentoo
+	   Linux(Gentoo-GIS overlay Project (\url{http://gentoo-gis.sourceforge.net/})なんての
+	   がある。)などもよく利用されている模様。
+ \item[●] 最近は人に勧めるとしたらUbuntuか$\dots$。(個人的に紹介実績有り(泣))
+\end{itemize}
+
+\subsubsection{Debian GNU/Linuxにおけるパッケージ、ライブラリなど}
+
+DebianGIS(\url{http://wiki.debian.org/DebianGis})のリストから
+
+\begin{commandline}
+Geospatial packages of core concern
+    Meta-packages
+        *education-geography task from debian-edu: DebianGIS recommends these additions: qgis, gmt, gdal, proj.
+ (education-geography already depends on grass):
+    Binary packages
+        *PostGIS
+            RDBMSのPostgreSQLの地理情報拡張
+        *GDAL(Geospatial Data Abstraction Library 地理空間データ抽象化ライブラリ？)
+            座標系(投影)変換ライブラリ
+        *GRASS
+        *QuantumGIS. Includes qgis-plugin-grass
+        *Mapserver
+        *GEOS
+        *PROJ: proj-doc: there are PDF files available, perhaps those would be better?
+        *Earth3D
+        *gpsd
+        *gpsdrive
+        *gpx2shp
+        *gpsman
+        *gpsmanshp
+        *gpstrans
+        *gpsbabel
+        *thuban
+        *gmt
+        *OpenSceneGraph
+        *OpenThreads
+        *Avce00 and E00compr
+        *OGDI
+        *OpenJUMP: in debian/contrib, because it depend on batik and sun jre. Work is being done to get batik into 
+debian/main, and openjump to work with GNU Classpath. Packaged instead of JUMP
+        *JTS
+        *TerraLib
+        *mapnik
+        *marble
+        *Viking: a GPS track editor and analyzer
+        Useful packages to be packaged
+        Sorted by approximate priority.
+            Libraries and bindings
+            *Python Shapelib binding
+            *Python Cartographic Library (PCL)
+            *Tcl Shapelib binding
+            *Ruby Shapelib binding
+        Desktop/Analysis/Database
+            *Ossim: currently being worked on (Francesco Lovergine)
+            *PostLBS: powerful routing solution for PostgreSQL/PostGIS
+            *TerraView: powerful GIS based on TerraLib (already in Debian, but obsolete)
+            *OpenModeller: species occurrence modelling software
+            *r-spatial: R/GRASS interface for GRASS 6 and other spatial software for R
+                R言語:統計処理。空間統計ライブラリ
+            *garmin-utils: similar in scope and function to gpstrans, but works with modern serial Garmins. 
+See also the NetBSD port
+            *e-foto: aerial photogrammetry. See this unanswered post
+        Data
+        OpenStreetMap
+            *OpenStreetmap: Useful for upcoming release of gpsdrive
+            *josm: Java Open Street Map Editor
+            *gosmore: viewer of OSM XML data such as the planet.osm
+        Sample datasets
+            * GRASS's Spearfish dataset
+            * OSGeo's NC sample dataset
+    Java
+        *gvSIG (top priority)
+        *uDig: User-friendly Desktop Internet GIS
+        *GeoServer
+        *Postgisdriver-JUMP: currently being worked on. Contrib - depends on jump
+        *GeoTools: Java GIS Toolkit
+        *Deegree2 and iGeoPortal: currently being worked on. Binary package structure not yet clear.
+        *NASA World Wind (Java version): Needs JOGL and perhaps SUN Java
+        *JOGL: Java
+        *Kosmos Desktop GIS derived from OpenJUMP (an unofficial package available)
+            For more info on the Java state in Debian, see the moving java to Debian/main page.
+    Live Web Apps
+        *PyWPS: Python Web Processing Service
+        *OpenLayers, TileCache, FeatureServer (all from MetaCarta)
+        *p.mapper (unofficial packages available
+    3D Visualization
+        *ParaView: Very useful for 3D rapresentation of GRASS rasters and vectors
+        *Visual Terrain Project: proposed
+        *VisIt: 3D visualization
+        *X3D: modern version of VRML, various libs & apps
+        *OpenDX: the open source version of IBM's Visualization Data Explorer. Uses the IBM Public License
+        *MINI: proposed, needed for VTerrain
+        *OpenProducer: proposed, useful for OpenSceneGraph
+    Lower Priority
+        *Shape file utilities, including ShapeChecker
+        *http://www.primagis.fi/ map extension for Plone; it builds on top of Mapserver, 
+Python Cartographic Library (PCL) and Cartographic Objects for Zope (ZCO)
+        *OpenEV: currently being worked on (Alex Bodnaru); old version, based on gtk1; the new one, based on 
+gtk2, is still unsuitable to packaging
+        *MB-System: multibeam, interferometry, and sidescan sonar data processing (GPL)
+        *PhpPgGIS: ITP #381974. Project apparently inactive
+        *Open3D GIS: Requires FreeWRL, see http://sourceforge.net/projects/freewrl/.
+ Project apparently dead? https://sourceforge.net/projects/open3dgis/
+        *dxf2svg: also the reciprocal svg2dxf (depends on pstoedit)
+        *JGrass: currently being worked on. Contrib - needs jdk1.4, several contrib packages. Currently being
+ fused with uDig - better postpone packaging until settled down
+\end{commandline}
+
+この他にFOSS4G Toolkit CDやArcheOS(Mandrivaだったが最近Ubuntu化した)など
+のLive CDもある。\\
+→FOSS4G Toolkit CDはMandriva向けのRPMセットとして配布するのみとなったよ
+うだ。
+
+\subsection{空間データ}
+
+★以前は必要とする者が自ら取得することが一般的であったが、最近では各種空間
+データが整備されてきている。
+
+\subsubsection{国内}
+\begin{itemize}
+ \item 国土地理院発行の各種数値地図（有償）(\url{http://www.gsi.go.jp/})\\
+       ただし、近年、情報公開により閲覧を目的としてデータの無償公開が進
+       んでいる。\\
+       ex)国土地理院数値地図(空間データ基盤)の閲覧（試験公開）
+       (\url{http://sdf.gsi.go.jp/})
+ \item 電子国土ポータル(\url{http://portal.cyberjapan.jp/index.html})\\
+       各種地図の閲覧を主眼。精細なベクトルデータを提供。専用プラグイン
+       を用いて各自がWeb地図作成を行える。
+ \item 陸域観測技術衛星「だいち」(ALOS)\\
+       宇宙航空研究開発機構（JAXA(\url{http://www.jaxa.jp/index_j.html})）
+       が2006年1月24日に打ち上げた衛星の観測データ。有料？
+\end{itemize}
+
+「高精度で標高抽出を行うためのパンクロマチック立体視センサ(PRISM)、およ
+び土地被覆の観測を高精度に行うための高性能可視近赤外放射計2型(AVNIR-2)、
+昼夜の別なく、また天候によらず陸域の観測が可能なフェーズドアレイ方式Lバ
+ンド合成開口レーダ(PALSAR)の3つの地球観測センサを搭載」
+
+※2008年1月8日、予定した精度が取得できないのではないかとの報道
+(\url{http://www.asahi.com/special/space/TKY200801090162.html})
+がなされたが、その後の調査により、同年同月16日、新たな方法を用いることで懸念されていた
+問題は改善できるとの発表がなされた
+(\url{http://www.jaxa.jp/press/2008/01/20080116_sac_daichi_j.html})。
+
+\subsubsection{地球規模}
+\begin{itemize}
+ \item スペースシャトル地形データ Shuttle Radar Topography Mission
+       (SRTM)\\
+       1994年より実験開始。現在主に利用されているのは2000年に行われた第3回実験
+       によって取得されたデータ。11日間の飛行で両極を除く地上の陸地の約
+       80％、全人口密集地の約95％をカバーするデータを取得した。
+
+       NASAのFTPサイト(\url{ftp://e0srp01u.ecs.nasa.gov/srtm/})よりデータをダ
+       ウンロード可能。一部有料。
+
+       DEM(Digital Elevation Model)の作成用
+ \item ランドサット衛星画像 Landsat Imagery (TM,
+       ETM+)(\url{http://www.eorc.jaxa.jp/hatoyama/satellite/satdata/landsat_j.html})\\
+       メリーランド大学
+       (\url{http://glcfapp.umiacs.umd.edu:8080/esdi/index.jsp})
+       からデータをダウンロード可能。
+       様々な波長の光の反射データ。リモートセンシング用。
+ \item 商用衛星画像データ\\
+       Google EarthやGoogle Mapなどでは高精細な商用衛星画像データが用い
+       られている。Earthsat社やDigital Globe社、Bluesky社など。\\
+       確かに解像度が高く利用価値は高いが、非常に高価なので、費用対効果を考えて利用されている。
+\end{itemize}
+
+★でも結局研究目的の場合などは、今でも自分達でデータを取得しなければな
+らないことの方が多い(泣)。
+
+★なので、いかに効率的に、必要とされり正確・詳細な空間データを取得するかが問題となる。
+
+\subsection{おわりに}
+\subsubsection{まとめ}
+以前に比べて環境は格段に良くなっている。
+
+特に、こちらから能動的に各種データの整備を要求・もしくは自ら多大なコスト
+をかけて取得しなくても、次々と空間基盤データの整備が行われてきている。
+
+表示系の地図サイトなどは個人レベルで管理・運用できる環境が整っている。\\
+→皆さんもちょっと触ってみませんか？
+
+\subsubsection{反省点}
+今回はGISの概要を説明することで大半を消費してしまった。より具体的な話が
+出来なかったのが悔やまれる。
+
+しかし、実際に使ってみないと実感が湧かないのも事実。
+また、具体的な課題がないと、なかなか触るきっかけもないかも。
+
+\dancersection{DebianでPCクラスタを作ってみよう}{中尾 昌広}
+
+\dancersection{資料作成基礎(TeX)}{山下 尊也}
+\subsection{インストール}
+今回，対象とするものは2008年2月21日現在のstableであるetchを対象とします．
+
+\subsubsection{/etc/apt/sources.listの確認}
+
+ノンフリーなものも使うため，/etc/apt/sources.listは以下のようにしておい
+て下さい．
+
+\begin{commandline}
+deb http://ftp.debian.or.jp/debian/ etch main contrib non-free
+\end{commandline}
+
+\subsubsection{teTeX と pTeX一式のインストール}
+\begin{commandline}
+ $ sudo aptitude install ptex-bin
+\end{commandline}
+
+\subsubsection{奥村さんの新クラスファイルのインストール}
+\begin{commandline}
+ $ sudo aptitude install okumura-clsfiles
+\end{commandline}
+
+\subsubsection{dvipdfmxのインストール}
+\begin{commandline}
+ $ sudo aptitude install dvipdfmx
+\end{commandline}
+
+\subsubsection{Adobe Readerのインストール}
+EtchのEvinceには日本語のフォントを埋め込んでない場合に文字が化けると言うバグ 
+\footnote{いくやさんが修正したものを配布しています．
+\url{http://ikuya.info/wiki/index.php?etchpackages} 
+ただ，2008年2月22日現在のunstableでも，Evinceには，popplerの問題があり，
+ \url{http://lists.debian.or.jp/debian-devel/200712/msg00000.html}これは，
+AdobeとのCMAP問題に繋がるので，
+Adobe Readerで見る事をお勧めします．
+}
+があるので，PDFを見るためにAdobe Readerをインストールする．
+
+Adobe Readerの配布ページ
+\footnote{\url{http://www.adobe.com/jp/products/acrobat/readstep2.html}}
+にアクセスし，Adobe Readerのdebパッケージを取ってくる．
+
+\begin{commandline}
+ $ sudo dpkg -i AdobeReader_jpn-8.1.2-1.i386.deb
+\end{commandline}
+
+\subsubsection{CMAPのインストール}
+
+
+\begin{commandline}
+ $ sudo aptitude install cmap-adobe-japan1 cmap-adobe-japan2
+\end{commandline}
+
+\subsubsection{YaTeX(野鳥)のインストール}
+
+エディタとしてEmacsを使っている人は，YaTeXと呼ばれる
+\LaTeX 入力支援環境があるので，それを利用すれば良いでしょう．
+\footnote{Emacsを使っていない方でも，VIM-\LaTeX
+(\url{http://vim-latex.sourceforge.net/})や
+KDE環境にKile(\url{http://kile.sourceforge.net/})という
+\LaTeX を編集する環境があるようです．
+}
+
+\begin{commandline}
+ $ sudo aptitude install yatex emacs21
+\end{commandline}
+
+\subsection{リポジトリからデータを取ってくる}
+現在，関西 Debian 勉強会では，リポジトリの用意が出来ていないため，
+東京エリア Debian 勉強会のリポジトリを借りている状態です．
+
+\begin{commandline}
+ $ sudo aptitude install git-core
+ $ git-clone git://git.debian.org/git/tokyodebian/monthly-report.git
+\end{commandline}
+
+\dancersection{今後の予定}{山下 尊也}
+
+\subsection{次回}
+次回は，2008年03月23日に今回と同じく
+港区民センター\footnote{\url{http://www.city.osaka.jp/shimin/shisetu/01/minato.html}}
+梅にて行ないます．
+
+\subsection{OSC Kansaiについて}
+今年のOSC Kansaiの日程が決まりました．
+7月18，19日（金・土）に行なわれます．
+
+3月の中旬頃，OSC Kansaiのキックオフミーティングがあるので，
+関西 Debian 勉強会も関係者が参加し，詳しい話を聞いてきます．
+　
+\printindex
+ \cleartooddpage
+
+ \begin{minipage}[b]{0.2\hsize}
+  \rotatebox{90}{\fontsize{80}{80} {\gt 関西デビアン勉強会} }
+ \end{minipage}
+ \begin{minipage}[b]{0.8\hsize}
+
+ \vspace*{15cm}
+ \rule{\hsize}{1mm}
+ \vspace{2mm}
+ \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+ \noindent \Large \bf Debian 勉強会資料\\ \\
+ \noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+ \noindent \normalfont 関西 Debian 勉強会 （編集・印刷・発行）\\
+ \rule{\hsize}{1mm}
+ \end{minipage}
+
+\end{document}
