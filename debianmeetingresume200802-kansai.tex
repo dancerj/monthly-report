@@ -450,6 +450,132 @@ gtk2, is still unsuitable to packaging
 
 \dancersection{DebianでPCクラスタを作ってみよう}{中尾 昌広}
 
+\subsection{はじめに}
+安価で高速な並列計算機システムであるPCクラスタを、Debianを使ってセットアッ
+プする方法について説明します。
+
+\subsubsection{PCクラスタとは何か？}
+クラスタ(cluster) とは英語で「ブドウの房，同じものが群らがっている様」みたいな意味です。
+つまり、PCクラスタとは、複数台のPCをブドウのように（LANケーブルで）相互接続して、それらを協調動作させるシステムのことです。
+
+\begin{figure}[!htbp]
+ \begin{center}
+ \includegraphics[width=82mm]{image200802/cluster.png}
+  \caption{クラスタの概念図}
+  \label{fig:ga-map}
+ \end{center}
+\end{figure}
+\vspace{-3mm}
+
+\subsubsection{PCクラスタをつくる理由}
+高速な計算機環境が欲しいけど、スーパーコンピュータみたいな高価な専用並列計算機はとても買えない。
+そこで、普通の電気屋で売っているようなPC をクラスタ化して、安価に並列計算環境を作ろう、ということが考えられました。
+
+PCクラスタには大きく分けて、HA（High Availability）クラスタとHPC（High Performance Computing）クラスタがあります。
+HAクラスタとは、高可用性を持つシステム、つまりサービスを止まりにくくすることを目的としたクラスタシステムです。
+最近はWeb系のサーバでこのシステムがよく用いられています。
+HPCクラスタとは、科学計算分野などでおいて、ものすごく時間のかかる処理を、複数台のPCに分散させて、
+高速に結果を得ることを目的としたクラスタシステムです。
+企業のメーカでも、車体や航空機を設計する際のシミュレーションなどに用いられています。
+
+本資料とプレゼンでは基本的にHPCクラスタについての話ですが、HAクラスタに共通している点も多いはずです。
+
+\subsubsection{DebianでPCクラスタを作る理由}
+\begin{itemize}
+\item Debianには数多くのPCクラスタ用ツールがある
+\item PCクラスタのOSとして普通のDebianを利用するので、PCクラスタツール以外の有用なツールも数多く利用できる
+\item コミュニティが活発（debian-usersで質問に答えてくれる人達は素晴らしい）
+\item aptが楽
+\end{itemize}
+
+\subsection{PCクラスタの作り方}
+並列計算ができるまでを目標として、PCクラスタシステムをセットアップする手順を説明します。
+\begin{enumerate}
+\item PCクラスタを構成する部品（PC、LANケーブル、スイッチングハブ）を用意し、それぞれ接続する
+\item 用意したPCにDebian GNU/Linuxをインストールする
+\item 自分が必要とするコンパイラと並列計算ライブラリをインストールする。
+      並列計算ライブラリはmpichとPVMがよく用いられる。
+      今回はmpichを使う
+\begin{commandline}
+ # aptitude install mpich-bin libmpich1.0-dev gcc g77 g++
+\end{commandline}
+      インストール後に並列計算に用いるホスト名（もしくはIPアドレス）を
+      /etc/mpich/machines.LINUX記述する
+\item クラスタ内ネットワークでは、速度重視のため暗号化なしで通信を行いた
+      いので、rsh-serverとrsh-clientをインストールする
+\begin{commandline}
+ # aptitude install rsh-server rsh-client
+\end{commandline}
+      インストール後にrshを許可するホスト名（もしくはIPアドレス）を
+      /etc/hosts.equivに記述する
+\item NFSを使って/home以下の共有を行うと便利なため、PCクラスタを構成する
+      PCの1台にnfs-kernel-serverをインストールする
+\begin{commandline}
+ # aptitude install nfs-kernel-server
+\end{commandline}
+      そして、nfs-kernel-serverをインストールしたPCの/etc/exportsに、ど
+      のPCにNFSのサービスを許可するかの情報を記述する．
+\begin{commandline}
+ 【/etc/exportsの例】
+ /home   192.168.1.0/255.255.255.0(rw,async,no_subtree_check)
+\end{commandline}
+      /etc/exportsの変更後にNFSのサービスを再起動させる
+\begin{commandline}
+ # /etc/init.d/nfs-kernel-server restart
+\end{commandline}
+      そして、nfs-kernel-serverをインストールしたPC以外は、mountコマンド
+      を用いてNFSサーバにマウントする
+\begin{commandline}
+ # mount -t nfs （NFSサーバ）:/home /home
+\end{commandline}
+      以上で、PCクラスタの完成です。簡単です。
+      意外かもしれませんが、並列計算ライブラリ以外は特殊なソフトウェアを用いていません。
+      このように既存のソフトウェアを有効活用できる所が、PCクラスタの大きな特徴です。
+ \item 並列計算用サンプルファイルが、
+       /usr/share/doc/libmpich1.0-dev/examples/cpi.cにあるので、実行して
+       みましょう。
+\begin{commandline}
+ $ mpicc cpi.c -o pi 【コンパイル】
+ $ mpirun -np 5 pi   【実行】
+\end{commandline}
+       cpi.cは$\pi$の値を計算するプログラムです。
+       mpiccというコマンドでC言語で書かれた並列計算プログラムのコンパイルが行えます。
+       Fortranの場合はmpif77、C++の場合はmpicxxなどを用います。
+
+       そして、mpirunというコマンドで、並列計算プログラムの実行が行えます。
+       引数の-np以降はプロセス数を指定しています。
+       また、並列計算に使用したいマシンを指定する際は、-machinefileというオプションを利用します。
+
+\begin{commandline}
+ $ mpirun -np 5 -machinefile hoge.txt pi
+\end{commandline}
+
+       この場合、hoge.txtに並列計算に使用したいホスト名を書くと、そのPC
+       で並列計算が行われます。
+\end{enumerate}
+
+\subsection{クラスタで使うと便利なソフトウェア}
+Gangliaという各ノードの負荷、生死をWebブラウザから確認できるソフトウェア。
+日、週、月、年といった単位でクラスタ全体のロードアベレージの傾向も見ることができます。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[width=100mm]{image200802/ganglia.png}
+  \caption{Ganglia}
+  \label{fig:ga-map}
+ \end{center}
+\end{figure}
+
+\subsection{おわりに}
+駆け足でクラスタの概要とセットアップ手順について説明しました。
+Debianでクラスタを作るのは簡単だというのが伝われば幸いです。
+
+\subsection{参考文献}
+\begin{itemize}
+\item 同志社大学知的システムデザイン研究室（http://mikilab.doshisha.ac.jp/）
+\item 超並列計算研究会（http://www.is.doshisha.ac.jp/SMPP/）
+\end{itemize}
+
 
 \dancersection{資料作成基礎(TeX)}{山下 尊也}
 
