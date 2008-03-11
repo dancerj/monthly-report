@@ -1,3 +1,4 @@
+%; -*- coding: iso-2022-jp -*-
 %; whizzy chapter
 % -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
 % 以上 whizzytex を使用する場合の設定。
@@ -162,9 +163,224 @@
 % (query-replace-regexp "<.*?>" "")
 % (query-replace-regexp "^[	 ]\+" "")
 
-\dancersection{データパッケージ}{David Smith}
+\dancersection{Debianパッケージ作成：データだけのパッケージ}{David Smith}
 \label{sec:datapackage}
-\index{XX@YY} 
+\index{ぱっけーじ@データーだけのパッケージ}
+
+Debianパッケージ作成にようこそ！dpkgのパッケージ、いわゆるDebianパッケー
+ジの作成を分かりやすく、実例の分析に基づいて説明する。\footnote{Debianパッ
+ケージが作りたいよね。一応作りたいと前提に思っているからよろしく。}今回
+データーだけのパッケージについてみてみましょう。
+
+データーだけのパッケージは何かと言えばフォントやドキュメンテーションや
+設定ファイルなどのパッケージを指すことだ。要するにプログラムとライブラリではな
+いパッケージだと言える。今回、GNOMEデスクトップの背景ファイルの集合、
+gnome-backgroundsの構成を解析する。Debian Popularity
+Contest\footnote{Debian Popularity Contest の
+URL:\url{http://popcon.debian.org/}}によると現在gnome-backgroundsが殆ど
+全部のGNOMEインストールに含まれていてGNOMEを使用していれば
+gnome-backgroundsも入っているはず。背景ファイルだがパッケージの構成に複
+雑の部分もあると思うから詳細までみてみよう。
+
+\subsection{準備}
+
+まず、Debian New Maintainer's Guide
+\footnote{Debian New Maintainer's Guide の URL:
+\url{http://www.debian.org/doc/devel-manuals\#maint-guide}}
+のページを開いておいたらいいでしょう。不明な点があった場合、
+New Maintainer's Guideに分かりやすく書いているだろうし、質問
+は何処まで送ればいいか教えるのだ。
+
+それからgnome-backgroundsのソースパッケージをダウンロードしよう。
+\begin{commandline}
+$ apt-get source gnome-backgrounds
+\end{commandline}
+% $ - hi emacs
+
+準備の最後にパッケージの構成に必要な依存パッケージをインストールしなけれ
+ばビルドが出来ないので以下のコマンドをインストールしよう。
+\begin{commandline}
+$ apt-get build-dep gnome-backgrounds
+\end{commandline}
+% $ - hi emacs
+
+\subsection{基本のDebianパッケージファイル}
+
+今のところ、apt-get sourceがソースパッケージをgnome-backgrounds-2.20.0と
+いうディレクトリに展開した。そのディレクトリの中にはdebian/ディレクトリが
+あり、そこにパッケージ作成の設定ファイルがある。パッケージによるファイル
+数が異なるが、gnome-backgroundsは最低限に近い。
+
+\begin{commandline}
+piyo:/tmp/gnome-backgrounds-2.20.0> ls -l debian/
+合計 36
+-rw-r--r-- 1 dds dds 3755 2008-03-08 16:21 changelog
+-rw-r--r-- 1 dds dds    2 2008-03-08 16:21 compat
+-rw-r--r-- 1 dds dds 1022 2008-03-10 15:11 control
+-rw-r--r-- 1 dds dds  771 2008-03-08 16:21 control.in
+-rw-r--r-- 1 dds dds 1780 2008-03-08 16:21 copyright
+-rwxr-xr-x 1 dds dds  368 2008-03-08 16:21 rules
+-rw-r--r-- 1 dds dds  145 2008-03-08 16:21 watch
+\end{commandline}
+
+この中でchangelog、control、copyright、rulesはあらゆるパッケージに
+必要です。
+
+\subsubsection{debian/copyright}
+
+debian/copyrightは上流ソースコード、データーなどの著作権を認めるためのファ
+イル。形式は自由。パッケージビルドツールに対して必須なので自分専用でも自
+分の会社内専用のパッケージでも一応書かなければならない。最低限として
+「All Rights Reserved」と書いてもいい。gnome-backgroundsの
+debian/copyrightファイルが長すぎるのでここには示さないけど見てみてくださ
+い。パッケージをインストールすると/usr/share/doc/<package
+name>/copyrightにインストールされる。
+
+\subsubsection{debian/changelog}
+
+debian/changelogはにパッケージのバージョンを記録する。必ずしもパッケージの
+バージョンが上流のバージョンに一致することではないので必須になっている。それにパッ
+ケージの最新バージョン番号はこのファイルの最初の1行目から直接に抽出される。
+
+gnome-backgroundsの最新バージョンのchangelogを見てみましょう。
+\begin{commandline}
+gnome-backgrounds (2.20.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Sebastian Droge <slomo@debian.org>  Sat, 22 Sep 2007 09:49:38 +0200
+\end{commandline}
+
+かなり簡単。だけど、空白と日付の形式を厳守しなければビルドするときにエラー
+が発生するから注意。\footnote{debchange(1)というツールで手軽にchangelog
+編集が出来る。devscriptsというパッケージに入っている。}
+
+\subsubsection{debian/control}
+
+debian/controlにはパッケージ名、Maintainer、依存のパッケージなどのメタ情
+報が記している。gnome-backgroundsの場合、独特としてdebian/controlと共に
+debian/control.inファイルもある。debian/control.inはDebianのパッケージツー
+ルに対して関係ないから無視しても良い。でも目的は何かと言えば説明したい。
+
+Gnomeプロジェクトは規模が大きいのでメンテに関われている人が多い。
+debian/controlにアップロード出来る人達の名前が記載されているのだが人の名
+前が多すぎて直接管理しにくいから@GNOME\_TEAM@という変数だけを書いている。
+そして別のファイルにその人達の名前を書いて、発行時にスクリプトによって変
+数を変換するわけだ。必要がなくて複雑かもしれないけどDebianといえば自由主
+義ですね。
+
+ではdebian/controlをみてみよう。
+\begin{commandline}
+Source: gnome-backgrounds
+Section: gnome
+Priority: optional
+Maintainer: Sebastien Bacher <seb128@debian.org>
+Uploaders: @GNOME_TEAM@
+Build-Depends: debhelper (>= 5), cdbs, gnome-pkg-tools
+Build-Depends-Indep: libxml-parser-perl
+Standards-Version: 3.7.2
+
+Package: gnome-backgrounds
+Architecture: all
+Depends: ${misc:Depends}
+Description: a set of backgrounds packaged with the GNOME desktop
+ This is a collection of desktop backgrounds created with GNOME users in mind.
+ It contains the following backgrounds:
+ .
+ <記述の詳細を除いた>
+\end{commandline}
+
+第一段落にソースパッケージを記述する。apt-get sourceとapt-get buildd-dep
+を実行する時、ソースパッケージの情報を使っている。9行目以降に作成する
+gnome-backgroundのバイナリパッケージを定義している。順番に関してはソース
+パッケージが必ず最初に来るそしてSource又はPackageはそれぞれの段落の最初の
+1行に書く。それ以外の中身の項目は特に決まった順番がない。
+
+SectionとPriorityとの項目は少しややこしいかもしれない。決まった選択肢の中
+から１つしか選べないので合わない場合があるけどgnome-backgroundsの場合はぴっ
+たり、gnomeでoptional。選択肢の詳しい情報はDebian Policy Manualに書いてあ
+る。\footnote{Debian Policy Manual
+URL:\url{http://www.debian.org/doc/debian-policy/ch-archive.html\#s-subsections}}
+後はMaintainerとUploadersはそれぞれ書いた通り。Uploadersは共同にメンテを
+している人なのだ。つまり、Maintainerの項目は必ず一人しか書けないけど他の
+人もメンテしていればUploadersに書くということだ。
+
+次にビルドのための依存関係パッケージが書いてある。殆どのパッケージにはビ
+ルドするための依存パッケージと利用するための依存パッケージが異なる。例え
+ば普通のプログラムの場合にC/C++のヘッダーがビルド時に必要けど実行するのに
+要らないとして、Debianパッケージの構成にも同じことがある。
+\footnote{Build-DependsとBuild-Depends-Indepの違いがあまり分からなくてす
+みません！}gnome-backgroundsがビルド時に使ってる依存パッケージがより典型
+的なのでそれぞれ少し説明する。
+
+\begin{description}
+ \item[cdbs]
+            ``Common Debian Build System''の省略, 共有されているビルドシステム。
+            多くの人が使っていると思う。
+ \item[debhelper]
+            いろいろパッケージビルドに役に立つツール。例えば上流のドキュメンテー
+            ションを自動的にインストールするツールなど。実にこれがcdbs
+            から依存しているので述べる必要がない。でも重複しても
+            問題はない。
+ \item[gnome-pkg-tools]
+            cdbsに少し似ている感じでGNOMEパッケージを作るのに役に立つツー
+            ル。
+ \item[libxml-parser-perl]
+            PerlのXML::Parserモジュール。
+\end{description}
+
+ソースパッケージの段落の最後にStandards-Versionという項目はDebian
+Policy Manualの何バージョンに準拠しているかを述べる。
+
+続いてバイナリパッケージの段落になる。パッケージ名が最初に来る。それから
+対応するアーキテクチャーを書く。データーだけのパッケージの場合に尤もall
+にしてもいい。今度のバイナリパッケージ作成発表にallの他を説明する。その他
+はDependsラインにruntimeの依存関係のパッケージ（この場合は自動的に抽出さ
+れる）が書いていて、最後にパッケージの記述。
+
+詳しくはDebian Policy Manualまで参照してください。
+
+\subsubsection{debian/rules}
+
+debian/rulesでパッケージのビルドがどう行われるかを定義する。中身の形式は
+完全自由だが外部のツールがPolicy Manualに書いている呼び出し方を依存してい
+る。それでMakefile形式を用いているパッケージの割合は100\%に近い。
+
+しかしMakefileなのにcdbsを使っているので普通なMakefileに余りにも似ていな
+い。時間と動力を節約したい方は是非試してください。
+
+gnome-backgroundsのdebian/rulesをみよう。
+
+\begin{commandline}
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/gnome.mk
+include /usr/share/cdbs/1/rules/simple-patchsys.mk
+include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
+-include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
+
+binary-post-install/gnome-backgrounds::
+	rm -rf debian/gnome-backgrounds/usr/share/locale
+\end{commandline}
+% )$ -- hello emacs
+
+殆ど以前に定義しているルールを再利用しているしかないです。1つだけのこのパッ
+ケージに特別の追加があり、それはbinary-post-install/gnome-backgrounds::の
+ところ。意味としてはgnome-backgroundsというバイナリパッケージを作ってから、
+必要ないのでそのディレクトリを削除する。
+
+\subsubsection{debian/watch}
+
+debian/watchファイルは不要だが使ったら自動的に新しい上流のソフトを取得し
+てビルドする仕組みが使える。
+
+\subsection{パッケージビルド}
+
+上記を設定してから、パッケージのビルド自体はdpkg-buildpackage又は
+debuilderコマンドだけで出来る。設定以来の変更をdebian/changelogファイルに
+記録するとバージョン管理がで要る。dpkg-buildpackageの出力が長いためここ
+に写さないけど自分で試してみてください。
 
 \dancersection{Debian でのライセンスの考え方}{上川 純一}
 \label{sec:license}
