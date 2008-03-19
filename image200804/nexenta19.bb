@@ -1,4 +1,4 @@
-%%Title: ./nexenta8.png
+%%Title: ./nexenta19.png
 %%Creator: ebb Version 0.5.2
 %%BoundingBox: 0 0 527 312
 %%CreationDate: Wed Mar 19 18:13:45 2008
