@@ -381,6 +381,386 @@ Tatsuya Kinoshita
 %%% 倉敷さん
 \dancersection{GPG 最初の一歩}{倉敷 悟}
 
+GnuPG というと、「ああ、なんか apt-get の時にゴチャゴチャ文句言ってくる
+アレか」といった印象をお持ちの方もおられるのではないかと思います。実は
+Debian には様々な形で GPG が組みこまれていて、ssh 等にならぶマスト
+アイテムといっても過言ではありません。このセッションでは、GPG の用途と
+役割について簡単にご紹介した後、典型的な使用方法についてデモを行います。
+
+\subsection{GPG の概要}
+
+端的に GPG とは何か、というと：
+\begin{itemize}
+ \item PGP 規格のフリーな実装 (特許の観点で、あるいは処理系として)
+       \begin{itemize}
+        \item 公開鍵暗号と共通鍵暗号のハイブリッド方式
+       \end{itemize}
+ \item メールやファイルの暗号化をするソフト
+       \begin{itemize}
+        \item 暗号化で盗聴を防ぐ (機密性/Confidentiality)
+        \item 署名で改竄を防ぐ (完全性/Integrity)
+        \item 信頼の輪で本人同定 (認証/Authentication)
+       \end{itemize}
+\end{itemize}
+
+より詳しい解説は、下記 URL で読むことができます。
+
+\begin{itemize}
+ \item The GNU Privacy Guard \url{http://gnupg.org/} \\
+       GnuPG 本家。ドキュメントは豊富ですが全部英語です。
+ \item GNU Privacy Guard 講座 \url{http://hp.vector.co.jp/authors/VA019487/} \\
+       日本語のポータル的なサイト。使い方を調べたい時に最適かと思います。       
+ \item GnuPG (The GNU Privacy Guard) \url{http://www.math.s.chiba-u.ac.jp/~matsu/gpg/index.html} \\
+       少し古い記事ですが、暗号機能の一般的な背景がわかりやすく解説されています。
+\end{itemize}
+
+\subsection{Debian における GPG}
+
+
+\subsubsection{パッケージアーカイブ}
+
+etch 以降、配布しているパッケージアーカイブの改竄防止のため、Release
+ファイルに GPG でデジタル署名を施しています。APT でパッケージを取得する
+際に、この署名を確認して、検証できない場合は警告が表示されるようになっています。
+
+公式アーカイブの公開鍵はパッケージとして配布されているので、これをインス
+トールしておけば、後は APT がよしなに面倒をみてくれます。
+
+\begin{commandline}
+kura@acacia:~$ dpkg -l | grep keyring
+ii  debian-archive-keyring               2007.07.31                    GnuPG archive keys of the Debian archive
+ii  debian-multimedia-keyring            2007.02.14                    GnuPG archive key of the debian-multimedia r
+\end{commandline}
+
+上記の例では debian-multimedia の鍵も入っていますが、公式でない
+アーカイブでも、鍵が配布されていれば同じように検証をしてくれます。
+
+\begin{itemize}
+ \item SecureApt \url{http://wiki.debian.org/SecureApt}
+\end{itemize}
+
+\subsubsection{開発者の認証}
+
+Debian では、GnuPG が本人の身分証明手段として広く浸透しており、特に
+パッケージまわりで作業しようと思うと、なんだかんだで必要になります。
+
+私に見えてる範囲では：
+\begin{itemize}
+ \item keysign に必要 (本末転倒ですが……)
+ \item パッケージのビルドに必要 (必須ではない)
+ \item mentors.debian.net への登録に必要
+ \item Debian JP への参加に必要
+ \item Debian {Maintainer|Developer} への応募に必要
+\end{itemize}
+といった場面で自分の GPG 鍵が必要です。また、ただ作るだけではなくて、
+Debian Developer と keysign を行っておく必要もあります。
+
+\subsection{名刺としての GPG 鍵}
+
+現時点では、「Debian は使うだけだし、面倒だから別に要らないや」と
+思うかも知れません。
+
+ただ、他にもメリットがありますし、これを機会に是非 GnuPG を
+使ってみてください。最初に必要なのは、たった一つ、「これから
+作る鍵をちゃんと維持するぞ」という意気込みだけです。
+
+\begin{itemize}
+ \item デジタルな identity として
+ \item こういったコミュニティでの名刺交換に
+ \item 公開鍵基盤の身近な活用例として
+ \item Debian Developer はレア
+ \item keysign は結構おもしろい
+\end{itemize}
+
+\subsection{はじめてみよう}
+
+\subsubsection{GPG 鍵を作る}
+というわけで、自分の鍵を作ってみましょう。
+
+\begin{commandline}
+kura@acacia:~$ gpg --gen-key
+gpg (GnuPG) 1.4.6; Copyright (C) 2006 Free Software Foundation, Inc.
+This program comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
+under certain conditions. See the file COPYING for details.
+
+gpg: directory `/home/kura/.gnupg' created
+gpg: can't open `/gnupg/options.skel': そのようなファイルやディレクトリはありません
+gpg: keyring `/home/kura/.gnupg/secring.gpg' created
+gpg: keyring `/home/kura/.gnupg/pubring.gpg' created
+Please select what kind of key you want:
+   (1) DSA and Elgamal (default)
+   (2) DSA (sign only)
+   (5) RSA (sign only)
+Your selection? 
+\end{commandline}
+
+まず、鍵の種類を聞かれます。ここはデフォルトのままで構いませんので、
+何も入力せずに enter を押します。
+
+\begin{commandline}
+DSA keypair will have 1024 bits.
+ELG-E keys may be between 1024 and 4096 bits long.
+What keysize do you want? (2048) 
+\end{commandline}
+
+次に、鍵の流さを聞かれます。選択の目安としては、1024 は短かすぎるので NG、
+デフォルトの 2048 はまぁ OK、計算機資源が余っているなら 4096 もアリ、
+といったところでしょうか。
+
+この例では、そのまま enter を押して、デフォルトの 2048 としています。
+
+\begin{commandline}
+Requested keysize is 2048 bits
+Please specify how long the key should be valid.
+         0 = key does not expire
+      <n>  = key expires in n days
+      <n>w = key expires in n weeks
+      <n>m = key expires in n months
+      <n>y = key expires in n years
+Key is valid for? (0) 
+Key does not expire at all
+Is this correct? (y/N) y
+\end{commandline}
+
+次は、鍵の有効期限を選びます。私の場合、最初ここをどうするべきか困ったと
+ころですが、これまで keysign してもらった方々のを見る限り、期限なしで問題
+ないようです。
+
+というわけで、そのまま enter を押して、確認にも y と答えます。
+
+\begin{commandline}
+You need a user ID to identify your key; the software constructs the user ID
+from the Real Name, Comment and Email Address in this form:
+    "Heinrich Heine (Der Dichter) <heinrichh@duesseldorf.de>"
+
+Real name: KURASHIKI Satoru
+Email address: lurdan@gmail.com
+Comment: 
+\end{commandline}
+
+ここでは、自分の個人情報を設定します。keysign などでは、公的な証明書との
+つきあわせを行いますので、その時に確認できる本名を入力する必要があります。
+このあたり、日本のネットワーク文化とはいまひとつ馴染みがよくないかも知れ
+ませんね。
+
+GPG 鍵では、一つの ID に対して複数のメールアドレスを設定することができる
+ので、Comment でそれを明示することができます。
+
+\begin{commandline}
+You selected this USER-ID:
+    "KURASHIKI Satoru <lurdan@gmail.com>"
+
+Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit? O
+\end{commandline}
+
+最終的に、ユーザ ID がこうなりますよ、という確認です。問題ないので
+O と入力します。
+
+\begin{commandline}
+You need a Passphrase to protect your secret key.
+
+Enter passphrase:
+Repeat passphrase: 
+\end{commandline}
+
+ここでパスフレーズを確認含めて 2 回入力します。パスフレーズには流さの
+制限がないので、覚えやすい長さの英文を使うといいのではないでしょうか。
+
+\begin{commandline}
+We need to generate a lot of random bytes. It is a good idea to perform
+some other action (type on the keyboard, move the mouse, utilize the
+disks) during the prime generation; this gives the random number
+generator a better chance to gain enough entropy.
+.+++++++++++++++..++++++++++.++++++++++++++++++++++++++++++++++++++++.+++++++++++++++.+++++++++++++++.+++++.++
+++++++++++++++++++.++++++++++>.++++++++++..............+++++
+
+Not enough random bytes available.  Please do some other work to give
+the OS a chance to collect more entropy! (Need 230 more bytes)
+We need to generate a lot of random bytes. It is a good idea to perform
+some other action (type on the keyboard, move the mouse, utilize the
+disks) during the prime generation; this gives the random number
+generator a better chance to gain enough entropy.
+++++++++++......+++++..+++++.+++++.+++++.+++++..++++++++++.+++++.+++++++++++++++..+++++.++++++++++....+++++.++
++++++++++++++.++++++++++.++++++++++.+++++..+++++++++++++++..+++++>.++++++++++...>.+++++.......................
+..............................................................................................................
+...............+++++^^^^^
+\end{commandline}
+
+パスフレーズを入力した後は、乱数の生成のために、ブラウザでも開いて適当
+に別の作業をします。そろそろいいかな、と元の画面に戻ると……
+
+\begin{commandline}
+gpg: /home/kura/.gnupg/trustdb.gpg: trustdb created
+gpg: key 9751B54D marked as ultimately trusted
+public and secret key created and signed.
+
+gpg: checking the trustdb
+gpg: 3 marginal(s) needed, 1 complete(s) needed, PGP trust model
+gpg: depth: 0  valid:   1  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 1u
+pub   1024D/9751B54D 2008-03-21
+      Key fingerprint = 3AAA 2ED1 ACDA 49AE 4C68  66B9 CE7D E89C 9751 B54D
+uid                  KURASHIKI Satoru <lurdan@gmail.com>
+sub   2048g/B79D76D0 2008-03-21
+\end{commandline}
+
+このように完成しています。最後に表示された 「key fingerprint」のうち、
+最後の 2 ブロックが自分の鍵の ID となります。
+
+最後に表示されている部分で、「pub」の行が公開鍵、「sub」の行が秘密鍵を表
+しています。
+
+\begin{commandline}
+kura@acacia:~$ ls -l .gnupg
+合計 20
+-rw------- 1 kura kura 1167 2008-03-21 16:06 pubring.gpg
+-rw------- 1 kura kura 1167 2008-03-21 16:06 pubring.gpg~
+-rw------- 1 kura kura  600 2008-03-21 16:06 random_seed
+-rw------- 1 kura kura 1316 2008-03-21 16:06 secring.gpg
+-rw------- 1 kura kura 1280 2008-03-21 16:06 trustdb.gpg
+\end{commandline}
+
+生成された鍵は、このように \$HOME/.gnupg/ に保管されています。これらの
+ファイルは超大事なので、大切に取り扱うようにしましょう。
+
+ちなみに、上の例で使っている鍵は、この記事のために作ったもので、もはや
+存在しません。
+
+\subsubsection{基本的な操作}
+
+通常は、自分の鍵束 (\$HOME/.gnupg/*) には、
+
+\begin{itemize}
+ \item 自分の秘密鍵
+ \item 自分の公開鍵
+ \item 他の人の公開鍵
+\end{itemize}
+
+が入っています。これらの情報を確認する基本的なコマンドをご紹介します。
+なお、鍵束の中で特定の鍵を指定するには、次のうちどれかが使えます。
+
+\begin{itemize}
+ \item 鍵 ID (ex. 0x9751B54D)
+ \item 鍵 ID の 0x を省略 (ex. 9751B54D)
+ \item 自分の UID の一部 (ex. KURA)
+\end{itemize}
+       
+自分の鍵束にある公開鍵を一覧表示：
+\begin{commandline}
+$ gpg --list-keys
+\end{commandline}
+
+そのうち特定の公開鍵を表示：
+\begin{commandline}
+$ gpg --list-keys KURA
+\end{commandline}
+
+鍵指紋 (fingerprint) を確認：
+\begin{commandline}
+$ gpg --fingerprint KURA
+\end{commandline}
+
+鍵署名を確認：
+\begin{commandline}
+$ gpg --list-sigs KURA
+\end{commandline}
+
+\subsubsection{メールで使ってみる}
+
+私が GPG を使うのは、主に gmail 上のメールアドレスなので、firefox のプラ
+グイン「firegpg」を使っています。対象となる本文を選択して増えたボタンを
+押すだけなので簡単に使うことができます。
+
+\subsection{keysign の流れ}
+
+\subsubsection{準備}
+
+keysign のためには、次のものが必要です。
+
+\begin{itemize}
+ \item 公的な証明書 (鍵の持ち主の個人情報を証明できる、写真つきの書類)
+       \begin{itemize}
+        \item 運転免許
+        \item 住民基本台帳カード
+        \item パスポート
+        \item 学生証
+       \end{itemize}
+ \item 署名してもらう鍵の指紋 (fingerprint) を印刷したもの
+\end{itemize}
+
+私の場合、鍵の指紋は手で書いたり、鍵表示をそのままコピペして印刷したり
+していました。
+
+\begin{commandline}
+pub   1024D/9751B54D 2008-03-21
+      Key fingerprint = 3AAA 2ED1 ACDA 49AE 4C68  66B9 CE7D E89C 9751 B54D
+uid                  KURASHIKI Satoru <lurdan@gmail.com>
+sub   2048g/B79D76D0 2008-03-21
+\end{commandline}
+
+\subsubsection{当日}
+
+公的な証明書を使って、keysign の相手とお互いに相手が相手であること
+を確認し、用意した鍵指紋 (fingerprint) の印刷を交換します。
+
+これだけです。簡単ですね。
+
+\subsubsection{その後}
+
+端末の前に戻ったら、まずは相手の公開鍵を手に入れましょう。
+
+\begin{commandline}
+$ gpg --keyserver subkeys.pgp.net --recv-keys 0x????????
+\end{commandline}
+
+keyserver は、相手が Debian Developer であれば keyring.debian.org も使え
+ます。また、? の部分には、もらった鍵指紋 (fingerprint) の最後の 8 文字を入力します。
+
+無事に公開鍵が入手できたら、それに署名をします。
+
+\begin{commandline}
+$ gpg --edit-key 0x????????
+\end{commandline}
+
+gpg のコマンドモードに入るので、「uid (数字)」で署名をする uid を選び
+(*マークがつきます)、「sign」と入力します。
+
+なお、相手が複数の uid を持っている場合、私は一通り全てに署名することに
+しています。
+
+終わったら、「quit」と入力し、変更を保存してください。
+
+次のように署名の結果を表示して、自分の名前が表示されていることを確認してください。
+
+\begin{commandline}
+$ gpg --list-sigs 0x????????
+\end{commandline}
+
+ここまでで問題がなければ、相手の公開鍵をテキストファイルに export します。
+
+\begin{commandline}
+$ gpg --export -a  0x???????? > someones.key
+\end{commandline}
+
+後は、これを相手に送るだけです。添付するなり、本文に貼るなりして、メール
+で送信します。相手の公開鍵で暗号化しておくとよいでしょう。
+
+さて、相手も同じように署名をしてくれているはずですので、しばらくすると
+メールで自分の公開鍵を送ってもらえるはずです。
+
+届いたら、テキストファイルに export された鍵を自分の鍵束にとりこみ、
+ついでなので公開鍵サーバにも送っておきます。
+\begin{commandline}
+$ gpg --import yours.key
+$ gpg --keyserver subkeys.debian.org --send-keys 0x????????
+\end{commandline}
+
+? には、自分の公開鍵 ID を入力します。
+
+\begin{itemize}
+ \item 鍵署名 (Keysigning) \url{http://www.debian.org/events/keysigning}
+\end{itemize}
+
 %%% 大浦さん
 \dancersection{Debian 開発者のコーナーの歩き方}{大浦 真}
 
