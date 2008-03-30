@@ -263,10 +263,70 @@ qemuを起動します。
 
 \begin{commandline}
 $ qemu-system-x86_64 -hda nexenta.cow \
- -m 512 
+ -m 512 -kernel-kqemu \
+ -redir tcp:2299::22 \
+ -nographic -serial stdio
 \end{commandline}
 
+手元のシステムでは、コマンドラインでログインができる状態まで3分程度かかりました。
+
+\includegraphics[width=0.5\hsize]{image200804/nexenta23.png}
+
+通常のコマンドラインプロンプトが立ち上がるので、ログインすればよいです。
+
+デフォルトで sshd \footnote{Debian のパッケージとは異なり、SUNWsshdu,
+SUNWsshdr などのパッケージになっています。見た感じは alien で作成されてい
+るパッケージのようです。} などもインストールされているようです。
+netstat で確認するとlisten しているようですので、ssh でログインして作業
+することが可能なようです。
+ここでは、 qemu で -redir オプションを使い、 SSHの22番ポートをホストOSの
+2299ポートからアクセスできるようにしています。
+面倒なので、 -nographic -serial stdio オプションも追加してヘッドレスで稼
+働させてみます。
+
+ネットワークデバイスは ni0 になっているようです。IPアドレスは qemu の機
+能で DHCPで提供されているアドレス（10.0.2.15）になっています。
+
 \subsection{Debian との互換性}
+
+初期インストールのパッケージ数が非常に多いです。OpenSolaris のデフォルト
+インストールに相当するものをそのままパッケージにしているのでしょうか？
+SUNWではじまるパッケージ名などがそれっぽさを物語ります。
+
+\begin{commandline}
+dancer@vm1:~$ dpkg -l | wc -l 
+464
+dancer@vm1:~$ dpkg -l 
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Installed/Config-files/Unpacked/Failed-config/Half-installed
+|/ Err?=(none)/Hold/Reinst-required/X=both-problems (Status,Err: uppercase=bad)
+||/ Name           Version        Description
++++-==============-==============-============================================
+ii  adduser        3.80nexenta3   Add and remove users and groups
+ii  alien          8.73.4         install non-native packages with dpkg
+ii  apt            0.6.46.4nexent Advanced front-end for dpkg
+ii  apt-utils      0.6.46.4nexent APT utility programs
+ii  aptitude       0.4.4-1nexenta terminal-based apt frontend
+[中略]
+ii  sunw1394       5.11.82-1      Sun IEEE1394 Framework
+ii  sunwaac        5.11.82-1      Adaptec AdvanceRaid Controller SCSI HBA Driv
+ii  sunwad810      5.11.82-1      SUNW W1100z & W2100z Audio Drivers
+ii  sunwadixp      5.11.82-1      SUNW Audio Driver for ATI IXP
+ii  sunwadpu320    5.11.82-1      Adaptec Ultra320 Driver
+ii  sunwafe        5.11.82-1      ADMtek Ethernet Driver
+ii  sunwagp        5.11.82-1      AGP GART Driver
+ii  sunwahci       5.11.82-1      Advanced Host Controller Interface (AHCI) SA
+ii  sunwamd8111s   5.11.82-1      AMD8111 FAST Ethernet Network Adapter Driver
+ii  sunwamr        5.11.82-1      LSI MegaRAID SCSI HBA Driver
+[中略]
+ii  sunwsshcu      5.11.82-1      SSH Common, (Usr)
+ii  sunwsshdr      5.11.82-1      SSH Server, (Root)
+ii  sunwsshdu      5.11.82-1      SSH Server, (Usr)
+ii  sunwsshr       5.11.82-1      SSH Client and utilities, (Root)
+ii  sunwsshu       5.11.82-1      SSH Client and utilities, (Usr)
+ii  sunwtavor      5.11.82-1      Sun Tavor HCA driver
+[略]
+\end{commandline}
 
 \subsection{今後の展望？}
 
