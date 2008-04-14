@@ -161,16 +161,234 @@
 \label{sec:binpkg}
 \index{XX@YY} 
 
-
-\dancersection{バージョン管理システム Git を使う}{小林儀匡}
+\dancersection{バージョン管理ツールを使い Debian パッケージを管理する Git編}{岩松 信洋}
 \label{sec:vcsgit}
 \index{XX@YY} 
 
-Gitの紹介。
+\subsection{はじめに}
+最近の Debian Package は、VCS\footnote{Version Control System}を使って管理する
+ことができるようになっており、実際に利用しているメンテナも多くなりました。
+VCSと言っても様々ですが、Debian では代表的なVCSである CVS, Subversion や 最近流行りの Git、
+マイナーな VCSである darcs などを使うことができます。
+今回は、今一番イケていると思われる Git を使い、Debian Package をバージョン管理することによりどのよう
+な利点があるのか、どのようなツールを使ってメンテナンスを行えばいいのか、などについてを説明します。
+
+\subsection{ソースパッケージを　Git で管理するためのツール}
+Debian パッケージを Git で管理するためのツールとして、 git-buildpackage があります。
+これを使うことによって、Git を使ってパッケージのソースコードを管理することができるようになります。
+インストールはいつものとおり、{\bf apt-get} or {\bf aputitude} で。
+
+\begin{commandline}
+$sudo  apt-get install git-buildpackage
+\end{commandline}
+
+\subsubsection{git-buildpackageで提供されるコマンド}
+git-buildpackageで提供されるコマンドは以下4つしかありません。
+これらのコマンドとオプションを使って、パッケージのメンテナンスをすることになります。
+
+   \begin{table}[h]
+    \begin{center}
+      {
+        \begin{tabular}{l|l} \hline
+                提供されるコマンド & 機能 \\ \hline \hline
+/usr/bin/git-buildpackage & パッケージを作成する \\
+/usr/bin/git-dch & Git のコミットログから Debian Changelog を作成する。\\
+/usr/bin/git-import-dsc & 既存の Debian Package をGitにインポートする。\\
+/usr/bin/git-import-orig & アップストリームからリリースされたソースコードをGitにインポートする。\\
+           \end{tabular}
+        }
+     \caption{git-buildpackage で提供されるコマンド}
+     \label{git-buildpackage-command}
+    \end{center}
+    \end{table}
+
+\subsection{git-buildpackage を使い管理してみる}
+Debian パッケージには2つの状態があると考えられます。一つは既にパッケージ化されているもの。
+もうひとつは、今からDebian パッケージにしようとしているものです。
+まずは、既にDebian パッケージになっているものを Git で管理する方法を説明します。
+
+\subsubsection{既にパッケージ化されているものを Git で管理する}
+
+まず、git-import-dscコマンドを使い、　Git リポジトリに現在のソースコードの状態を
+取り込みます。コマンドのオプションに、パッケージの dscファイル\footnote{Debian パッケージの制御ファイル}
+を指定します。実行すると、パッケージ名でディレクトリが作成され、Git リポジトリが作成されます。
+また、ブランチとして、master ブランチと、upstream ブランチが作成されます。　Debain 関係のコードは
+ master 
+ブランチ、Upstream のソースコードは upstream ブランチで管理されるようになります\footnote{ブランチは git branch コマンドで表示可能}。
+
+\begin{commandline}
+$ git-import-dsc ../isight-firmware-tools_1.0.2-1.dsc
+Upstream version: 1.0.2
+Debian version: 1
+No git repository found, creating one.
+Initialized empty Git repository in .git/
+Everything imported under isight-firmware-tools
+$ ls
+isight-firmware-tools
+$ cd isight-firmware-tools
+$ git branch
+* master
+  upstream
+\end{commandline}
+
+\subsection{インポート時のログ}
+
+パッケージをインポートしたときに、Git のコミットログに現在のバージョンのコミットログが書き込まれます。
+また、 Debian Version は Git のタグ機能を使い、タグ名として保存されます。
+
+\begin{commandline}
+$ git log
+commit 9c3669a233afe69d7be2aa8ad1995e6b19c841aa
+Author: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Date:   Sun Apr 6 21:48:40 2008 +0900
+
+    Imported Debian patch 1.0.2-1
+$ git tag
+debian/1.0.2-1
+upstream/1.0.2
+\end{commandline}
+
+\subsubsection{ソースコードを変更し、修正を管理する}
+
+ソースコードを修正し、Debian Package　で配布する部分を管理するには、今までどおり、dpatchなどの
+パッチ管理システムを使う必要があります。
+作成したパッチをリポジトリにコミットする時にに、{\bf git add}, {\bf git commit} コマンドを使い、
+リポジトリに反映させます。
+
+\begin{commandline}
+$ dpatch-edit-patch 05_change_ift-load_install_dir
+... いろいろ修正 ...
+$ exit
+$ vi debian/patches/00list
+$ git add debian/patches/05chage_ift-load_install_dir.dpatch
+$ git commit -s debian/patches/00list debian/patches/05_chage_ift-load_install_dir.dpatch
+/* エディタが起動するので、コミットログを記述 */
+
+Change ift-load install dir.
+    
+Signed-off-by: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+
+$ git log
+commit c9865153ae1949956fdfe3827c0da9b36c2f0ddb
+Author: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Date:   Sun Apr 6 21:23:20 2008 +0900
+
+    Change ift-load install dir.
+    
+    Signed-off-by: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+\end{commandline}
+
+\subsubsection{git-buildpackage を使ったDebian パッケージの作成}
+
+Debian パッケージを作成するには、 git-buildpackage コマンドを使います。
+--git-ignore-new　オプションは　Git に反映されていない修正を無視するための
+オプションです。
+\begin{commandline}
+$ git-buildpackage --git-ignore-new -us -uc
+\end{commandline}
+
+\subsubsection{パッケージをリリースする}
+新しい Debian バージョンのパッケージをリリースする場合は、git-dch コマンドに
+--release オプションを付けます。実行することにより、エディタが立ち上がり、Git
+のコミットログから、Debian Changelog が作成されます。
+Changelog を作成したら、git-buildpackage コマンドに --git-tag オプションを
+付けてパッケージを作成します。--git-tag を付けると、リポジトリに Debian バージョン用の
+タグが作成され、リリースが情報が付加されます。
+\begin{commandline}
+$ git-dch --release
+$ git-buildpackage --git-ignore-new --git-tag
+$ git tag
+debian/1.0.2-1
+debian/1.0.2-2
+upstream/1.0.2
+\end{commandline}
+
+\subsubsection{新しいバージョンにする}
+新しいバージョンにするには、git-import-orig コマンドを使い、リリースされた
+新しいバージョンの Tar ボールを指定します。
+指定することにより、ファイル名からバージョンを取得し、新たにUpstream 用の
+タグが作成されます。
+また、アップストリームのバージョンが上がるため、自動的に Debian Changelog に 次のDebian Package 
+バージョンが追記されます。
+\begin{commandline}
+$ git-import-orig /tmp/isight-firmware-tools-1.2.tar.gz
+Upstream version is 1.2.0
+Importing '/tmp/isight-firmware-tools-1.2.tar.gz' to branch 'upstream'...
+Switched to branch "upstream"
+rm 'isight.rules.in'
+rm 'po/fr_FR.po'
+Created commit f5c85da: Imported Upstream version 1.2.0
+ 33 files changed, 4434 insertions(+), 1332 deletions(-)
+
+.......<snip>
+
+ src/udev.c                             |  164 +++
+ 33 files changed, 4434 insertions(+), 1332 deletions(-)
+ rename po/{fr_FR.po => fr.po} (66%)
+ create mode 100644 src/50-isight-firmware.fdi
+ create mode 100644 src/callout.c
+ create mode 100644 src/isight-firmware.fdi
+ rename isight.rules.in => src/isight.rules.in (100%)
+ create mode 100644 src/load.h
+ create mode 100644 src/udev.c
+Succesfully merged version 1.2 of /home/iwamatsu/Desktop/isight-firmware-tools-1.2.tar.gz into .
+$ git branch
+debian/1.0.2-1
+debian/1.0.2-2
+upstream/1.0.2
+upstream/1.2
+$ cat debian/changelog
+isight-firmware-tools (1.2-1) unstable; urgency=low
+
+  * New Upstream Version
+
+ -- Nobuhiro Iwamatsu <iwamatsu@nigauri.org>  Fri, 11 Apr 2008 17:18:23 +0900
+
+\end{commandline}
+
+\subsection{新たにパッケージ化する場合}
+あたらしくにソフトウェアを Debian Package にして、　git-buildpackage で
+管理する場合は 最初に Git の機能が必要です。
+まず、ローカル Git リポジトリを作成します。次に作成したリポジトリに移動し、git-import-orig
+にアップストリームのソースコードを指定し、実行します。ソースコードは、gzip、bzip2 などで
+圧縮されたものと、展開されたソースコードディレクトリを指定することが可能です。
+
+実行する際に、-u オプションで、アップストリームのバージョンを指定する必要があります。
+リポジトリを作成した後は upstream ブランチに移動し、{\bf dh\_make}等を使ってパッケージの雛形作成し、
+上で説明した流れでメンテナンスを行います。
+
+\begin{commandline}
+$ mkdir isight-firmware-loader
+$ cd isight-firmware-tools
+$ git-init /* ローカル Git リポジトリを作成する */
+$ git-import-orig -u 1.2 　/tmp/isight-firmware-tools-1.2.tar.gz /* ソースコードをコミット */
+Upstream version is 1.2
+Initial import of '/tmp/isight-firmware-tools-1.2.tar.gz' ...
+Succesfully merged version 1.2 of /tmp/isight-firmware-tools-1.2.tar.gz into .
+$ git log
+commit 9bf014aee2f834576f8f03d67ab66e8c85726832
+Author: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Date:   Tue Apr 8 21:42:55 2008 +0900
+
+    Imported Upstream version 1.2
+$ git branch
+* master
+  upstream
+$ git tag
+upstream/1.2
+$ git branch upsteam
+$ dh_make
+$ git branch master
+\end{commandline}
+
+%\subsubsection{git-buildpackage の設定　.git/gbp.conf}
+%git-buildpackage は細かい設定を行うことが可能です。
+%設定ファイルを .git ファイル
+
 
 \dancersection{アップストリームのVCSと付き合う}{岩松}
 \label{sec:upstreamvcs}
-\index{XX@YY} 
+\index{DebianWithVCS}
 
 CVS / SVN / などのVCSをupstream が活用している場合の話。
 
