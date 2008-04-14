@@ -190,115 +190,295 @@ Debianパッケージでのライセンスの取扱いについて紹介しました。
 にて開催しました。
 
 
-\dancersection{バイナリ一つだけのパッケージを作成してみる}{吉田＠板橋}
+\dancersection{バイナリ一つだけのパッケージを作成してみる}{吉田　俊輔}
 \label{sec:binpkg}
 \index{XX@YY} 
 
-\subsection{はじめに}
-Debianのパッケージを１から作ってみたことが無い人に
-簡単なパッケージの作り方を例示してみます。
+\subsection{概要}
+\begin{quote}
+前提\\
+dh\_make\\
+/debianディレクトリのファイル\\
+changelog/control/copyright/rules\\
+dpkg-buildpackage/debuild\\
+付録\\
+\end{quote}
 
-\subsection{目的}
-なぜ、パッケージを作るか。
+\subsection{前提/対象者}
+\begin{quote}
+Debianパッケージを作った経験が無い人\\
+dh\_makeを知らない人\\
+make(Makefile)を理解している人\\
+\end{quote}
 
-1.使いたいアプリ/機能が既存のパッケージにないから
+\subsection{debパッケージを作る/使う理由・メリット}
+\begin{quote}
+複数マシンへのインストール、環境再現が簡単、便利\\
+アンインストール、バージョンアップが容易\\
+ソースファイルとパッチファイルの管理が楽\\
+自分の使いたいアプリ/機能がパッケージになっていない\\
+DDへの道?\\
+\end{quote}
 
-2.複数マシンにインストールしたり、環境再構築時に楽だから
+\subsection{debパッケージを作る方法(スタイル)}
+\begin{quote}
+dh\_make(debhelperスタイル)\\
+dpatch\\
+CDBS\\
+dbs\\
+quilt\\
+yada\\
+その他\\
+\end{quote}
 
-3.新規パッケージはstatbleに入らないから
+\subsection{dh\_makeとは}
+\begin{quote}
+debhelperスタイル\\
+特徴\\
+dh\_コマンドをrulesから呼び出す形\\
+現時点ではもっともシンプル\\
+採用しているパッケージが多い\\
+\end{quote}
 
-4.アンインストールが楽だから etc...
+\subsection{dh\_makeのファイル構成に最低限必要なファイル}
+\begin{quote}
+softname-version/(ディレクトリ名)\\
+debian/(Debianディレクトリの存在=debパッケージが作成可能)\\
+control(パッケージ情報：パッケージ名、バージョンの記述)\\
+changelog(更新履歴)\\
+copyright(著作権情報の記述)\\
+rules(rulesパッケージの作成方法を記述)\\
+\end{quote}
+
+\subsection{その他のファイル}
+\begin{quote}
+debian/\\
+README.Debian(オリジナルとパッケージ化したときの差分情報)\\
+conffiles.ex(設定ファイル名のリスト)\\
+cron.d.ex(cronで実行するファイル名リスト)\\
+dirs\\
+docs\\
+init.d.ex(サービスの起動スクリプト)\\
+manpage.1.ex, manpage.sgml.ex(manファイル)\\
+preinst.ex(インストール前のスクリプト)\\
+postinst.ex(インストール後のスクリプト)\\
+prerm.ex(アンインストール前のスクリプト)\\
+postrm.ex(アンインストール後のスクリプト)\\
+等\\
+\end{quote}
+
+\subsection{新規作成の流れ}
+\begin{quote}
+ソースアーカイブ展開(<packagename>-<version>のアーカイブ)\\
+\$ dh\_make(テンプレート作成)\\
+debianディレクトリ配下の編集\\
+\$ dch(changelog記述)\\
+controlファイル(パッケージ名や依存関係を記述)\\
+copyrightファイル(著作権情報の記述)\\
+rulesファイル(ビルド手順の修正、確認、不要なコードの削除)\\
+\$ dpkg-buildpackage(debパッケージの作成)\\
+\end{quote}
+
+\subsection{dh\_make(debianディレクトリ、テンプレートの作成)}
+\begin{quote}
+ライセンスの指定(-c)\\
+gpl, lgpl, artistic ,bsd\\
+パッケージ種類の指定\\
+Single binary (s)/Multiple binary (m)/Library (l)/Kernel module (k)/cdbs (b)\\
+環境変数:DEBFULLNAME(メンテナ名)、DEBEMAIL(メールアドレス)\\
+\end{quote}
+
+\subsection{dch(changelogの記述)}
+\begin{quote}
+debian/changelog\\
+smp-mgzip (1.2c-1) unstable; urgency=low\\
+
+  * Initial release (Closes: \#nnnn)  <nnnn is the bug number of your ITP>\\
+
+ -- yoshida syunsuke <koedoyoshida@gmail.com>  Sun, 30 Mar 2008 22:21:28 +0900\\
+
+パッケージ名 (バージョン) パッケージの状態; 緊急度通常はunstable; lowで問題ない\\
+アスタリスク(*)の後にコメントを記述\\
+作成者 <作成者のメールアドレス> 日付 日時 タイムゾーン\\
+dch -i を使えば自動的に記入できる\\
+\end{quote}
+
+\subsection{dch(controlの記述)}
+\begin{quote}
+debian/control\\
+Source: smp-mgzip(ソースパッケージ名)\\
+Section: unknown(パッケージのセクション)\\
+Priority: extra(パッケージの重要度)\\
+Maintainer: yoshida syunsuke <koedoyoshida@gmail.com>(メンテナーの名前とメールアドレス)\\
+Build-Depends: debhelper (>= 5), autotools-dev(ビルドに必要なパッケージ)\\
+Standards-Version: 3.7.2(テンプレート作成に参照したDebianポリシー標準のバージョン)\\
+
+Package: smp-mgzip(バイナリパッケージ名)\\
+Architecture: any(対応アーキティクチャ)\\
+Depends: \${shlibs:Depends}, \${misc:Depends}(パッケージの依存関係)\\
+Description: <insert up to 60 chars description>(パッケージの説明)\\
+ <insert long description, indented with spaces>\\
+\end{quote}
+
+\subsection{copyrightの記述}
+\begin{quote}
+debian/copyright\\
+This package was debianized by yoshida syunsuke <koedoyoshida@gmail.com> on\\
+Sun, 30 Mar 2008 22:21:28 +0900.\\
+
+It was downloaded from <fill in http/ftp site>\\
+
+Upstream Author: <put author(s) name and email here>\\
+
+Copyright: <put the year(s) of the copyright, and the names of the\\
+            copyright holder(s) here>\\
+
+License:\\
+（中略）\\
+On Debian systems, the complete text of the GNU General\\
+Public License can be found in `/usr/share/common-licenses/GPL'.\\
+
+The Debian packaging is (C) 2008, yoshida syunsuke <koedoyoshida@gmail.com> and\\
+is licensed under the GPL, see above.\\
+\end{quote}
 
 
-\subsection{作り方}
-以下基本的に最低限理解する必要があること＝今自分が理解していることです。
+\subsection{rulesの記述}
+\begin{quote}
+debian/rules\\
+パッケージングを行うための手順を記述する\\
+Makefile形式の記述方法だが、ほとんどはパッケージングの支援をするdh\_xxxコマンド群(devhelperパッケージ)を並べるだけ\\
+必須ターゲット(dpkg-buildpackageが期待しているもの)\\
+build: (ビルド実行)\\
+binary: (バイナリパッケージの生成、通常　binary-indepとbinary-archの実行)\\
+binary-indep: (アーキティクチャ独立のバイナリパッケージ作成)\\
+binary-arch:(アーキティクチャ依存のバイナリパッケージ作成)\\
+\end{quote}
 
-\subsubsection{tgz等ソースを入手する}
+\subsection{rulesの記述 buildターゲット}
+\begin{quote}
+dh\_makeのデフォルトの場合、buildターゲットはbuild-stampに依存している＝build-stampターゲット(make、コンパイル等の実作業)を呼び出す\\
+同様にbuild-stampはconfig.status(configureの実行)に依存している\\
+debian/rules\\
+build: build-stamp\\
 
-\subsubsection{ソースを展開する}
+build-stamp:  config.status\\
+        dh\_testdir\\
 
-展開したソースのディレクトリ名が<パッケージ名>-<バージョン>の形式になっていないとdh\_make実行時に文句を言われて、dh\_makeが動きませんのでmvでディレクトリ名ごとrenameしてください。
+        \# Add here commands to compile the package.\\
+        \$(MAKE)\\
+        \#docbook-to-man debian/smp-mgzip.sgml > smp-mgzip.1\\
 
-\subsubsection{ソースを展開したディレクトリ（以下ワークフォルダ）に移動}
+        touch \$@\\
+\end{quote}
 
+\subsection{rulesの記述 binaryターゲット}
+\begin{quote}
+binary: binary-indep binary-arch\\
 
-\subsubsection{dh\_make実行してsを選ぶ}
+binary-indep: build install\\
 
-選択でs(単一バイナリパッケージ)/m(複数バイナリパッケージ)		
-/l(ライブラリ)/k(カーネルモジュールパッケージ)と聞かれる。
+binary-arch: build install\\
+        dh\_testdir\\
+        dh\_testroot\\
+        dh\_installchangelogs ChangeLog\\
+       (中略)\\
+        dh\_builddeb\\
+\subsection{rulesの記述 installターゲット}
+install: build\\
+        dh\_testdir\\
+        dh\_testroot\\
+        dh\_clean -k  --exclude ./mgzip.c.orig\\
+        dh\_installdirs\\
 
-何を選べばよいか悩むと思いますが、s(単一バイナリパッケージ)を
-選べば良いです。
+        \# Add here commands to install the package into debian/smp-mgzip.\\
+        \$(MAKE) prefix=\$(CURDIR)/debian/smp-mgzip/usr install\\
+\end{quote}
 
-たとえバイナリでない物（マニュアル、設定ファイルのみ等）をパッケージにするときでもsで良いです。
+\subsection{オリジナルのmakeファイルの修正}
+\begin{quote}
+Single binary (s)の場合、\\
+Debianのパッケージングツールは$(CURDIR)/debian/(パッケージ名)/以下にあるファイルをまとめてパッケージにする\\
+「make install」実行で$(CURDIR)/debian/(パッケージ名)/以下にインストールするようにオリジナルのtarball等から展開された、Makefileを準備\\
+元のMakefileが有ればそれを修正、無ければ0からMakefileを作成する\\
+詳細なMakefileの作り方については書籍「make 改訂版」を参照。\\
+\end{quote}
 
-mにすると無駄に作成のためのハードル(修正しなければならないファイルの数)が上がります。
+\subsection{パッケージ作成}
+\begin{quote}
+dpkg-buildpackage  -us, -uc  -rfakeroot\\
+以下のファイルが作成される\\
+xxx-y.y.y\_zzzz.deb(バイナリパッケージ)\\
+ソースパッケージ\\
+xxx-y.y.y.dsc(ソース概要:controlより生成)\\
+xxx-y.y.y\_zzzz.diff.gz(パッケージ化用の差分)\\
+xxx-y.y.y.orig.tar.gz(オリジナルソースファイル)\\
+xxx-y.y.y\_zzzz.changes(パッケージ変更点: control+changelog)\\
+-us, -uc(gpgサインをしない)\\
+-rfakeroot(一般ユーザでの作成)\\
 
-ここで、メンテナ名とかEmailアドレスがパッケージの各種設定ファイルに埋め込まれます。
+凡例(xxx:パッケージ名,y-y-y:バージョン,\\
+zzzz:アーキティクチャ(i386,amd64,all,等))\\
+パッケージ作成(debbuild)\\
+\end{quote}
 
-デフォルトは以下の形式です。
+\subsection{dpkg-buildpackageとdebuildの違い}
+\begin{quote}
+dpkg-buildpackage:\\
+メリット　dh\_makeで作ったばかりの設定ファイルでもdebを作成可能\\
+デメリット 一般ユーザで使用するときは-rfakerootの指定が必要\\
+debuild:\\
+メリット　-rfakeroot指定が不要、ルールに従ったチェックの実行\\
+デメリット 各種ルールに従って設定ファイルを書かないとエラーや警告となる\\
+作成されるパッケージに関しては両方とも同じ\\
+\end{quote}
 
-　メンテナ名:Debian User
+\subsection{ファイルへの署名}
+\begin{quote}
+dpkg-buildpackageやdebuildで指定する -us -usのオプションは\\
+ファイルへの電子署名を省略するためのオプションです。\\
+-us, -uc\\
+Do not sign the source package or the .changes file, respectively.\\
 
-　Emailアドレス:ログインしているユーザ名@ホスト名
+自分のみで使用する場合はともかく、外部へ公開するパッケージを作成するのでれば、電子署名を行うのが適切でしょう。\\
 
-他人に公開する(Internet等から取れるところに置く)なら
-以下の環境変数がクレジット(署名)になりますので、設定した方がいいでしょう。
-　DEBFULLNAME:メンテナ名
-　DEBEMAIL:メールアドレス
+debianパッケージに署名するにはGnuPGで鍵を用意し、パッケージ作成時にdebuild、dpkg-buildpackageを使用するとデフォルトでパッケージに署名が行われます。\\
+\end{quote}
 
-ここで設定しなくても後で、設定ファイルの各所にばらまかれた物を
-全て直せばなんとかなります。
-		
-\subsubsection{二つのMakefile}
-Debianでパッケージを作る際には二つのMakefileを理解する必要があります。
+\subsection{付録1.ファイルの公開}
+\begin{quote}
+パッケージ公開用のファイル(Packages.gz,Sources.gz)を作ります。\\
+$ apt-ftparchive packages . | gzip -c9 > Packages.gz\\
+$ apt-ftparchive sources . | gzip -c9 > Sources.gz\\
+apt-ftparchiveコマンドはapt-utils パッケージに入っています。\\
 
-通常のMakefile(バイナリファイルを作成するためのMakefile)
-debian/rule(Makefile形式のDebianパッケージ作成用ファイル)
+ローカルで確認\\
+sources.list(aptline)に以下のような記述を追加しapt-get update;apt-get installでインストールできるかを確認します\\
+deb file:/usr/src/ ./\\
 
-どちらも注目すべきはinstall:で始まる部分(ダミーターゲットのinstall)です。
+ネットワークで確認\\
+ローカルで確認できたディレクトリ構成のまま、そっくりhttpで公開します。sources.list(aptline)も同様に記述します。\\
+deb-src http://〜 ./\\
+\end{quote}
 
-注:通常makeでいうtargetとは作成したい目的のファイルそのものを指します。
-make(とMakefile)の価値としては、make (target名)を実行すると、targetを作成するために必要な一連の処理が実行され、目的とする物(target)が生成されることです。
+\subsection{付録2.debソースファイルの展開とリビルド}
+\begin{quote}
+〜.dsc,〜.orig.tar.gz,〜.diff.gzを入手\\
+展開:\$ dpkg-source -x 〜.dsc\\
+\$ cd 作成されたディレクトリ\\
+必要なら修正を実施\\
+リビルド:\$ debuild(またはdpkg-buildpackage)\\
+\end{quote}
 
-逆に言うとMakefileの(作成|修正)というのは各targetを作成するための必要な処理を記述することです。
-
-ダミーターゲットとは実在のファイルとして使用せず、作業の名前として使用するtargetのことです。
-
-ダミーターゲットをうまく使うことで結果的にmakeファイルをシェルスクリプトファイル的に使用できます。
-
-\subsubsection{通常のMakefile(バイナリファイルを作成するためのMakefile)}
-
-ソース(tgz等)で配布されているものに含まれている(いないものも有る)Makefileです。
-
-ほぼそのまま流用できますが、
-debianの形式に合わせて(修正|作成)する必要があります。
-
-\subsubsection{debian/rulesについて}
-
-中身はmakeファイル形式です。
-
-dh\_makeにより雛形が作成されます。
-
-デフォルトではワークフォルダに(ある|作った)Makefileを起動します。
-
-パッケージ作成時にdpkg-buildpackage(後述)、debuild(後述)で呼ばれるスクリプトです。
-
-これのinstall targetが実行されます。
-
-これのinstall targetが実行されます。
-例
-\begin{commandline}
-install: build
-        dh\_testdir
-        dh\_testroot
-        dh\_clean -k  --exclude ./mgzip.c.orig
-        dh\_installdirs
-
-        \# Add here commands to install the package into debian/smp-mgzip.
-        $(MAKE) prefix=$(CURDIR)/debian/smp-mgzip/usr install
-\end{commandline}
-
+\subsection{参考資料}
+\begin{quote}
+入門Debianパッケージ(ISBN:4-7741-2768-X)\\
+Debian 新メンテナガイド\\
+http://www.jp.debian.org/doc/manuals/maint-guide/\\
+Debian GNU/Linux スレッドテンプレ　自作パッケージを作りたい\\
+http://debian.fam.cx/index.php?AptGet\#n8109a54\\
+make 改訂版(ISBN:4-900900-60-5)\\
+\end{quote}
 
 \dancersection{バージョン管理ツールを使い Debian パッケージを管理する Git編}{岩松 信洋}
 \label{sec:vcsgit}
