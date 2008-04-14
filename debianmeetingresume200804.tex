@@ -546,6 +546,60 @@ ii  sunwtavor      5.11.82-1      Sun Tavor HCA driver
 [略]
 \end{commandline}
 
+\subsection{ないパッケージをビルドしてみた}
+
+/etc/hostsをいじってみようとしたら、シンボリックリンクになってました。し
+かも root 権限でも書き込み不可になっています。
+
+\begin{commandline}
+root@vm1:/export/home/dancer# ls -l /etc/hosts
+lrwxrwxrwx 1 root root 12 Mar 19 08:15 /etc/hosts -> ./inet/hosts
+root@vm1:/export/home/dancer# ls -l /etc/inet/hosts -l 
+-r--r--r-- 1 root sys 1078 Apr  6 10:28 /etc/inet/hosts
+\end{commandline}
+
+気をとりなおして、 /etc/apt/sources.list に適当にソースを追加します。
+
+\begin{commandline}
+deb-src http://cdn.debian.or.jp/debian unstable main contrib non-free
+\end{commandline}
+
+apt-listbugs が存在しないみたいなので、ビルドしてみようと思います。
+
+まず、なぜだか racc, rdtool が足りないのでビルドしてインストールします。
+無事にapt-listbugs 自体もビルドできたので、意気揚々とインストールしてみま
+す。
+
+\begin{commandline}
+root@vm1:/tmp/apt-listbugs-0.0.88# debi
+Selecting previously deselected package apt-listbugs.
+(Reading database ... 27441 files and directories currently installed.)
+Unpacking apt-listbugs (from apt-listbugs_0.0.88_all.deb) ...
+dpkg: dependency problems prevent configuration of apt-listbugs:
+ apt-listbugs depends on ruby (>= 1.8); however:
+  Package ruby is not installed.
+ apt-listbugs depends on libruby1.8 (>= 1.8.5); however:
+  Version of libruby1.8 on system is 1.8.4-1nexenta1.3.
+ apt-listbugs depends on libdpkg-ruby1.8 (>= 0.3.2); however:
+  Package libdpkg-ruby1.8 is not installed.
+ apt-listbugs depends on libgettext-ruby1.8; however:
+  Package libgettext-ruby1.8 is not installed.
+ apt-listbugs depends on libxml-parser-ruby1.8; however:
+  Package libxml-parser-ruby1.8 is not installed.
+ apt-listbugs depends on libhttp-access2-ruby1.8 (>= 2.0.6); however:
+  Package libhttp-access2-ruby1.8 is not installed.
+dpkg: error processing apt-listbugs (--install):
+ dependency problems - leaving unconfigured
+Errors were encountered while processing:
+ apt-listbugs
+debi: debpkg -i failed
+\end{commandline}
+
+残念、いくつかエラーがあるようです。ruby 自体が古いというエラーや、いくつ
+かのライブラリが足りないというエラーがでています。
+
+解決できそうな問題も、解決できなさそうな問題もあります。先は長いか？
+
 \subsection{今後の展望？}
 
 
