@@ -481,10 +481,12 @@ http://debian.fam.cx/index.php?AptGet\#n8109a54\\
 make 改訂版(ISBN:4-900900-60-5)\\
 \end{quote}
 
+
+
+
 \dancersection{バージョン管理ツールを使い Debian パッケージを管理する Git編}{岩松 信洋}
 \label{sec:vcsgit}
 \index{XX@YY} 
-
 \subsection{はじめに}
 最近の Debian Package は、VCS\footnote{Version Control System}を使って管理する
 ことができるようになっており、実際に利用しているメンテナも多くなりました。
@@ -493,19 +495,55 @@ VCSと言っても様々ですが、Debian では代表的なVCSである CVS, Sub
 今回は、今一番イケていると思われる Git を使い、Debian Package をバージョン管理することによりどのよう
 な利点があるのか、どのようなツールを使ってメンテナンスを行えばいいのか、などについてを説明します。
 
-\subsection{ソースパッケージを　Git で管理するためのツール}
+\subsection{なぜパッケージもVCSで管理するのか}
+Debian Package を VCS で管理することによる良い点は以下が考えれます。
+
+\begin{itemize}
+  \item 異なるバージョンのパッケージを管理することができる。
+    
+    Debian パッケージメンテナは、stable, testing, unstableのソースコードを管理している
+    事が多いです。また、多くのDebian バージョンのソースコードを管理することもあります。
+    VCS を使うことによって、各バージョンの状態を管理しやすくなります。
+
+  \item チームでの開発体制を容易に構築できる。
+
+    Debian Packageはチームでメンテナンスすることが多くなっています。
+    VCS を使うことによって、チームでの開発が容易に行うことができるようになります。
+
+  \item アップストリームとの連携
+
+    アップストリームのソースコードを追従するために、Debian 側で VCS を使い、連携して開発を行うことが
+    できるようになります。また、Debian の独自パッチの管理、トラッキングも容易になります。
+\end{itemize}
+
+
+\subsection{Debian で使用可能な VCS}
+
+現在、 Debian で利用可能な VCS は以下の通りです。プロジェクト管理用サーバである Alioth でも
+これらの VCS は利用可能になっています。
+また、最近では Debian Package のタグに 利用している VCS を付けることが可能になっており、
+各VCSの利用状況を見ることも可能です。 
+ここ数か月のVCSの利用状況を調べてグラフにしました。Git と Subversion を採用している開発者
+が増えていることがわかります。
+\begin{center}
+\includegraphics[width=0.5\hsize]{image200804/debian-vcs-200804.png}
+\end{center}
+
+\subsection{ソースパッケージを　Git で管理するためのツール git-buildpackage}
+では、実際に VCS を使って Debian Package を管理するためにはどのようにすればいいのでしょうか。
 Debian パッケージを Git で管理するためのツールとして、 git-buildpackage があります。
 これを使うことによって、Git を使ってパッケージのソースコードを管理することができるようになります。
-インストールはいつものとおり、{\bf apt-get} or {\bf aputitude} で。
+インストールはいつものとおり、{\bf apt-get} or {\bf aputitude} を使ってインストールする
+ことが可能です。
 
 \begin{commandline}
-$sudo  apt-get install git-buildpackage
+$sudo apt-get install git-buildpackage
 \end{commandline}
 
 \subsubsection{git-buildpackageで提供されるコマンド}
-git-buildpackageで提供されるコマンドは以下4つしかありません。
-これらのコマンドとオプションを使って、パッケージのメンテナンスをすることになります。
-
+git-buildpackageで提供されるコマンドは表\ref{git-buildpackage-command}の4つしかありません。
+これらのコマンドと Git コマンド を使って、パッケージのメンテナンスをすることになります。
+Gitの細かい知識は必要ありませんが、基本的な使い方は知っておく必要があります。
    \begin{table}[h]
     \begin{center}
       {
@@ -522,12 +560,34 @@ git-buildpackageで提供されるコマンドは以下4つしかありません。
     \end{center}
     \end{table}
 
-\subsection{git-buildpackage を使い管理してみる}
-Debian パッケージには2つの状態があると考えられます。一つは既にパッケージ化されているもの。
-もうひとつは、今からDebian パッケージにしようとしているものです。
-まずは、既にDebian パッケージになっているものを Git で管理する方法を説明します。
+\subsection{Gitの簡単な使い方}
+表\ref{git-command}によくつかう Gitコマンドを紹介します。これだけ知っていれば、Gitを使った開発を行う
+ことが可能なはずです。
+   \begin{table}[h]
+    \begin{center}
+      {
+        \begin{tabular}{l|l} \hline
+                Git コマンド（一部） & 機能 \\ \hline \hline
+git init & ローカルリポジトリを作成する。\\
+git add & ローカルリポジトリのキャッシュ(index)に管理対象のファイルを追加する。\\
+git commit & ローカルリポジトリに変更を反映する。\\
+git rm & ローカルリポジトリから管理対象ファイルを削除する。\\
+git diff & 差分を取得する。\\
+git branch & ブランチを作成する。\\
+git checkout & 作成したブランチをチェックアウトする。\\
+git format-patch & パッチを作成する。\\
+           \end{tabular}
+        }
+     \caption{よく使う、Gitのコマンド}
+     \label{git-command}
+    \end{center}
+    \end{table}
 
-\subsubsection{既にパッケージ化されているものを Git で管理する}
+\subsection{既にパッケージ化されているものを Git で管理する}
+Debian パッケージには2つの状態があると考えられます。一つは既にパッケージ化されているもの、
+もうひとつは今からDebian パッケージにしようとしているものです。
+まずは、既にDebian パッケージになっているものを Git で管理する方法を説明します。
+\\
 
 まず、git-import-dscコマンドを使い、　Git リポジトリに現在のソースコードの状態を
 取り込みます。コマンドのオプションに、パッケージの dscファイル\footnote{Debian パッケージの制御ファイル}
@@ -551,7 +611,7 @@ $ git branch
   upstream
 \end{commandline}
 
-\subsection{インポート時のログ}
+\subsubsection{インポート時のログ}
 
 パッケージをインポートしたときに、Git のコミットログに現在のバージョンのコミットログが書き込まれます。
 また、 Debian Version は Git のタグ機能を使い、タグ名として保存されます。
@@ -608,12 +668,12 @@ $ git-buildpackage --git-ignore-new -us -uc
 \end{commandline}
 
 \subsubsection{パッケージをリリースする}
-新しい Debian バージョンのパッケージをリリースする場合は、git-dch コマンドに
---release オプションを付けます。実行することにより、エディタが立ち上がり、Git
+新しい Debian バージョンのパッケージをリリースする場合は、{\bf git-dch} コマンドに
+{\bf --release} オプションを付けます。実行することにより、エディタが立ち上がり、Git
 のコミットログから、Debian Changelog が作成されます。
-Changelog を作成したら、git-buildpackage コマンドに --git-tag オプションを
-付けてパッケージを作成します。--git-tag を付けると、リポジトリに Debian バージョン用の
-タグが作成され、リリースが情報が付加されます。
+Changelog を作成したら、{\bf git-buildpackage} コマンドに {\bf--git-tag} オプションを
+付けてパッケージを作成します。{\bf--git-tag} を付けると、リポジトリに Debian バージョン用の
+タグが Debian changelog より作成され、リリース情報が付加されます。
 \begin{commandline}
 $ git-dch --release
 $ git-buildpackage --git-ignore-new --git-tag
@@ -669,17 +729,16 @@ isight-firmware-tools (1.2-1) unstable; urgency=low
 \subsection{新たにパッケージ化する場合}
 あたらしくにソフトウェアを Debian Package にして、　git-buildpackage で
 管理する場合は 最初に Git の機能が必要です。
-まず、ローカル Git リポジトリを作成します。次に作成したリポジトリに移動し、git-import-orig
-にアップストリームのソースコードを指定し、実行します。ソースコードは、gzip、bzip2 などで
+まず、ローカル Git リポジトリを作成します。次に作成したリポジトリに移動し、{\bf git-import-orig}
+コマンドにアップストリームのソースコードを指定し、実行します。ソースコードは、gzip、bzip2 などで
 圧縮されたものと、展開されたソースコードディレクトリを指定することが可能です。
-
-実行する際に、-u オプションで、アップストリームのバージョンを指定する必要があります。
+また、実行する際に、{\bf-u} オプションで、アップストリームのバージョンを指定する事が可能です。
 リポジトリを作成した後は upstream ブランチに移動し、{\bf dh\_make}等を使ってパッケージの雛形作成し、
 上で説明した流れでメンテナンスを行います。
 
 \begin{commandline}
-$ mkdir isight-firmware-loader
-$ cd isight-firmware-tools
+$ mkdir isight-firmware-loader-1.2
+$ cd isight-firmware-tools-1.2
 $ git-init /* ローカル Git リポジトリを作成する */
 $ git-import-orig -u 1.2 　/tmp/isight-firmware-tools-1.2.tar.gz /* ソースコードをコミット */
 Upstream version is 1.2
