@@ -765,11 +765,105 @@ $ git branch master
 %設定ファイルを .git ファイル
 
 
-\dancersection{アップストリームのVCSと付き合う}{岩松}
+\dancersection{アップストリームの VCS と付き合う}{岩松}
 \label{sec:upstreamvcs}
 \index{DebianWithVCS}
+% CVS / SVN / Git などの VCS をupstream が活用している場合の話。
 
-CVS / SVN / などのVCSをupstream が活用している場合の話。
+VCS を使ってアップストリームがソフトウェアの開発を行っている事が多くあります。
+アップストリームでは、Subversion を使っているが、パッケージメンテナは Git を使って
+パッケージを行っている場合があったり、同じ VCS を使っている場合もあります。
+今回は 　Subversion を例にして、お互い VCS を使っている場合、どのように付き合って
+いくことができるのか説明します。
+
+%\subsection{アップストリームが Git を使っている場合 }
+%\subsection{アップストリームが CVS を使っている場合 }
+
+\subsection{アップストリームが Subversion を使っている場合 }
+Subversion で管理されているソースコードを取得したり、Subversion リポジトリへ
+コミットするツールとして、git-svn パッケージがあります。 git-svn を使うことに
+よって、容易に お互いのリポジトリ間を行き来することができるようになります。
+
+\subsubsection{Subversion のリポジトリから　Git のリポジトリへ ソースコードを取得する}
+Subversion のリポジトリから　Git のリポジトリへ ソースコードを取得するには
+適当なディレクトリを作成し、 {\bf git svn} の {\bf clone} オプションを使って行います。　
+取得した後は、Git の操作で開発を行うことができます。
+
+\begin{commandline}
+$ mkdir test
+$ git svn clone svn://test/trunk test-0.0.1
+\end{commandline}
+
+\subsection{取得したコードを元に Debian Package を作成する}
+取得したコードから新しく Debian Package を作成するためには、自分でタグを付ける必要があります。
+{\bf git-buildpackage}ではタグと Debian changelog から Upstream の情報を取得し、
+orig.tar.gz 相当のものを作成するため、タグを付ける必要があります。
+
+\begin{commandline}
+$ git branch
+master
+$ git branch upstream
+$ git checkout upstream
+$ git tag upstream/0.0.1
+$ dh_make --createorig
+$ git branch master
+.... Debian Package 用のファイル作成などを行う ....
+$ git-buildpackage -us -uc --git-ignore-new
+$ debuild clean
+$ git add debian
+$ git commit -a
+$ git-buildpackage -us -uc --git-ignore-new --git-tag
+\end{commandline}
+
+
+\subsubsection{Subversion リポジトリの情報を取得する}
+Subversion リポジトリの情報を取得するには、 {\bf rebase}オプションを使います。
+最初から git svn でリポジトリの操作を行っている場合は、rebase を使うことにより、
+Upstream のコードを パッケージ側に反映させることができます。
+\begin{commandline}
+$ git checkout upstream
+$ git svn rebase
+\end{commandline}
+
+\subsection{すでにあるパッケージと Git リポジトリを元に Debian Package を作成する}
+
+\begin{minipage}{0.5\hsize}
+{\bf git svn} で取得した　Git リポジトリと 既にあるDebian Package を連携させるには
+操作が少し必要です。
+まず、{\bf git-import-dsc}　で 現在の Debian Package を git-buildpackage で管理できる
+ようにした後、upstream ブランチに git svn で取得したリポジトリから pull をします。
+pull することにより、コミットログの共有することができます。
+しかし、Debian Changelog の操作や、{\bf git tag} を使ったタグの操作を手動で行う必要がある
+のが問題点です。
+{\bf git-import-org } を使って、tar.gz や ソースコードを指定して、マージすることも可能ですが、
+Upstream 側のコミットログが取り込まれないため、 Gitを使うメリットがあまり無いと私は考えています。
+このあたりを改善していく事が今後の課題になりそうです。
+\end{minipage}
+\begin{minipage}{0.5\hsize}
+\includegraphics[width=0.8\hsize]{image200804/git-svn_with_build-package.png}
+\end{minipage}
+
+\begin{commandline}
+$ git svn clone svn://svn.berlios.de/linux-uvc/linux-uvc/trunk\
+ linux-uvc.git
+$ git import-dsc  ../../../debian/linux-uvc_0.1.0.svn193-2.dsc
+$ cd linux-uvc
+$ git branch
+* master
+  upstream
+$ git tag
+debian/0.1.0.svn193-2
+upstream/0.1.0.svn193
+$ git checkout upstream
+$ git pull ../linux-uvc.git/
+$ git tag upstream/0.1.0.svn201
+$ git checkout master
+$ dch -v 0.1.0.svn201
+$ git-buildpackage -us -uc --git-ignore-new
+$ debuild clean
+$ git commit -a
+$ git-buildpackage -us -uc --git-ignore-new --git-tag
+\end{commandline}
 
 \dancersection{Nexenta Core Platformを使ってみる}{上川}
 \label{sec:nexentacore}
