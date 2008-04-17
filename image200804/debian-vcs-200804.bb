@@ -1,5 +1,5 @@
 %%Title: ./debian-vcs-200804.png
 %%Creator: ebb Version 0.5.2
-%%BoundingBox: 0 0 288 216
-%%CreationDate: Tue Apr 15 21:00:06 2008
+%%BoundingBox: 0 0 397 341
+%%CreationDate: Fri Apr 18 08:31:57 2008
 
