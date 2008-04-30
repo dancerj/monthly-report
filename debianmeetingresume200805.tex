@@ -161,12 +161,12 @@
 \label{sec:binpkg}
 \index{XX@YY} 
 
+\newpage
 
 % ここからは月例特集。
 
-\newpage
-
-\begin{getsureiupdate}{月例 Debian GNU/kFreeBSD}
+%===========================================================%
+\begin{getsureiupdate}{月例 Debian GNU/kFreeBSD}{大浦 真}
 今月のDebian GNU/kFreeBSDの状況をお伝えします。
 
 あいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
@@ -194,10 +194,12 @@ abcdefghijklmnopqrstuvwyzabcdefghijklmnopqrstuvwyzabcdefghijkl
 
 \includegraphics[width=1\hsize]{image200804/nexenta20.png}% 仮の画像
 
-(大浦)
-\end{getsureiupdate}
 
-\begin{getsureiupdate}{月例 Debian GNU/HURD}
+\end{getsureiupdate}
+%===========================================================%
+
+%===========================================================%
+\begin{getsureiupdate}{月例 Debian GNU/HURD}{山本 浩之}
 今月のDebian GNU/HURDの状況をお伝えします。
 
 あいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
@@ -224,42 +226,69 @@ abcdefghijklmnopqrstuvwyzabcdefghijklmnopqrstuvwyzabcdefghijkl
  いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
 
 \includegraphics[width=1\hsize]{image200804/nexenta20.png}% 仮の画像
-
-(山本)
 \end{getsureiupdate}
+%===========================================================%
 
-\begin{getsureiupdate}{月例 Nexenta}
-今月のNexentaの状況をお伝えします。
 
-あいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
+%===========================================================%
+\begin{getsureiupdate}{月例 Nexenta}{上川 純一}
 
+2008年4月号でインストールしてみた Nexenta Core Platform 1.0 で今月も何か
+操作してみます。まず、ホストOSとのデータの交換の方法を確立してみます。
+
+% まず、気が向いたので、kvm で起動してみます。グラフィック機能が超絶に遅い
+% のと、ネットワークの接続ができなかった以外は高速に起動しているようです。
+% kqemuで稼働させると数分かかるのに比べると高速です。
+
+仮想マシン内部を快適に利用するために、まずファイルシステムを共有をしてみ
+ ましょう。
+まず前回やったようにゲストOSにSSH接続ができる状態にまで設定しましょう。
+例えば、ゲストOSの22番ポートをホストOSの2299番ポートとしてゲストOSを起動します。
 \begin{commandline}
-いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえ
-いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえ
-いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえ
-いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえ
-いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえ
-いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえ
-01234567890123456789012345678901234567890123456789012345678901
-abcdefghijklmnopqrstuvwyzabcdefghijklmnopqrstuvwyzabcdefghijkl
+qemu -hda nexenta.cow -m 512 -redir tcp:2299::22  
 \end{commandline}
 
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
- いうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
+この状態で起動しておけば、ssh で localhostの2299番ポートにアクセスすると、
+ ゲストOSにログインできます。
 
-\includegraphics[width=1\hsize]{image200804/nexenta20.png}% 仮の画像
+\begin{commandline}
+host$  ssh localhost -p 2299 
+Password: 
+Last login: Wed Apr 30 05:02:35 2008 from 10.0.2.2
+dancer@vm1:~$ 
+\end{commandline}
 
-(上川)
+sshfs 利用するとゲストOSのパスをマウントして見ることができます。
+/export/home/dancer にアクセスすることができます。
+
+\begin{commandline}
+$ sshfs localhost:  ./nexenta/  -p2299
+Password: 
+$ ls -la nexenta/
+合計 36
+drwxr-xr-x 1 dancer uucp      9 2008-04-15 23:53 .
+drwxr-xr-x 5 dancer dancer 4096 2008-04-30 14:05 ..
+-rw------- 1 dancer uucp   1130 2008-04-23 13:05 .bash_history
+-rw-r--r-- 1 dancer uucp    220 2008-03-19 18:07 .bash_logout
+-rw-r--r-- 1 dancer uucp    414 2008-03-19 18:07 .bash_profile
+-rw-r--r-- 1 dancer uucp   2227 2008-03-19 18:07 .bashrc
+drwx------ 1 dancer uucp      4 2008-04-06 11:09 .gnupg
+-rw------- 1 dancer uucp     41 2008-04-15 23:53 .lesshst
+-rw-r--r-- 1 dancer uucp    964 2008-03-19 18:07 .profile
+\end{commandline}
+
+ちなみに、nexenta では各種ファイルを staffグループ (gid=10)が所有しており、
+それがちょうど Debian 上の uucp (gid=10) が所有しているように見えます。
+
+\begin{commandline}
+dancer@vm1:~$ id dancer 
+uid=1000(dancer) gid=10(staff) groups=10(staff)
+\end{commandline}
 \end{getsureiupdate}
+%===========================================================%
 
-\begin{getsureiupdate}{月例 Debian GNU/Linux SuperH port}
+%===========================================================%
+\begin{getsureiupdate}{月例 Debian GNU/Linux SuperH port}{岩松 信洋}
 今月のDebian GNU/Linux SuperH 移植版の状況をお伝えします。
 
 あいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあいうえおあ
@@ -287,10 +316,8 @@ abcdefghijklmnopqrstuvwyzabcdefghijklmnopqrstuvwyzabcdefghijkl
 
 \includegraphics[width=1\hsize]{image200804/nexenta20.png}% 仮の画像
 
-(岩松)
 \end{getsureiupdate}
-
-
+%===========================================================%
 
 \clearpage
 
