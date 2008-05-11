@@ -537,6 +537,694 @@ AIRプラットフォームの紹介。RIAのためのAIR。
 \label{sec:binpkg}
 \index{XX@YY} 
 
+\subsection{はじめに}
+
+今回はDebianパッケージを作成した経験がほぼ無い人を対象とし、先月
+\footnote{2008年4月} の『バイナリ一つだけのパッケージを作成してみる』を
+予習していることを前提とします。
+
+一応、前回の内容もおさらいしながら、今回もdh\_makeを使って、debhelperス
+タイルでの複数のバイナリに分けてパッケージを作る方法を説明しますので、前
+回参加できなかったとしても、ある程度は問題ないかと思います。
+
+\subsection{バイナリの分け方の考え方}
+通常のパッケージは、一つのバイナリパッケージとして作成・配布されるケー
+スが多いでしょう。ではどのようなケースにおいて、バイナリパッケージは複数
+に分けられているのでしょうか。大きく分けると次の三パターンくらいになりそう
+です。
+
+\begin{itemize}
+ \item
+開発環境と実行環境
+
+例）
+      \begin{itemize}
+       \item
+	    JavaのSDKとJRE
+
+      \end{itemize}
+ \item
+C/Sモデルのサーバ側プログラムとクライアント側プログラム
+
+例）
+      \begin{itemize}
+       \item
+	    bindとdnsutils
+      \end{itemize}
+
+ \item
+プログラム本体とアドオンで追加可能なモジュール、ユーティリティ
+
+例）
+      \begin{itemize}
+       \item
+	    ApacheとApache moduleやApache Bench
+      \end{itemize}
+\end{itemize}
+
+これらに共通して言えるのは、単一のソースツリーから複数に分けることにより、
+導入するユーザの使い勝手が良くなる、ということだと言えると思います。
+
+なお、複数のバイナリパッケージを作成するときも、ソースツリー及びソースパッ
+ケージ自体は単一なので、複数のソースツリー・ソースパッケージから生成され
+る事はありません。
+
+\subsection{前回のおさらい}
+
+前回は、dh\_makeを使って、debhelperスタイルで単一のバイナリパッケー
+ジを作りました。今回は、まず簡単なCのプログラムとMakefileを用意して、それを
+Debianパッケージにします。そこで単一のバイナリパッケージの場合と複数のバ
+イナリパッケージに分ける場合との違いを見てみましょう。
+
+\subsubsection{ソースコードとMakefileの用意}
+ まず、下記のようなディレクトリ、ファイルを用意します。
+ \begin{commandline}
+hoge-1.0/
+ hoge.c
+ Makefile
+ \end{commandline}
+ ファイルはそれぞれ下記のようなコードを書きます。
+ \begin{itemize}
+  \item
+       hoge.c
+       \begin{commandline}
+#include <stdio.h>
+      
+int main(void)
+{
+       printf(``hello\n'');
+       return 0;
+}
+       \end{commandline}
+  \item
+       Makefile
+       \begin{commandline}
+CC=gcc
+CFLAGS=-O
+BINDIR=/usr/games
+     
+hoge: hoge.c
+       $(CC) $(CFLAGS) -o hoge hoge.c
+       
+install:
+       install -d ${DESTDIR}${BINDIR}
+       install -m 755 hoge ${DESTDIR}${BINDIR}
+       
+clean:
+       rm -f hoge
+       \end{commandline}
+ \end{itemize}
+
+\subsubsection{dh\_makeでテンプレートの作成}
+それでは、前回と同様にdh\_makeを使ってシングルパッケージを作ってみます。
+まず、dh\_makeでテンプレートを作ります。
+
+\begin{commandline}
+$ cd hoge-1.0
+
+$ dh\_make --single -c gpl --createorig
+Maintainer name : Kouhei Maeda
+Email-Address   : mkouhei@gmail.com
+Date            : Sat, 10 May 2008 15:36:29 +0900
+Package Name    : hoge
+Version         : 1.0
+License         : gpl
+Type of Package : Single
+Hit <enter> to confirm: 
+Done. Please edit the files in the debian/ subdirectory now. You should also
+check that the hoge Makefiles install into $DESTDIR and not in / .
+\end{commandline}
+
+\subsubsection{debianディレクトリ以下のファイルの編集}
+
+debianディレクトリ以下を編集します。
+\begin{commandline}
+$ cd debian
+
+$ rm *ex *EX (<-不要なサンプルファイルを削除します。)
+\end{commandline}
+
+\begin{itemize}
+ \item
+      debian/control
+      \begin{commandline}
+Source: hoge
+Section: games
+Priority: extra
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: hoge
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: sample program
+ Hello hoge program
+      \end{commandline}
+ \item
+      debian/copyright
+      \begin{commandline}
+This package was debianized by Kouhei Maeda <mkouhei@gmail.com> on
+Sat, 10 May 2008 15:36:29 +0900.
+
+It was downloaded from <http://www.palmtb.net>
+
+Upstream Author(s):
+
+    <Kouhei Maeda mkouhei@gmail.com>
+
+Copyright: 
+
+    <Copyright (C) 2008 Kouhei Maeda>
+
+License:
+(以下、省略) 
+      \end{commandline}
+
+ \item
+      debian/dirs\footnote{hogeのインストール先を指定します。}
+      \begin{commandline}
+usr/games
+      \end{commandline}
+
+ \item
+      debian/changelog
+      \begin{commandline}
+$ dch
+hoge (1.0-1) unstable: urgency=low
+
+  * Initial release
+
+ -- Kouhei Maeda <mkouhei@gmail.com>  Sat, 10 May 2008 15:47:41 +0900
+      \end{commandline}
+\end{itemize}
+
+\subsubsection{パッケージ作成}
+それでは、debuildコマンドでパッケージを作成してみます。
+\begin{commandline}
+$ debuild -us -uc
+\end{commandline}
+
+debファイルができているのを確認します。
+\begin{commandline}
+$ cd ../../
+$ ls hoge_1.0*
+hoge_1.0-1.diff.gz  hoge_1.0-1_i386.build    hoge_1.0-1_i386.deb
+hoge_1.0-1.dsc      hoge_1.0-1_i386.changes  hoge_1.0.orig.tar.gz
+\end{commandline}
+
+上記のような簡単なものであれば、rulesファイルを修正しなくても、パッケー
+ジを作れる事が分かります。ちゃんとやるには、lintianのエラーや警告を潰し、
+pbuilderでのチェックやインストール、アンインストールのチェックをする必要
+がありますが、ここでは省略します。
+
+\subsection{複数のバイナリパッケージを作ってみる。}
+それでは、今度は先ほどの簡単なコードを一部変更して、それぞれ別のパッケー
+ジになるようにします。
+
+\subsubsection{ソースコード、Makefileの用意}
+下記のようなファイルを用意します。先ほどのhoge-1.0をコピーして修正すれば
+よいでしょう。
+
+\begin{commandline}
+foo-1.0/
+ foo.c
+ bar.c
+ Makefile
+\end{commandline}
+各ファイルは下記のようにします。
+\begin{itemize}
+ \item
+      foo.c
+      \begin{commandline}
+#include <stdio.h>
+
+int main(void)
+{
+  printf(``hello,foo\n'');
+  return 0;
+}
+      \end{commandline}
+ \item
+      bar.c
+      \begin{commandline}
+#include <stdio.h>
+
+int main(void)
+{
+  printf(``hello,bar\n'');
+  return 0;
+}
+      \end{commandline}
+ \item
+      Makefile
+      \begin{commandline}
+CC=gcc
+CFLAGS=-O
+BINDIR=/usr/games
+
+foo:
+       $(CC) $(CFLAGS) -o foo foo.c
+       $(CC) $(CFLAGS) -o bar bar.c
+
+install:
+       install -d ${DESTDIR}${BINDIR}
+       install -m 755 foo ${DESTDIR}${BINDIR}
+       install -m 755 bar ${DESTDIR}${BINDIR}
+
+clean:
+       rm -f foo bar
+      \end{commandline}
+\end{itemize}
+上記をmakeすると、fooとbarという実行ファイルができます。今回は、これらを
+それぞれfooパッケージとbarパッケージの別々のパッケージにしてみます。
+
+\subsubsection{dh\_makeの実行}
+単一のバイナリパッケージとは違い、dh\_makeを実行するときのオプション
+を''--single''から''--multi''に変更して実行します。
+
+\begin{commandline}
+$ cd foo-1.0
+$ dh\_make --multi -c gpl --createorig
+Maintainer name : Kouhei Maeda
+Email-Address   : mkouhei@gmail.com
+Date            : Sat, 10 May 2008 16:32:38 +0900
+Package Name    : foo
+Version         : 1.0
+License         : gpl
+Type of Package : Multi-Binary
+Hit <enter> to confirm: 
+Done. Please edit the files in the debian/ subdirectory now. You should
+ also
+check that the foo Makefiles install into $DESTDIR and not in / .
+\end{commandline}
+
+単一のバイナリパッケージの時と同様に、debianディレクトリとその下にファイ
+ルが作成されます。
+
+単一のバイナリの時に比べ、以下のファイルが増えていることが分かります。
+このテンプレートと同様なファイルが後ほどビルドする際に必要になります。
+\begin{itemize}
+ \item
+      foo-doc.docs
+ \item
+      foo-doc.install
+\end{itemize}
+
+\subsubsection{debianディレクトリ以下のファイルの編集}
+まず、単一のバイナリパッケージを作成するときと同じように修正して、ビル
+ド出来るのか確認してみます。
+最初に先ほどと同じように今回は必要のないサンプルファイルを削除します。
+
+\begin{commandline}
+$ cd debian
+$ rm *ex *EX
+\end{commandline}
+
+次に、controlファイルを修正します。複数のバイナリパッケージを作成するに
+は、空行で区切られた三つ以上のエントリが必要になります。
+
+一つ目のエントリは、ソースパッケージ自身のことを記述するためのエントリで
+す。二つ目以降のエントリが生成されるバイナリパッケージについての情報を記
+述するエントリです。
+
+今回は、fooとbarの二つのパッケージを作成するので、dh\_makeで作成されたテ
+ンプレートを以下の様に変更します。
+
+\begin{commandline}
+Source: foo
+Section: games (<- セクションを変更)
+Priority: extra
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: foo
+Architecture: any
+Depends: ${shlibs:epends}, ${misc:Depends}
+Description: sample program foo (<- 説明を記載)
+ foo foo foo (<- 説明の詳細を記載)
+
+Package: bar
+Architecture: any (<- 今回はアーキテクチャ依存なのでanyにする)
+Description: sample program bar (<- 説明を記載)
+ bar bar bar (<- 説明の詳細を記載)
+\end{commandline}
+
+また、単一のバイナリパッケージの時と同様に、下記ファイルを修正します。
+\begin{itemize}
+ \item
+      debian/copyright
+ \item
+      debian/changelog
+ \item
+      debian/dirs
+\end{itemize}
+
+修正後、シングルバイナリの時と同様にdebuildを実行してみます。
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc
+(中略)
+dh_installdirs -s
+# Add here commands to install the arch part of the package into 
+# debian/tmp.
+/usr/bin/make DESTDIR=/home/user/foo-1.0/debian/foo
+ install
+make[1]: ディレクトリ `/home/user/foo-1.0' に入ります
+install -d /home/user/tmp/foo-1.0/debian/foo/usr/games
+install -m 755 foo
+ /home/user/foo-1.0/debian/foo/usr/games
+install: cannot stat `foo': そのようなファイルやディレクトリはありません
+make[1]: *** [install] エラー 1
+make[1]: ディレクトリ `/home/user/foo-1.0' から出ます
+make: *** [install-arch] エラー 2
+dpkg-buildpackage: failure: fakeroot debian/rules binary gave error exit
+ status 2
+debuild: fatal error at line 1319:
+dpkg-buildpackage -rfakeroot -D -us -uc failed
+\end{commandline}
+
+どうやら、単一のバイナリパッケージの時にはちゃんと作成されていた実行ファイ
+ルが今回は作成されていない様です。単一のバイナリパッケージを作成する時は、
+rulesファイルのbuild-stampターゲットの中で、\$(MAKE)コマンドが記述されて
+いましたが、複数のバイナリパッケージの場合は、rulesファイルの中で、
+\$(MAKE)がコメントアウトされており、デフォルトではmakeが実行されません。
+そのため、rulesファイルを修正する必要があります。
+
+{\bf ''--single''の時のrulesファイル}
+\begin{commandline}
+build: build-stamp
+
+build-stamp: configure-stamp 
+ dh_testdir
+
+ # Add here commands to compile the package.
+ $(MAKE)
+ #docbook-to-man debian/hoge.sgml > hoge.1
+
+ touch $@
+\end{commandline}
+
+\subsubsection{rulesの記述}
+rulesの必須ターゲットは、単一のバイナリパッケージの時と同様に、build,
+binary, binary-indep, binary-archの4つです。
+
+'--multi'オプションで作成されるrulesではbuildターゲットは下記の様になっ
+ています。
+\begin{commandline}
+build: build-arch build-indep
+
+build-arch: build-arch-stamp
+
+build-arch-stamp: configure-stamp
+
+        # Add here commands to compile the arch part of the package.
+        #$(MAKE)
+        touch $@
+
+build-indep: build-indep-stamp
+
+build-indep-stamp: configure-stamp
+
+        # Add here commands to compile the indep part of the package.
+        #$(MAKE) doc
+        touch $@
+\end{commandline}
+
+今回、fooもbarも、gccでコンパイルするので、controlファイルでの
+Architectureセクションではどちらもanyを記述しています。そのため、今回は
+rulesファイルでは、buildターゲットでは、build-arch、build-arch-stampに依
+存しますが、build-arch-stampの中でコメントアウトされている\$(MAKE)を有
+効にする必要があるので、有効にして、ビルドします。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc
+(中略)
+dpkg-buildpackage: full upload (original source is included)
+Now running lintian...
+(中略)
+Finished running lintian.
+\end{commandline}
+
+今回は、うまくビルドできたように見えます。パッケージのビルド時には、
+{\bf debian/パッケージ名}ディレクトリが作成され、そこにパッケージ含
+まれるファイルがコピーされます。ですので、ちゃんと期待するファイルがコピー
+されているのか確認してみます。
+
+\begin{commandline}
+$ tree debian/{foo,bar}
+debian/foo
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    |-- bin
+    |-- games
+    |   |-- bar
+    |   `-- foo
+    |-- sbin
+    `-- share
+        `-- doc
+            `-- foo
+                |-- README.Debian
+                |-- changelog.Debian.gz
+                `-- copyright
+debian/bar
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    `-- share
+        `-- doc
+            `-- bar
+                |-- changelog.Debian.gz
+                `-- copyright
+
+13 directories, 11 files
+\end{commandline}
+
+実行ファイルfoo, barが今度はきちんと作成されていますが、barファイルは期
+待するディレクトリbar/usr/games以下にコピーされていません。bar/usr/games
+ディレクトリ自体も作成されていない事が分かります。
+複数のバイナリパッケージを作成するには、rulesファイルを上記の変更だけで
+なく、さらにもう一ヶ所修正し、さらに以下のファイルを作成する必要がありま
+す。
+\subsubsection{rulesファイルで修正が必要な箇所}
+debian/rules
+\begin{commandline}
+build: build-arch build-indep
+
+build-arch: build-arch-stamp
+build-arch-stamp: configure-stamp
+
+        # Add here commands to compile the arch part of the package.
+        $(MAKE) (<-最初の変更箇所。)
+        touch $@
+(中略)
+install-arch:
+        dh_testdir
+        dh_testroot
+        dh_clean -k -s
+        dh_installdirs -s
+
+        # Add here commands to install the arch part of the package into
+        # debian/tmp.
+        $(MAKE) DESTDIR=$(CURDIR)/debian/tmp install (<-debian/fooを
+ # debian/tmpに修正します。)
+
+        dh_instll -s
+\end{commandline}
+
+\subsubsection{新規作成するファイル}
+\begin{itemize}
+ \item
+      foo.install
+      \begin{commandline}
+debian/tmp/usr/games/foo
+      \end{commandline}
+ \item
+      bar.install
+      \begin{commandline}
+debian/tmp/usr/games/bar
+      \end{commandline}
+\end{itemize}
+
+複数のバイナリパッケージを作成する場合、ビルド時には、通常、ソフトウェア
+のファイルやディレクトリを、まず{\bf debian/パッケージ名}ディレクトリ以外
+の一時ディレクトリ\footnote{通常はdebian/tmpディレクトリなどを指定しま
+す。} に仮インストールし、そこから{\bf debian/パッケージ名}ディレクトリに
+コピーします。この時、dh\_installコマンドとdebianディレクトリ以下の{\bf
+パッケージ名.install}ファイルが使用されます。
+
+
+今回の場合、debian/foo.installファイルと、debian/bar.installファイルが使
+われ、ここに記載したディレクトリやファイルが、それぞれのパッケージ用のディ
+レクトリにコピーされます。
+
+つまり、それぞれ以下のようにコピーされます。
+\begin{itemize}
+ \item
+     foo.installに記載された''debian/tmp/usr/games/foo''ファイル
+
+	   → パッケージfoo用にdebian/foo/usr/games/ディレクトリ以下に
+
+ \item
+      bar.installに記載された''debian/tmp/usr/games/bar''ファイル
+
+      → パッケージbar用にdebian/bar/usr/games/ディレクトリ以下に
+
+\end{itemize}
+
+では、実際にビルドしてみます。
+\begin{commandline}
+$ debuild -us -uc
+\end{commandline}
+
+ビルドした結果の{\bf debian/パッケージ}ディレクトリと仮インストール用の
+{\bf debian/tmp}ディレクトリを見てみましょう。
+\begin{commandline}
+$ tree tmp foo bar 
+tmp
+`-- usr
+    `-- games
+        |-- bar
+        `-- foo
+foo
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    |-- games
+    |   `-- foo
+    `-- share
+        `-- doc
+            `-- foo
+                |-- README.Debian
+                |-- changelog.Debian.gz
+                `-- copyright
+bar
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    |-- games
+    |   `-- bar
+    `-- share
+        `-- doc
+            `-- bar
+                |-- changelog.Debian.gz
+                `-- copyright
+
+14 directories, 13 files
+\end{commandline}
+今度はちゃんとコピーされています。パッケージが作成されているか見てみます。
+\begin{commandline}
+$ cd ../../
+
+$ ls foo_1.0* bar*
+bar_1.0-1_i386.deb  foo_1.0-1_i386.build    foo_1.0.orig.tar.gz
+foo_1.0-1.diff.gz   foo_1.0-1_i386.changes
+foo_1.0-1.dsc       foo_1.0-1_i386.deb
+\end{commandline}
+
+pbuilderでチェック後、インストールしてみます。
+\begin{commandline}
+$ sudo dpkg -i foo_1.0-1_i386.deb
+ bar_1.0-1_i386.deb 
+未選択パッケージ foo を選択しています。
+(データベースを読み込んでいます ... 現在 222038 個のファイルとディレクト
+ リがインストールされています。)
+(foo_1.0-1_i386.deb から) foo を展開しています...
+未選択パッケージ bar を選択しています。
+(bar_1.0-1_i386.deb から) bar を展開しています...
+foo (1.0-1) を設定しています ...
+bar (1.0-1) を設定しています ...
+\end{commandline}
+
+インストールできているか確認してみます。
+\begin{commandline}
+$ dpkg -L foo 
+/.
+/usr
+/usr/share
+/usr/share/doc
+/usr/share/doc/foo
+/usr/share/doc/foo/changelog.Debian.gz
+/usr/share/doc/foo/README.Debian
+/usr/share/doc/foo/copyright
+/usr/games
+/usr/games/foo
+
+$ dpkg -L bar
+/.
+/usr
+/usr/share
+/usr/share/doc
+/usr/share/doc/bar
+/usr/share/doc/bar/changelog.Debian.gz
+/usr/share/doc/bar/copyright
+/usr/games
+/usr/games/bar
+
+$ dpkg -s foo bar
+Package: foo
+Status: install ok installed
+Priority: extra
+Section: games
+Installed-Size: 44
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Architecture: i386
+Version: 1.0-1
+Depends: libc6 (>= 2.7-1)
+Description: sample program foo
+ foo foo foo
+
+Package: bar
+Status: install ok installed
+Priority: extra
+Section: games
+Installed-Size: 40
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Architecture: i386
+Source: foo
+Version: 1.0-1
+Description: sample program bar
+ bar bar bar
+\end{commandline}
+
+\subsubsection{補足}
+ちなみに、dh\_makeで''--multi''ではなく、''--single''を指定しても、ソー
+スツリーのMakefileと、debian/rulesの記述を変更したところ、複数のバイナリ
+パッケージに分ける事ができたので、結局はmake次第でどうにでもできるのでは
+ないかと思います。
+
+\subsection{まとめ}
+前回を踏襲して、dh\_makeを使って、debhelperスタイルで複数のバイナリパッ
+ケージを作ってみました。さらに、単一バイナリパッケージとの違いを分かりや
+すくするため、非常に簡単なプログラムをパッケージにすることで、その違いを
+見てみました。
+
+単一バイナリパッケージを作成するときと同じような感覚でやると、rulesファ
+イルのところで躓くので、パッケージの作成はmakefileを読めることが重要だと
+いうことがよく実感できました。
+
+
+\subsection{参考書籍}
+\begin{itemize}
+ \item
+      入門 Debianパッケージ (ISBN:978-4-7741-2768-X)
+ \item
+      GNU Make 第3版 (ISBN:4-87311-269-9)
+ \item
+      第39会 東京エリアデビアン勉強会(2008年4月) 「バイナリ一つだけのパッ
+      ケージを作成してみる」
+ \item
+      The Debian Systems その概念と技法 (ISBN:978-4-8399-1897-2)
+\end{itemize}
+
+
 \newpage
 
 % ここからは月例特集。
@@ -712,3 +1400,4 @@ abcdefghijklmnopqrstuvwyzabcdefghijklmnopqrstuvwyzabcdefghijkl
 
 
 \end{document}
+
