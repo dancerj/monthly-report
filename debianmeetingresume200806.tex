@@ -536,12 +536,49 @@ AIRプラットフォームの紹介。RIAのためのAIR。
 
 %===========================================================%
 \begin{getsureiupdate}{月例 Debian GNU/Hurd}{山本 浩之}
+\index{Hurd}
 \end{getsureiupdate}
 %===========================================================%
 
 %===========================================================%
 \begin{getsureiupdate}{月例 Nexenta Operation System}{上川 純一}
 \index{Nexenta}
+先月につづいてNexentaをいじって見たのでお伝えします。
+
+今月は cowdancer がビルドするところまで、です。
+まず、ソースコードをビルドしてみましょう。
+警告も大量に出るのですが、とりあえずは絶望しないためにエラーを眺めてみましょう。
+
+\begin{commandline}
+$ make 
+gcc -O2 -Wall -o cow-shell cow-shell.o ilistcreate.o
+cow-shell.o: In function
+ `main':/export/home/dancer/cowdancer-0.36/cow-shell.c:26: 
+undefined reference to `asprintf'　
+:/export/home/dancer/cowdancer-0.36/cow-shell.c:60: undefined
+reference to `canonicalize_file_name'　
+collect2: ld returned 1 exit status
+make: *** [cow-shell] Error 1
+dancer@vm1:~/cowdancer-0.36$ 
+\end{commandline}
+
+まず、canonicalize\_{}file\_{}name, asprintf, dlvsym などの関数が無いと
+ いう旨のエラーが出ています。これらがどうやらGNU/Linux(glibc)で提供され
+ ている拡張で、そのままでは Solaris 上では動かさなさそうですね。
+
+ということで、GNU拡張をどう処理するのかに悩みます:
+
+\begin{itemize}
+ \item dlvsym: ダイナミックライブラリの関数をバージョン指定で読み込む。
+       あきらめて dlsym をそのまま使えば良いんじゃないか?
+ \item canonicalize\_{}file\_{}name: 
+       realpath を代わりに使えばよいんじゃないか?
+ \item asprintf: asprintf のバッファを確保してくれるバージョンなので、バッ
+       ファを最初から用意して sprintf を代替として利用すればよいんじゃな
+       いか?
+\end{itemize}
+といったところまでいじったところででまた来月。
+
 \end{getsureiupdate}
 %===========================================================%
 
