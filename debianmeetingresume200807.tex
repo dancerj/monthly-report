@@ -5,6 +5,7 @@
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2008 Junichi Uekawa
+%     Copyright (C) 2008 Nobuhiro Iwamatsu
 
 %     This program is free software; you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -90,9 +91,12 @@
        バイナリの分け方の考え方、アップグレードなどの運用とか。
  \item パッケージ作成(dpatch/debhelperで作成するパッケージ)(小林儀匡さん)\\
        man の書き方(roff or docbook)(でんさん)
- \item パッケージ作成(kernel patch、kernel module)
-       、Debconf発表練習
+       OSC 2008 Hokkaido
+ \item パッケージ作成(kernel patch、kernel module)(岩松 信洋)
+       Debconf発表練習（上川さん）
+
  \item Debconf アルゼンチン、共有ライブラリパッケージ作成
+       コミックマーケット74
 
  \item Open Source Conference Tokyo/Fall、
        デーモン系のパッケージの作成、latex、 emacs-lisp、フォントパッケージ
@@ -118,7 +122,7 @@
 \hrule
 \end{minipage}
 
-\dancersection{事前課題}{上川 純一}
+\dancersection{事前課題}{岩松 信洋}
 
 今回の事前課題は以下です。
 
@@ -131,7 +135,7 @@
 
 
 %%% trivia quiz
-\dancersection{Debian Trivia Quiz}{上川 純一}
+\dancersection{Debian Trivia Quiz}{岩松 信洋}
 
 ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
 題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
@@ -513,9 +517,260 @@ AIRプラットフォームの紹介。RIAのためのAIR。
 \label{sec:kpatchkmod}
 \index{XX@YY} 
 
-\dancersection{カーネルパッチ、カーネルモジュール}{?}
-\label{sec:kpatchkmod}
-\index{XX@YY} 
+\dancersection{Linux kernel patch の Debian パッケージ作成}{岩松 信洋}
+\label{sec:kpatch}
+\index{XX@YY}
+
+\subsection{はじめに}
+最近は akpm や Greg K-H のおかげで Linux カーネルへの新しい機能やパッチが　Linusツリーに取り込まれやすくなりましたが、
+主要な Linux 開発者などから期待されていない機能や好ましくないや、開発者自身がまだ取り込むべきではないといった機能がパッチとして、
+公開されている場合があります。
+これらの Linux カーネルへのパッチを Debian で利用する場合には、Linux カーネルパッチも Debian パッケージとして提供することができ、
+既にいくつかのパッケージが利用可能になっています。また、この Linux カーネルパッチパッケージを作成するためのサポートパッケージ dh-kpatches
+があり、このパッケージを利用することより、容易にパッケージの作成、カーネルへのパッケージ適用が可能になっています。
+今回は Evgeniy Polyakov（えぶじぇにー ぽるやこふ）が作成している
+新しい Network Filesystem POHMELFS\footnote{\url{http://tservice.net.ru/~s0mbre/old/?section=projects&item=pohmelfs}}
+を題材にして、Linux カーネル向けパッチのパッケージ作成方法とテスト方法について説明します。
+
+\subsection{パッケージ作成前の準備}
+
+\subsection{dh-kpatches パッケージのインストール}
+Linux カーネルパッチパッケージを作成するには、dh-kpatches パッケージが必要です。また、パッケージの雛形を作成するために
+dh-make をインストールしておくと良いでしょう。これらのパッケージはapt や aptitude などを使ってインストールします。
+\begin{commandline}
+$ sudo apt-get update
+$ sudo apt-get install dh-kpatches dh-make 
+\end{commandline}
+
+\subsubsection{パッチの用意}
+まず、カーネル向けのパッチを作成する必要があります。開発者によっては、既にパッチがカーネルバージョン毎に用意されている事もありますが、
+最近では、Linus のツリーに容易に追従できるように、Gitを使ってソースコードが管理されている場合が多いです。
+POHMELFS でも ソースコードは Git で管理されており、安定版のカーネル（この原稿を書いている時点では、Linux 2.6.25）に常に追従されています。
+この差分を取得するには、Git リポジトリを取得し、git diff コマンド等で取り出せばよいでしょう。
+
+\begin{commandline}
+$ git clone http://tservice.net.ru/~s0mbre/archive/pohmelfs/pohmelfs.git
+Initialized empty Git repository in /tmp/pohmelfs/.git/
+got 37e1b82c0535386cf09b3821dff5e8cb5f9e26b4
+walk 37e1b82c0535386cf09b3821dff5e8cb5f9e26b4
+<snip>
+$ cd pohmelfs
+$ git tag
+<snip>
+v2.6.24-rc8
+v2.6.25
+v2.6.25-rc1
+v2.6.25-rc2
+<snip>
+$ git diff v2.6.25 > ~/pohmelfs.diff
+\end{commandline}
+
+\subsubsection{ディレクトリの作成}
+
+パッチが作成できたら、パッケージ作成用のディレクトリを作成し、その中にパッチファイルをコピーします。
+ディレクトリ名は Debianのルールに合わせたもの(ソフトウェアまたは機能名-バージョン)にしておき、パッチファイル名は
+パッチ機能名-カーネルバージョン にしておきます。これは、dh-kpatches が要求するパッチファイル名のためです。
+
+\begin{commandline}
+$ mkdir linux-patch-pohmelfs-20080707
+$ cd linux-patch-pohmelfs-20080707
+$ cp ../pohmelfs.diff pohmelfs-2.6.x
+\end{commandline}
+
+\subsection{dh\_make を使った雛形の作成}
+パッケージ作成の準備ができたら、 dh\_make コマンドを使って雛形を作成します。
+dh-make コマンドにはカーネルパッチ用のサポートはないので、singleバイナリの雛形を作成する
+オプションを指定して、作成します。
+\begin{commandline}
+$ dh_make -r -s
+Maintainer name : Nobuhiro Iwamatsu
+Email-Address   : iwamatsu@nigauri.org 
+Date            : Mon, 07 Jul 2008 01:00:33 +0900
+Package Name    : linux-patch-pohmelfs
+Version         : 20080707
+License         : blank
+Using dpatch    : no
+Type of Package : Single
+Hit <enter> to confirm: 
+Currently there is no top level Makefile. This may require additional tuning.
+Done. Please edit the files in the debian/ subdirectory now. You should also
+check that the linux-patch-pohmelfs Makefiles install into $DESTDIR and not in / . 
+\end{commandline}
+
+\subsection{debianディレクトリ内の変更}
+Debian パッケージにするための雛形が作成できたので、これを元に内容を変更していきます。
+
+\subsubsection{サンプルスクリプト等の削除}
+dh\_make で作成されるサンプルスクリプトは必要ないので全て削除します。
+また、 dirs ファイルや doc ファイルも必要ないため削除します。
+\begin{commandline}
+$ rm -rf ./debian/*.ex ./debian/*.EX ./debian/doc ./debian/dirs
+\end{commandline}
+
+
+\subsubsection{debian/copyright の修正}
+パッチの情報に合わせて、debiab/copyright の修正を行います。
+pohmelfs の場合は以下のように修正します。
+
+\begin{commandline}
+This package was debianized by Nobuhiro Iwamatsu <iwamatsu@nigauri.org> on
+Mon, 07 Jul 2008 01:00:33 +0900.
+
+It was downloaded from
+        http://tservice.net.ru/~s0mbre/archive/pohmelfs/pohmelfs.git
+This is Git repository. I made the difference of the latest committing a
+patch from v2.6.25 tag.
+
+Upstream Author(s):
+
+    Evgeniy Polyakov <johnpol@2ka.mipt.ru>
+
+Copyright:
+
+    Copyright (C) 2008 Evgeniy Polyakov <johnpol@2ka.mipt.ru>
+
+License:
+
+ This program is free software; you may redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2, or (at your option)
+ any later version.
+
+ This is distributed in the hope that it will be useful, but without
+ any warranty; without even the implied warranty of merchantability or
+ fitness for a particular purpose. See the GNU General Public License
+ for more details.
+
+ A copy of the GNU General Public License is available as
+ /usr/share/common-licenses/GPL in the Debian GNU/Linux distribution or on the
+ World Wide Web at http://www.gnu.org/copyleft/gpl.html.  You can also
+ obtain it by writing to the Free Software Foundation, Inc., 51 Franklin St,
+ Fifth Floor, Boston, MA 02110-1301, USA.
+
+The Debian packaging is (C) 2008, Nobuhiro Iwamatsu <iwamatsu@nigauri.org> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+
+# Please also look if there are files or directories which have a
+# different copyright/license attached and list them here.
+
+\end{commandline}
+
+\subsubsection{debian/README.Debian の修正}
+\begin{commandline}
+\end{commandline}
+
+\subsubsection{debian/control の修正}
+次に debian/control ファイルを修正します。
+注目すべきところは、作成されるパッケージで指定してある、{\bf Depends: \$\{kpatch:Depends\}}です。
+ここで kpatch:Depends を指定することによって、Debian Linux カーネルパッチパッケージを使った
+カーネル作成に必要な依存パッケージを置き換えてくれます。
+また、ソースパッケージの {\bf　Build-Depends}　に {\bf dh-kpatches　パッケージ} を追加する事を忘れないようにしましょう。
+
+\begin{commandline}
+Source: linux-patch-pohmelfs
+Section: devel
+Priority: extra
+Maintainer: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Build-Depends: debhelper (>= 6), dh-kpatches
+Standards-Version: 3.8.0.1
+Homepage: http://tservice.net.ru/~s0mbre/old/?section=projects&item=pohmelfs
+
+Package: linux-patch-pohmelfs
+Architecture: all
+Depends: ${kpatch:Depends}
+Description: POHMELFS kernel patch
+ POHMELFS stands for Parallel Optimized Host Message Exchange Layered File System.
+ Development status can be tracked in filesystem section.
+ This is a high performance network filesystem with local coherent cache of data
+ and metadata.
+ Its main goal is distributed parallel processing of data. Network filesystem is a
+ client transport.
+ POHMELFS protocol was proven to be superior to NFS in lots (if not all, then it
+ is in a roadmap) operations.
+\end{commandline}
+
+\subsubsection{debian/changelog の修正}
+dch コマンドを使って debian/changelog ファイルを修正します。
+\begin{commandline}
+$ dch
+linux-patch-pohmelfs (20080707-1) unstable; urgency=low
+
+  * Initial release                                                      
+
+ -- Nobuhiro Iwamatsu <iwamatsu@nigauri.org>  Mon, 07 Jul 2008 01:25:37 +090
+\end{commandline}
+
+\subsubsection{debian/rules ファイルの修正}
+\begin{commandline}
+#!/usr/bin/make -f
+
+build: build-stamp
+build-stamp:
+        dh_testdir
+        touch build-stamp
+
+clean:
+        dh_testdir
+        dh_testroot
+        rm -f build-stamp
+        dh_clean
+
+install: build
+        dh_testdir
+        dh_testroot
+        dh_clean -k
+        dh_installdirs
+        dh_installkpatches
+
+# Build architecture-independent files here.
+binary-indep: build install
+        dh_testdir
+        dh_testroot
+        dh_installchangelogs
+        dh_link
+        dh_strip
+        dh_compress
+        dh_fixperms
+        dh_installdeb
+        dh_shlibdeps
+        dh_gencontrol
+        dh_md5sums
+        dh_builddeb
+
+# Build architecture-dependent files here.
+binary-arch: binary-indep
+
+# We have nothing to do by default.
+
+binary: binary-indep binary-arch
+\end{commandline}
+
+\subsubsection{kpatches ファイル}
+\begin{commandline}
+Patch-name: POHMELFS patch
+Patch-id: pohmelfs
+Architecture: all
+Path-strip-level: 1
+
+Patch-file: pohmelfs-2.6.x
+Kernel-version: 2.6.25
+\end{commandline}
+\subsection{パッケージのビルド}
+moge
+
+\subsection{パッケージのテスト}
+sage
+
+\subsection{まとめ}
+以上の手順を使うと、Linux カーネルパッチの Debianパッケージを作成することができます。
+しかし、このままではかなり手間がかかりますので、dh-make で Linux カーネルパッチパッケージの
+雛形が作成できるように機能を追加し、パッチを投げました。この機能を使うことにより、パッケージの説明と、xxx.kpatches
+ファイルにサポートする Linux カーネルバージョンを追加するだけでパッケージが作成できるようになっています。
+
+ 
+\dancersection{Linux kernel module の Debian パッケージ作成}{岩松 信洋}
+\label{sec:kmod}
+\index{XX@YY}
 
 \clearpage
 
