@@ -1,0 +1,4210 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2008 Junichi Uekawa
+%     Copyright (C) 2008 OHURA Makoto <ohura@debian.org>
+%     Copyright (C) 2008 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%   Pdf作成手順
+% dvipdfmx debianmeetingresume200606.dvi
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image2007-fuyu; ebb *.png")
+
+
+% progress memo: 
+% 2008/12月-5月がマージ対象、
+% 必要な変更点は FIXME で記録しています。
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+\usepackage{ascmac}
+
+% section の代わりの環境 -- 改訂する。
+\renewcommand{\dancersection}[2]{%
+\newpage
+あんどきゅめんてっど でびあん 2008年夏号
+%
+% top line
+\vspace{0.1mm}\\
+{\color{dancerlightblue}\rule{\hsize}{2mm}}
+
+%
+% middle text
+%
+\begin{minipage}[t]{0.7\hsize}
+\color{dancerdarkblue}
+\vspace{1cm}
+\section{#1}
+\hfill{}#2\\
+\end{minipage}
+\begin{minipage}[t]{0.3\hsize}
+\vspace{-2cm}
+\hfill{}\includegraphics[height=8cm]{image200502/openlogo-nd.eps}\\
+\vspace{-5cm}
+\end{minipage}
+%
+%
+{\color{dancerdarkblue}\rule{0.74\hsize}{2mm}}
+%
+\vspace{2cm}
+}
+
+
+% section の代わりの環境
+\newcommand{\debconfsection}[2]{%
+\newpage
+あんどきゅめんてっど でびあん 2008年夏号
+%
+% top line
+\vspace{0.1mm}\\
+\colorbox{dancerlightblue}{\hspace{\hsize}}
+%
+% middle text
+%
+\begin{minipage}[t]{0.7\hsize}
+\color{dancerdarkblue}
+\vspace{1cm}
+\section{#1}
+\hfill{}#2\\
+\end{minipage}
+\begin{minipage}[t]{0.3\hsize}
+\vspace{-2cm}
+\hfill{}\includegraphics[height=5cm]{image200706/logo-banner-split1.png}\\
+\vspace{-5cm}
+\end{minipage}
+%
+%
+%vspace{-2cm}\\
+\colorbox{dancerdarkblue}{\hspace{\hsize}}
+%
+\vspace{2cm}
+}
+
+\begin{document}
+\begin{titlepage}
+\includegraphics[height=252mm]{image2007-fuyu/2007-winter.eps}
+%\thispagestyle{empty}
+\end{titlepage}
+
+\newpage
+\begin{minipage}[]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{dancerlightblue}{\rotatebox{90}{\fontsize{80}{80} 
+{\gt \color{dancerdarkblue}デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[]{0.8\hsize}
+\hrule
+\vspace{1mm}
+\hrule
+\setcounter{tocdepth}{1}
+{\small
+ \tableofcontents}
+\vspace{1mm}
+\hrule
+\vspace{3cm}
+
+{
+\large
+\begin{itembox}{\bf 『あんどきゅめんてっど でびあん』について}
+本書は、東京周辺で毎月行なわれている『東京エリア Debian 勉強会』で
+使用された資料・小ネタ・必殺技などを一冊にまとめたものです。
+収録範囲は勉強会第35回から第40回まで。
+% FIXME: 回数を修正すること。
+内容は無保証、つっこみなどがあれば勉強会にて。
+\end{itembox}
+}
+\end{minipage}
+
+% FIXME: 本文を追加すること。
+
+\dancersection{東京エリアDebian勉強会の設計}{上川 純一}
+\label{sec:debmtg2007design}
+
+\index{debianjp@Debian JP} 
+\index{とうきょうえりあ@東京エリアDebian勉強会}
+
+Debian勉強会はDebianの日本における発展を支援するために実施しているイベン
+トです。Debian勉強会を運営している上での仮説を説明します。勉強会はこの仮
+説に基づいて運営しています。まず前提条件を整理したのち、現状の状況を分析
+して、Debian勉強会からどういう成果が期待できるのかを整理します。
+
+\subsection{Debian JP とは}
+
+Debian Project メンバーの日本在住の有志およびDebian　Projectの Debian
+Developer になる候補者で構成されているのがDebian 開発者の会（Debian JP）
+です。Debian JP の会員はどういう人が存在しているのか、という点を議論した
+ところ、下記の分類があぶり出されました。
+
+\begin{itemize}
+ \item Debian JPの会員は開発・翻訳・インフラを担当している人により構成さ
+	れています。過去の経緯により、既存の会則・方針では、Debian JP は
+	「開発者の会」という位置づけのため、「ユーザ」については Debian
+	JP 「会員\footnote{Debian 開発者の会の「会員」は会則に定義されて
+       おり、例えば投票する義務のある人のことです}」ではありません。
+ \item 開発者とは Debian JP で開発を行っている人、パッケージ・スポンサー
+	されている人、New Maintainer、 Debian Developer などをいいます。
+ \item インフラは、Debian JP の運営に必要なインフラで ftp, www, svn, ML,
+       LDAP などをいいます。
+\end{itemize}
+
+\begin{figure}[h]
+\begin{center}
+  {\large
+ \begin{tabular}[t]{|c|c|c|}
+ \hline
+ \rotatebox{90}{ユーザ }& \rotatebox{90}{開発者 }&\rotatebox{90}{翻訳者 } \\
+ \hline 
+ \multicolumn{3}{|c|}{インフラ}\\
+ \hline
+ \end{tabular}
+ }
+\end{center}
+ \caption{Debian JP のメンバー要素分類}
+\label{fig:debianjpmemberitem}
+\end{figure}
+
+Debian JP の目的としては、いろいろありますが、Debianの日本の開発者
+（Debian Developer）のコミュニティーとなることを目指しています。また日本
+におけるDebianの代表・とりまとめとしての役割をになっており、Debianが日本
+で利用しやすくなることの促進を行っており、翻訳作業のとりまとめや、外国か
+らDebian Developerが来訪したときの宴会調整の連絡先として機能していたりし
+ます。また、Debianの商標を管理していたりします。
+
+
+
+Debian JP が成功すると、Debianの日本語対応がよくなり、日本にいるDebian
+Developerがふえ、日本にいるDebianユーザがふえ、日本でDebianを使うことがや
+りやすくなるはずです。
+
+Debian JP の目的から考えると、開発者のコミュニティーとしての機能、および
+ユーザとの情報交換の機能の部分を保管するのが東京エリアDebian勉強会でしょ
+う。また、今後のDebian Developer候補の発掘・育成（・そそのかし）のために
+活動すればよいでしょう。
+
+
+
+
+\subsection{Debian JP の各種会議体の位置付け}
+
+Debian Projectには各種組織、および会議体が存在します。東京エリア Debian
+勉強会を中心に、それらの関係を整理してみます。
+
+「東京エリア Debian 勉強会」はDebian Projectの日本における組織である
+Debian JP が主体となり、「東京エリア Debian 勉強会幹事」に委任して開催し
+ているイベントです。目的としているのは、Debianのパワーユーザと既存の開発
+者層に着目し、Debian Developerの育成、および翻訳活動に参加できる人たちへ
+の情報提供、および必要な情報の交換です。
+
+\includegraphics[width=1\hsize]{image200712/debianmeetinganddebianjp.eps}
+
+各種定期的に開催している会議体を整理してみます。
+
+\begin{tabular}[t]{|l|l|p{14em}|p{12em}|}
+\hline
+会 & 開催頻度 & 目的 & 参加者層 \\
+\hline
+総会・選挙 & 年一回 & Debian JP 内部の運営方針の策定 & Debian JP 会員 \\
+OSC & 年数回 & 新規ユーザ発掘・公報 & OSCの一般参加者 \\
+東京エリアDebian勉強会 & 月一回 & Debian 開発者の新規発掘と支援 & Debian の開発者をめざす東京近辺在住の
+ メンバー \\
+関西Debian勉強会 & 月一回 & Debian ユーザ・開発者の新規発掘と支援 & Debian を使う大阪近辺
+	     在住のメンバー\\
+IRC定例会議 & 月に二回程度 & Debian JPの運営に関する情報共有と意思決定 & Debian JP
+ 会員 \\
+\hline
+\end{tabular}
+
+会議の情報が伝達される経路について整理してみます。Debian JPで
+利用している主な情報交換の方法を整理してみました。各種の会議が開催され、
+成果が報告されます。参加したメンバーが情報を得られるのはもちろんですが、
+参加していないメンバーもなんらかの情報が取得できます。事前資料は公開され
+るため、ウェブで取得できます。また、その他の情報取得の手段があります。
+
+\includegraphics[width=1\hsize]{image200712/debianjpandmedia.eps}
+
+
+\subsection{東京エリアDebian勉強会においての事前資料の意義}
+
+「事前資料」は記録性、参照性を重視しています。2007年12月の「事前資料」は
+当日の勉強会でも利用しますが、今年の勉強会の幹事・講師をしてくれる人の説
+明資料としても随時利用します。「これを読めば何をすればよいかがわかる」と
+いう形にしたいと思っています。プレゼンテーションに利用する資料は若干毛色
+が違い、議論をするためのフレームワークを提供するものだと考えています。
+
+「事前資料」については、勉強会で紙の媒体の資料として利用するのと、コミッ
+クマーケットを契機として「アンドキュメンティッド Debian」として再度編集
+し、半年に一度まとめて製本します。そのことで、知識の精査、定着と展開がは
+かれることを目的としています。
+
+\subsection{事前課題の役割}
+
+東京エリア Debian 勉強会では、ただのセミナー参加でおわることは期待してい
+ません。理想的な最終目標としては、Debian Developer としてばりばりと貢献で
+きるような意識の高い参加者を求めています。そこまでの理想を追い求めるのは
+現実的ではないにしても、何も準備せずに参加するより、何らかの心構えをして
+参加してもらった方がよいだろうということで、毎回事前課題を設定しています。
+いろいろなアイデアが出てきておもしろいです。
+
+参加する際には事前課題は必須ということにしています。今年の参加者の事前課
+題の提出率を見ると半分以上が提出していることが分かります。
+
+\begin{table}[h]
+ \caption{2007年の事前課題}
+ \begin{center} 
+  \begin{tabular}{|l|c|c|p{20em}|}
+ \hline
+ & 参加人数 & 事前課題提出人数 & 内容\\
+ \hline
+ 2007年1月 & 15 & 6 & 今後、勉強会につかう施設を提案してください、２００７年の勉強会の各月のアジェンダを提案してください\\
+ 2007年2月 & 13 & 8 & aptに足りなさそうな機能, パッケージングをしてみて感じたこと、または何故パッケージングをしないか\\
+ 2007年3月 & 80 & 6 & 仮想化を実際にこういう利用方法で活用しています\\
+ 2007年4月 & 19 & 14 & 私はバージョン管理システムをこのようにつかっています \\ 
+ 2007年5月 & 23 & 14 & 「エッチになって困った事」 \\
+ 2007年6月 & 4 & & \\
+ 2007年7月 & 18 & 12 & 今後Debconfを日本で開催するためにDebianの認知度を上げる方法、企業がDebconfのスポンサーになるためには \\
+ 2007年8月 & 25 & 18 & ここ最近 Debian を使っていて ハマったこと/ちょっと
+	       感激したこと、apt の sources.list はこう書く\\
+ 2007年9月 & 14 & 7 & 「あなたがDebianで使っている MTA のこだわりの設定」もしくは「Debian 
+ で利用しているこんな便利な／楽しいメッセージツールあるいは日頃使っていて
+ 気にかかるメッセージ関連ソフトのこの部分」\\
+ 2007年10月 & 30 & & \\
+ 2007年11月 & 19 & 10 & 「Debian の Live CD ってこんなふうに使ってます」もしく
+	   は「ノートPCやデスクトップPCではなく、サーバ機器での Debian
+	   に期待するものって何？」\\
+ 2007年12月 & 11 & 11 & 「Debian勉強会の目的と照らし合わせて2007年を評価してみた」と「２００８年のDebian勉強会のために私はこうします」 \\
+ \hline
+  \end{tabular}
+ \end{center}
+\end{table}
+
+\subsection{12月の勉強会の役割}
+
+毎年の忘年会をかねて東京エリアDebian勉強会の12月開催は、一年間を反省する
+会を開催しています。12月号の事前資料は、運営に関連する情報を共有するため
+に準備しています。ターゲットは幹事・講師で、その説明文を見ることで講師や
+幹事が何をどういう理由で実施する必要があるのかを理解できることを目的とし
+ています。内容については定期的に修正が必要なものなので、毎年12月の資料と
+して新規に作成しています。勉強会の目的は通常と違い、勉強会の実績の確認と、
+今後の方向性の策定だけをするという会にしています。
+
+\dancersection{東京エリア Debian 勉強会のワークフロー}{上川 純一}
+\label{sec:debmtg2007workflow}
+
+\index{debianjp@Debian JP} 
+\index{とうきょうえりあ@東京エリアDebian勉強会}
+
+東京エリア Debian 勉強会は事前に会場も日時も決定してしまっています、その
+ため資料の準備・告知・予約などができる期限が決まっています。Debian 勉強会
+では月に二回行われる Debian JP IRC 定例会議と、幹事用のメーリングリストを
+利用して進捗の管理をしています。開催直前の最後の一週間はタイトになります。
+ワークフローの内容をみてみましょう。git レポジトリの
+\url{planner/200704-tokyo.ods} にファイルが置いてあります。
+
+毎月の作業は次のようなものがあります。
+\begin{description}
+\item[会場確保]  勉強会の会場を予約します。2ヶ月前程度に予約しないと大抵
+	   の会場はうまってしまいます。日程については年間スケジュールを
+	   事前に確定しておき、それから若干の調整をかける形にするのがよ
+	   いでしょう。
+\item[企画立案] 企画を立案します。前回の勉強会の宴会、もしくは年初の企画
+	   会議などで決定します。
+\item[講師確保] 前回の勉強会であたりをつけて、講師候補のメールで調整する
+	   ようにします。
+\item[資料作成依頼] 資料の作成を講師に依頼します。資料の作成の方法につい
+	   ての資料も必要でしょう。
+\item[資料作成] 講師が資料を作成します。git レポジトリを活用して共同作業
+	   をするのがよいでしょう。
+\item[資料編集] 資料を集めて資料を編集します。元の資料が \LaTeX{}でない
+	   場合には\LaTeX{}形式にする作業などがあります。ページ数にあて
+	   はまるようにする、用語を統一する、誤字脱字を修正する、などの
+	   対応を行います。
+\item[印刷向け編集（４の倍数）] 冊子として印刷に出すときに紙は4ページの
+	   倍数である必要があります。そのために技を駆使します。内容をけ
+	   ずったり、画像の位置を微調整したり、フォントを小さくしたり、
+	   文章が一行におさまるように書き直したり、などの技があるようで
+	   す。
+\item[kinkos印刷依頼] kinkos に印刷を依頼します。ウェブ経由でお願いする
+	   ことができます。\url{http://www.kinkos.co.jp/}からアクセスし
+	   て、「オンラインプリント」のメニューを選択します。半日程度
+	   （12時間）は余裕をみてあげるのがよいでしょう。
+\item[kinkos印刷受け取り] 印刷したものを受け取ります。面倒ですが、確認の
+	   意味も含めて、直接うけとって支払
+	   うのがよいでしょう。
+\item[事前課題設定] 参加者に事前に考えてきてほしい内容を設定します。勉強
+	   会の次回の企画テーマにあうようなものがよいです。またハードル
+	   が高すぎると参加者がこまっちゃうので気を付けましょう。
+\item[事前課題提示] 事前課題をウェブページに提示します。
+\item[資料反映] 資料を反映します。
+\item[DWN Quiz作成] クイズを作成します。わからないとどうしようもないので、
+	   わかりやすいものをこころがけましょう。
+\item[DWN Quiz景品準備] 何か景品を準備しましょう。
+\item[案内文文書案作成] 案内文の素案を作成します。見た人が参加したくなる
+	   ように、また参加して意味のある人が参加できるように、何を期待
+	   したらよいかを明確にします。これは幹事MLでレビューにまわしま
+	   す。
+\item[案内文確定] レビューした後、案内文を確定します。各種メディアに展開
+	   します。
+\item[aliothウェブ掲載] alioth のウェブページに掲載します。
+\item[debian.or.jp掲載] debian.or.jp のウェブページに掲載します。
+	   掲載の方法については
+	   \url{http://www.debian.or.jp/community/translate/webmasters.html}
+	   を参照。
+	   \texttt{www/trunk/src/community/events/index.tt2} のイベント
+	   の一覧に追加し、 \texttt{www/trunk/blosxom/data/} に blog エントリーを追加
+	   します。
+\item[mixi掲載]  mixi の debian コミュニティーに掲載します。\url{http://mixi.jp/view_community.pl?id=95}
+\item[debian-devel投稿]
+	   Debian JPのメーリングリスト \url{debian-devel@debian.or.jp},
+	   \url{debian-users@debian.or.jp} に投稿します。
+	   二週間前ごろをメドにします。
+\item[debian-devel再度投稿]
+	   数日前に再度投稿します。
+\item[予約システムの作成]
+	   宴会くん \url{http://utage.org/enkai/}などを利用し、
+	   予約用のエントリーを作成します。これは3週間前くらいにはつくっ
+	   ておきます。
+	   
+\item[参加者把握]
+	   数日前に参加者を把握しておきます。
+\item[出席簿印刷]
+	   当日のために出席簿を印刷します。
+\item[宴会予約]
+	   宴会の場所を予約します。場所によりますが前日までに予約したほ
+	   うがよいです。店に電話で直接連絡します。
+\item[宴会費回収] 宴会を開催、代金を回収します。5000円、4000円などのきり
+	   のよい金額が会費として徴収できるように調整します。東京Debian
+	   勉強会では講師をしてくれた人に関しては徴収しないようにしてい
+	   ます。
+\item[会場設置] 会場を設置します。事前に幹事がはやめに入ることが必要です。
+	   一人ではできないので、手伝ってくれる人がきてくれないと困るな。
+\item[出席確認] 会費を徴収し、資料を配布します。受付担当者としては、参加
+	   者の方の名前を覚えるチャンスです。
+\item[結果報告書整理] 
+	   実際に今回どういう会だったのかということを整理し、報告にまと
+	   めます。
+	   \url{http://tokyodebian.alioth.debian.org/}
+	   ウェブページから反応リンク集という形でまとめ、
+	   Debian JP IRC会議にて内容を報告します。
+\end{description}
+
+年間一度している作業内容は次のようなものがあります。
+\begin{description}
+\item[年間スケジュール設定] 一年間のスケジュールを決定します。内容につい
+	   てはあまり重要ではありませんが、会場の予約のためには日程が決
+	   まっていることが重要です。
+\item[前年度の内容確認] 出席者の傾向、開催内容の傾向と参加者数の増減、
+	   Debian JPの傾向などを分析し、どういう状況で、何が行われたのか、
+	   を確認します。
+\item[tokyodebian-XXX ML作成] 事前課題を投稿してもらっているメーリングリ
+	   ストを再設定します。
+\end{description}
+
+
+\dancersection{東京エリア Debian 勉強会資料の準備の方法}{上川 純一}
+\label{sec:debmtg2007howtoprepare}
+\index{debianjp@Debian JP} 
+\index{とうきょうえりあ@東京エリアDebian勉強会}
+
+\subsection{文章ルール}
+
+文章は敬体に統一しましょう。
+
+固有名詞は基本としては敬称略、フルネーム、で記述しましょう。日本名称の場
+合、苗字と名前の間には半角の空白を一文字入れます。
+
+\subsection{レポジトリの取得}
+
+まず最初にgitのレポジトリを取得します\footnote{git の使いかた詳細につい
+ては、2007年4月の勉強会資料を参照してください。 apt-get install git-core
+でインストールできます。} 。読み込み専用であれば、
+git プロトコル、もしくは、http プロトコルでよいでしょう。書き込み権限を
+持っているのであれば、ssh プロトコルを利用すれば直接 git-push でアクセス
+することができます。
+
+
+\begin{commandline}
+ git-clone git://git.debian.org/git/tokyodebian/monthly-report.git
+ git-clone http://git.debian.org/git/tokyodebian/monthly-report.git
+ git-clone ssh://git.debian.org/git/tokyodebian/monthly-report.git
+\end{commandline}
+
+この結果、カレントディレクトリに monthly-report というディレクトリができ
+ます。
+monthly-report/.git 以下がレポジトリです。
+git の使いかたについては 4 月の資料を参照してください。
+
+\begin{commandline}
+$ ls -la monthly-report/ | head
+合計 2500
+drwxr-xr-x 28 dancer dancer   1960 2007-04-22 09:46 .
+drwxrwxrwt 17 root   root      560 2007-04-22 09:46 ..
+-rw-r--r--  1 dancer dancer    168 2007-04-22 09:46 .cvsignore
+drwxr-xr-x  8 dancer dancer    240 2007-04-22 09:46 .git
+-rw-r--r--  1 dancer dancer     61 2007-04-22 09:46 .gitignore
+-rw-r--r--  1 dancer dancer     71 2007-04-22 09:46 .whizzytexrc
+-rw-r--r--  1 dancer dancer    145 2007-04-22 09:46 .yatexrc
+-rw-r--r--  1 dancer dancer  17989 2007-04-22 09:46 COPYING
+-rw-r--r--  1 dancer dancer  25069 2007-04-22 09:46 ChangeLog
+\end{commandline}
+%$
+
+\subsection{コミットの方法}
+
+まず、PDFファイルが生成できることを確認します。Makefile があるので、make 
+コマンドを入力するとビルドしてくれるはずです。
+文字コードが正しいか、正常にビルドできるか、などのチェックが組み込まれて
+いるので、チェックに活用しましょう。
+
+\begin{commandline}
+ make
+\end{commandline}
+
+その後、git-diffでコミットされる内容を確認します。意図している内容が表示
+され、問題ないようであれば、git-commit コマンドでコミットします。手元のレ
+ポジトリに反映されます。
+
+\begin{commandline}
+ git-diff
+ git-commit -a -m 'revised XXX'
+\end{commandline}
+
+問題がないようであれば、git-pull / git-push でマージします。git-pull し
+た後にコンフリクトが発生したら、修正し、git-commit でコミットしてから
+git-push します。
+
+\begin{commandline}
+ git-pull 
+ git-push 
+\end{commandline}
+
+新規のファイルを追加する場合、ファイルを削除する場合には、 git-add /
+git-rm コマンドを利用します。
+
+\subsection{ファイルの編集}
+
+\index{latex@\LaTeX}
+ドキュメントは p\LaTeX{}で作成しています。ファイル名として下記になってい
+ます。(YYYY)(MM)は、年と月で、例えば2007年12月であれば 200712 です。
+
+\begin{description}
+ \item[debianmeetingresume(YYYY)(MM).tex]
+	    事前配布資料
+ \item[debianmeetingresume(YYYY)(MM)-presentation.tex]
+	    プレゼンテーション用 (prosperを利用)
+ \item[image(YYYY)(MM)/]
+	    画像ファイルなどの置き場
+\end{description}
+
+
+作業する前にビルドに必要なパッケージをインストールします。
+
+\begin{commandline}
+# tex から PDF の生成関連
+apt-get install ptex-bin dvipdfmx latex-beamer \
+ okumura-clsfiles gs-esp xpdf xpdf-japanese
+\end{commandline}
+
+編集に便利なツールもついでにインストールしてみてもよいでしょう。
+
+\begin{commandline}
+ apt-get install whizzytex advi emacs21 yatex gs-cjk-resource gv
+\end{commandline}
+
+tex4ht を利用して HTML 出力をさせる場合は下記もインストールしたらよいで
+しょう。ただし、2007年8月現在、dvi2ps-fontdata-a2n の影響で dvi 出力ができなくな
+る副作用があります。
+
+\begin{commandline}
+
+# tex4ht での HTML 生成関連
+apt-get install dvi2ps-fontdata-a2n dvi2dvi dvipng tex4ht
+\end{commandline}
+
+文字コードは iso-2022-jp で統一しています\footnote{Windows 版と Linux 版
+の ptex で共通して扱える文字コードにしたという経緯があります。ただし現状
+Windows で全部できる状況ではありません。}。たとえば、emacs + yatex を使用
+している場合で iso-2022-jp をデフォルトにするには、下記のような設定を
+\texttt{.emacs} にかけばよいでしょう。
+
+\begin{commandline}
+(add-hook 'yatex-mode-hook
+	  '(lambda () 
+	     (progn 
+	       (if (string-match "^/home/user/tokyodebian/" default-directory)
+		   (progn (set-buffer-file-coding-system 'iso-2022-jp)
+			  (set-buffer-modified-p nil))))))
+\end{commandline}
+
+
+emacs での編集で、outline-mode を利用すると、アウトラインをベースに編集す
+ることができ、便利です。tex ファイルの最後に以下のようなエントリーを追加
+しています。
+M-x outline-minor-mode で有効にできます。
+
+\begin{commandline}
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ <タブ記号>]*\\\\\\(documentstyle\\|documentclass\\|<改行しない>
+dancersection\\)\\*?[ <タブ記号>]*[[{]\\|[%<^L>]+\\)" ***
+;;; End: ***
+\end{commandline}
+
+\begin{itemize}
+ \item 
+ \verb!<タブ記号>!: タブを入力、
+ \item  \verb!<^L>!: ctrl-L を入力、
+ \item  \verb!<改行しない>!: ここの改行はみやすいように改行をいれているだけで、実際には改行は入力しない。
+\end{itemize}
+
+また、自動で適切な設定で outline-minor-mode に入るように .emacs に設定してもよいでしょう。
+
+\begin{commandline}
+(add-hook 
+ 'yatex-mode-hook
+ '(lambda ()
+    (make-variable-buffer-local 'outline-regexp)
+    (setq outline-regexp 
+	  "\\([ \t]*\\\\\\(documentstyle\\|documentclass\\|chapter\\|dancersection\\|
+section\\|subsection\\|subsubsection\\|paragraph\\)\\*?[ \t]*[[{]\\|[%\f]+\\)")
+    (setq 
+     outline-level 
+     (function
+      (lambda ()
+	(save-excursion
+		   (looking-at outline-regexp)
+		   (cond 
+		    ((equal (char-after (match-beginning 0)) 37) (- (match-end 0) (match-beginning 0)))
+		    (t (let ((bs (buffer-substring (match-beginning 2) (match-end 2))))
+			 (cond ((equal (substring bs 0 2) "do") 15)
+			       ((equal (substring bs 0 1) "c") 0)
+			       ((equal (substring bs 0 1) "p") 4)
+			       ((equal (substring bs 0 2) "da") 1) ; dancersection
+			       ((equal (substring bs 0 2) "se") 1) ;section
+			       ((equal (substring bs 0 5) "subse") 2) ;subsection
+			       ((equal (substring bs 0 8) "subsubse") 3) ;subsubsection
+			       (t (length bs))))))))))
+    (outline-minor-mode t)))
+\end{commandline}
+
+\subsubsection{ドキュメントのスタイル}
+
+スタイルファイルは monthlyreport.sty パッケージを利用します。過去の資料を参考にしてください。
+
+\begin{commandline}
+\usepackage{monthlyreport} 
+\end{commandline}
+
+各担当部分は section として扱います。特別なコマンド dancersection で指定
+します。形式は \texttt{dancersecion\{タイトル\}\{作者名\}}です。
+その中で subsection や subsubsection を利用して文書を構成してくださ
+い。
+
+\begin{commandline}
+ \dancersection{Debian 勉強会資料の準備の方法}{上川 純一}
+ \label{sec:debmtg2007howtoprepare}
+\end{commandline}
+
+\subsubsection{目次の処理}
+
+目次のエントリは下記の形式で作成します。
+\begin{commandline}
+index { alphabet もしくは、 ひらがなの読み @ 項目名称 } 
+\end{commandline}
+
+\subsubsection{画像ファイルの処理}
+
+画面写真の画像を追加するときは、できるだけサイズの小さい png などを利用
+してください。グラフなどの線画であれば、epsでかまいません。png であれば、 
+ebb コマンドを利用してbounding box を作成してください。
+
+\begin{commandline}
+ ebb XXX.png
+\end{commandline}
+
+ps であれば、 eps2epsでバウンディングボックスを追加してあげるとうまくい
+きます。sodipodi の出力する ps を eps2epsで処理すれば sodipodi で画像を
+作成することができます。
+
+\subsection{pLaTeX+latex-beamerで文書作成}
+
+latex-beamer で生成したファイルは現状 whizzytex+advi でプリビューできませ
+んが、gv, もしくは xpdf を利用してプリビューすることは可能です。gv を利用
+する場合は最初の行に ps モードを指定してください。advi のように自動で編集
+しているページにとんでくれはしませんが、自動リビルド、および自動更新はか
+かります。
+
+\begin{commandline}
+ %; whizzy document -ps gv
+\end{commandline}
+
+xpdf を利用する場合は下記のように設定します。
+
+\begin{commandline}
+ %; whizzy section -pdf xpdf -latex ./whizzypdfptex.sh
+\end{commandline}
+
+\includegraphics[width=1\hsize]{image200712/whizzytex.png}
+
+
+\dancersection{関西 Debian 勉強会}{山下 尊也}
+\label{sec:kansai2007operation}
+\index{debianjp@Debian JP} 
+\index{かんさいでびあん@関西Debian勉強会}
+
+\subsection{関西 Debian 勉強会を運営して}
+
+この1年間、いろいろな人の支えがあって勉強会が成立したのだと、12月の忘年
+会が終わった後の私の率直な感想です。
+9月に矢吹さんから私に担当が変わり、最初は運営の方でかなり悩んでいました。
+だって、宴会の幹事とかやった事がない20歳になったばかりの担当者ですから。
+しかし、回を重ね、それらは宴会などで運営についての会話を続ける事により、
+お互いが理解出来る状態になれたと思います。そのため、来年の目標は、「長続
+きできる勉強会」と言うテーマで運営していきます。
+
+一人の力で運営を行うと、その一人が忙しくなった場合などに対応できず、バト
+ンパスさえも難しい状況に陥ります。しかし、日頃から分
+担して作業を行なっていれば、これからも継続出きるでしょう。
+
+また、Debianについてもっと知りたいと言う事で、関西Debian勉強会の有志で
+関西Debian勉強会とは独立した形で、週に一度、読書会(KDR)を開いています。
+東京と色は違いますが、関西なりの色で私たち関西Debian勉強会は、より多く
+Debianを愛する人で集い、勉強し、お互いが成長出来る勉強会にしたいと考えて
+います。
+
+\subsection{関西 Debian 勉強会のワークフロー}
+
+では、感想を述べたところで、実際のワークフローについて紹介します。
+
+関西Debian勉強会では、東京エリアDebian勉強会と同様に、Debian JP の IRC定
+例会議に参加し、報告はしていますが、IRC 会議に出れる関西Debian勉強会のメ
+ンバーが少ないため、主に幹事用のメーリングリストを利用して進捗の管理をし
+ています。まだ、確立出来てない部分もあり、最後の一週間はとてもタイトにな
+ります。この一年で関西なりに工夫したワークフローです。東京のワークフロー
+を参考に作成しました。関西Debian勉強会では、共有作業の利便性の面でGoogle
+ドキュメントで管理しています。
+
+\begin{description}
+\item[会場確保] ほとんどの会場は、3ヶ月前から予約の受付が始まります。
+	   関西Debian勉強会は土日の午後を予約するため、2ヶ月前にはほとんど
+	   の場所が予約で埋まってしまいます。そのため、企画が決定するより前に会場
+	   を確保します。会場の料金支払いについては、前日までに入金すれば良いなど比較
+	   的融通効くので、とりあえず会場を確保します。また、プロジェ
+	   クターを利用する場合は会場確保の段階で伝えておかないと、当日
+	   借りる事が出来ない場合もあります。気をつけましょう。
+\item[企画立案] 企画を立案します。前回の勉強会の宴会で大抵決定します。12
+	   月の忘年会で、どこらへんでお願いするかなどをお願いしておきます。
+\item[講師確保] 前回の勉強会の宴会であたりをつけて、講師候補のメールで調
+	   整するようにします。
+\item[資料作成依頼] 資料の作成を講師に依頼します。
+\item[資料作成] 講師が資料を作成します。
+\item[資料編集] 資料を集めて資料を編集します。関西Debian勉強会では、講師
+	   の負担を軽減するため、\LaTeX{}に限定はしておりません。そのた
+	   め、OpenOfficeでの提出も可能です。
+\item[印刷向け編集] 利便性の向上のため、PDFで結合します。
+	   pdftk\footnote{\url{http://packages.debian.org/sid/pdftk}}などを使
+	   うと良いでしょう。
+\item[印刷] kinkos\footnote{\url{http://www.kinkos.co.jp/}} やカンプリ
+	   \footnote{\url{http://www.kanpuri.co.jp/}}などの業者さんに持って行
+	   きます。カンプリの場合は、メンバー割引があり、kinkosの場合は、
+	   学生割引があります。開催者側の予定が合わない場合は、kinkosに
+	   Webから印刷を依頼する事をを検討しても良いかもしれません。
+\item[事前課題設定] 関西Debian勉強会では、基本的に参加者の敷居を下げるために事前課題
+	   の設定はしておりません。ただし、希望などがある際は、MLで相談して事前
+	   課題を設定します。
+\item[事前課題提示] 事前課題をWikiに提示します。
+\item[資料反映] 資料に反映します。
+\item[案内文文章案作成] 案内文の作成をします。文面は前回の勉強会の時に使っ
+	   たものを再利用して加工したものに対してMLで手直しを依頼します。
+\item[案内文確定] 手直しなどがなくなったら、案内文を確定します。
+\item[mixi掲載] mixiのdebianコミュニティ\footnote{\url{http://mixi.jp/view_community.pl?id=95}}と、
+Debian初心者！コミュニティ\footnote{\url{http://mixi.jp/view_community.pl?id=958407}}
+に投げます。また、女性のLinux使いコミュニティ\footnote{\url{http://mixi.jp/view_community.pl?id=513105}}に投げてもらうために、女性の方に依頼します。
+\item[イベント管理システムの作成] 参加者が参加申し込みのためのフォームを
+	   作成します。cotocoto京都\footnote{\url{http://cotocoto.jp}}などを利用し、
+	   debian-users,debian-develに投稿する前には作成しておきます。
+\item[debian-users,debian-devel投稿] Debian JPのメーリングリスト\footnote{\url{debian-users@debian.or.jp},\url{debian-devel@debian.or.jp},}
+に投稿します。二週間前ごろをメドにします。
+\item[debian-users,debian-devel再度投稿] 一週間前ごろをメドにします。ここ
+で変更すべき内容は変更を行い、当日の予定とします。
+\item[DebianJPページ] DebianJP会員が、DebianJPのイベントのページを更新します。
+\item[参加者把握] 数日前に参加者を把握しておきます。
+\item[出席簿印刷] 当日か前日に出席簿を印刷します。
+\item[宴会予約] 宴会の場所を予約します。店に電話で直接連絡します。
+最近の参加者の意見として、4000円以内に収まる事が望ましいみたいです。
+\item[宴会費回収] 宴会の最後に、代金を回収します。
+関西Debian勉強会では、講師の方と学生については1000円引きを実施しています。
+\item[会場設置] 事前に幹事がはやめに入ることが必要です。
+開始時刻よりも前から会場を取っているので、30分ほど前には集まり、会場を設
+置します。
+\item[出席確認] 出席を確認します。幹事と講師はプロジェクターの設置などで忙しいため、それ
+以外の方にやっていただきます。
+\item[結果報告書整理] Debian wiki\footnote{\url{http://www.debian.org}}の
+	   関西Debian勉強会のページに反応集があるので、そこに記述を行いま
+	   す。まだ Debian Wiki のアカウントを持っていない方は、今後のた
+	   めに、アカウントを取っておきましょう。また、結果はDebianJP定例
+	   会議や、次の勉強会で発表します。
+\item[資料公開] Debian wiki\footnote{\url{http://www.debian.org}}の関西Debian
+	   勉強会のページに資料を公開します。
+\end{description}
+
+\dancersection{各種イベント開催実績}{上川 純一}
+\label{sec:debmtg2007results}
+\index{debianjp@Debian JP} 
+\index{とうきょうえりあ@東京エリアDebian勉強会}
+
+各種勉強会の過去の実施実績をまとめます。
+東京エリアDebian勉強会と、関西Debian勉強会について整理します。
+グラフにしてみると\fgref{fig:peoplechart}になります。
+\begin{figure}[h]
+ \begin{center}
+  \includegraphics[width=12cm]{image200712/people-chart.png}
+ \end{center}
+\caption{参加人数推移}
+\label{fig:peoplechart}
+\end{figure}
+
+表で見てみましょう。
+ 
+ \begin{table}[ht]
+\begin{minipage}{0.5\hsize}
+ \caption{東京エリアDebian勉強会参加人数(2005年)}\label{tab:count}
+ \begin{center}
+  \begin{tabular}{|l|c|p{10em}|}
+ \hline
+   & 人数 & 内容 \\
+ \hline
+   2005年1月 & 21 & 秘密\\
+   2005年2月 & 10 & debhelper1\\
+   2005年3月 & 8 &  (早朝) debhelper2、social contract\\
+   2005年4月 & 6 & debhelper3\\
+   2005年5月 & 8 & DFSG、dpkg-cross、lintian/linda\\
+   2005年6月 & 12 & alternatives、d-i\\
+   2005年7月 & 12 & toolchain、dpatch\\
+   2005年8月 & 7 & Debconf参加報告、ITPからアップロードまで\\
+   2005年9月 & 14 & debconf\\
+   2005年10月 & 9 & apt-listbugs、バグレポート、debconf翻訳、debbugs\\
+   2005年11月 & 8 & DWN翻訳フロー、statoverride\\
+   2005年12月 & 8 & 忘年会\\
+ \hline
+  \end{tabular}
+ \end{center}
+\end{minipage}
+\begin{minipage}{0.5\hsize}
+ \caption{東京エリアDebian勉強会参加人数(2006年)}\label{tab:count2006}
+ \begin{center}
+  \begin{tabular}{|l|c|p{10em}|}
+ \hline
+ & 参加人数 & 内容\\
+ \hline
+ 2006年1月 & 8 & policy、Debian勉強会でやりたいこと\\
+ 2006年2月 & 7 & policy、multimedia \\
+ 2006年3月 & 30 & OSC: debian勉強会、sid \\
+ 2006年4月 & 15 & policy、latex \\
+ 2006年5月 & 6 & mexico \\
+ 2006年6月 & 16 & debconf、cowdancer\\
+ 2006年7月 & 40 & OSC-Do: MacBook Debian \\
+ 2006年8月 & 17 & 13執念 \\
+ 2006年9月 & 12 & 翻訳、Debian-specific、oprofile \\
+ 2006年10月 & 23 & network、i18n会議、Flash、apt \\
+ 2006年11月 & 20 & 関西開催： bug、sid、packaging \\
+ 2006年12月 & 14 & 忘年会 \\
+ \hline
+  \end{tabular}
+ \end{center}
+\end{minipage}
+ \end{table}
+
+\begin{table}[t]
+\begin{minipage}{0.5\hsize}
+ \caption{東京エリアDebian勉強会参加人数(2007年)}\label{tab:count2007}
+ \begin{center}
+  \begin{tabular}{|l|c|p{10em}|}
+ \hline
+ & 参加人数 & 内容\\
+ \hline
+2007年1月 & 15 & 一年を企画する \\
+2007年2月 & 13 & dbs, dpatch\\ 
+2007年3月 & 80 & OSC仮想化 \\
+2007年4月 & 19 & quilt, darcs, git\\
+2007年5月 & 23 & etch, pbuilder, superh \\   
+2007年6月 & 4 & エジンバラ開催：Debconf7 実況中継 \\
+2007年7月 & 18 & Debconf7 参加報告\\
+2007年8月 & 25 & cdn.debian.or.jp \\   
+2007年9月 & 14 & exim \\   
+2007年10月 & 30 & OSC Tokyo/Fall(CUPS) \\   
+2007年11月 & 19 & live-helper, tomoyo linux kernel patch, server\\
+2007年12月 & 11 & 忘年会\\
+ \hline
+  \end{tabular}
+ \end{center}
+\end{minipage}
+\begin{minipage}{0.5\hsize}
+ \caption{関西Debian勉強会参加人数(2007年)}\label{tab:count2007kansai}
+ \begin{center}
+  \begin{tabular}{|l|c|p{10em}|}
+ \hline
+ & 参加人数 & 内容 \\
+ \hline
+2007年3月 & 19 & 開催にあたり \\
+2007年4月 & 25 & goodbye，youtube，プロジェクトトラッカー\\
+2007年6月 & 23 & 社会契約，テーマ，debian/rules，bugreport\\
+2007年7月 & 20前後 & OSC-Kansai \\
+2007年8月 & 20 & Inkscape，patch，dpatch\\
+2007年9月 & 16 & ライブラリ，翻訳，debtorrent\\
+2007年10月 & 22& 日本語入力，SPAMフィルタ\\
+2007年11月 & 20前後 & KOF \\   
+2007年12月 & 15& 忘年会，iPod touch\\   
+ \hline
+  \end{tabular}
+ \end{center}
+\end{minipage}
+\end{table}
+
+\clearpage 
+\dancersection{東京エリアDebian勉強会の3年間で生まれたDebian
+Developerは？}{上川 純一}
+\label{sec:debmtg2007-3yearsummary}
+\index{とうきょうえりあ@東京エリアDebian勉強会}
+
+Debian 勉強会はなんだかんだといって、3年間実施してきました。Debian勉強会
+の当初の目標はばりばりとした開発者の育成をめざすところにあったはずです。
+直接的に計測するのは難しいですが、例えばDebian Developer ではなかった人が
+開発をする上での支援ができれば目標にそった活動ができていたといえるのでは
+ないでしょうか。では、確認してみましょう。
+
+残念ながら Debian 勉強会のおかげで Debian Developer になったと言える人は
+まだいないようです。Debian勉強会の参加者で、まだ Debian Developer でない
+人たちで、担当パッケージをもっている人たちを任意に抽出してその状況を確認
+してみました。
+
+\begin{itemize}
+ \item
+      山根さん
+      \url{http://qa.debian.org/developer.php?login=henrich@debian.or.jp} \\
+      eclipse-nls-sdk、jd、ttf-kiloji、ttf-konatu、ttf-vlgothic メンテナ
+      ンス中
+ \item
+      岩松さん
+      \url{http://qa.debian.org/developer.php?login=hemamu@t-base.ne.jp}
+      \url{http://qa.debian.org/developer.php?login=iwamatsu@nigauri.org} \\
+      \footnote{岩松さんがなぜ二つもメールアドレスを使い分けてるのかは不
+      明です。}
+      linux-uvc、xfonts-mona、libflash、tinywm メンテナンス中
+ \item
+      小林さん
+      \url{http://qa.debian.org/developer.php?login=nori1@dolphin.c.u-tokyo.ac.jp} \\
+      orpheus、serf、skkdic、skksearch メンテナンス中
+ \item
+      三塚さん
+      \url{http://qa.debian.org/developer.php?login=mitsuka@misao.gr.jp} \\
+      canna メンテナンス中
+ \item
+      矢吹さん
+      \url{http://qa.debian.org/developer.php?login=yabuki@netfort.gr.jp} \\
+      canna-shion、td2planet、yc-el メンテナンス中
+ \item
+      山本さん
+      \url{http://qa.debian.org/developer.php?login=yama1066@gmail.com} \\
+      file-kanji メンテナンス中
+\end{itemize}
+
+ちなみに、この中でDebianとして一番重要\footnote{popconでの投票結果による}な
+パッケージは、 libflash で、その次が canna のようです。
+
+\dancersection{2008年度 Debian 勉強会企画}{上川 純一}
+\label{sec:2008plan}
+\index{2008@2008年度計画} 
+
+2007年12月に実施した35回Debian勉強会で、一年分の実施したい内容を出してみ
+ました。そこで策定した計画は以下です。
+
+\begin{enumerate}
+ \item 新年会「気合を入れる」
+ \item Open Source Conference Tokyo (3/1)
+ \item データだけのパッケージを作成してみる、
+       ライセンスの考え方
+ \item バイナリ一つのパッケージを作成してみる
+       バージョン管理ツールを使いDebianパッケージを管理する(git)
+       アップストリームの扱い(svn/git/cvs)
+ \item バイナリの分けたパッケージの作成。
+       バイナリの分け方の考え方、アップグレードなどの運用とか。
+ \item パッケージ作成(dpatch/debhelperで作成するパッケージ)
+       man の書き方(roff or docbook)
+ \item パッケージ作成(kernel patch、kernel module)
+       、Debconf発表練習
+ \item Debconf アルゼンチン、共有ライブラリパッケージ作成
+
+ \item Open Source Conference Tokyo/Fall、
+       デーモン系のパッケージの作成、latex、 emacs-lisp、フォントパッケージ
+ \item パッケージの cross-compile の方法、amd64 上で i386 のパッケージと
+       か、OSC-Fall報告会、Debconf報告会
+ \item 国際化 po-debconf / po化 / DDTP
+ \item 忘年会
+\end{enumerate}
+
+\dancersection{Debian Package 管理の流れ}{上川 純一}
+\label{sec:debpkgmaint}
+\index{deb} 
+\index{ぱっけーじ@パッケージ作成} 
+
+%\begin{multicols}{2}
+ 
+2008年のDebian勉強会では対応する種類別に Debian パッケージの作成の個別の
+内容を検討していくことになります。Debian パッケージの作成の技術的詳細に
+はいる前に、まず基本に立ち返って全体的な作業の流れを確認してみましょう。
+
+ \subsection{開発者からユーザにパッケージが到達するまで}
+
+ Debian Developer はどこからかソースパッケージを取得してきて、パッケージ
+ をアップロードします。
+
+ 公式パッケージの場合は、開発者が dput コマンドで ftp-master.debian.org 
+ にパッケージをアップロードすると da-katie が処理し、一日二回のバッチの
+ タイミングで ftp.debian.org ミラーネットワークにパッケージが配信されま
+ す。日本のユーザであれば、 cdn.debian.or.jp を利用し、apt-get update /
+ aptitude update をしたタイミングで新しいパッケージが取得できるようにな
+ ります。
+
+ Debian Developer でない場合には、自分で dput を実行して直接
+ ftp-master.debian.org にアップロードするということはできません。Debian
+ Developerの他の誰かに依頼して実施します。その際にこうしなければならない
+ という定型の方法はありませんが、最近
+ は Debian Mentorsという仕組みが普及しています。
+ \url{http://mentors.debian.net/} にパッケージをアップロードし、Debian
+ Mentors のML \footnote{\url{http://lists.debian.org/debian-mentors/}}な
+ どで聞いてみるとよいでしょう。
+
+%ps を出力させるとうまくいかないのでしかたがなくpng
+ \includegraphics[height=0.8\vsize]{image200801/maint-package.png}
+
+ \subsection{開発者のパッケージングの契機}
+
+開発者がパッケージを作成するタイミングとはどういうものがあるでしょうか。
+簡単にいうと三つあります:
+
+ \begin{itemize}
+ \item Debianに存在しない全く新しいパッケージ(ITPからの一連の流れをふむ)
+ \item Debianにすでに存在しているパッケージの新しいアップストリームバージョンがリリースされた
+ \item Debianにすでに存在しているパッケージにユーザがバグ報告をし、
+       BTSに登録されたバグ報告の内容に対応するにはパッケージの修正が必要
+       になった
+  \item 依存関係が更新されたから更新
+ \end{itemize}
+
+\begin{figure}[h]
+%inkscape --export-text-to-path --export-eps=devel-logic-i.eps devel-logic-i.svg 
+ \begin{center}
+  \includegraphics[width=0.8\hsize]{image200801/devel-logic-i.eps}
+ \end{center} 
+ \caption{開発者のロジックの流れ}
+\end{figure}
+
+ \subsection{作業の流れ}
+ \subsubsection{アップストリームの取得}
+
+新しいソースパッケージを取得します。tar.gz で公開されていればそのまま使
+えます。tar.bz2 であったり、よくわからないアーカイブフォーマットだったり、
+gitレポジトリでしか公開されていなかったりするので、それなりに加工します。
+
+最初は適当に取得するわけですが、二回目移行はスクリプトで自動化して取得す
+るようにします。watch という仕組みがあり、 uscan / uupdate コマンドで新しいバージョ
+ンをダウンロードしてきてDebianパッケージ用のパッチを適用することができま
+す。
+
+\begin{figure}[h]
+ \begin{commandline}
+ version=3
+
+ http://ftp.imendio.com/pub/imendio/giggle/src/giggle-(.*)\.tar\.gz
+
+ \end{commandline}
+\label{watchfile}
+\caption{giggle パッケージの debian/watch ファイル}
+\end{figure}
+
+
+\subsubsection{パッケージング}
+
+二度めからは差分の適用などで対応できるのですが、最初の新規パッケージの場
+合はITPなどの処理を必要とします。また、新規にパッケージを作成するので、
+なんらかのテンプレートパッケージから debian/ ディレクトリを取得してきて
+修正するか、 dh\_make コマンドを利用してテンプレートを作成します。
+
+この段階で debhelper を利用するのか、 cdbs を利用するのかの選択を迫られ
+ます。cdbs は debhelper より新しい仕組みですが、2003年の登場から5年もたっ
+ているのでそろそろこなれています。簡単なパッケージであれば cdbs を利用す
+ればよいでしょう。現状の cdbs のフレームワークで不具合があるような場合で
+あれば debhelper で詳細に設定するのがよいでしょう。
+
+\begin{commandline}
+$ dh_make 
+
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b] b
+
+Maintainer name : Junichi Uekawa
+Email-Address   : dancer@debian.org 
+Date            : Fri, 18 Jan 2008 22:22:51 +0900
+Package Name    : tttt
+Version         : 2.2
+License         : blank
+Type of Package : cdbs
+Hit <enter> to confirm: 
+Could not find tttt_2.2.orig.tar.gz
+Either specify an alternate file to use with -f,
+or add --createorig to create one.
+[22:22:55]coreduo:tttt-2.2> 
+\end{commandline}
+
+ \subsubsection{BTSとの対応}
+
+BTSに登録されているバグ報告に対してメールで対応したりします。
+報告されている不具合をちゃんと修正してみたりします。
+
+BTSは閲覧はWebでできますが、制御はWebではできません。BTSはメールで命令を
+直接うって制御できます。メールコマンドはすぐに忘れてしまうので、
+\url{/usr/share/doc/debian/bug-*} あたりを参照しながら作業します。BTSの
+操作に便利なツールがいくつかあるので、そちらを利用することをおすすめしま
+す。
+
+\begin{itemize}
+ \item  reportbug-ng 
+ \item  reportbug
+ \item  dpkg-dev-el 
+\end{itemize}
+
+ \subsubsection{ChangeLog の管理}
+
+パッケージの新しいバージョンを作成する場合には、debian/changelog に対応
+内容を記述します。
+ここで活用できるツールには次があります。
+
+\begin{itemize}
+ \item devscripts の dch
+ \item dpkg-dev-el の debian-changelog.el
+ \item vim の debchangelog 
+\end{itemize}
+
+バージョン番号を自動で増加させてくれたり、いろいろなエントリーの補完など
+をしてくれます。BTSを参照して修正されたバグのタイトルから ChangeLog のエ
+ントリを生成してくれたりもします。
+
+\begin{commandline}
+pbuilder (0.177) unstable; urgency=low
+
+  [ Loic Minier ]
+  * Run apt-get autoremove after upgrade.
+
+  [ Junichi Uekawa ]
+  * python-apt/gdebi based pbuilder-satisfydepends-gdebi (closes:
+    #453388)
+  * Fix devpts mount permissions (closes: #453862)
+  * Document pbuilder-satisfydepends-gebi in manpage
+
+ -- Junichi Uekawa <dancer@debian.org>  Wed, 26 Dec 2007 20:53:24 +0900
+
+\end{commandline}
+
+\subsubsection{ビルド・テスト}
+
+debian/以下のファイルを微調整して、パッケージをビルドします。
+dpkg-buildpackage を直接呼び出してもよいですが、devscripts パッケージの
+debuildコマンドを利用すればよいでしょう。
+
+lintian / linda で生成されたパッケージにあきらかな間違いがないことを確認
+します。
+
+debc, debdiff で生成されたパッケージにあきらかな間違いや意図しない大きな
+変化がないことを確認します。
+
+debi でパッケージをインストールして正常に動作することを確認します。
+
+pbuilder でビルドしてみて問題ないことを確認します。
+
+pbuilder のテストスクリプトpbuilder-test を利用してインストール・アンイ
+ンストール・アップグレードの試験をしてみるとさらによいでしょう。
+
+ \subsubsection{アップロード}
+
+署名してアップロードします。dpkg-buildpackage コマンドを利用してパッケー
+ジをビルドすると自動でgpgで署名することになります。あとで署名しなおす場
+合には、 debsign を利用します。
+
+アップロードは dput コマンドを利用します。
+
+ \subsection{非公式パッケージレポジトリの作成方法}
+
+ テスト用に非公式のパッケージレポジトリを準備すると便利です。
+
+ Packages.gz ファイルなどを生成してHTTP経由でアクセスできるようにしておく
+ と、ユーザが /etc/apt/sources.list に追記することで apt を利用してパッケー
+ ジが取得できるようになります。
+
+ \begin{itemize}
+  \item dpkg-scanpackages / dpkg-scansources を直接利用する方法。
+  \item apt-ftparchive を利用する方法。
+  \item mini-dinstall を利用する方法。
+  \item apt-move を利用する方法。
+  \item debarchiver
+  \item reprepro
+  \item dak
+ \end{itemize}
+
+2007年9月号で apt-ftparchive が紹介されていたので再掲します。
+
+\subsubsection{apt-ftparchive}
+ Sources.gz / Packages.gz などのパッケージ情報用ファイルを作成するためのツール。
+ 自分で作ったパッケージを apt-line として公開したいときに使います。
+\begin{commandline}
+  % apt-ftparchive packages . | gzip -9 > Packages.gz 
+  % apt-ftparchive sources . | gzip -9 > Sources.gz
+  % apt-ftparchive release . > Release 
+\end{commandline}
+
+\subsubsection{apt-sortpkgs}
+ Packages ファイル および Sources ファイルをソートします。apt-ftparchive で作成したものはソート
+ されていなかったりするので、アルファベット順にソートするときに使います。
+\begin{commandline}
+ % apt-sortpkgs Packages > Packages.sort
+\end{commandline} 
+
+ \subsection{参考文献}
+
+ 必読の文献として、以下があります。一通り読んだ後は、パッケージとしてイン
+ ストールしておき、手元で検索できるようにしておくと便利です。sid　を利用
+ しているのであれば、パッケージとしてインストールしておくと最新版に勝手に
+ 更新されるため、便利です。
+
+ 内容に誤記などがあれば、ぜひBTSにバグ報告を登録してください。
+
+ \begin{itemize}
+ \item debian-policy: Debian Policy Manual。
+       パッケージの準拠すべきルールが文書化されています。
+ \item developers-reference: Developers Reference。
+       
+ \item doc-debian: Debian Project Documentation。 BTSのメールインタフェー
+       スなどの文書がある。
+ \item maint-guide: Debian New Maintainer's guide。
+       New Maintainerとして知るべきマナーのようなものが文書化されていま
+       す。
+ \end{itemize}
+
+
+%\end{multicols}
+
+%===========================================================%
+\dancersection{Open Source Conference 2008 Spring 報告}{山本 浩之 / やまね ひでき / 岩松 信洋}
+%===========================================================%
+\label{sec:osc2008spring}
+\index{OSC2008Spring}
+
+2008年2月29日と3月1日の両日に渡って東京新宿で開かれた「Open Source Conference 2008 Tokyo/Spring」に東京エリアDebian勉強会有志が参加してきました。なお、関係者のスケジュールの都合上、東京エリアDebian勉強会は3月1日のみの参加でした。
+今回は会場4階でのブース設営とセミナ、そして初の試みとしてハンズオンを開催しました。
+
+\subsection{セッション: Debian Overview}
+セミナは「Debian Overview」と題して、Debian の始まりの説明から DFSG とオープンソースの関係の紹介、現状の開発の活発さを示す指標として移植／派生ディストリビューション／開発者数と現状／パッケージについてなどを説明し、活況あふれるDebianコミュニティへの参加を促しました。参加者数は40名教室で36,7名でしたので盛況と言って良いのではないかと思います。
+
+\subsection{セッション: Debian Package ハンズオン}
+今回のOSCでは、Debian 勉強会としては初の試みである ハンズオンを行いました。
+OSCの会場として専門学校を利用させていただいています。専門学校には実習室があります。
+以前から多くの方から依頼があった Debian Package のハンズオンを行いました。
+
+簡単且つパッケージにする際に難しくないプログラムということで、
+sl \footnote{\url{http://packages.debian.org/sid/sl}}
+をベースに、環境の構築、パッケージの作成方法、パッケージテスト方法、問題があったときの対処方法
+を実際の開発手順に合わせて、参加者に行ってもらいました。
+結果は岩松の不手際や会場での問題等でスムーズに進行させることができなかったのですが、おおむね好評
+だったようです。
+初の試みということと、今後につなげていくために、実際の参加者の方に意見を聞いて回りました。
+まとめたものを以下に示します。
+
+ \begin{enumerate}
+   \item 講師一人ではサポートしきれないので、参加人数にあわせたサポートチームを構成する。
+
+     一人脱落者が出ると、一人では対応できない。人によってレベルが様々なので、対応しきれない。
+
+   \item キーボードを打つ人が遅い人のために印刷したものを用意してそれを配布する。
+         ついていけない人はこの紙を読んで進めるようにサポート環境を作る。
+
+   \item  環境のレベルを低くする
+    
+     vi / emacs なんて使えないぜ！という人がいる。これはこれでいろんな意味で困るが、
+     普段使い慣れたエディタが使えると一番よい。geditなどが使える環境なども必要。
+     今回は手順を省くためにコンソールベースにしていましたが、マウスがないとだめな人もいる
+     ので、このあたりも考慮した環境を用意する必要がある。
+
+   \item 参加者の情報が必要
+
+     入り口を狭めるという意味で情報を集めるわけではなく、チームでやる場合の人の配置などに使う
+     ためにスキルの情報があると楽になる。
+     環境変数ってなに？とかいう人を一箇所に集めてフォローしやすくしたり、など。
+     または思い切って参加者スキル制限を行うと良い事もある。
+    
+   \item プレゼン用の画面とコンソール画面があるとよい
+
+      ２つ同時に出せる環境が理想という意見がありました。会社で行う研修ではこのような方法を使う
+      事が多いらしい。実際にはむずかしいので、紙と連携させてやるのがよい。
+
+   \item 45分では足りない
+
+      簡単な Deban Package でもハンズオンだと45分以上かかることが分かった。
+　     実際には割り込みが入ってしまい、もっと長くなる可能性もある。
+      円滑に進めるには上に書いたようなことを行う必要がある。
+
+   \item ネットワーク制限がないところがいい
+
+      不安要素が減るので。 
+     
+  \end{enumerate}
+
+ 今回のハンズオンで、いろいろ課題が分かりました。
+　課題の解決と今後につなげていくために、
+ 近い将来にハンズオンのリベンジを行いたいと考えています。
+ ハンズオンするにはそれなりの設備が必要なので、良い場所とかあれば教えてください。
+
+\subsection{セッション: 展示ブース}
+ブースでの展示では Debian JP への寄付金、計 9,520 円が集まりました。リアル Debian 掲示板には次のようなことが寄せられました：
+\begin{multicols}{2}
+ 
+ \begin{itemize}
+    \item ラヴ・Etch ちなみにalphaユーザです
+    \item 関西から来ました！ Debian最高Death
+    \item ３月の勉強会行きます！
+    \item AirをSidにしたよ
+    \item DebianのAsteriskパッケージのバージョンを最新に！（誰か、よろ）
+    \item 人脈作成中
+    \item パッケージ作成中
+    \item Debiりましょう！！
+ \end{itemize}
+\end{multicols}
+
+展示ブースではお金の管理の問題があり、寄付金と物販の売上の違いが分からなくなり、結局、一部寄付を強要するような形となりました。今後は、寄付金集めと物販は同時には行わないなどの対策が必要でしょう。
+
+
+\subsection{まとめ}
+次回に向けて、ブースの準備（配布用LiveDVD準備が間に合わなかった、寄付金管理）、
+セミナの時間配分（15分オーバー）、ハンズオンの準備（段取りなど諸々）など課題も見えた
+イベントでしたが、検索エンジンなどでのBlog投稿やmixiの日記などを見る限りでは、参加
+頂いた方々に楽しんでいただけたのではないかと思われます。
+
+参加者の皆様、お疲れさまでした。
+
+%===========================================================%
+\dancersection{Debianパッケージ作成：データだけのパッケージ}{David Smith}
+%===========================================================%
+\label{sec:datapackage}
+\index{でーただけのぱっけーじ@データだけのパッケージ}
+\index{ぱっけーじ@パッケージ}
+
+Debianパッケージ作成にようこそ！dpkgのパッケージ、いわゆるDebianパッケー
+ジの作成を分かりやすく、実例の分析に基づいて説明する。\footnote{Debianパッ
+ケージが作りたいよね。一応作りたいと前提に思っているからよろしく。}今回
+データーだけのパッケージについてみてみましょう。
+
+データーだけのパッケージは何かと言えばフォントやドキュメンテーションや
+設定ファイルなどのパッケージを指すことだ。要するにプログラムとライブラリではな
+いパッケージだと言える。今回、GNOMEデスクトップの背景ファイルの集合、
+gnome-backgroundsの構成を解析する。Debian Popularity
+Contest\footnote{Debian Popularity Contest の
+URL:\url{http://popcon.debian.org/}}によると現在gnome-backgroundsが殆ど
+全部のGNOMEインストールに含まれていてGNOMEを使用していれば
+gnome-backgroundsも入っているはず。背景ファイルだがパッケージの構成に複
+雑の部分もあると思うから詳細までみてみよう。
+
+\subsection{準備}
+
+まず、Debian New Maintainer's Guide
+\footnote{Debian New Maintainer's Guide の URL:
+\url{http://www.debian.org/doc/devel-manuals\#maint-guide}}
+のページを開いておいたらいいでしょう。不明な点があった場合、
+New Maintainer's Guideに分かりやすく書いているだろうし、質問
+は何処まで送ればいいか教えるのだ。
+
+それからgnome-backgroundsのソースパッケージをダウンロードしよう。
+\begin{commandline}
+$ apt-get source gnome-backgrounds
+\end{commandline}
+% $ - hi emacs
+
+準備の最後にパッケージの構成に必要な依存パッケージをインストールしなけれ
+ばビルドが出来ないので以下のコマンドをインストールしよう。
+\begin{commandline}
+$ apt-get build-dep gnome-backgrounds
+\end{commandline}
+% $ - hi emacs
+
+\subsection{基本のDebianパッケージファイル}
+
+今のところ、apt-get sourceがソースパッケージをgnome-backgrounds-2.20.0と
+いうディレクトリに展開した。そのディレクトリの中にはdebian/ディレクトリが
+あり、そこにパッケージ作成の設定ファイルがある。パッケージによるファイル
+数が異なるが、gnome-backgroundsは最低限に近い。
+
+\begin{commandline}
+piyo:/tmp/gnome-backgrounds-2.20.0> ls -l debian/
+合計 36
+-rw-r--r-- 1 dds dds 3755 2008-03-08 16:21 changelog
+-rw-r--r-- 1 dds dds    2 2008-03-08 16:21 compat
+-rw-r--r-- 1 dds dds 1022 2008-03-10 15:11 control
+-rw-r--r-- 1 dds dds  771 2008-03-08 16:21 control.in
+-rw-r--r-- 1 dds dds 1780 2008-03-08 16:21 copyright
+-rwxr-xr-x 1 dds dds  368 2008-03-08 16:21 rules
+-rw-r--r-- 1 dds dds  145 2008-03-08 16:21 watch
+\end{commandline}
+
+この中でchangelog、control、copyright、rulesはあらゆるパッケージに
+必要です。
+
+\subsubsection{debian/copyright}
+
+\url{debian/copyright}は上流ソースコード、データーなどの著作権を認めるためのファ
+イル。形式は自由。パッケージビルドツールに対して必須なので自分専用でも自
+分の会社内専用のパッケージでも一応書かなければならない。最低限として
+「All Rights Reserved」と書いてもいい。gnome-backgroundsの
+\url{debian/copyright}ファイルが長すぎるのでここには示さないけど見てみてくださ
+い。パッケージをインストールすると\url{/usr/share/doc/パッケージ名/copyright}にインストールされる。
+
+\subsubsection{debian/changelog}
+
+\url{debian/changelog}にはパッケージのバージョンを記録する。必ずしもパッケージの
+バージョンが上流のバージョンに一致することではないので必須になっている。それにパッ
+ケージの最新バージョン番号はこのファイルの最初の1行目から直接に抽出される。
+
+gnome-backgroundsの最新バージョンのchangelogを見てみましょう。
+\begin{commandline}
+gnome-backgrounds (2.20.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Sebastian Dr\"oge <slomo@debian.org>  Sat, 22 Sep 2007 09:49:38 +0200
+\end{commandline}
+
+かなり簡単。だけど、空白と日付の形式を厳守しなければビルドするときにエラー
+が発生するから注意。\footnote{debchange(1)というツールで手軽にchangelog
+編集が出来る。devscriptsというパッケージに入っている。}
+
+\subsubsection{debian/control}
+
+\url{debian/control}にはパッケージ名、Maintainer、依存のパッケージなどのメタ情
+報が記している。gnome-backgroundsの場合、独特として\url{debian/control}と共に
+\url{debian/control.in}ファイルもある。\url{debian/control.in}はDebianのパッケージツー
+ルに対して関係ないから無視しても良い。でも目的は何かと言えば説明したい。
+
+Gnomeプロジェクトは規模が大きいのでメンテに関われている人が多い。
+\url{debian/control}にアップロード出来る人達の名前が記載されているのだが人の名
+前が多すぎて直接管理しにくいから@GNOME\_TEAM@という変数だけを書いている。
+そして別のファイルにその人達の名前を書いて、発行時にスクリプトによって変
+数を変換するわけだ。必要がなくて複雑かもしれないけどDebianといえば自由主
+義ですね。
+
+では\url{debian/control}をみてみよう。
+\begin{commandline}
+Source: gnome-backgrounds
+Section: gnome
+Priority: optional
+Maintainer: Sebastien Bacher <seb128@debian.org>
+Uploaders: @GNOME_TEAM@
+Build-Depends: debhelper (>= 5), cdbs, gnome-pkg-tools
+Build-Depends-Indep: libxml-parser-perl
+Standards-Version: 3.7.2
+
+Package: gnome-backgrounds
+Architecture: all
+Depends: ${misc:Depends}
+Description: a set of backgrounds packaged with the GNOME desktop
+ This is a collection of desktop backgrounds created with GNOME users in mind.
+ It contains the following backgrounds:
+ .
+[後略]
+\end{commandline}
+
+第一段落にソースパッケージを記述する。apt-get sourceとapt-get buildd-dep
+を実行する時、ソースパッケージの情報を使っている。9行目以降に作成する
+gnome-backgroundのバイナリパッケージを定義している。順番に関してはソース
+パッケージが必ず最初に来るそしてSource又はPackageはそれぞれの段落の最初の
+1行に書く。それ以外の中身の項目は特に決まった順番がない。
+
+SectionとPriorityとの項目は少しややこしいかもしれない。決まった選択肢の中
+から１つしか選べないので合わない場合があるけどgnome-backgroundsの場合はぴっ
+たり、gnomeでoptional。選択肢の詳しい情報はDebian Policy Manualに書いてあ
+る。\footnote{Debian Policy Manual
+URL:\url{http://www.debian.org/doc/debian-policy/ch-archive.html\#s-subsections}}
+後はMaintainerとUploadersはそれぞれ書いた通り。Uploadersは共同にメンテを
+している人なのだ。つまり、Maintainerの項目は必ず一人しか書けないけど他の
+人もメンテしていればUploadersに書くということだ。
+
+次にビルドのための依存関係パッケージが書いてある。殆どのパッケージにはビ
+ルドするための依存パッケージと利用するための依存パッケージが異なる。例え
+ば普通のプログラムの場合にC/C++のヘッダーがビルド時に必要けど実行するのに
+要らないとして、Debianパッケージの構成にも同じことがある。
+\footnote{Build-DependsとBuild-Depends-Indepの違いがあまり分からなくてす
+みません！}gnome-backgroundsがビルド時に使ってる依存パッケージがより典型
+的なのでそれぞれ少し説明する。
+
+\begin{description}
+ \item[cdbs]
+            ``Common Debian Build System''の省略, 共有されているビルドシステム。
+            多くの人が使っていると思う。
+ \item[debhelper]
+            いろいろパッケージビルドに役に立つツール。例えば上流のドキュメンテー
+            ションを自動的にインストールするツールなど。実にこれがcdbs
+            から依存しているので述べる必要がない。でも重複しても
+            問題はない。
+ \item[gnome-pkg-tools]
+            cdbsに少し似ている感じでGNOMEパッケージを作るのに役に立つツー
+            ル。
+ \item[libxml-parser-perl]
+            PerlのXML::Parserモジュール。
+\end{description}
+
+ソースパッケージの段落の最後にStandards-Versionという項目はDebian
+Policy Manualの何バージョンに準拠しているかを述べる。
+
+続いてバイナリパッケージの段落になる。パッケージ名が最初に来る。それから
+対応するアーキテクチャーを書く。データーだけのパッケージの場合に尤もall
+にしてもいい。今度のバイナリパッケージ作成発表にallの他を説明する。その他
+はDependsラインにruntimeの依存関係のパッケージ（この場合は自動的に抽出さ
+れる）が書いていて、最後にパッケージの記述。
+詳しくはDebian Policy Manualを参照してください。
+
+\subsubsection{debian/rules}
+
+\url{debian/rules}でパッケージのビルドがどう行われるかを定義する。中身の形式は
+完全自由だが外部のツールがPolicy Manualに書いている呼び出し方を依存してい
+る。それでMakefile形式を用いているパッケージの割合は100\%に近い。
+しかしMakefileなのにcdbsを使っているので普通なMakefileに余りにも似ていな
+い。時間と動力を節約したい方は是非試してください。
+
+gnome-backgroundsの\url{debian/rules}をみよう。
+
+\begin{commandline}
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/gnome.mk
+include /usr/share/cdbs/1/rules/simple-patchsys.mk
+include /usr/share/gnome-pkg-tools/1/rules/uploaders.mk
+-include /usr/share/gnome-pkg-tools/1/rules/gnome-get-source.mk
+
+binary-post-install/gnome-backgrounds::
+	rm -rf debian/gnome-backgrounds/usr/share/locale
+\end{commandline}
+% )$ -- hello emacs
+
+殆ど以前に定義しているルールを再利用しているしかないです。1つだけのこのパッ
+ケージに特別の追加があり、それはbinary-post-install/gnome-backgrounds::の
+ところ。意味としてはgnome-backgroundsというバイナリパッケージを作ってから、
+必要ないのでそのディレクトリを削除する。
+
+\subsubsection{debian/watch}
+
+\url{debian/watch}ファイルは不要だが使ったら自動的に新しい上流のソフトを取得し
+てビルドする仕組みが使える。
+
+\subsection{パッケージビルド}
+
+上記を設定してから、パッケージのビルド自体はdpkg-buildpackage又は
+debuildコマンドだけで出来る。設定以来の変更を\url{debian/changelog}ファイルに
+記録するとバージョン管理がで要る。dpkg-buildpackageの出力が長いためここ
+に写さないけど自分で試してみてください。
+
+
+%===========================================================%
+\dancersection{Debianパッケージにおいてのライセンスの取扱い}{上川 純一}
+%===========================================================%
+\label{sec:license}
+\index{license} 
+\index{copyright}
+\index{ちょさくけん@著作権}
+
+Debian Project の作成するディストリビューション Debian GNU/Linux はフリー
+ソフトウェアから構成されています。Debian Projectにおいての「フリー」の定
+義は DFSG というガイドラインで定められています。
+それでは、それが実際にどういう使い方をされているのかを紹介します。
+
+\subsection{なぜDFSGが必要なのか}
+
+フリーソフトウェアにもいくつかの考え方がありえます。どれが正しいというわ
+けではないので、一つに統一することはできないでしょう。具体的には次の三種
+類くらいを考えればよいでしょう。
+
+\begin{itemize}
+ \item 自由なものを自由でありつづけさせたいライセンス（GPLなど）
+ \item 自由なものを不自由にする自由も与えたいライセンス（MIT, BSDなど）
+ \item 自分の作ったものは自由につかってくれてよいが、自分の作成したもの
+       は完全なため、勝手にいじってほしくない。よって、変更したものについて
+       は明示的にしておいてほしいもの（LPPL 1.0など）
+\end{itemize}
+
+複雑な例を挙げると、昔の\LaTeX{}関連のライセンス LPPL 1.0 では、変更した
+ものについてはファイル名を変更することを義務としていました。また、現在で
+もgnuplot ではオリジナルのソースコードの配布を義務とし、オリジナルのソー
+スコードとパッチという形での配布のみ認めています。
+
+もともとの開発者と開発に携わろうとしている人たちにとっては大きな違いがあ
+りますが、エンドユーザにとってはフリーソフトウェアとして、利用できること
+に関してはあまり大きな違いはありません。
+
+Debian はそのどちらの立場でもなく、ディストリビュータとして関わることに
+なります。許諾された範囲で次のことができればよいことになります：
+
+\begin{itemize}
+ \item Debian を有償・無償を問わず配布すること（DVD・公開ミラー・非公開
+       ミラー）
+ \item Debian を改変すること（Debianの改良、Debian外への流用、Debianから
+       の派生ディストリビューションの開発など）
+ \item Debianをあらゆる用途で利用できること（商用・教育用・宗教用・軍事
+       用・医療用などを問わない）
+\end{itemize}
+
+これらを現実的に阻害しないようなライセンスの条件を取りまとめたのがDFSGです。
+
+\subsection{DFSG全文}
+
+DFSG全文を\fgref{fig:dfsg}に掲載します。
+
+\begin{figure}[h]
+ \begin{multicols}{2}
+ {\small
+     1. Free Redistribution
+
+       The license of a Debian component may not restrict any party from
+       selling or giving away the software as a component of an aggregate
+       software distribution containing programs from several different
+       sources. The license may not require a royalty or other fee for
+       such sale.
+
+    2. Source Code
+
+       The program must include source code, and must allow distribution
+       in source code as well as compiled form.
+
+    3. Derived Works
+
+       The license must allow modifications and derived works, and must
+       allow them to be distributed under the same terms as the license
+       of the original software.
+
+    4. Integrity of The Author's Source Code
+
+       The license may restrict source-code from being distributed in
+       modified form {\bf only} if the license allows the distribution of
+       "patch files" with the source code for the purpose of modifying
+       the program at build time. The license must explicitly permit
+       distribution of software built from modified source code. The
+       license may require derived works to carry a different name or
+       version number from the original software. (This is a compromise.
+       The Debian group encourages all authors not to restrict any files,
+       source or binary, from being modified.)
+
+    5. No Discrimination Against Persons or Groups
+
+       The license must not discriminate against any person or group of
+       persons.
+
+    6. No Discrimination Against Fields of Endeavor
+
+       The license must not restrict anyone from making use of the
+       program in a specific field of endeavor. For example, it may not
+       restrict the program from being used in a business, or from being
+       used for genetic research.
+
+    7. Distribution of License
+
+       The rights attached to the program must apply to all to whom the
+       program is redistributed without the need for execution of an
+       additional license by those parties.
+
+    8. License Must Not Be Specific to Debian
+
+       The rights attached to the program must not depend on the
+       program's being part of a Debian system. If the program is
+       extracted from Debian and used or distributed without Debian but
+       otherwise within the terms of the program's license, all parties
+       to whom the program is redistributed should have the same rights
+       as those that are granted in conjunction with the Debian system.
+
+    9. License Must Not Contaminate Other Software
+
+       The license must not place restrictions on other software that is
+       distributed along with the licensed software. For example, the
+       license must not insist that all other programs distributed on the
+       same medium must be free software.
+
+   10. Example Licenses
+
+       The "GPL", "BSD", and "Artistic" licenses are examples of licenses
+       that we consider "free".
+ }
+ \end{multicols}
+\caption{The Debian Free Software Guidelines (DFSG)}
+\label{fig:dfsg}
+\end{figure}
+
+
+\subsection{ライセンス管理にかかわるプロセス}
+
+Debian GNU/Linux で、ライセンス管理に関連するプロセスや仕組みを整理しま
+しょう。
+
+\subsubsection{ITP}
+
+Debian ディストリビューションにパッケージを追加するのなら、最初に「ITP」
+を行います。まずここでライセンスも付記することになり、特殊なライセンスで
+あったら、議論になります。
+
+\subsubsection{debian-legal}
+
+複雑な条件や新規の状況が発生した場合には、debian-legal メーリングリストで
+議論します。メーリングリストでコンセンサスが醸成されたり、されなかったり
+します。フレームウォーが展開されたりします。結論はなかなか出ませんが、い
+ろいろな視点が展開されるので見ているとおもしろいです。
+
+\subsubsection{NEW キュー}
+
+ITP後パッケージをアップロードすると、メーリングリストの議論とはあまり関係
+ない方向で、ftp-masterが　debian/copyright を確認し、パッケージを承認し、
+新しいパッケージがディストリビューションに入ります。この時点でDebianとし
+てこのパッケージをこのライセンスで配布することはDFSG フリーであるという判
+断をしたことになります。
+
+この判断をくつがえすには、パッケージに対して、ライセンスが間違っていると
+serious バグを報告することになります。
+
+\subsubsection{再配布}
+
+ftp-master に一旦入ると、Debian をミラーしている各サーバで再配布されるこ
+とになります。また、CDROMイメージなどでも再配布されることになります。
+
+各国の著作権法では著作物の複製は基本的には許諾がなければ許可されないとい
+うルールです。そのため、Debian としてはライセンスの条件に同意して複製して
+いるという考え方をとっています。各ミラーが到底許諾できないような条項は受
+け入れられません。
+
+\subsubsection{改変}
+
+ユーザはダウンロードしたDebianの一部を改変します。
+ユーザは改変をする際には、各パッケージの許諾にしたがっています。
+
+\subsection{パッケージ作成においての debian/copyright 作成の実際}
+
+Debian パッケージを作成する際に、ライセンス関連を確認します。
+著作権は原則として許諾がないと「利用」ができないという類の権利です。
+Debianパッケージの場合、その情報をdebian/copyrightファイルに整理します。
+
+では、ライセンスはどうやって確認するのでしょうか。原作者はフリーソフトウェ
+アとして一旦公開することを決心したのですから、良心的にライセンス情報をあ
+る程度整理してくれているはずです。しかしながらその内容は監査の手続きが確
+立されているわけでもなく、標準が存在するわけでもないので一律ではありませ
+ん。また、よくあることですが、本人以外でその点を注意して確認しようとした
+のは今Debian パッケージ作業をしようとしているあなたが初めてかもしれません。
+必要事項が記述されていないこともありうるため、その場合は原作者に確認をと
+りましょう。
+
+ライセンス関連の情報は、通常はマニュアルやウェブページに記述されています。
+そこで大まかな状況を確認します。例えば、failmallocパッケージを例にとって
+みてみましょう。failmalloc のソースディレクトリを見てみます。
+
+\begin{commandline}
+$ ls
+AUTHORS  ChangeLog  Makefile.am  NEWS	 THANKS      configure	   debian   failmalloc.c  ltmain.sh  mkinstalldirs
+COPYING  INSTALL    Makefile.in  README  aclocal.m4  configure.ac  depcomp  install-sh	  missing
+\end{commandline}
+
+まずCOPYINGファイルがあるのがわかります。これはFSFの出しているライセンス
+に多く、GPL全文が入っている場合が多いです。この場合は内容を確認してみると、
+LGPL v2.1 の全文が入っていました。
+
+\begin{commandline}
+                  GNU LESSER GENERAL PUBLIC LICENSE
+                       Version 2.1, February 1999
+
+ Copyright (C) 1991, 1999 Free Software Foundation, Inc.
+ 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+[略]
+\end{commandline}
+
+他にも、マニュアルなどにライセンスについて記述されている事が多いです。確
+認してみましょう。今回は README, AUTHORS, ChangeLog, THANKS を確認しても
+特にライセンス関連の記述はありませんでした。
+
+あと、最終的にソースコードそれぞれのライセンスを確認しましょう。別のプロ
+ジェクトからコピーしてきたファイルなどが含まれることもあり、別のライセン
+スのものが混じっている可能性もあります。failmalloc.cを確認すると、ライセ
+ンスについて明言している文面があるのが分かり、COPYINGファイルと整合性がと
+れているのが確認できます。
+
+\begin{commandline}
+/* failmalloc - force to fail in allocating memory sometimes */
+/*
+ * Copyright (C) 2006 Yoshinori K. Okuji <okuji@enbug.org>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+\end{commandline}
+
+今回は特にありませんが、バイナリデータファイルなども確認しておくとよいで
+しょう。mp3ファイルや、画像データなど、本当に作者に権利があるのか念のため
+確認しておくとよいでしょう。例えば調べた結果音楽データが Creative
+Commons ライセンスで許諾されているのであれば、それは別のライセンスのファ
+イルであるとして debian/copyright に記述します。
+
+また、インストールされるバイナリがソースコードから生成されていることを確
+認します。\footnote{ROMから吸い出したバイナリファームウェアが入っている
+「フリーソフト」もあるので注意しましょう。} ソースコードから全部のバイナ
+リが作成できないのであれば、原作者に問い合わせるステップが必要になること
+もあります。
+
+そうやって調査した一連の内容を debian/copyright に整理して記述します。複数の許諾
+者や許諾内容がある場合はそれがわかるように整理しましょう。
+この場合は、LGPLである旨を記録し、あとDebianパッケージ関連のスクリプトに
+ついても他の部分と同じライセンスであるLGPL2.1に従うということを明記
+しています。
+
+\begin{commandline}
+ This package was debianized by Hideki Yamane (Debian-JP) <henrich@debian.or.jp> on
+Sat, 26 Jan 2008 09:28:51 +0900.
+
+It was downloaded from http://www.nongnu.org/failmalloc/
+
+Upstream Author: 
+
+    Yoshinori K. Okuji <okuji@enbug.org>
+
+Copyright: 
+
+    Copyright 2006 Yoshinori K. Okuji
+
+License:
+
+    This package is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License.
+
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this package; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+On Debian systems, the complete text of the GNU Lesser General
+Public License can be found in `/usr/share/common-licenses/LGPL-2.1'.
+
+The Debian packaging is (C) 2008, Hideki Yamane (Debian-JP) <henrich@debian.or.jp> and
+is licensed under the LGPL-2.1, see `/usr/share/common-licenses/LGPL-2.1'.
+
+
+\end{commandline}
+
+なお、\url{/usr/share/common-licenses} に一般的に使われるライセンス文
+\footnote{現在は Artistic, BSD, GFDL, GPL, LGPL}が用意されており、一般的
+な文面の場合はそれを引用することでよいことになっています。そうでない場合
+はライセンス文を全文 debian/copyright ファイルの中に転記します。
+
+メンテナがこうやって準備した debian/copyright ファイルは、Debian ユーザ
+は \url{/usr/share/doc/パッケージ名/copyright} で確認できます。
+
+
+
+\dancersection{バイナリ一つだけのパッケージを作成してみる}{吉田　俊輔}
+\label{sec:binpkg}
+\index{ばいなりひとつだけのぱっけーじ@バイナリ一つだけのパッケージ}
+\index{ぱっけーじ@パッケージ}
+
+\subsection{前提/対象者}
+
+この記事はDebianパッケージを作った経験が無い人むけに一番わかりやすいと思われる
+dh\_makeを使ったパッケージの作成について説明しています。
+
+前提知識としてはある程度make(Makefile)を理解している必要がありますが、
+多くはありません。若干はこのドキュメント中で説明します。
+
+\subsection{debパッケージを作る/使う理由・メリット}
+
+通常のパッケージシステムのメリットとしてtarボール(*.tar.gzなどで圧縮されたアーカイブファイル)を
+使った場合に比較して、複数マシンへのインストール、環境再現が簡単、便利、
+パッケージのアンインストール、バージョンアップが容易といった点が挙げられ
+ます。
+
+debパッケージを作るメリットとしては、それらに加え、
+ソースファイルとパッチファイルの管理が簡単、ビルドに必要な環境（のパッケージ）を整備するのが
+簡単、等のメリットが挙げられるでしょう。
+
+もちろんパッケージを作りたい理由は人それぞれと思いますが、
+自分の使いたいアプリ/機能がパッケージになっていないという理由が多いでしょ
+う。
+
+Debian Developer(Debian開発者:DD)になるためと言う人もいるかもしれません。
+
+
+\subsection{dh\_makeとは}
+dh\_makeコマンドはdh-makeパッケージに含まれるコマンドで、
+パッケージを作る際に一般的な内容のひな形を
+作ってくれるツールです。
+
+ソフトウェアのソースコードを展開したディレクトリの中で、
+このコマンドを実行すると、対話的なやりとりを行ったあと、
+ひな形としてdebhelperスタイルのディレクトリとファイルを準備します\footnote{CDBSスタイルのひな形も作成可能です。}。
+
+\subsection{debhelperスタイル}
+debパッケージを作る方法(スタイル)についてはいくつかあります。
+今回説明するのはdh\_makeのdebhelperスタイルについてです。
+そのほかに同様にdebhelperスタイルを使用したdpatch,CDBS,dbs,quilt,yadaと
+いったスタイルがあるそうです。
+
+その他にもスクリプト言語向け等にもいくつかスタイルがあるようです。
+debhelperスタイルはdebianではもっとも一般的でシンプルなスタイルです。
+現在のdebianパッケージで採用しているパッケージの割合がもっとも多いと言われています。
+基本的にdh\_コマンドをrulesというファイルからから呼び出す形式となります。
+
+\subsection{dh\_makeでのdebhelperスタイルのパッケージ作成に最低限必要なファイル}
+
+dh\_makeが作成する、debhelperスタイルのパッケージ作成に
+最低限必要なファイルとして以下の２つのディレクトリと、
+４つのファイルがあります。
+
+まず、作業に使うディレクトリ名の形式が決まっています。
+その下にdebianディレクトリが作成され、パッケージングに必要なファイルはここにすべて置かれます。
+必要なファイルについてはひな形がdh\_makeで準備されます。
+\begin{commandline}
+softname-version/ (ディレクトリ名)
+  debian/ (Debianディレクトリの存在=debパッケージが作成可能)
+     control (パッケージ情報：パッケージ名、バージョンの記述)
+     changelog (更新履歴)
+     copyright (著作権情報の記述)
+     rules (rulesパッケージの作成方法を記述)
+\end{commandline}
+
+\subsection{その他のファイル}
+
+以下はdh\_makeが準備するサンプルのファイルです。
+これらも同様にdh\_makeでdebianディレクトリの下に準備されます。
+必須ではありませんので、必要に応じて利用します。
+
+\begin{commandline}
+debian/
+  README.Debian(オリジナルとパッケージ化したときの差分情報)
+  conffiles.ex(設定ファイル名のリスト)
+  cron.d.ex(cronで実行するファイル名リスト)
+  dirs
+  docs
+  init.d.ex(サービスの起動スクリプト)
+  manpage.1.ex, manpage.sgml.ex(manファイル)
+  preinst.ex(インストール前のスクリプト)
+  postinst.ex(インストール後のスクリプト)
+  prerm.ex(アンインストール前のスクリプト)
+  postrm.ex(アンインストール後のスクリプト)
+  等
+\end{commandline}
+
+\subsection{新規作成の流れ}
+
+db\_makeを使ったパッケージの新規作成の流れとしては以下のようになります。
+\begin{itemize}
+ \item 
+ ソースアーカイブ展開
+ \item  テンプレート作成
+\begin{commandline}
+ $ dh_make
+       \end{commandline}
+ \item  debianディレクトリ配下の編集
+ \item changelog記述
+ \begin{commandline}
+ $ dch
+       \end{commandline}
+ \item 
+ controlファイル(パッケージ名や依存関係を記述)
+ \item 
+ copyrightファイル(著作権情報の記述)
+ \item 
+ rulesファイル(ビルド手順の修正、確認、不要なコードの削除)
+ \item 
+       ビルド
+ \begin{commandline}
+ $ dpkg-buildpackage(debパッケージの作成)
+ \end{commandline}
+\end{itemize}
+
+\subsection{ソースアーカイブ展開}
+
+通常、tarボール等で配布されているファイルを展開し、
+その展開されたディレクトリ名を修正（リネーム）します。
+
+dh\_makeでひな形を作るためには packagename-version の
+形式である必要がありますので、上記の形式になっていない場合は
+適切にリネームを行ってください。
+
+\subsection{dh\_make(debianディレクトリ、テンプレートの作成)}
+
+dh\_makeでのひな形の作成です。
+
+上記で適切な形式にリネームされたディレクトリにcdし、dh\_makeを
+実行します。その際、可能ならライセンスの指定を行った方が良いでしょう。
+後々の手間が省けます。
+
+また、環境変数からメンテナ名とそのメールアドレスを取得しますので、
+あらかじめ下記の環境変数を設定しておくことをおすすめします。
+これも後々の手間が省けます。
+
+dh\_makeを実行すると、パッケージの種類を選択します。
+今回の例ではSingle binary (s)を選択します。
+
+その他、許諾条件（ライセンス）の指定(-c)も可能です。
+指定できる許諾条件（ライセンス）は gpl、lgpl、artistic、bsd です。
+
+指定できるパッケージ種類は
+Single binary (s)/Multiple binary (m)/Library (l)/Kernel module (k)/cdbs
+(b) です。
+
+環境変数は、DEBFULLNAME(メンテナ名)、DEBEMAIL(メールアドレス)で指定しま
+す。
+
+\subsection{dch(debian/changelogの記述)}
+
+次に、debian/changelogの記述の記述について説明します。
+まず、このファイルはテキストファイルですが、形式が厳密に決まっており、
+直接エディタで修正するのはおすすめしません。
+
+たとえば、
+\begin{commandline}
+$ dch -i 
+\end{commandline}
+を使えば定型の形式部分は自動的に記入できるのでおすすめです。
+
+次に、debian/changelogの先頭にあるバージョン情報がこれから作成されるパッケージのバージョンとして
+使用されます。必要なら修正を行ってください。
+
+次がパッケージの状態ですが、通常はunstableで問題ありません。
+
+次は緊急度ですがこれもlowで問題ないでしょう。
+
+実際の変更履歴としての内容はアスタリスク(*)の後にコメントとして記述します。
+その後の定型dchが作成してくれる内容をそのまま使うのが良いでしょう。
+
+debian/changelog:
+\begin{commandline}
+ smp-mgzip (1.2c-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- yoshida syunsuke <koedoyoshida@gmail.com>  Sun, 30 Mar 2008 22:21:28 +0900
+\end{commandline}
+
+
+\subsection{controlの記述}
+controlファイルにパッケージ名や依存関係を記述します。
+
+ここではソースパッケージとバイナリパッケージで分けて記載します。
+
+Sectionには main (完全にフリーなソフトウェア)、 non-free (実際の所フリー
+であるとはいえないソフトウェア)、そして contrib (それ自身はフリーなソフ
+トウェアであるけれども、non-free な ソフトウェアが無ければ使えないもの)
+があります。 更に、これらの下には各パッケージをおおまかに分類する 論理的
+なサブセクションが用意されており、 そこに含まれるパッケージの種類を簡単
+に説明するような 名前がつけられています。 管理者専用のプログラムのために
+「admin」、 基本的なツールのために「base」、 プログラマーのためのツール
+が含まれる「devel」、 文書の「doc」、ライブラリの「libs」、 電子メールの
+読み書きに使うリーダや 電子メールサーバを構築するためのデーモンは「mail」、
+ネットワーク関係のアプリケーションやデーモンの「net」、 他のどんな分類に
+もあてはまらないような X11 用の プログラムは「x11」など、そしてさらに多
+くのものが 用意されています。デフォルトはmainですので、ここに記載すると
+mainのサブセクションを指定するということになります。
+
+Priorityはこのパッケージをインストールすることが ユーザにとってどれくら
+い重要なものかを示しています。
+
+新規パッケージの場合、優先度「optional」（選択可能） としておけば、通常
+は問題無いでしょう。
+
+バイナリパッケージについてはCPU等のアーキティクチャに依存する物(バイナリの実行ファイル等を含む場合)はany,スクリプトやドキュメントなどアーキティクチャに依存しない場合はallを指定します。
+その他の項目は必要なら修正してください。
+
+debian/control:
+\begin{commandline}
+Source: smp-mgzip(ソースパッケージ名)
+Section: unknown(パッケージのセクション)
+Priority: extra(パッケージの重要度)
+Maintainer: yoshida syunsuke <koedoyoshida@gmail.com>(メンテナーの名前とメールアドレス)
+Build-Depends: debhelper (>= 5), autotools-dev(ビルドに必要なパッケージ)
+Standards-Version: 3.7.2(テンプレート作成に参照したDebianポリシー標準のバージョン)
+
+Package: smp-mgzip(バイナリパッケージ名)
+Architecture: any(対応アーキティクチャ)
+Depends: ${shlibs:Depends}, ${misc:Depends}(パッケージの依存関係)
+Description: <insert up to 60 chars description>(パッケージの説明)
+ <insert long description, indented with spaces>
+\end{commandline}
+
+\subsection{copyrightの記述}
+
+ファイルの著作権と許諾条件（ライセンス）についての記述です。
+
+dh\_make実行時にライセンスを指定しておけばひな形が作成されます。
+ソフトウェアによってはディレクトリやファイルごとに別のライセンスの場合も
+ありますので、注意してください。
+debian/copyright
+
+\begin{commandline}
+ This package was debianized by yoshida syunsuke <koedoyoshida@gmail.com> on
+ Sun, 30 Mar 2008 22:21:28 +0900.
+
+ It was downloaded from <fill in http/ftp site>
+
+ Upstream Author: <put author(s) name and email here>
+
+ Copyright: <put the year(s) of the copyright, and the names of the
+            copyright holder(s) here>
+
+ License:
+ （中略）
+ On Debian systems, the complete text of the GNU General
+ Public License can be found in `/usr/share/common-licenses/GPL'.
+
+ The Debian packaging is (C) 2008, yoshida syunsuke <koedoyoshida@gmail.com> and
+ is licensed under the GPL, see above.
+\end{commandline}
+
+
+\subsection{rulesの記述}
+debian/rules
+には
+パッケージングを行うための手順を記述します。
+Makefile形式の記述方法ですが、パッケージングの支援をするdh\_xxxコマンド
+群(devhelperパッケージ)を並べるのがほとんどです。
+dpkg-buildpackageが期待している必須ターゲットは：
+
+\begin{commandline}
+ build: (ビルド実行)
+ binary: (バイナリパッケージの生成、通常　binary-indepとbinary-archの実行)
+ binary-indep: (アーキティクチャ独立のバイナリパッケージ作成)
+ binary-arch:(アーキティクチャ依存のバイナリパッケージ作成)
+\end{commandline}
+
+\subsection{rulesの記述 buildターゲット}
+dh\_makeのデフォルトの場合、buildターゲットはbuild-stampに依存している＝
+build-stampターゲット(make、コンパイル等の実作業)を呼び出します。
+
+同様にbuild-stampはconfig.status(configureの実行)に依存しています。
+
+\begin{commandline}
+ 
+ debian/rules
+ build: build-stamp
+
+ build-stamp:  config.status
+        dh_testdir
+
+        # Add here commands to compile the package.
+        $(MAKE)
+        #docbook-to-man debian/smp-mgzip.sgml > smp-mgzip.1
+
+        touch $@
+\end{commandline}
+
+\subsection{rulesの記述 binaryターゲット}
+\begin{commandline}
+ binary: binary-indep binary-arch
+
+ binary-indep: build install
+
+ binary-arch: build install
+        dh_testdir
+        dh_testroot
+        dh_installchangelogs ChangeLog
+       (中略)
+        dh_builddeb
+\end{commandline}
+
+\subsection{rulesの記述 installターゲット}
+\begin{commandline}
+ install: build
+        dh_testdir
+        dh_testroot
+        dh_clean -k  --exclude ./mgzip.c.orig
+        dh_installdirs
+
+        # Add here commands to install the package into debian/smp-mgzip.
+        $(MAKE) prefix=$(CURDIR)/debian/smp-mgzip/usr install
+\end{commandline}
+
+\subsection{オリジナルのmakeファイルの修正}
+Single binary (s)の場合、
+Debianのパッケージングツールは\verb!$(CURDIR)/debian/(パッケージ名)/!以下にあるファイルをまとめてパッケージにします。
+
+「make install」実行で\verb!$(CURDIR)/debian/(パッケージ名)/!以下にインストール
+するようにオリジナルのtarball等から展開された、Makefileを準備します。
+
+元々のMakefileが提供されていればそれを修正すればよいでしょう。無ければMakefileを作成してください。
+詳細なMakefileの作り方については書籍「make 改訂版」を参照してください。
+
+\subsection{パッケージ作成}
+
+簡易なパッケージ作成のテストとして下記のコマンドを実行するとパッケージ作成が行われます。
+\$ dpkg-buildpackage  -us, -uc  -rfakeroot
+上記のファイルが適切に作成されていれば、以下のファイルが作成されます。
+\begin{commandline}
+ xxx-y.y.y_zzzz.deb(バイナリパッケージ)
+ ソースパッケージ
+ xxx-y.y.y.dsc(ソース概要:controlより生成)
+ xxx-y.y.y_zzzz.diff.gz(パッケージ化用の差分)
+ xxx-y.y.y.orig.tar.gz(オリジナルソースファイル)
+ xxx-y.y.y_zzzz.changes(パッケージ変更点: control+changelog)
+
+凡例： 
+	xxx:パッケージ名
+	y-y-y:バージョン,
+	zzzz: Debian アーキテクチャ(i386,amd64,all,等))
+\end{commandline}
+
+上記の例でdpkg-buildpackageに渡しているオプションの意味は以下の物です。
+\begin{itemize}
+ \item  -us, -uc(gpgサインをしない)
+ \item  -rfakeroot(一般ユーザでの作成)
+\end{itemize}
+
+
+\subsection{dpkg-buildpackageとdebuildの違い}
+
+dpkg-buildpackageとよく似たプログラムにdebuildがあります。
+違いとしては以下の点があります。
+
+\begin{itemize}
+ \item  dpkg-buildpackage:
+
+ メリット　dh\_makeで作ったばかりの設定ファイルでもdebを作成可能
+
+ デメリット 一般ユーザで使用するときは-rfakerootの指定が必要
+ \item  debuild:
+
+ メリット　-rfakeroot指定が省略可能、ルールに従ったチェックの実行を行っ
+	てくれる。
+
+ デメリット 各種ルールに従って設定ファイルを書かないとエラーや警告となる
+ 作成されるパッケージに関しては両方とも同じ
+\end{itemize}
+
+
+\subsection{ファイルへの署名}
+
+これまでの例で、dpkg-buildpackageやdebuildで指定した -us -usのオプションは
+ファイルへの電子署名を省略するためのオプションです。
+\begin{itemize}
+ \item  -us, -uc
+ Do not sign the source package or the .changes file, respectively.
+\end{itemize}
+パッケージを
+自分のみで使用する場合はともかく、外部へ公開することも視野にいれるのであ
+れば、電子署名を行うのが適切でしょう。
+
+debianパッケージに署名するにはGnuPGで鍵を用意し、パッケージ作成時にdebuild、dpkg-buildpackageを使用するとデフォルトでパッケージに署名が行われます。
+
+
+\subsection{補足：ファイルの公開方法}
+
+パッケージ公開用のファイル(Packages.gz,Sources.gz)を作ります。
+\begin{commandline}
+ $ apt-ftparchive packages . | gzip -c9 > Packages.gz
+ $ apt-ftparchive sources . | gzip -c9 > Sources.gz
+\end{commandline}
+
+apt-ftparchiveコマンドはapt-utils パッケージに入っています。
+
+ローカルで確認
+
+sources.list(aptline)に以下のような記述を追加しapt-get update;apt-get installでインストールできるかを確認します
+\begin{commandline}
+ deb file:/usr/src/ ./
+\end{commandline}
+
+ネットワークで確認
+
+ローカルで確認できたディレクトリ構成のまま、そっくりhttpで公開します。sources.list(aptline)も同様に記述します。
+\begin{commandline}
+ deb-src http://XXX ./
+\end{commandline}
+
+\subsection{補足：debソースファイルの展開とリビルド}
+
+*.dsc,*.orig.tar.gz,*.diff.gzを入手して
+展開し、
+
+\begin{commandline}
+ $ dpkg-source -x XXX.dsc
+ $ cd 作成されたディレクトリ
+\end{commandline}
+必要なら修正を実施して
+リビルドします
+
+\begin{commandline}
+ $ debuild (またはdpkg-buildpackage)
+\end{commandline}
+
+\subsection{参考資料}
+\begin{itemize}
+ 
+ \item  入門Debianパッケージ(ISBN:4-7741-2768-X)
+ \item  Debian 新メンテナガイド
+	\footnote{\url{http://www.jp.debian.org/doc/manuals/maint-guide/}}
+ \item Debian GNU/Linux スレッドテンプレ　自作パッケージを作りたい
+       \footnote{\url{http://debian.fam.cx/index.php?AptGet\#n8109a54\\}}
+ \item make 改訂版(ISBN:4-900900-60-5)
+\end{itemize}
+
+
+\dancersection{バージョン管理ツールを使い Debian パッケージを管理する Git編}{岩松 信洋}
+\label{sec:vcsgit}
+\index{ばーじょんかんりつーる@バージョン管理ツール} 
+\index{VCS} 
+
+\subsection{はじめに}
+最近の Debian Package は、VCS\footnote{Version Control System}を使って管理する
+ことができるようになっており、実際に利用しているメンテナも多くなりました。
+VCSと言っても様々ですが、Debian では代表的なVCSである CVS, Subversion や 最近流行りの Git、
+マイナーな VCSである darcs などを使うことができます。
+今回は、今一番イケていると思われる Git を使い、Debian Package をバージョン管理することによりどのよう
+な利点があるのか、どのようなツールを使ってメンテナンスを行えばいいのか、などについてを説明します。
+
+\subsection{なぜパッケージもVCSで管理するのか}
+Debian Package を VCS で管理することによる良い点は以下が考えれます。
+
+\begin{itemize}
+  \item 異なるバージョンのパッケージを管理することができる。
+    
+    Debian パッケージメンテナは、stable, testing, unstableのソースコードを管理している
+    事が多いです。また、多くのDebian バージョンのソースコードを管理することもあります。
+    VCS を使うことによって、各バージョンの状態を管理しやすくなります。
+
+  \item チームでの開発体制を容易に構築できる。
+
+    Debian Packageはチームでメンテナンスすることが多くなっています。
+    VCS を使うことによって、チームでの開発が容易に行うことができるようになります。
+
+  \item アップストリームとの連携
+
+    アップストリームのソースコードを追従するために、Debian 側で VCS を使い、連携して開発を行うことが
+    できるようになります。また、Debian の独自パッチの管理、トラッキングも容易になります。
+\end{itemize}
+
+
+\subsection{Debian で使用可能な VCS}
+
+現在、 Debian で利用可能な VCS は以下の通りです。プロジェクト管理用サーバである Alioth でも
+これらの VCS は利用可能になっています。
+また、最近では Debian Package のタグに 利用している VCS を付けることが可能になっており、
+各VCSの利用状況を見ることも可能です。 
+ここ数か月のVCSの利用状況を調べてグラフにしました。Git と Subversion を採用している開発者
+が増えていることがわかります。
+\begin{center}
+\includegraphics[width=0.5\hsize]{image200804/debian-vcs-200804.png}
+\end{center}
+
+\subsection{ソースパッケージを　Git で管理するためのツール git-buildpackage}
+\index{git-buildpackage} 
+\index{git} 
+では、実際に VCS を使って Debian Package を管理するためにはどのようにすればいいのでしょうか。
+Debian パッケージを Git で管理するためのツールとして、 git-buildpackage があります。
+これを使うことによって、Git を使ってパッケージのソースコードを管理することができるようになります。
+インストールはいつものとおり、{\bf apt-get} or {\bf aptitude} を使ってインストールする
+ことが可能です。
+
+\begin{commandline}
+$sudo apt-get install git-buildpackage
+\end{commandline}
+
+\subsubsection{git-buildpackageで提供されるコマンド}
+git-buildpackageで提供されるコマンドは表\ref{git-buildpackage-command}の4つしかありません。
+これらのコマンドと Git コマンド を使って、パッケージのメンテナンスをすることになります。
+Gitの細かい知識は必要ありませんが、基本的な使い方は知っておく必要があります。
+   \begin{table}[h]
+    \begin{center}
+      {
+        \begin{tabular}{l|l} \hline
+                提供されるコマンド & 機能 \\ \hline \hline
+/usr/bin/git-buildpackage & パッケージを作成する \\
+/usr/bin/git-dch & Git のコミットログから Debian Changelog を作成する。\\
+/usr/bin/git-import-dsc & 既存の Debian Package をGitにインポートする。\\
+/usr/bin/git-import-orig & アップストリームからリリースされたソースコードをGitにインポートする。\\
+           \end{tabular}
+        }
+     \caption{git-buildpackage で提供されるコマンド}
+     \label{git-buildpackage-command}
+    \end{center}
+    \end{table}
+
+\subsection{Gitの簡単な使い方}
+表\ref{git-command}によくつかう Gitコマンドを紹介します。これだけ知っていれば、Gitを使った開発を行う
+ことが可能なはずです。
+   \begin{table}[h]
+    \begin{center}
+      {
+        \begin{tabular}{l|l} \hline
+                Git コマンド（一部） & 機能 \\ \hline \hline
+git init & ローカルリポジトリを作成する。\\
+git add & ローカルリポジトリのキャッシュ(index)に管理対象のファイルを追加する。\\
+git commit & ローカルリポジトリに変更を反映する。\\
+git rm & ローカルリポジトリから管理対象ファイルを削除する。\\
+git diff & 差分を取得する。\\
+git branch & ブランチを作成する。\\
+git checkout & 作成したブランチをチェックアウトする。\\
+git format-patch & パッチを作成する。\\
+           \end{tabular}
+        }
+     \caption{よく使うGitのコマンド}
+     \label{git-command}
+    \end{center}
+    \end{table}
+
+\subsection{既にパッケージ化されているものを Git で管理する}
+Debian パッケージには2つの状態があると考えられます。一つは既にパッケージ化されているもの、
+もうひとつは今からDebian パッケージにしようとしているものです。
+まずは、既にDebian パッケージになっているものを Git で管理する方法を説明します。
+\\
+
+まず、git-import-dscコマンドを使い、　Git リポジトリに現在のソースコードの状態を
+取り込みます。コマンドのオプションに、パッケージの dscファイル\footnote{Debian パッケージの制御ファイル}
+を指定します。実行すると、パッケージ名でディレクトリが作成され、Git リポジトリが作成されます。
+また、ブランチとして、master ブランチと、upstream ブランチが作成されます。　Debain 関係のコードは
+ master 
+ブランチ、Upstream のソースコードは upstream ブランチで管理されるようになります\footnote{ブランチは git branch コマンドで表示可能}。
+
+\begin{commandline}
+$ git-import-dsc ../isight-firmware-tools_1.0.2-1.dsc
+Upstream version: 1.0.2
+Debian version: 1
+No git repository found, creating one.
+Initialized empty Git repository in .git/
+Everything imported under isight-firmware-tools
+$ ls
+isight-firmware-tools
+$ cd isight-firmware-tools
+$ git branch
+* master
+  upstream
+\end{commandline}
+
+\subsubsection{インポート時のログ}
+
+パッケージをインポートしたときに、Git のコミットログに現在のバージョンのコミットログが書き込まれます。
+また、 Debian Version は Git のタグ機能を使い、タグ名として保存されます。
+
+\begin{commandline}
+$ git log
+commit 9c3669a233afe69d7be2aa8ad1995e6b19c841aa
+Author: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Date:   Sun Apr 6 21:48:40 2008 +0900
+
+    Imported Debian patch 1.0.2-1
+$ git tag
+debian/1.0.2-1
+upstream/1.0.2
+\end{commandline}
+
+\subsubsection{ソースコードを変更し、修正を管理する}
+
+ソースコードを修正し、Debian Package　で配布する部分を管理するには、今までどおり、dpatchなどの
+パッチ管理システムを使う必要があります。
+作成したパッチをリポジトリにコミットする時にに、{\bf git add}, {\bf git commit} コマンドを使い、
+リポジトリに反映させます。
+
+\begin{commandline}
+$ dpatch-edit-patch 05_change_ift-load_install_dir
+... いろいろ修正 ...
+$ exit
+$ vi debian/patches/00list
+$ git add debian/patches/05chage_ift-load_install_dir.dpatch
+$ git commit -s debian/patches/00list debian/patches/05_chage_ift-load_install_dir.dpatch
+/* エディタが起動するので、コミットログを記述 */
+
+Change ift-load install dir.
+    
+Signed-off-by: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+
+$ git log
+commit c9865153ae1949956fdfe3827c0da9b36c2f0ddb
+Author: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Date:   Sun Apr 6 21:23:20 2008 +0900
+
+    Change ift-load install dir.
+    
+    Signed-off-by: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+\end{commandline}
+
+\subsubsection{git-buildpackage を使ったDebian パッケージの作成}
+
+Debian パッケージを作成するには、 git-buildpackage コマンドを使います。
+--git-ignore-new　オプションは　Git に反映されていない修正を無視するための
+オプションです。
+\begin{commandline}
+$ git-buildpackage --git-ignore-new -us -uc
+\end{commandline}
+
+\subsubsection{パッケージをリリースする}
+新しい Debian バージョンのパッケージをリリースする場合は、{\bf git-dch} コマンドに
+{\bf --release} オプションを付けます。実行することにより、エディタが立ち上がり、Git
+のコミットログから、Debian Changelog が作成されます。
+Changelog を作成したら、{\bf git-buildpackage} コマンドに {\bf--git-tag} オプションを
+付けてパッケージを作成します。{\bf--git-tag} を付けると、リポジトリに Debian バージョン用の
+タグが Debian changelog より作成され、リリース情報が付加されます。
+\begin{commandline}
+$ git-dch --release
+$ git-buildpackage --git-ignore-new --git-tag
+$ git tag
+debian/1.0.2-1
+debian/1.0.2-2
+upstream/1.0.2
+\end{commandline}
+
+\subsubsection{新しいバージョンにする}
+新しいバージョンにするには、git-import-orig コマンドを使い、リリースされた
+新しいバージョンの Tar ボールを指定します。
+指定することにより、ファイル名からバージョンを取得し、新たにUpstream 用の
+タグが作成されます。
+また、アップストリームのバージョンが上がるため、自動的に Debian Changelog に 次のDebian Package 
+バージョンが追記されます。
+\begin{commandline}
+$ git-import-orig /tmp/isight-firmware-tools-1.2.tar.gz
+Upstream version is 1.2.0
+Importing '/tmp/isight-firmware-tools-1.2.tar.gz' to branch 'upstream'...
+Switched to branch "upstream"
+rm 'isight.rules.in'
+rm 'po/fr_FR.po'
+Created commit f5c85da: Imported Upstream version 1.2.0
+ 33 files changed, 4434 insertions(+), 1332 deletions(-)
+
+.......<snip>
+
+ src/udev.c                             |  164 +++
+ 33 files changed, 4434 insertions(+), 1332 deletions(-)
+ rename po/{fr_FR.po => fr.po} (66%)
+ create mode 100644 src/50-isight-firmware.fdi
+ create mode 100644 src/callout.c
+ create mode 100644 src/isight-firmware.fdi
+ rename isight.rules.in => src/isight.rules.in (100%)
+ create mode 100644 src/load.h
+ create mode 100644 src/udev.c
+Succesfully merged version 1.2 of /home/iwamatsu/Desktop/isight-firmware-tools-1.2.tar.gz into .
+$ git branch
+debian/1.0.2-1
+debian/1.0.2-2
+upstream/1.0.2
+upstream/1.2
+$ cat debian/changelog
+isight-firmware-tools (1.2-1) unstable; urgency=low
+
+  * New Upstream Version
+
+ -- Nobuhiro Iwamatsu <iwamatsu@nigauri.org>  Fri, 11 Apr 2008 17:18:23 +0900
+
+\end{commandline}
+
+\subsection{新たにパッケージ化する場合}
+あたらしくにソフトウェアを Debian Package にして、　git-buildpackage で
+管理する場合は 最初に Git の機能が必要です。
+まず、ローカル Git リポジトリを作成します。次に作成したリポジトリに移動し、{\bf git-import-orig}
+コマンドにアップストリームのソースコードを指定し、実行します。ソースコードは、gzip、bzip2 などで
+圧縮されたものと、展開されたソースコードディレクトリを指定することが可能です。
+また、実行する際に、{\bf-u} オプションで、アップストリームのバージョンを指定する事が可能です。
+リポジトリを作成した後は upstream ブランチに移動し、{\bf dh\_make}等を使ってパッケージの雛形作成し、
+上で説明した流れでメンテナンスを行います。
+
+\begin{commandline}
+$ mkdir isight-firmware-loader-1.2
+$ cd isight-firmware-tools-1.2
+$ git-init /* ローカル Git リポジトリを作成する */
+$ git-import-orig -u 1.2 　/tmp/isight-firmware-tools-1.2.tar.gz /* ソースコードをコミット */
+Upstream version is 1.2
+Initial import of '/tmp/isight-firmware-tools-1.2.tar.gz' ...
+Succesfully merged version 1.2 of /tmp/isight-firmware-tools-1.2.tar.gz into .
+$ git log
+commit 9bf014aee2f834576f8f03d67ab66e8c85726832
+Author: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Date:   Tue Apr 8 21:42:55 2008 +0900
+
+    Imported Upstream version 1.2
+$ git branch
+* master
+  upstream
+$ git tag
+upstream/1.2
+$ git branch upsteam
+$ dh_make
+$ git branch master
+\end{commandline}
+
+%\subsubsection{git-buildpackage の設定　.git/gbp.conf}
+%git-buildpackage は細かい設定を行うことが可能です。
+%設定ファイルを .git ファイル
+
+
+\dancersection{アップストリームの VCS と付き合う}{岩松 信洋}
+\label{sec:upstreamvcs}
+\index{DebianWithVCS}
+% CVS / SVN / Git などの VCS をupstream が活用している場合の話。
+
+VCS を使ってアップストリームがソフトウェアの開発を行っている事が多くあります。
+アップストリームでは、Subversion を使っているが、パッケージメンテナは Git を使って
+パッケージを行っている場合があったり、同じ VCS を使っている場合もあります。
+今回は 　Subversion を例にして、お互い VCS を使っている場合、どのように付き合って
+いくことができるのか説明します。
+
+%\subsection{アップストリームが Git を使っている場合 }
+%\subsection{アップストリームが CVS を使っている場合 }
+
+\subsection{アップストリームが Subversion を使っている場合 }
+Subversion で管理されているソースコードを取得したり、Subversion リポジトリへ
+コミットするツールとして、git-svn パッケージがあります。 git-svn を使うことに
+よって、容易に お互いのリポジトリ間を行き来することができるようになります。
+
+\subsubsection{Subversion のリポジトリから　Git のリポジトリへ ソースコードを取得する}
+Subversion のリポジトリから　Git のリポジトリへ ソースコードを取得するには
+適当なディレクトリを作成し、 {\bf git svn} の {\bf clone} オプションを使って行います。　
+取得した後は、Git の操作で開発を行うことができます。
+
+\begin{commandline}
+$ mkdir test
+$ git svn clone svn://test/trunk test-0.0.1
+\end{commandline}
+
+\subsection{取得したコードを元に Debian Package を作成する}
+取得したコードから新しく Debian Package を作成するためには、自分でタグを付ける必要があります。
+{\bf git-buildpackage}ではタグと Debian changelog から Upstream の情報を取得し、
+orig.tar.gz 相当のものを作成するため、タグを付ける必要があります。
+
+\begin{commandline}
+$ git branch
+master
+$ git branch upstream
+$ git checkout upstream
+$ git tag upstream/0.0.1
+$ dh_make --createorig
+$ git branch master
+.... Debian Package 用のファイル作成などを行う ....
+$ git-buildpackage -us -uc --git-ignore-new
+$ debuild clean
+$ git add debian
+$ git commit -a
+$ git-buildpackage -us -uc --git-ignore-new --git-tag
+\end{commandline}
+
+
+\subsubsection{Subversion リポジトリの情報を取得する}
+Subversion リポジトリの情報を取得するには、 {\bf rebase}オプションを使います。
+最初から git svn でリポジトリの操作を行っている場合は、rebase を使うことにより、
+Upstream のコードを パッケージ側に反映させることができます。
+\begin{commandline}
+$ git checkout upstream
+$ git svn rebase
+\end{commandline}
+
+\subsection{すでにあるパッケージと Git リポジトリを元に Debian Package を作成する}
+
+\begin{minipage}{0.5\hsize}
+{\bf git svn} で取得した　Git リポジトリと 既にあるDebian Package を連携させるには
+操作が少し必要です。
+まず、{\bf git-import-dsc}　で 現在の Debian Package を git-buildpackage で管理できる
+ようにした後、upstream ブランチに git svn で取得したリポジトリから pull をします。
+pull することにより、コミットログの共有することができます。
+しかし、Debian Changelog の操作や、{\bf git tag} を使ったタグの操作を手動で行う必要がある
+のが問題点です。
+{\bf git-import-org } を使って、tar.gz や ソースコードを指定して、マージすることも可能ですが、
+Upstream 側のコミットログが取り込まれないため、 Gitを使うメリットがあまり無いと私は考えています。
+このあたりを改善していく事が今後の課題になりそうです。
+\end{minipage}
+\begin{minipage}{0.5\hsize}
+\includegraphics[width=0.8\hsize]{image200804/git-svn_with_build-package.png}
+\end{minipage}
+
+\begin{commandline}
+$ git svn clone svn://svn.berlios.de/linux-uvc/linux-uvc/trunk\
+ linux-uvc.git
+$ git import-dsc  ../../../debian/linux-uvc_0.1.0.svn193-2.dsc
+$ cd linux-uvc
+$ git branch
+* master
+  upstream
+$ git tag
+debian/0.1.0.svn193-2
+upstream/0.1.0.svn193
+$ git checkout upstream
+$ git pull ../linux-uvc.git/
+$ git tag upstream/0.1.0.svn201
+$ git checkout master
+$ dch -v 0.1.0.svn201
+$ git-buildpackage -us -uc --git-ignore-new
+$ debuild clean
+$ git commit -a
+$ git-buildpackage -us -uc --git-ignore-new --git-tag
+\end{commandline}
+
+\dancersection{Nexenta Core Platformを使ってみる}{上川 純一}
+\label{sec:nexentacore}
+\index{OpenSolaris} 
+\index{Nexenta} 
+
+\subsection{はじめに}
+
+Nexenta\footnote{\url{http://www.nexenta.org/os}}とは Debian GNU/Linux のパッケージングシステムを OpenSolaris\footnote{\url{http://www.opensolaris.org/os/}}に移
+植したもののようです。OpenSolaris とは Solarisのオープンソース版のようで
+す。Nexenta Core Platform が2008年2月にリリースされました。今回はそれを試
+してみます。
+
+\subsection{ダウンロード}
+
+\url{http://www.nexenta.org/os/DownloadMirrors}からリンクをたどりダウン
+ロードします。
+今回は
+\url{http://mirror.stanford.edu/nexenta/isos/nexenta-core-platform_1.0-b82_x86.iso.zip}
+を利用しました。
+
+unzipコマンドで展開するとisoイメージが作成されます。
+\begin{commandline}
+[21:54:42]dancer64:nexenta> unzip nexenta-core-platform_1.0-b82_x86.iso.zip 
+Archive:  nexenta-core-platform_1.0-b82_x86.iso.zip
+  inflating: nexenta-core-platform_1.0-b82_x86.iso  
+\end{commandline}
+
+\subsection{Qemu環境でのインストール}
+
+まず、qemu 用のディスクイメージを作成します。
+\begin{commandline}
+$ qemu-img create -f qcow2 nexenta.cow 3GB 
+Formatting 'nexenta.cow', fmt=qcow2, size=3145728 kB
+\end{commandline}
+
+qemuを起動します。
+\footnote{時間の設定についてはただしい組み合わせを見つけられませんでした。
+BIOS時間をローカルタイムとして扱うわけでもなく、UTCとして扱うわけでもな
+いように見えます。正しい設定をご存知でしたらご一報ください。}
+
+\begin{commandline}
+$ qemu-system-x86_64 -hda nexenta.cow \
+ -cdrom  nexenta-core-platform_1.0-b82_x86.iso \
+ -boot d \
+ -m 512 
+\end{commandline}
+
+
+メニューを選択し順番にインストール作業を進めます。
+
+\includegraphics[width=0.5\hsize]{image200804/nexenta1.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta2.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta3.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta4.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta5.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta6.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta7.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta8.png}
+
+インストールが開始したらしばし待ちます。\footnote{AMD Athlon 64 3500+ の
+マシン(64bit)でkqemuを利用して2時間かかりました}
+
+\includegraphics[width=0.5\hsize]{image200804/nexenta9.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta10.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta11.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta12.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta13.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta14.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta15.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta16.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta17.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta18.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta19.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta20.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta21.png}
+\includegraphics[width=0.5\hsize]{image200804/nexenta22.png}
+
+\subsection{実行してみる}
+
+それでは、インストールしたOSを起動してみましょう。メモリは512MB程度割り
+当てないと起動しないようです。
+
+\begin{commandline}
+$ qemu-system-x86_64 -hda nexenta.cow \
+ -m 512 -kernel-kqemu \
+ -redir tcp:2222::22
+\end{commandline}
+
+手元のシステムでは、コマンドラインでログインができる状態まで3分程度かかりました。
+
+\includegraphics[width=0.5\hsize]{image200804/nexenta23.png}
+
+通常のコンソールのログイン画面が立ち上がり、ログイン可能になります。
+
+デフォルトで sshd \footnote{Debian のパッケージとは異なり、SUNWsshdu,
+SUNWsshdr などのパッケージになっています。見た感じは alien で作成されてい
+るパッケージのようです。} などもインストールされているようです。
+netstat で確認するとlisten しているようですので、ssh でログインして作業
+することが可能なようです。
+ここでは、 qemu で -redir オプションを使い、 SSHの22番ポートをホストOSの
+2222ポートからアクセスできるようにしています。
+
+-nographic -serial stdio オプションも追加してヘッドレスで稼働させることも
+可能です。ただし、デフォルトではシリアルコンソールには何も出力されないようです。
+
+ネットワークデバイスは ni0 になっているようです。IPアドレスは qemu の機
+能で DHCPで提供されているアドレス（10.0.2.15）になっています。
+
+
+\subsection{Debian との互換性}
+
+初期インストールのパッケージ数が非常に多いです。OpenSolaris のデフォルト
+インストールに相当するものをそのままパッケージにしているのでしょうか？
+SUNWではじまるパッケージ名などがそれっぽさを物語ります。
+
+\begin{commandline}
+dancer@vm1:~$ dpkg -l | wc -l 
+464
+dancer@vm1:~$ dpkg -l 
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Installed/Config-files/Unpacked/Failed-config/Half-installed
+|/ Err?=(none)/Hold/Reinst-required/X=both-problems (Status,Err: uppercase=bad)
+||/ Name           Version        Description
++++-==============-==============-============================================
+ii  adduser        3.80nexenta3   Add and remove users and groups
+ii  alien          8.73.4         install non-native packages with dpkg
+ii  apt            0.6.46.4nexent Advanced front-end for dpkg
+ii  apt-utils      0.6.46.4nexent APT utility programs
+ii  aptitude       0.4.4-1nexenta terminal-based apt frontend
+[中略]
+ii  sunw1394       5.11.82-1      Sun IEEE1394 Framework
+ii  sunwaac        5.11.82-1      Adaptec AdvanceRaid Controller SCSI HBA Driv
+ii  sunwad810      5.11.82-1      SUNW W1100z & W2100z Audio Drivers
+ii  sunwadixp      5.11.82-1      SUNW Audio Driver for ATI IXP
+ii  sunwadpu320    5.11.82-1      Adaptec Ultra320 Driver
+ii  sunwafe        5.11.82-1      ADMtek Ethernet Driver
+ii  sunwagp        5.11.82-1      AGP GART Driver
+ii  sunwahci       5.11.82-1      Advanced Host Controller Interface (AHCI) SA
+ii  sunwamd8111s   5.11.82-1      AMD8111 FAST Ethernet Network Adapter Driver
+ii  sunwamr        5.11.82-1      LSI MegaRAID SCSI HBA Driver
+[中略]
+ii  sunwsshcu      5.11.82-1      SSH Common, (Usr)
+ii  sunwsshdr      5.11.82-1      SSH Server, (Root)
+ii  sunwsshdu      5.11.82-1      SSH Server, (Usr)
+ii  sunwsshr       5.11.82-1      SSH Client and utilities, (Root)
+ii  sunwsshu       5.11.82-1      SSH Client and utilities, (Usr)
+ii  sunwtavor      5.11.82-1      Sun Tavor HCA driver
+[略]
+\end{commandline}
+
+\subsection{ないパッケージをビルドしてみた}
+
+/etc/hostsをいじってみようとしたら、シンボリックリンクになってました。し
+かも root 権限でも書き込み不可になっています。
+
+\begin{commandline}
+root@vm1:/export/home/dancer# ls -l /etc/hosts
+lrwxrwxrwx 1 root root 12 Mar 19 08:15 /etc/hosts -> ./inet/hosts
+root@vm1:/export/home/dancer# ls -l /etc/inet/hosts -l 
+-r--r--r-- 1 root sys 1078 Apr  6 10:28 /etc/inet/hosts
+\end{commandline}
+
+気をとりなおして、 /etc/apt/sources.list に適当にソースを追加します。
+
+\begin{commandline}
+deb-src http://cdn.debian.or.jp/debian unstable main contrib non-free
+\end{commandline}
+
+apt-listbugs が存在しないみたいなので、ビルドしてみようと思います。
+
+まず、なぜだか racc, rdtool が足りないのでビルドしてインストールします。
+無事にapt-listbugs 自体もビルドできたので、意気揚々とインストールしてみま
+す。
+
+\begin{commandline}
+root@vm1:/tmp/apt-listbugs-0.0.88# debi
+Selecting previously deselected package apt-listbugs.
+(Reading database ... 27441 files and directories currently installed.)
+Unpacking apt-listbugs (from apt-listbugs_0.0.88_all.deb) ...
+dpkg: dependency problems prevent configuration of apt-listbugs:
+ apt-listbugs depends on ruby (>= 1.8); however:
+  Package ruby is not installed.
+ apt-listbugs depends on libruby1.8 (>= 1.8.5); however:
+  Version of libruby1.8 on system is 1.8.4-1nexenta1.3.
+ apt-listbugs depends on libdpkg-ruby1.8 (>= 0.3.2); however:
+  Package libdpkg-ruby1.8 is not installed.
+ apt-listbugs depends on libgettext-ruby1.8; however:
+  Package libgettext-ruby1.8 is not installed.
+ apt-listbugs depends on libxml-parser-ruby1.8; however:
+  Package libxml-parser-ruby1.8 is not installed.
+ apt-listbugs depends on libhttp-access2-ruby1.8 (>= 2.0.6); however:
+  Package libhttp-access2-ruby1.8 is not installed.
+dpkg: error processing apt-listbugs (--install):
+ dependency problems - leaving unconfigured
+Errors were encountered while processing:
+ apt-listbugs
+debi: debpkg -i failed
+\end{commandline}
+
+残念、いくつかエラーがあるようです。ruby 自体が古いというエラーや、いくつ
+かのライブラリが足りないというエラーがでています。
+
+解決できそうな問題も、解決できなさそうな問題もあります。先は長いか？
+
+\subsection{まとめ}
+
+今回はNexenta Core Platformをとりあえず仮想マシンにインストールしてみまし
+た。いろいろとDebian GNU/Linuxと違う部分があったので、今後どのように開発
+がすすむのか、気になります。
+
+\dancersection{バイナリをわけたパッケージの扱い}{前田 耕平}
+\label{sec:multibinpkg}
+\index{ふくすうばいなりのぱっけーじ@複数バイナリのパッケージ} 
+\index{ぱっけーじ@パッケージ}
+
+\subsection{はじめに}
+
+今回はDebianパッケージを作成した経験がほぼ無い人を対象とし、先月
+\footnote{2008年4月} の『バイナリ一つだけのパッケージを作成してみる』を
+予習していることを前提とします。
+
+一応、前回の内容もおさらいしながら、今回もdh\_makeを使って、debhelperス
+タイルでの複数のバイナリに分けてパッケージを作る方法を説明しますので、前
+回参加できなかったとしても、ある程度は問題ないかと思います。
+
+\subsection{バイナリの分け方の考え方}
+通常のパッケージは、一つのバイナリパッケージとして作成・配布されるケー
+スが多いでしょう。ではどのようなケースにおいて、バイナリパッケージは複数
+に分けられているのでしょうか。大きく分けると次の三パターンくらいになりそう
+です。
+
+\begin{itemize}
+ \item
+開発環境と実行環境
+
+例）
+      \begin{itemize}
+       \item
+	    JavaのSDKとJRE
+
+      \end{itemize}
+ \item
+C/Sモデルのサーバ側プログラムとクライアント側プログラム
+
+例）
+      \begin{itemize}
+       \item
+	    bindとdnsutils
+      \end{itemize}
+
+ \item
+プログラム本体とアドオンで追加可能なモジュール、ユーティリティ
+
+例）
+      \begin{itemize}
+       \item
+	    ApacheとApache moduleやApache Bench
+      \end{itemize}
+\end{itemize}
+
+これらに共通して言えるのは、単一のソースツリーから複数に分けることにより、
+導入するユーザの使い勝手が良くなる、ということだと言えると思います。
+
+なお、複数のバイナリパッケージを作成するときも、ソースツリー及びソースパッ
+ケージ自体は単一なので、複数のソースツリー・ソースパッケージから生成され
+る事はありません。
+
+\subsection{前回のおさらい}
+
+前回は、dh\_makeを使って、debhelperスタイルで単一のバイナリパッケー
+ジを作りました。今回は、まず簡単なCのプログラムとMakefileを用意して、それを
+Debianパッケージにします。そこで単一のバイナリパッケージの場合と複数のバ
+イナリパッケージに分ける場合との違いを見てみましょう。
+
+\subsubsection{ソースコードとMakefileの用意}
+ まず、下記のようなディレクトリ、ファイルを用意します。
+ \begin{commandline}
+hoge-1.0/
+ hoge.c
+ Makefile
+ \end{commandline}
+ ファイルはそれぞれ下記のようなコードを書きます。
+ \begin{itemize}
+  \item
+       hoge.c
+       \begin{commandline}
+#include <stdio.h>
+      
+int main(void)
+{
+       printf(``hello\n'');
+       return 0;
+}
+       \end{commandline}
+  \item
+       Makefile
+       \begin{commandline}
+CC=gcc
+CFLAGS=-O
+BINDIR=/usr/games
+     
+hoge: hoge.c
+       $(CC) $(CFLAGS) -o hoge hoge.c
+       
+install:
+       install -d ${DESTDIR}${BINDIR}
+       install -m 755 hoge ${DESTDIR}${BINDIR}
+       
+clean:
+       rm -f hoge
+       \end{commandline}
+ \end{itemize}
+
+\subsubsection{dh\_makeでテンプレートの作成}
+それでは、前回と同様にdh\_makeを使ってシングルパッケージを作ってみます。
+まず、dh\_makeでテンプレートを作ります。
+
+\begin{commandline}
+$ cd hoge-1.0
+
+$ dh_make --single -c gpl --createorig
+Maintainer name : Kouhei Maeda
+Email-Address   : mkouhei@gmail.com
+Date            : Sat, 10 May 2008 15:36:29 +0900
+Package Name    : hoge
+Version         : 1.0
+License         : gpl
+Type of Package : Single
+Hit <enter> to confirm: 
+Done. Please edit the files in the debian/ subdirectory now. You should also
+check that the hoge Makefiles install into $DESTDIR and not in / .
+\end{commandline}
+
+\subsubsection{debianディレクトリ以下のファイルの編集}
+
+debianディレクトリ以下を編集します。
+\begin{commandline}
+$ cd debian
+
+$ rm *ex *EX (<-不要なサンプルファイルを削除します。)
+\end{commandline}
+
+\begin{itemize}
+ \item
+      debian/control
+      \begin{commandline}
+Source: hoge
+Section: games
+Priority: extra
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: hoge
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: sample program
+ Hello hoge program
+      \end{commandline}
+ \item
+      debian/copyright
+      \begin{commandline}
+This package was debianized by Kouhei Maeda <mkouhei@gmail.com> on
+Sat, 10 May 2008 15:36:29 +0900.
+
+It was downloaded from <http://www.palmtb.net>
+
+Upstream Author(s):
+
+    <Kouhei Maeda mkouhei@gmail.com>
+
+Copyright: 
+
+    <Copyright (C) 2008 Kouhei Maeda>
+
+License:
+(以下、省略) 
+      \end{commandline}
+
+ \item
+      debian/dirs\footnote{hogeのインストール先を指定します。}
+      \begin{commandline}
+usr/games
+      \end{commandline}
+
+ \item
+      debian/changelog
+      \begin{commandline}
+$ dch
+hoge (1.0-1) unstable: urgency=low
+
+  * Initial release
+
+ -- Kouhei Maeda <mkouhei@gmail.com>  Sat, 10 May 2008 15:47:41 +0900
+      \end{commandline}
+\end{itemize}
+
+\subsubsection{パッケージ作成}
+それでは、debuildコマンドでパッケージを作成してみます。
+\begin{commandline}
+$ debuild -us -uc
+\end{commandline}
+
+debファイルができているのを確認します。
+\begin{commandline}
+$ cd ../../
+$ ls hoge_1.0*
+hoge_1.0-1.diff.gz  hoge_1.0-1_i386.build    hoge_1.0-1_i386.deb
+hoge_1.0-1.dsc      hoge_1.0-1_i386.changes  hoge_1.0.orig.tar.gz
+\end{commandline}
+
+上記のような簡単なものであれば、rulesファイルを修正しなくても、パッケー
+ジを作れる事が分かります。ちゃんとやるには、lintianのエラーや警告を潰し、
+pbuilderでのチェックやインストール、アンインストールのチェックをする必要
+がありますが、ここでは省略します。
+
+\subsection{複数のバイナリパッケージを作ってみる。}
+それでは、今度は先ほどの簡単なコードを一部変更して、それぞれ別のパッケー
+ジになるようにします。
+
+\subsubsection{ソースコード、Makefileの用意}
+下記のようなファイルを用意します。先ほどのhoge-1.0をコピーして修正すれば
+よいでしょう。
+
+\begin{commandline}
+foo-1.0/
+ foo.c
+ bar.c
+ Makefile
+\end{commandline}
+各ファイルは下記のようにします。
+\begin{itemize}
+ \item
+      foo.c
+      \begin{commandline}
+#include <stdio.h>
+
+int main(void)
+{
+  printf(``hello,foo\n'');
+  return 0;
+}
+      \end{commandline}
+ \item
+      bar.c
+      \begin{commandline}
+#include <stdio.h>
+
+int main(void)
+{
+  printf(``hello,bar\n'');
+  return 0;
+}
+      \end{commandline}
+ \item
+      Makefile
+      \begin{commandline}
+CC=gcc
+CFLAGS=-O
+BINDIR=/usr/games
+
+foo:
+       $(CC) $(CFLAGS) -o foo foo.c
+       $(CC) $(CFLAGS) -o bar bar.c
+
+install:
+       install -d ${DESTDIR}${BINDIR}
+       install -m 755 foo ${DESTDIR}${BINDIR}
+       install -m 755 bar ${DESTDIR}${BINDIR}
+
+clean:
+       rm -f foo bar
+      \end{commandline}
+\end{itemize}
+上記をmakeすると、fooとbarという実行ファイルができます。今回は、これらを
+それぞれfooパッケージとbarパッケージの別々のパッケージにしてみます。
+
+\subsubsection{dh\_makeの実行}
+単一のバイナリパッケージとは違い、dh\_makeを実行するときのオプション
+を''--single''から''--multi''に変更して実行します。
+
+\begin{commandline}
+$ cd foo-1.0
+$ dh_make --multi -c gpl --createorig
+Maintainer name : Kouhei Maeda
+Email-Address   : mkouhei@gmail.com
+Date            : Sat, 10 May 2008 16:32:38 +0900
+Package Name    : foo
+Version         : 1.0
+License         : gpl
+Type of Package : Multi-Binary
+Hit <enter> to confirm: 
+Done. Please edit the files in the debian/ subdirectory now. You should
+ also
+check that the foo Makefiles install into $DESTDIR and not in / .
+\end{commandline}
+
+単一のバイナリパッケージの時と同様に、debianディレクトリとその下にファイ
+ルが作成されます。
+
+単一のバイナリの時に比べ、以下のファイルが増えていることが分かります。
+このテンプレートと同様なファイルが後ほどビルドする際に必要になります。
+\begin{itemize}
+ \item
+      foo-doc.docs
+ \item
+      foo-doc.install
+\end{itemize}
+
+\subsubsection{debianディレクトリ以下のファイルの編集}
+まず、単一のバイナリパッケージを作成するときと同じように修正して、ビル
+ド出来るのか確認してみます。
+最初に先ほどと同じように今回は必要のないサンプルファイルを削除します。
+
+\begin{commandline}
+$ cd debian
+$ rm *ex *EX
+\end{commandline}
+
+次に、controlファイルを修正します。複数のバイナリパッケージを作成するに
+は、空行で区切られた三つ以上のエントリが必要になります。
+
+一つ目のエントリは、ソースパッケージ自身のことを記述するためのエントリで
+す。二つ目以降のエントリが生成されるバイナリパッケージについての情報を記
+述するエントリです。
+
+今回は、fooとbarの二つのパッケージを作成するので、dh\_makeで作成されたテ
+ンプレートを以下の様に変更します。
+
+\begin{commandline}
+Source: foo
+Section: games (<- セクションを変更)
+Priority: extra
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.7.2
+
+Package: foo
+Architecture: any
+Depends: ${shlibs:epends}, ${misc:Depends}
+Description: sample program foo (<- 説明を記載)
+ foo foo foo (<- 説明の詳細を記載)
+
+Package: bar
+Architecture: any (<- 今回はアーキテクチャ依存なのでanyにする)
+Description: sample program bar (<- 説明を記載)
+ bar bar bar (<- 説明の詳細を記載)
+\end{commandline}
+
+また、単一のバイナリパッケージの時と同様に、下記ファイルを修正します。
+\begin{itemize}
+ \item
+      debian/copyright
+ \item
+      debian/changelog
+ \item
+      debian/dirs
+\end{itemize}
+
+修正後、シングルバイナリの時と同様にdebuildを実行してみます。
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc
+(中略)
+dh_installdirs -s
+# Add here commands to install the arch part of the package into 
+# debian/tmp.
+/usr/bin/make DESTDIR=/home/user/foo-1.0/debian/foo
+ install
+make[1]: ディレクトリ `/home/user/foo-1.0' に入ります
+install -d /home/user/tmp/foo-1.0/debian/foo/usr/games
+install -m 755 foo
+ /home/user/foo-1.0/debian/foo/usr/games
+install: cannot stat `foo': そのようなファイルやディレクトリはありません
+make[1]: *** [install] エラー 1
+make[1]: ディレクトリ `/home/user/foo-1.0' から出ます
+make: *** [install-arch] エラー 2
+dpkg-buildpackage: failure: fakeroot debian/rules binary gave error exit
+ status 2
+debuild: fatal error at line 1319:
+dpkg-buildpackage -rfakeroot -D -us -uc failed
+\end{commandline}
+
+どうやら、単一のバイナリパッケージの時にはちゃんと作成されていた実行ファイ
+ルが今回は作成されていない様です。単一のバイナリパッケージを作成する時は、
+rulesファイルのbuild-stampターゲットの中で、\$(MAKE)コマンドが記述されて
+いましたが、複数のバイナリパッケージの場合は、rulesファイルの中で、
+\$(MAKE)がコメントアウトされており、デフォルトではmakeが実行されません。
+そのため、rulesファイルを修正する必要があります。
+
+{\bf ''--single''の時のrulesファイル}
+\begin{commandline}
+build: build-stamp
+
+build-stamp: configure-stamp 
+ dh_testdir
+
+ # Add here commands to compile the package.
+ $(MAKE)
+ #docbook-to-man debian/hoge.sgml > hoge.1
+
+ touch $@
+\end{commandline}
+
+\subsubsection{rulesの記述}
+rulesの必須ターゲットは、単一のバイナリパッケージの時と同様に、build,
+binary, binary-indep, binary-archの4つです。
+
+'--multi'オプションで作成されるrulesではbuildターゲットは下記の様になっ
+ています。
+\begin{commandline}
+build: build-arch build-indep
+
+build-arch: build-arch-stamp
+
+build-arch-stamp: configure-stamp
+
+        # Add here commands to compile the arch part of the package.
+        #$(MAKE)
+        touch $@
+
+build-indep: build-indep-stamp
+
+build-indep-stamp: configure-stamp
+
+        # Add here commands to compile the indep part of the package.
+        #$(MAKE) doc
+        touch $@
+\end{commandline}
+
+今回、fooもbarも、gccでコンパイルするので、controlファイルでの
+Architectureセクションではどちらもanyを記述しています。そのため、今回は
+rulesファイルでは、buildターゲットでは、build-arch、build-arch-stampに依
+存しますが、build-arch-stampの中でコメントアウトされている\$(MAKE)を有
+効にする必要があるので、有効にして、ビルドします。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc
+(中略)
+dpkg-buildpackage: full upload (original source is included)
+Now running lintian...
+(中略)
+Finished running lintian.
+\end{commandline}
+
+今回は、うまくビルドできたように見えます。パッケージのビルド時には、
+{\bf debian/パッケージ名}ディレクトリが作成され、そこにパッケージ含
+まれるファイルがコピーされます。ですので、ちゃんと期待するファイルがコピー
+されているのか確認してみます。
+
+\begin{commandline}
+$ tree debian/{foo,bar}
+debian/foo
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    |-- bin
+    |-- games
+    |   |-- bar
+    |   `-- foo
+    |-- sbin
+    `-- share
+        `-- doc
+            `-- foo
+                |-- README.Debian
+                |-- changelog.Debian.gz
+                `-- copyright
+debian/bar
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    `-- share
+        `-- doc
+            `-- bar
+                |-- changelog.Debian.gz
+                `-- copyright
+
+13 directories, 11 files
+\end{commandline}
+
+実行ファイルfoo, barが今度はきちんと作成されていますが、barファイルは期
+待するディレクトリbar/usr/games以下にコピーされていません。bar/usr/games
+ディレクトリ自体も作成されていない事が分かります。
+複数のバイナリパッケージを作成するには、rulesファイルを上記の変更だけで
+なく、さらにもう一ヶ所修正し、さらに以下のファイルを作成する必要がありま
+す。
+\subsubsection{rulesファイルで修正が必要な箇所}
+debian/rules
+\begin{commandline}
+build: build-arch build-indep
+
+build-arch: build-arch-stamp
+build-arch-stamp: configure-stamp
+
+        # Add here commands to compile the arch part of the package.
+        $(MAKE) (<-最初の変更箇所。)
+        touch $@
+(中略)
+install-arch:
+        dh_testdir
+        dh_testroot
+        dh_clean -k -s
+        dh_installdirs -s
+
+        # Add here commands to install the arch part of the package into
+        # debian/tmp.
+        $(MAKE) DESTDIR=$(CURDIR)/debian/tmp install (<-debian/fooを
+ # debian/tmpに修正します。)
+
+        dh_instll -s
+\end{commandline}
+
+\subsubsection{新規作成するファイル}
+\begin{itemize}
+ \item
+      foo.install
+      \begin{commandline}
+debian/tmp/usr/games/foo
+      \end{commandline}
+ \item
+      bar.install
+      \begin{commandline}
+debian/tmp/usr/games/bar
+      \end{commandline}
+\end{itemize}
+
+複数のバイナリパッケージを作成する場合、ビルド時には、通常、ソフトウェア
+のファイルやディレクトリを、まず{\bf debian/パッケージ名}ディレクトリ以外
+の一時ディレクトリ\footnote{通常はdebian/tmpディレクトリなどを指定しま
+す。} に仮インストールし、そこから{\bf debian/パッケージ名}ディレクトリに
+コピーします。この時、dh\_installコマンドとdebianディレクトリ以下の{\bf
+パッケージ名.install}ファイルが使用されます。
+
+
+今回の場合、debian/foo.installファイルと、debian/bar.installファイルが使
+われ、ここに記載したディレクトリやファイルが、それぞれのパッケージ用のディ
+レクトリにコピーされます。
+
+つまり、それぞれ以下のようにコピーされます。
+\begin{itemize}
+ \item
+     foo.installに記載された''debian/tmp/usr/games/foo''ファイル
+
+	   → パッケージfoo用にdebian/foo/usr/games/ディレクトリ以下に
+
+ \item
+      bar.installに記載された''debian/tmp/usr/games/bar''ファイル
+
+      → パッケージbar用にdebian/bar/usr/games/ディレクトリ以下に
+
+\end{itemize}
+
+では、実際にビルドしてみます。
+\begin{commandline}
+$ debuild -us -uc
+\end{commandline}
+
+ビルドした結果の{\bf debian/パッケージ}ディレクトリと仮インストール用の
+{\bf debian/tmp}ディレクトリを見てみましょう。
+\begin{commandline}
+$ tree tmp foo bar 
+tmp
+`-- usr
+    `-- games
+        |-- bar
+        `-- foo
+foo
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    |-- games
+    |   `-- foo
+    `-- share
+        `-- doc
+            `-- foo
+                |-- README.Debian
+                |-- changelog.Debian.gz
+                `-- copyright
+bar
+|-- DEBIAN
+|   |-- control
+|   `-- md5sums
+`-- usr
+    |-- games
+    |   `-- bar
+    `-- share
+        `-- doc
+            `-- bar
+                |-- changelog.Debian.gz
+                `-- copyright
+
+14 directories, 13 files
+\end{commandline}
+今度はちゃんとコピーされています。パッケージが作成されているか見てみます。
+\begin{commandline}
+$ cd ../../
+
+$ ls foo_1.0* bar*
+bar_1.0-1_i386.deb  foo_1.0-1_i386.build    foo_1.0.orig.tar.gz
+foo_1.0-1.diff.gz   foo_1.0-1_i386.changes
+foo_1.0-1.dsc       foo_1.0-1_i386.deb
+\end{commandline}
+
+pbuilderでチェック後、インストールしてみます。
+\begin{commandline}
+$ sudo dpkg -i foo_1.0-1_i386.deb
+ bar_1.0-1_i386.deb 
+未選択パッケージ foo を選択しています。
+(データベースを読み込んでいます ... 現在 222038 個のファイルとディレクト
+ リがインストールされています。)
+(foo_1.0-1_i386.deb から) foo を展開しています...
+未選択パッケージ bar を選択しています。
+(bar_1.0-1_i386.deb から) bar を展開しています...
+foo (1.0-1) を設定しています ...
+bar (1.0-1) を設定しています ...
+\end{commandline}
+
+インストールできているか確認してみます。
+\begin{commandline}
+$ dpkg -L foo 
+/.
+/usr
+/usr/share
+/usr/share/doc
+/usr/share/doc/foo
+/usr/share/doc/foo/changelog.Debian.gz
+/usr/share/doc/foo/README.Debian
+/usr/share/doc/foo/copyright
+/usr/games
+/usr/games/foo
+
+$ dpkg -L bar
+/.
+/usr
+/usr/share
+/usr/share/doc
+/usr/share/doc/bar
+/usr/share/doc/bar/changelog.Debian.gz
+/usr/share/doc/bar/copyright
+/usr/games
+/usr/games/bar
+
+$ dpkg -s foo bar
+Package: foo
+Status: install ok installed
+Priority: extra
+Section: games
+Installed-Size: 44
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Architecture: i386
+Version: 1.0-1
+Depends: libc6 (>= 2.7-1)
+Description: sample program foo
+ foo foo foo
+
+Package: bar
+Status: install ok installed
+Priority: extra
+Section: games
+Installed-Size: 40
+Maintainer: Kouhei Maeda <mkouhei@gmail.com>
+Architecture: i386
+Source: foo
+Version: 1.0-1
+Description: sample program bar
+ bar bar bar
+\end{commandline}
+
+\subsubsection{補足}
+ちなみに、dh\_makeで''--multi''ではなく、''--single''を指定しても、ソー
+スツリーのMakefileと、debian/rulesの記述を変更したところ、複数のバイナリ
+パッケージに分ける事ができたので、結局はmake次第でどうにでもできるのでは
+ないかと思います。
+
+\subsection{まとめ}
+前回を踏襲して、dh\_makeを使って、debhelperスタイルで複数のバイナリパッ
+ケージを作ってみました。さらに、単一バイナリパッケージとの違いを分かりや
+すくするため、非常に簡単なプログラムをパッケージにすることで、その違いを
+見てみました。
+
+単一バイナリパッケージを作成するときと同じような感覚でやると、rulesファ
+イルのところで躓くので、パッケージの作成はmakefileを読めることが重要だと
+いうことがよく実感できました。
+
+
+\subsection{参考書籍}
+\begin{itemize}
+ \item
+      入門 Debianパッケージ (ISBN:978-4-7741-2768-X)
+ \item
+      GNU Make 第3版 (ISBN:4-87311-269-9)
+ \item
+      第39会 東京エリアデビアン勉強会(2008年4月) 「バイナリ一つだけのパッ
+      ケージを作成してみる」
+ \item
+      The Debian Systems その概念と技法 (ISBN:978-4-8399-1897-2)
+\end{itemize}
+
+% ここからは月例特集。
+
+%===========================================================%
+\begin{getsureiupdate}{月例 Debian GNU/kFreeBSD}{大浦 真}
+\index{kFreeBSD}
+  Debian Project の大浦です。(現在、京都在住)
+  今月からこの場をお借りして Debian GNU/kFreeBSDの状況をお伝えすることに
+  なりました。
+  よろしくお願いします。
+
+  Debian は、現在、その OS の中心として Linux カーネルを利用していますが、
+  Debian GNU/kFreeBSD とは、カーネルとして FreeBSD のカーネルを利用し、
+  その上に GNU C library と GNU のユーザランド、および、
+  Debian のパッケージセットを移植したものです。
+  FreeBSD のカーネルだけを使っているので、``\textbf{k}FreeBSD'' と
+  呼んでいます。
+
+  そんな Debian GNU/kFreeBSD は、開発途上にあり、
+  Debian の一部として、まだ、正式にはリリースされていません。
+  しかし、FreeBSD のインストーラを改造した kFreeBSD 用のインストーラも
+  用意されていますし、
+  kFreeBSD 用の buildd も設置されていますので、
+  比較的簡単に実機やエミュレータ上で試すことができます。
+  また、X.Org も使えますので、それなりに使うことができるようになっています。
+  ただ、重要なパッケージで、buildd でビルドできず、
+  バイナリが用意されていないものがあったり、
+  用意されていてもまともに動作しないものがあったりもするので、
+  まだまだ、いろいろとハックのしがいがあると思います。
+
+  Debian GNU/kFreeBSD に関する情報は、以下の Debian Wiki のページに
+  まとまっていますので、
+  ぜひご覧下さい。
+
+  \url{http://wiki.debian.org/Debian%20GNU/kFreeBSD}
+\includegraphics[width=1\hsize]{image200805/qemu-kfreebsd01.jpg}
+\end{getsureiupdate}
+%===========================================================%
+
+%===========================================================%
+\begin{getsureiupdate}{月例 Debian GNU/Linux SuperH port}{岩松 信洋}
+\index{SuperH}
+今月のDebian GNU/Linux SuperH 移植版の状況をお伝えします。
+
+Debian/SH port は先月から加速しはじめました。
+その理由として、フランス人の方が協力してくれることになったためです。
+いまのところ、パッケージ用リポジトリを共同にしようということになっており、新しい
+SH4用のリポジトリがフランスと日本にできました。
+
+現在のステータスは、gcc-4.3 ベースでパッケージを作っています。
+マシンが複数台あるのですが、builddをまだ1台しかセットアップしていません。
+今月中には複数台セットアップしたいと考えています。
+
+現在抱えている問題として、mesa のコンパイルに失敗するというものがありま
+ す。
+internal compiler error なので、調べるのは難しいですが、マクロ展開で
+こけているところまで追いました。絶賛調査中です。
+
+\begin{commandline}
+gcc -c -I../../include -I../../src/mesa \
+-I../../src/mesa/main \-I../../src/mesa/glapi \
+-I../../src/mesa/math -I../../src/mesa/tnl 
+-I../../src/mesa/shader \
+-I../../src/mesa/shader/grammar \
+-I../../src/mesa/shader/slang -I../../src/mesa/swrast \
+-I../../src/mesa/swrast_setup -Wall -Wmissing-prototypes \
+-O2 -g   -D_POSIX_SOURCE -D_POSIX_C_SOURCE=199309L \
+-D_SVID_SOURCE -D_BSD_SOURCE -D_GNU_SOURCE -DPTHREADS\
+ -DUSE_XSHM -DHAVE_POSIX_MEMALIGN  -I/usr/X11R6/include \
+-std=c99 -ffast-math  -fno-strict-aliasing \
+vbo/vbo_exec_api.c -o vbo/vbo_exec_api.o
+vbo/vbo_exec_api.c: In function 'vbo_exec_fixup_vertex':
+ vbo/vbo_exec_api.c:340: internal compiler error: Segmentation fault
+ Please submit a full bug report,
+with preprocessed source if appropriate.
+See  for instructions.
+ For Debian GNU/Linux specific bug reporting instructions,
+ see .
+\end{commandline}
+
+今月のパッチ
+\begin{itemize}
+\item util-linux
+
+sh4 アーキテクチャで mount パッケージが作成されない問題を修正。
+\end{itemize}
+\end{getsureiupdate}
+%===========================================================%
+
+%===========================================================%
+\begin{getsureiupdate}{月例 Debian GNU/Hurd}{山本 浩之}
+今月のDebian GNU/Hurdの状況をお伝えします。
+\index{Hurd}
+Debian GNU/Hurd は sid に入っていながら、未だ testing にすら入れてもら
+ えず、冷や飯を食わされ続けていますが、それでもなお、 開発者たちは地味に
+ 頑張りつづけ、現在では K16CD インストールイメージをリリースするに至って
+ おります。まずはこの K16CD-mini インストールイメージを VMware ディスク
+ イメージにインストールしてみて問題点を調べてみました。
+
+ユーザランドは基本的には Debian GNU/Linux と同じですが、いくつか Hurd
+特有の呪文があります。
+
+まず、ネットワークの設定ですが、/sbin/ifconfig にあたるものがなく、
+
+\begin{commandline}
+# settrans -fgap /servers/socket/2 /hurd/pfinet \
+ -i eth0 -a 192.168.1.3 -g 192.168.1.1 -m 255.255.255.0
+\end{commandline}
+
+というように、settrans コマンドを使用します。また X を起動するには
+かなり謎(?)な呪文を唱えないといけません：
+
+\begin{commandline}
+# console -d vga -d pc_mouse --repeat=mouse -d pc_kbd \
+ --repeat=kbd -d generic_speaker -c /dev/vcs
+\end{commandline}
+
+現在のところ、Gnome や KDE のような統合デスクトップ環境は、build-dep なパッ
+ケージが FTBFS バグのため揃っておらず、提供されていませんが、Window
+Maker、Afterstep、IceWM、qvwm、ratposion、fvwm、ctwm などのウィンドウマネー
+ジャが使用可能です。
+
+\includegraphics[width=1\hsize]{image200805/hurd0.png}
+\end{getsureiupdate}
+%===========================================================%
+
+%===========================================================%
+\begin{getsureiupdate}{月例 Nexenta Operation System}{上川 純一}
+\index{Nexenta}
+2008年4月号でインストールしてみた Nexenta Core Platform 1.0 で今月も何か
+操作してみます。まず、ホストOSとのデータの交換の方法を確立してみます。
+
+% まず、気が向いたので、kvm で起動してみます。グラフィック機能が超絶に遅い
+% のと、ネットワークの接続ができなかった以外は高速に起動しているようです。
+% kqemuで稼働させると数分かかるのに比べると高速です。
+
+仮想マシン内部を快適に利用するために、まずSSH接続経由でのファイルシステムを共有をしてみ
+ ましょう。
+まず、ゲストOSの22番ポートをホストOSの2299番ポートとしてゲストOSを起動し
+ てみました。
+こうするとssh で localhostの2299番ポートにアクセスして
+ ゲストOSにログインできます。
+
+\begin{commandline}
+dancer@host$ qemu -hda nexenta.cow -m 512 -redir tcp:2299::22 &
+dancer@host$ ssh localhost -p 2299 
+Password: 
+Last login: Wed Apr 30 05:02:35 2008 from 10.0.2.2
+dancer@vm1:~$ 
+\end{commandline}
+
+この状態でsshfs を利用するとゲストOSのパスをマウントして見ることができます。ホストOS
+からゲストOSの/export/home/dancer にシームレスにアクセスすることができま
+す。
+
+\begin{commandline}
+dancer@host$ sshfs localhost:  ./nexenta/  -p2299
+Password: 
+dancer@host$ ls -la nexenta/
+合計 36
+drwxr-xr-x 1 dancer uucp      9 2008-04-15 23:53 .
+drwxr-xr-x 5 dancer dancer 4096 2008-04-30 14:05 ..
+-rw------- 1 dancer uucp   1130 2008-04-23 13:05 .bash_history
+-rw-r--r-- 1 dancer uucp    220 2008-03-19 18:07 .bash_logout
+[以下略]
+\end{commandline}
+
+nexenta では各種ファイルを staffグループ (gid=10)が所有し、それがちょうど
+Debian では uucpグループ (gid=10) が所有しているように見えています。
+\begin{commandline}
+dancer@vm1:~$ id dancer 
+uid=1000(dancer) gid=10(staff) groups=10(staff)
+\end{commandline}
+\end{getsureiupdate}
+%===========================================================%
+
+\dancersection{Debian Trivia Quiz}{上川 純一}
+
+ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
+題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
+りあいがないので、理解度のテストをします。特に一人だけでは意味がわからな
+いところもあるかも知れません。
+漫然と読むだけではおもしろくないので、Debian 関連の話題から出題した以下の質問にこたえてみてください。
+後で内容は解説します。
+% FIXME: 転記すること
+\begin{multicols}{2}
+
+\subsection{問題}
+出題範囲は\url{debian-devel-announce@lists.deban.org} に投稿された
+内容からです。
+ \santaku
+ {Debian Developer になる前の人たちのための制度で最近 Open Beta を開始したのは何か}
+ {Debian Maintainers}
+ {Ubuntu}
+ {Debian Account Manager}
+ {A}
+
+ \santaku
+ {Debian Auditor は誰か}
+ {Kalle Kivimaa}
+ {Anthony Towns}
+ {Sam Hocevar}
+ {A}
+
+ \santaku
+ {Anibal Monsalve Salazar が参加したのはどのチームか}
+ {Debian System Administrator}
+ {Debian Cabal}
+ {Debian Maintainer Keyring Team}
+ {C}
+
+ \santaku
+ {debian/control に追加された Vcs-* フィールドでないのはどれか}
+ {Vcs-git}
+ {Vcs-rcs}
+ {Vcs-Mtn}
+ {B}
+
+ \santaku
+ {debian/control でパッケージのアップストリームプロジェクトのURLを記述す
+ るためのフィールドは}
+ {Homepage:}
+ {URL:}
+ {Upstream:}
+ {A}
+
+ \santaku
+ {dpkg-buildpackage で並列ビルドをするためのコマンドラインオプションは}
+ {-rfakeroot}
+ {-j}
+ {--nori1}
+ {B}
+
+ \santaku
+ {2009年開催予定のDebconf9 の場所が発表された、その場所は}
+ {Osaka}
+ {Tokyo}
+ {Extremadura}
+ {C}
+
+ \santaku
+ {Policy 3.7.3.0 で追加されなかった変更は}
+ {バージョン番号にチルドが利用できるようになった}
+ {自由でないものはパッケージではない}
+ {Debconf を利用する場合は国際化対応必須}
+ {B}
+
+ \santaku
+ {gnuab にかわるリリースされていないDebian移植版のホスティングの場所はど
+ こか}
+ {http://www.debian-doorstop.org/}
+ {http://www.debian-ports.org/}
+ {http://www.ubuntu.org/}
+ {B}
+
+
+ 
+\subsection{問題}
+\url{debian-devel-announce@lists.deban.org} に投稿された
+内容からです。
+ \santaku
+ {Debian Miniconf 7が開催される、Linux Conf Au はいつ開始か}
+ {1月28日}
+ {1月29日}
+ {1月19日}
+ {A}
+
+ \santaku
+ {lintian は Debian パッケージのよくある間違いを検出してくれるツールであ
+ る。 lintian.debian.org は全アーカイブに対して実行した lintian の実行結果を報告してくれているページだが、
+ メンテナ単位のウェブページのURLが変更になった。どうかわったか？}
+ {http://www.youtube.com/email.html}
+ {http://people.ubuntu.com/~liw/lintian/gutsy-i386-main/reports/maintainer/email.html}
+ {http://lintian.debian.org/reports/maintainer/email.html}
+ {C}
+
+ \santaku
+ {dpkg のシンボルファイルで何が実現できるか？}
+ {共有ライブラリなんてつかってられないので全部DLLにしてみた依存関係}
+ {共有ライブラリはどんなバージョンでもよくなるような依存関係}
+ {共有ライブラリのバージョン付きシンボルをベースにした依存関係}
+ {C}
+
+ \santaku
+ {http://wiki.debian.org/HelpDebian/Start には何がかかれているか}
+ {なぜDebianに貢献するべきか}
+ {Debianはなぜ存在するのか}
+ {GNUの存在意義}
+ {A}
+
+ \santaku
+ {d-iでの翻訳作業の省力化のための工夫を Christian Perrierが実施した。
+ それはメッセージを使われかたの優先度によって分割するものだったが、何分割にしたか}
+ {5}
+ {4}
+ {3}
+ {A}
+
+ \santaku
+ {Fonts task force (http://wiki.debian.org/Fonts)は週次で何を確認するス
+ クリプトを用意したか？}
+ {Debianパッケージとしてはたしてどれだけのフォントファイルが存在するのか
+ を棚卸する}
+ {いかがわしい形のフォントを検出する}
+ {うまく表示できないフォントを検出する}
+ {A}
+
+ \santaku
+ {Lennyリリースに標準として含まれる予定のKDEはどれか}
+ {KDE3.0}
+ {KDE4.0}
+ {KDE5.0}
+ {A}
+
+ \santaku
+ {Debian-i18n meeting で {main,contrib,non-free}/i18n/Translation-* に対
+ して何がおきたか}
+ {Grisuが悟りを開いた}
+ {AUTOBYHANDの仕組みを利用するようになった}
+ {あきらめて変更しないことにした}
+ {B}
+
+ \santaku
+ {FOSS.inの開催期間中にDDになったインド人は何人目のインド人DDか？}
+ {1}
+ {2}
+ {4}
+ {C}
+
+ \santaku
+ {insservでは何が実現できるか？}
+ {自動でデータベースにinsert してくれる}
+ {依存関係からinitスクリプトの実行順序を計算して実行}
+ {ネームサービスの提供}
+ {B}
+
+
+\subsection{問題}
+\url{debian-devel-announce@lists.deban.org} に投稿された内容からです。
+
+ \santaku
+ {lennyでのリリースゴールの1つにGCC 4.3でのビルドが通ることが挙げられているが、
+ それに伴って変更する必要が最も多く生じるのは、どの言語で書かれたプログラムか?}
+ {C}
+ {C++}
+ {Ruby}
+ {B}
+ 
+ \santaku
+ {今のところlennyで完全に削除される予定なのは次のうちどれか?}
+ {GNOME 1.x}
+ {KDE 3.x}
+ {Linux 2.x}
+ {A}
+ 
+ \santaku
+ {Debianに宣伝力がないと感じたDebianプロジェクトリーダー (DPL) のSam Hocevarが提案したのは?}
+ {イベント会場でDebianロゴの入ったシャツを着て練り歩くDebian Tank Top \& Brief Team}
+ {ロゴやTシャツのデザインなどマーケティング面の任務を一手に引き受けるDebian Marketing Team}
+ {Debianのマスコットキャラクター「でびにゃん」}
+ {B}
+ 
+ \santaku
+ {3月頭の時点でlennyのリリースにとって致命的なバグ (RCバグ) は460ほどあるが、
+ それを減らす方法として推奨されているのは?}
+ {debian/changelogに「closes: \#xxxxxx」と書いて片っ端からパッケージをアップロードする}
+ {バグ退治パーティー (BSP) を開いて片っ端からパッケージを非メンテナアップロード (NMU) する}
+ {RCバグを放置しているパッケージメンテナを片っ端から呼び出して説教する}
+ {B}
+ 
+ \santaku
+ {lennyはリリースされると何になる?}
+ {Debian 4.1}
+ {Debian 5.0}
+ {Ubuntu 8.0}
+ {B}
+ 
+ \santaku
+ {lists.debian.orgの新しい検索エンジンには何が用いられているか?}
+ {Google Search}
+ {Hyper Estraier}
+ {Xapian Omega}
+ {C}
+ 
+ \santaku
+ {新しいarmelアーキテクチャに関する現況として適切でないものは?}
+ {lennyのリリースアーキテクチャに含まれている}
+ {全パッケージの90\%がビルドされている}
+ {パッケージをftp.debian.orgからダウンロードできるようになっている}
+ {A}
+ 
+ \santaku
+ {次の開発者のうち、今年のDPL選挙に立候補したのは?}
+ {Lucas Nussbaum}
+ {Junichi Uekawa}
+ {Steve McIntyre}
+ {C}
+
+\subsection{問題}
+\url{debian-devel-announce@lists.deban.org} に投稿された内容からです。
+ 
+ \santaku
+ {パッケージの品質確認に有用な次のツールのうち、lennyおよびsidから削除されたものは?}
+ {lintian}
+ {linda}
+ {piuparts}
+ {B}
+ 
+ \santaku
+ {initスクリプトの実行順序を依存関係から自動的に決定できるようにすることがlennyのリリースゴールの一つになっているが、
+ 2008年4月16日現在、/etc/init.dにinitスクリプトを持つパッケージの数は?}
+ {873}% パッケージの総数
+ {857}% 対応済みパッケージの数
+ {98}% 対応済みのパーセンテージ
+ {A}
+ 
+ \santaku
+ {次のうち、Debian Installer Lenny Beta 1における改良点でないものは?}
+ {NTPを用いた時刻合わせ}
+ {volatileのサポートの追加}
+ {Mac OS Xからのインストーラ起動のサポート}
+ {C}
+ 
+ \santaku
+ {新たなDebianプロジェクトリーダー (DPL) に選ばれたSteve McIntyreが目標の一つに掲げているものは?}
+ {Communications within the project}% 2008年DPLの標語の一つ
+ {Make Debian sexy again}% 2007年DPLの標語の一つ
+ {Welcoming people to the project}% 2006年DPLの2005年選挙での標語の一つ
+ {A}
+ 
+ \santaku
+ {Debian Weekly Newsを復活させようというメールをdebian-devel-announceに流したのは?}
+ {Martin Schulze}
+ {Joey Hess}
+ {Alexander Schmehl}
+ {C}
+ 
+ \santaku
+ {lennyのリリースに関する現況として正しくないものは?}
+ {GCC 4.3がデフォルトコンパイラとなり、それでコンパイルできないことがRCバグとなった}
+ {lennyのリリースに向けて既に必須パッケージがフリーズされている}
+ {デフォルトのsyslogデーモンをrsyslogに変更することが決定した}% まだ議論中
+ {C}
+ 
+ \santaku
+ {dpkg 1.14.18で新たにいくつかのソースパッケージ形式がサポートされるようになったが、
+ それらのうち次期デフォルトとされる「3.0 (quilt)」が持っていない機能は?}
+ {ソースパッケージのupstream tarballとして複数のファイルを使用できる}
+ {ソースパッケージのdiff.gzファイルを、適切に複数のパッチに分けてくれる}
+ {ソースパッケージにDebian固有のバイナリファイルを挿入できる}
+ {B}
+ 
+ \santaku
+ {今年のDPL選挙の投票率は?}
+ {62.248\%{}}% 2000
+ {53.084\%{}}% 2004
+ {37.302\%{}}% 2008
+ {C}
+ 
+ \santaku
+ {etchの次期ポイントリリースは「etch and a half」になるとされているが、
+ そこに含まれる予定のLinuxカーネルのバージョンは?}
+ {2.6.18}
+ {2.6.24}
+ {2.6.25}
+ {B}
+ 
+ \santaku
+ {次の開発者のうち、新たにFTPマスターに任命されたのは?}
+ {Sam Hocevar}
+ {Joerg Jaspert}
+ {James Troup}
+ {B}
+ 
+ \santaku
+ {次の開発者のうち、Debian Marketing Teamのメンバーに任命されていないのは?}
+ {Sam Hocevar}
+ {Andreas Schuldei}
+ {Moritz Muehlenhoff}
+ {A}
+
+ \santaku
+ {Joerg Jaspert が DAM に任命されたのはSam Hocevar の任期の切れる何時間前か？}
+ {24時間}
+ {2時間}
+ {-1時間}
+ {B}
+
+ \santaku
+ {Software Design 2008年4月号155ページのgit-import-dscの事例にのっている
+ パッケージ名は？}
+ {ecasound}
+ {pbuilder}
+ {Windows Media Player}
+ {A}
+
+ \santaku
+ {昨日 Debian 勉強会の参加メンバーで Debian Developer になったのはだれか？}
+ {岩松}
+ {小林}
+ {Charles Plessy}
+ {C}
+ 
+ \subsection{問題}
+ \url{debian-devel-announce@lists.deban.org}への投稿内容からです。
+ 
+ \santaku
+ {Joerg Jaspertがdakのソースコードに取り込んだ、Thomas Viehmannからのパッチとは?}
+ {パッケージを受け取ったときにメンテナだけでなくスポンサーにもメールを送るようにするパッチ}
+ {パッケージを受け取ったときに現在のカルマをメンテナに通知するパッチ}
+ {パッケージを受け取ったときに現在のバグの一覧をメンテナに通知するパッチ}
+ {A}
+ 
+ \santaku
+ {debhelperバージョン7では、何から学んだことを取り込んでいるか}
+ {MSDN}
+ {CDDB}
+ {CDBS}
+ {C}
+ 
+ \santaku
+ {新たにリリースマネージャになったのは?}
+ {Andreas Barth}
+ {Luk Claes}
+ {Marc 'HE' Brockschmidt}
+ {C}
+ 
+ \santaku
+ {Debianパッケージメンテナンスに関する自動通知メールにおいて、メールを生成したソフトウェアを示すのに使うよう提案されたメールヘッダは?}
+ {X-Debian:}
+ {X-Debian-Package:}
+ {User-Agent:}
+ {A}
+ 
+ \subsection{問題}
+ \url{http://www.debian.org/News/weekly/2008/01/}
+ にある4月21日版です。
+ 
+ \santaku
+ {Siobh\'an O'MahonyとFabrizio Ferraroの研究ではDebianの統治システムの歴史を4つの時期に分けているが、そのうち1999年から2003年に当たるものは?}
+ {Stabilizing Governance}% 2003-2006
+ {Implementing Governance}% 1999-2003
+ {Designing Governance}% 1997-1999
+ {B}
+ 
+ \santaku
+ {Institute for Advanced Professional Studies Yankee groupの研究結果として適切でないものは?}
+ {2006年と比べてDebianサーバのダウンタイムが41\%{}減った}
+ {2006年と比べてネットワークに1台以上のDebianを入れているユーザが15\%{}から24\%{}に上昇した}
+ {2006年と比べてDebianユーザが41\%{}減った}
+ {C}
+ 
+ \santaku
+ {開発者のブログ記事を収集して表示するPlanet Debianに関して、Martin Joey Schulzeが始めたサービスとは?}
+ {記事をメーリングリストとして購読できるようにするサービス}
+ {すべての記事に対してコメントを一斉に送れるようにするサービス}
+ {記事をSlashdotや各種ソーシャルブックマークサービスに容易に投稿できるようにするサービス}
+ {A}
+ 
+ \santaku
+ {Christian Perrierによると、最近正式なDebian開発者として登録されたメンバーの女性率は?}
+ {5\%{}}
+ {10\%{}}
+ {50\%{}}
+ {B}
+ 
+ \subsection{問題}
+ \url{http://www.debian.org/News/weekly/2008/02/}
+ にある5月9日版です。
+ 
+ \santaku
+ {WWWの生みの親として有名なTim Berners-LeeがWWW2008カンファレンスの基調演説でDebianについて述べたこととは?}
+ {Debianのウェブページのように古臭いページは消えていく運命にある}
+ {Debianのウェブページは様々な言語に地域化されており素晴らしい}
+ {Debianのパッケージングシステムは素晴らしい}
+ {C}
+ 
+ \santaku
+ {今年のGoogle Summer of CodeプログラムでDebian Projectのタスクを得た学生の人数は?}
+ {6}
+ {12}
+ {24}
+ {B}
+ 
+ \santaku
+ {5月9日現在、lennyのリリースに向けて進められている移行の状況として適切でないものは?}
+ {Perlのバージョン5.10をlennyでデフォルトとするための移行作業が行われている}
+ {既にlennyにおいてPythonのデフォルトがバージョン2.5になっている}
+ {Rubyのバージョン1.9をlennyでデフォルトとするための移行作業が行われている}
+ {C}
+ 
+ \santaku
+ {4月18日に何人のDebian正式開発者が追加されたか?}
+ {9}
+ {19}
+ {29}
+ {B}
+ 
+\end{multicols}
+
+\dancersection{Debian Weekly News 問題回答}{上川 純一}
+
+\begin{multicols}{2}
+ Debian Weekly News の問題回答です。
+ あなたは何問わかりましたか？
+ \\
+ %回答はdebianmeetingresume2008-natsu.jqzというファイルに生成されるので、
+ %それを手動でコピペして使う。
+ % ここからコピペ
+ % FIXME 問題が全部はいったらコピペすること
+ %(progn (next-line 1)(insert-file "debianmeetingresume2007-fuyu.jqz") )
+
+\end{multicols}
+
+
+\printindex
+
+\cleartooddpage
+
+\vspace*{15cm}
+{\color{dancerlightblue}\rule{\hsize}{1mm}}
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf あんどきゅめんてっど でびあん 2008年夏号\\ \\
+% FIXME 開催日がわかったら更新すること
+\noindent \normalfont 2008年8月16日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+{\color{dancerdarkblue}\rule{\hsize}{1mm}}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|dancersection\\|debconfsection\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
