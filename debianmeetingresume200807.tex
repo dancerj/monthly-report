@@ -774,6 +774,85 @@ sage
 
 \clearpage
 
+
+%===========================================================%
+\begin{getsureiupdate}{月例 Nexenta Operation System}{上川 純一}
+\index{Nexenta}
+先月につづいてNexentaをいじって見たのでお伝えします。
+
+実用的なアプリケーションをビルドするまでに前回は至りませんでした。
+そこで、今回はdlsym を使って自由自在にライブラリをロードできるようにしてみるところから
+ まずやってみましょう。
+
+dlsymでロードできる最低限の共有ライブラリを作成するところから始めてみま
+しょう。
+
+
+まず、関数一つだけを定義したCのファイルから最低限の共有ライブラリを作成
+ してみ、それを実行するだけのプログラムと、dlopen経由で利用するプログラ
+ ムを作成してみました。
+
+\begin{commandline}
+// a.c : サンプルの共有ライブラリのコード
+#include <stdio.h>
+
+void func1 (int i)
+{
+  printf(" hello world %i\n", i);
+}
+\end{commandline}
+
+\begin{commandline}
+// use.c: 通常の共有ライブラリ利用
+#include <stdio.h>
+
+void func1 (int i);
+
+main()
+{
+  func1(1);
+}
+\end{commandline}
+
+\begin{commandline}
+// dlopen.c: dlopenでのバイナリ利用
+#include <dlfcn.h>
+static int (*myfunc1)(int i) = NULL;
+int main()
+{
+  void* h=dlopen("./liba.so", RTLD_NOW);
+  
+  myfunc1=dlsym(h, "func1");
+  
+  myfunc1(10);
+  
+  return 0;
+}
+\end{commandline}
+
+これらをコンパイル、リンクしてみて、動作を確認してみました。
+どうやらLinuxとあまりかわらないようです。
+
+\begin{commandline}
+ + gcc -shared a.c -o liba.so
+ + gcc use.c ./liba.so -o use
+ + ./use
+ hello world 1
+ + gcc dlopen.c -o dlopen
+ + ./dlopen
+ hello world 10
+\end{commandline}
+
+ただし、これだけだとバージョンシンボルを利用した場合にdlsym ではどのバー
+ ジョンを利用するのかが指定できないような雰囲気がただよっています。
+というところまで確認したところで今月も力尽きました。
+また来月続きをながめてみましょう。
+もしかするとバージョンシンボルの作成とその利用をするかもしれません。
+
+\end{getsureiupdate}
+%===========================================================%
+
+
 %\printindex
 
 \cleartooddpage
