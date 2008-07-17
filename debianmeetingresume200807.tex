@@ -601,10 +601,6 @@ unicapGTKの開発の話。
 AIRプラットフォームの紹介。RIAのためのAIR。
 
 
-\dancersection{ファイルシステムネタ}{?}
-\label{sec:kpatchkmod}
-\index{XX@YY} 
-
 \dancersection{Linux kernel patch の Debian パッケージ作成}{岩松 信洋}
 \label{sec:kpatch}
 \index{XX@YY}
@@ -622,12 +618,12 @@ AIRプラットフォームの紹介。RIAのためのAIR。
 
 \subsection{パッケージ作成前の準備}
 
-\subsection{dh-kpatches パッケージのインストール}
+\subsubsection{dh-kpatches パッケージのインストール}
 Linux カーネルパッチパッケージを作成するには、dh-kpatches パッケージが必要です。また、パッケージの雛形を作成するために
-dh-make をインストールしておくと良いでしょう。これらのパッケージはapt や aptitude などを使ってインストールします。
+dh-make をインストールしておくと良いでしょう。これらのパッケージは apt や aptitude などを使ってインストールします。
 \begin{commandline}
 $ sudo apt-get update
-$ sudo apt-get install dh-kpatches dh-make 
+$ sudo apt-get install dh-kpatches dh-make build-essential
 \end{commandline}
 
 \subsubsection{パッチの用意}
@@ -695,7 +691,6 @@ dh\_make で作成されるサンプルスクリプトは必要ないので全て削除します。
 $ rm -rf ./debian/*.ex ./debian/*.EX ./debian/doc ./debian/dirs
 \end{commandline}
 
-
 \subsubsection{debian/copyright の修正}
 パッチの情報に合わせて、debiab/copyright の修正を行います。
 pohmelfs の場合は以下のように修正します。
@@ -744,13 +739,33 @@ is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
 \end{commandline}
 
 \subsubsection{debian/README.Debian の修正}
+debain/README.Debian ファイルに Debian で使うための HowToなどを書いておきましょう。
+サポートしているカーネルバージョンや、カーネルイメージの作成方法などを書いておくのが一般的
+なようです。
+
 \begin{commandline}
+linux-patch-pohmelfs for Debian
+-------------------------------
+
+This patch is pohmelfs support patch for Debian Linux kernel. 
+You can try with linux-source-2.6.25 package. 
+
+- How to use
+  $ sudo apt-get install linux-source-2.6.25 libncurses-dev kernel-package
+  $ cd /usr/src ; tar -xjf linux-source-2.6.25.tar.bz2 ; cd linux-source-2.6.25
+  $ make-kpkg clean
+  $ cp /boot/config-2.6.25-2-686 .config
+  $ make menuconfig
+  $ make-kpkg --rootcmd fakeroot --append-to-version -pohmelfs --revision 0.1 -added_patches=pohmelfs kernel-image
+
+ -- Nobuhiro Iwamatsu <iwamatsu@nigauri.org>  Mon, 07 Jul 2008 01:00:33 +0900
+
 \end{commandline}
 
 \subsubsection{debian/control の修正}
 次に debian/control ファイルを修正します。
 注目すべきところは、作成されるパッケージで指定してある、{\bf Depends: \$\{kpatch:Depends\}}です。
-ここで kpatch:Depends を指定することによって、Debian Linux カーネルパッチパッケージを使った
+ここで kpatch:Depends を指定することによって、カーネルパッチパッケージを使った
 カーネル作成に必要な依存パッケージを置き換えてくれます。
 また、ソースパッケージの {\bf　Build-Depends}　に {\bf dh-kpatches　パッケージ} を追加する事を忘れないようにしましょう。
 
@@ -783,12 +798,35 @@ dch コマンドを使って debian/changelog ファイルを修正します。
 $ dch
 linux-patch-pohmelfs (20080707-1) unstable; urgency=low
 
-  * Initial release                                                      
+  * Initial release                                          
 
  -- Nobuhiro Iwamatsu <iwamatsu@nigauri.org>  Mon, 07 Jul 2008 01:25:37 +090
 \end{commandline}
 
+\subsubsection{kpatches ファイル}
+
+どのパッケージ内に収録されていうパッチをどのカーネルバージョンに当てればいいのか、
+コントロールするためのファイル kpatches を用意する必要があります。
+このファイルは以下のようなフォーマットになっており、
+カーネルバージョン毎に Patch-file と Kernel-version の項目を追加する必要があります。
+パッチをカーネルに当てる際にこのファイルが参照され、チェックが行われます。
+
+\begin{commandline}
+Patch-name: POHMELFS patch
+Patch-id: pohmelfs
+Architecture: all
+Path-strip-level: 1
+
+Patch-file: pohmelfs-2.6.x <-- パッチファイル名
+Kernel-version: 2.6.25 <-- パッチがサポートするカーネルバージョン
+\end{commandline}
+
+
 \subsubsection{debian/rules ファイルの修正}
+debian/rules ファイルで注意する点として、 install ターゲットで、
+dh\_installkpatches を指定する必要があります。dh\_installkpatches で
+カーネルパッチが kpatches ファイルと共ににパッケージ作成用の一時ディレクトリにコピーされます。
+
 \begin{commandline}
 #!/usr/bin/make -f
 
@@ -833,29 +871,38 @@ binary-arch: binary-indep
 binary: binary-indep binary-arch
 \end{commandline}
 
-\subsubsection{kpatches ファイル}
-\begin{commandline}
-Patch-name: POHMELFS patch
-Patch-id: pohmelfs
-Architecture: all
-Path-strip-level: 1
-
-Patch-file: pohmelfs-2.6.x
-Kernel-version: 2.6.25
-\end{commandline}
 \subsection{パッケージのビルド}
-moge
+パッケージのビルドを行う際には、通常のパッケージ作成と変わりません。
+debuild などを使ってパッケージの作成を行ってください。
+\begin{commandline}
+% debuild
+\end{commandline}
 
 \subsection{パッケージのテスト}
-sage
+カーネルパッチパッケージのテストは、カーネルソースコードに
+パッチを当て、カーネルがコンパイルできるか、確認する必要があります。
+また、Debian の場合は、Debian と kernel.org で配布しているカーネルの2種類を考慮する必要がありますが、
+前者の方をテストしていれば十分でしょう。
+インストールしたカーネルパッチパッケージを使って、カーネルをコンパイルするには、
+make-kpkg コマンドの--added\_patches のオプションを使って、パッチを指定します。
+パッチが当たっているかソースを確認し、カーネルのコンパイルが正常に行われているか確認しましょう。
+また、作成された カーネルパッケージを実際にインストールし、テストを行うことも重要です。
+
+\begin{commandline}
+$ sudo apt-get install linux-source-2.6.25 libncurses-dev kernel-package
+$ cd /usr/src ; tar -xjf linux-source-2.6.25.tar.bz2 ; cd linux-source-2.6.25
+$ make-kpkg clean
+$ cp /boot/config-2.6.25-2-686 .config
+$ make menuconfig
+$ make-kpkg --rootcmd fakeroot --append-to-version -pohmelfs --revision 0.1 -added_patches=pohmelfs kernel-image
+\end{commandline}
 
 \subsection{まとめ}
 以上の手順を使うと、Linux カーネルパッチの Debianパッケージを作成することができます。
 しかし、このままではかなり手間がかかりますので、dh-make で Linux カーネルパッチパッケージの
-雛形が作成できるように機能を追加し、パッチを投げました。この機能を使うことにより、パッケージの説明と、xxx.kpatches
+雛形が作成できるように機能を追加し、パッチを投げました(\#304688)。この機能を使うことにより、
 ファイルにサポートする Linux カーネルバージョンを追加するだけでパッケージが作成できるようになっています。
 
- 
 \dancersection{Linux kernel module の Debian パッケージ作成}{岩松 信洋}
 \label{sec:kmod}
 \index{XX@YY}
