@@ -1,0 +1,31 @@
+digraph sample {
+	subgraph cluster0 {
+		label = "カーネルパッチパッケージ";
+		patch [label="カーネルパッチ", shape = box, group = 1];
+		kpatches [label="kpatches ファイル", shape = box,style=rounded, group = 1];
+		kpatch_source [label="カーネルパッチ\nパッケージ", shape=box, group = 1];
+		patch_ctl [label="パッチコントロール\nスクリプト", shape = box,style=rounded];
+		patchv2 [label="カーネルパッチ", shape = box];
+		debuild [label="debuild", shape = octagon, group = 1];
+
+		patch -> debuild;
+		kpatches -> debuild;
+		debuild -> kpatch_source;
+		patch -> patchv2 [label = "同じもの", dir = both];
+		debuild -> patch_ctl [label = "生成", style = dotted];
+		patch_ctl -> kpatch_source;
+		patchv2 -> kpatch_source;
+	}
+	subgraph cluster1 {
+		label = "カーネルパッケージ";
+		kernel_package [label="make-kpkg", shape = octagon, group = 2];
+		linux_source [label="カーネルソース\nパッケージ", shape = hexagon,style=filled,fillcolor="lightgray",color="black", group = 2] ;
+		linux_package [label="カーネル\nパッケージ", shape=box, group = 2];
+		
+		linux_source -> kernel_package;
+		kernel_package -> linux_package;
+	}
+	
+	patchv2 -> kernel_package [label = "適用", style = dotted];
+	patch_ctl -> kernel_package [label ="利用", style = dotted];
+}

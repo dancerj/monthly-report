@@ -1,0 +1,37 @@
+digraph sample {
+	subgraph cluster0 {
+		label = "バイナリパッケージ";
+		drv_src_img [label="ドライバソース\nイメージ", style = dashed];
+ 		src_pkg [label="カーネルモジュール\nソースパッケージ" shape = hexagon,style=filled,fillcolor="lightgray",color="black"]; 
+ 		drv_src_img -> src_pkg [label="保持"];
+		{rank = same; drv_src_img; src_pkg}
+
+	}
+
+	subgraph cluster1 {
+		label = "ソースパッケージ";
+ 		drv_src_code [label="ドライバ\nソースコード"];
+ 		d_rules [label="debian/rules"];
+ 		d_control [label="debian/control"];
+ 		drv_control [label="debian/control.modules.in"];
+ 		src [label="ソースパッケージ", group = 1];
+ 
+		drv_control -> src;
+ 		drv_src_code -> src;
+ 		d_rules -> src;
+ 		d_control -> src;
+	}
+	
+ 	kmod_pkg [label="カーネルモジュールパッケージ", shape=box];
+ 	ma [label="module-assistant", shape = octagon, group = 1];
+ 	debuild [label="debuild", shape = octagon, group = 1]
+
+ 	d_rules -> drv_src_img [style = dotted];
+ 	drv_control -> drv_src_img [style = dotted];
+ 	drv_src_code -> drv_src_img [style = dotted];
+ 
+ 	src -> debuild [label="パッケージビルド"];
+	debuild -> src_pkg;
+	src_pkg -> ma [label="パッケージビルド"];
+	ma -> kmod_pkg;
+}
