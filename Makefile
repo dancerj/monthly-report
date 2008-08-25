@@ -19,7 +19,7 @@ publish: $(RELEASEFILES)
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
 	# check that pre-commit hook is installed.
-	diff .git/hooks/pre-commit git-pre-commit.sh
+	#diff .git/hooks/pre-commit git-pre-commit.sh
 	## end of linting stuff
 	platex $< # create draft input
 	-mendex $(<:%.tex=%)
