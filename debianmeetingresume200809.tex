@@ -224,6 +224,193 @@
 \label{sec:dm-yamane}
 \index{dm-yamane}
 
+\subsection{Debian パッケージメンテナのお仕事}
+
+　実は、Debian パッケージのメンテナになるにはそんなに敷居は高くありません。よっぽど入学試験／就職／転職活動の方が難しいと思うほどです。恐れることはありません。多少なりとも興味がある方はこれからの説明をご覧ください。
+
+\subsection{メンテナになる前の下準備}
+
+\begin{enumerate}
+ \item GPG 鍵を作っておく (aptitude install gpg && gpg --gen-key)
+ \item GPG キーサインの交換を既存の Debian Developer と行っておく
+ \item メンテナ／Developer として問題ないと見なされる作業をしておく (contribute!)
+\end{enumerate}
+
+この3つだけ準備したら、さぁメンテナになる作業の始まりです。
+
+
+\subsection{The way to Debian package maintainer}
+
+メンテナになる方法としては2点あります。
+
+\begin{enumerate}
+ \item 自分から「このソフトを Debian パッケージにしたい」と申請する
+ \item 既存のパッケージのメンテナからメンテナンスを引き継ぐ
+\end{enumerate}
+
+　1. は ITP (Intent To Package) という形で行います。特に RFP (Request For Package) という形でユーザから「このソフトを Debian パッケージにして欲しいなぁ」という声に答えるのが望ましいでしょう。
+
+　2. は RFH (Request For Help、協力者募集中)、RFA (Request for Adoption、新メンテナ募集中) や O (Orphaned、みなしご化) というステータスになったパッケージに対して「自分がメンテナになります」と宣言します。
+
+　ITP, RFP, RFA, Orphaned は全て Debian Bug Tracking System (BTS) で管理登録されます (BTS の使い方についてはそのうち別途)。ただ、BTS で追うのは結構辛いので wnpp.debian.net \footnote{ \url{http://wnpp.debian.net} ではパッケージ化希望されているものや、メンテナが引き取り手を募集しているパッケージを検索できます。
+\begin{itemize}
+ \item ページの見た目は良くない ;-)
+ \item RSSで状況が取得できるので、RSS reader で適宜ピックアップにてチェックすることをお勧めします。
+\end{itemize}} を使いましょう。
+
+
+\subsubsection{ITP、RFP パッケージ化}
+
+　大抵1からパッケージ化作業ですので、ウェブサイトからソースを取得してライセンスを確認の上、パッケージ作りのお作法に従ってパッケージを作成します。パッケージを作成する際は、unstable 環境の lintian で warning などが出なくなるよう (Debian Policy Manual に準拠するよう) に頑張りましょう。パッケージが作成できたら pbuilder でクリーンルーム環境でビルド可能かどうか (Build-Depends に間違いが無いか) のチェックを行います。問題なくビルドできたら piuparts を使ってインストール／アンインストールで問題が無いか (Depends や preinst,postinst,prerm,postrm スクリプトに問題が無いか) を確認しましょう。ここまで来て問題なければ「Eat your own dog food」、つまり自分の環境にパッケージを入れて問題が起きないかどうかチェックするとベストでしょう。
+
+\begin{screen}
+\paragraph*{ライセンスについて}
+　ちなみに一番大変なのはここでの「ライセンス確認」作業だと個人的には思っています。そのソフトのウェブページににちょっと書いてあることを鵜呑みにしたりすると、実は中身は全然違うライセンスだ、とか、実はリンクするライブラリとは矛盾するライセンスだ、とかがありますし、英訳ライセンスがないと Debian のパッケージ管理者 (ftpmaster) がライセンス的にそのパッケージを受け入れるかどうかの判断がそもそも出来ませんので必ず適当な英訳ライセンスへの翻訳作業が必要です。
+
+　ライセンスは、独自ライセンスよりも一般的に FLOSS の代表的ライセンス (GPL, BSD, MIT, Artistic など) を使う方が全ての利害関係者にとって利益があるでしょう。何故ならば、ライセンスは「プロトコル」のようなものであり、既存プロトコルを利用する方が新たにプロトコルを実装するよりもはるかに容易に取り扱えるからです。代表的ライセンスでは目的が達成できないときにのみ、独自ライセンスを利用するのが賢いやり方です。
+\end{commandline}
+\end{screen}
+
+\subsubsection{RFA, Orphan }
+
+%ここで記載が必要
+
+\subsection{アップロード}
+　ここまでが終わったらアップロードを行います。Debian Developer であればパッケージを dput や dupload と呼ばれるコマンドを使って、作成されたソースパッケージとバイナリパッケージを直接 Debian へアップロードします。そうでない場合は適当な場所にアップロードして、Debian Developer に代理アップロードをお願いしましょう (アップロード先は、\url{http:://mentors.debian.net}、代理アップロード依頼先は \url{debian-devel@debian.or.jp} がおすすめです)。 
+
+\begin{commandline}
+dupload -t anonymous-ftp-master ccspatch_1.6.4-20080903-1_i386.changes
+\end{commandline}
+
+　この時点でツールは dsc ファイルや changes ファイルに gpg 署名されているかどうかをチェックして、されていない場合はアップロードしないなどしてくれます。
+
+　サーバ側では、まず「既にあるパッケージの更新なのか、それとも新規パッケージなのか」の判断を行います。新規パッケージの場合は NEW Queue (\url{http://ftp-master.debian.org/new.html}) と呼ばれる所に自動的に移されて、ftpmaster が逐次入れてよいものかどうかのチェックを行っています。おおよそこの工程は１、2週間程度かかります。
+
+　チェックは特にライセンスの問題が無いかについてなどが争点となります。この作業は高度な判断が要求されるため、人的リソース的にボトルネックになりやすいところと、拒否された場合に「何故このパッケージが拒否されたのか」の記録が容易にトラッキングできないのが問題点です。人的リソースについては、アクティブなメンバーを入れることで以前と比較しても改善がされており、トラッキングについては最近になってシステマチックにチェック可能なように提案が出てきているところです。
+
+　更新パッケージについては、サーバ側でソースパッケージの gpg 署名をチェックなどをして「本当にこれは入れていいものかどうか」を判断してダメな場合は reject されます。このチェックについては、アップロード後にサーバから受け入れ／拒否のメールが届きます。
+
+まずアップロードされたパッケージの処理を始めたよ、というメール
+\begin{commandline}
+From: Archive Administrator <dak@ftp-master.debian.org>
+Subject: Processing of ccspatch_1.6.4-20080903-1_i386.changes
+
+ccspatch_1.6.4-20080903-1_i386.changes uploaded successfully to localhost
+along with the files:
+  ccspatch_1.6.4-20080903-1.dsc
+  ccspatch_1.6.4-20080903.orig.tar.gz
+  ccspatch_1.6.4-20080903-1.diff.gz
+  linux-patch-tomoyo_1.6.4-20080903-1_all.deb
+
+Greetings,
+
+	Your Debian queue daemon
+\end{commandline}
+
+
+チェックして incoming repository に入れたよ、というメール
+
+\begin{commandline}
+From: Debian Installer <installer@ftp-master.debian.org>
+Subject: ccspatch_1.6.4-20080903-1_i386.changes ACCEPTED
+
+Accepted:
+ccspatch_1.6.4-20080903-1.diff.gz
+  to pool/main/c/ccspatch/ccspatch_1.6.4-20080903-1.diff.gz
+ccspatch_1.6.4-20080903-1.dsc
+  to pool/main/c/ccspatch/ccspatch_1.6.4-20080903-1.dsc
+ccspatch_1.6.4-20080903.orig.tar.gz
+  to pool/main/c/ccspatch/ccspatch_1.6.4-20080903.orig.tar.gz
+linux-patch-tomoyo_1.6.4-20080903-1_all.deb
+  to pool/main/c/ccspatch/linux-patch-tomoyo_1.6.4-20080903-1_all.deb
+
+
+Override entries for your package:
+ccspatch_1.6.4-20080903-1.dsc - source devel
+linux-patch-tomoyo_1.6.4-20080903-1_all.deb - extra admin
+
+Announcing to debian-devel-changes@lists.debian.org
+
+
+Thank you for your contribution to Debian.
+\end{commandline}
+
+
+\subsubsection{その他アップロードに関する注意}
+
+ちなみに、Debian バージョンのみの更新の場合 (foo 1.0-1 から foo 1.0-2 への更新など) はオリジナルのソースファイル (orig.tar.gz) をアップロードしないことになっています。もし、orig.tar.gz をアップロードした場合は後から拒否のメールが届きます。
+
+あと注意として、ライブラリファイルや他の多くのパッケージと関連しているようなパッケージで更新をかけると unstable 環境が壊れるような場合は、experimental へアップロードして関係者と調整することが推奨されています。
+
+
+\subsection{メンテナンス作業}
+　BTS を通じてユーザからバグ報告メールが来るので、それに対応してパッケージの debian ディレクトリ以下を更新して、修正出来たら changelog に完了した旨を記載しておきます (dch コマンドが便利です)。特に RC (Release Critical) バグは早めに修正しましょう。バグが他のパッケージと関連する場合は適当なメーリングリストで関係者と対応を協議して進めていきます。場合によっては、自分のパッケージのバグではなく、他のパッケージのバグである場合もありますので、その場合はバグを BTS で reassign しておきます。パッケージとしてのバグではなく、元々のソース由来のバグの場合は、バグを upstream (開発元) に転送するかパッチを作って upstream と協議しましょう。
+
+　そして upstream での更新に合わせてパッケージも更新します。upstream の更新は debian/watch ファイルを適切に記載していれば、DEHS (Debian External Health Status、\url{http://dehs.alioth.debian.org}) によって定期的にチェックされ、Debian Quality Assuarance の developer ページ (\url{http://qa.debian.org/developer.php}) で状況を確認できます (あとは upstream のリリースアナウンスが流れるメーリングリストに入っておくと良いでしょう)。きちんと設定された debian/watch ファイルがあれば、パッケージによっては更新がものの1分も経たずに出来ます。
+
+　チーム制でメンテナンスをするような場合は共有 repository に更新したソースを忘れずに commit しておきましょう。commit 出来ない場合は、チームのメーリングリストにパッチを送ります。幾度か適切なパッチを送りつづけていると、いつの間にか commit 権が与えられていることが多い様です。
+
+　なお、バグ修正や Debian Policy に適合するために Debian パッケージ側で色々とパッチを当てている (dpatch や quilt を利用する) と新バージョン側のソースとコンフリクトを起こしてその修正に時間がかかることがありますので、なるべく upstream と協議してパッチ自体が取り込まれて不要になるように普段から働きかけましょう。
+
+　この様にしてパッケージ化、メンテナンス等をメンテナは日々行っていきます。特に問題なく時間が経過したパッケージは unstable から testing に移行され、次のリリースを待つことになります。そして、リリースの日を迎えたパッケージは stable へと移されます。
+
+
+\subsection{特殊な場合}
+
+\subsubsection{NMU}
+
+　Non-Maintainer Upload の略で、既存のメンテナ以外の人間がバグ修正のためにパッケージをアップロードすることを指します。あまり頻繁に NMU があるようなパッケージについては、メンテナが本当に活動しているのかどうかをチェックした方がいいでしょう。
+
+
+\subsubsection{FREEEEEEZE!!}
+
+　特にリリース前には「システム全体の安定化」が必要なため、freeze、つまりパッケージの unstable から testing への自動移行が停止されます。しかし、freeze の間に発覚した、そのままリリースされてしまっては困るようなバグの修正が必要な場合もあります。その場合は リリースマネージャ (RM) に対して「私のこのパッケージを testing に入れるようにしてください！」とお願いします。これを「unblock (exception) request」と一般に呼びます。やり方としてはメーリングリストで RM が理解しやすいフォーマットでメールを投げるだけです。
+
+\begin{commandline}
+To: debian-release@lists.debian.org
+subject: Please unblock <package> <version>
+
+\begin{itemize}
+ \item changelog の抜粋
+ \item 理由
+ \item debian-devel-announce で流れている freeze exception のどれに当てはまるのか
+ \item このアップデートによって何が改善されるのか
+ \item このアップデートでは regression が起きない説明
+ \item その他、RM が納得してくれるような内容
+\end{itemize}
+\end{commandline}
+
+　うまくすれば RM から "unblocked" という素っ気ないメールが届きます。これが来たら大成功です。今 unstable にあるパッケージは testing へ移行することが可能になります。
+
+
+\subsection{メンテナ権の移譲}
+
+　パッケージメンテナも人の子、残念ながら諸事情によりメンテナンスが出来なくなるような事態が起きるかもしれません。なるべく一人でメンテナンスせずチームあるいは自分以外の詳しい／親しいメンテナもアップロードできるようにしておきます。具体的には debian/control の Uploaders フィールドにアップロードしてもいい人の名前とメールアドレスを書いておきます (GPG 署名に使うものと同一である必要があります)。
+
+\begin{commandline}
+Source: ttf-vlgothic
+Section: x11
+Priority: optional
+Maintainer: Debian Fonts Task Force <pkg-fonts-devel@lists.alioth.debian.org>
+Uploaders: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>
+DM-Upload-Allowed: yes
+Build-Depends: debhelper (>= 5)
+Build-Depends-Indep: defoma, bzip2
+Standards-Version: 3.8.0
+Homepage: http://dicey.org/vlgothic/
+Vcs-Svn: svn://svn.debian.org/pkg-fonts/packages/ttf-vlgothic/
+Vcs-Browser: http://svn.debian.org/wsvn/pkg-fonts/packages/ttf-vlgothic/
+\end{commandline}
+
+　そして、メンテナンスが出来なくなりそうな場合は、粘らずにさっさと宣言 (RFA, Orphan) しておきましょう。宣言が無いと「このパッケージ古いな」という悪評が立つだけという結果になりかねません。日本の首相と違ってメンテナは頻繁に交代しても文句は言われることはありません :-)
+
+
+\subsection{終わりに}
+　如何でしたか？パッケージメンテナというお仕事がどのようなものか、多少理解が深まっていただければ幸いです。
+
+
+
+
 \clearpage
 
 
