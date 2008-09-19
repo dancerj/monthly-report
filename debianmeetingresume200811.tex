@@ -265,10 +265,11 @@ PGPキーをICカードで利用する仕組みがあるみたいで、作成していました。
 事前にインストールしておいて欲しい必要なパッケージは
 
 \begin{itemize}
- \item LaTeX 一式: 
- \item emacs / whizzytex 関連一式: 
- \item Git 関連一式:
- \item DHCP / Avahi 関連一式:
+ \item 基本ツール: make 
+ \item LaTeX 一式: ptex-bin dvipdfmx latex-beamer  okumura-clsfiles gs-esp xpdf xpdf-japanese
+ \item emacs / whizzytex 関連一式: whizzytex advi emacs21 yatex gs-cjk-resource gv
+ \item Git 関連一式: git-core
+ \item DHCP / Avahi 関連一式: 
 \end{itemize}
 
 勉強会の会場で準備している環境です
@@ -286,6 +287,22 @@ avahi(mDNS) で名前解決できることを確認してください。
 \begin{commandline}
 # ping XXX.local
 \end{commandline}
+
+Emacs の設定をします。
+yatex の設定と
+文字コードの設定をします。
+
+.emacs に
+
+\begin{commandline}
+(add-hook 'yatex-mode-hook
+	  '(lambda () 
+	     (progn 
+	       (if (string-match "/monthly-report/" default-directory)
+		   (progn (set-buffer-file-coding-system 'iso-2022-jp)
+			  (set-buffer-modified-p nil))))))
+\end{commandline}
+
 
 \subsection{演習1: リポジトリチェックアウト}
 
@@ -306,6 +323,10 @@ $ cd XXXXX
 $ emacs
 \end{commandline}
 
+whizzytexを起動します。
+プリビューが開始するというメリットだけでなく、即時コンパイルエラーを検出
+できるのが重要です。
+
 \begin{commandline}
 M-x whizzytex 
 \end{commandline}
@@ -316,37 +337,149 @@ M-x flyspell-mode
 
 \subsection{演習3: セクションを追加}
 
+まずセクションを追加します。
+
 \begin{commandline}
 \dancersection{XXXX}{名前}
 \index{XXXX@YYYY}
+\label{XXXX@YYYY}
+
+% 本文
+
 \end{commandline}
 
 \subsection{演習4: 説明の章だてを書いてみる}
 
 \begin{commandline}
+
 \subsection{xxxx}
+
 \subsection{xxxx}
+
 \subsection{xxxx}
+
 \subsection{xxxx}
+
 \subsection{xxxx}
+
 \end{commandline}
 
 \subsection{演習5: 説明の中身を書いてみる}
-\subsection{演習6: コマンドライン出力を追加してみる}
-\subsection{演習6: さまざまなマークアップを使ってみる}
+
+文章は空行区切りでパラグラフになります。roffなどと同じです。
+改行は無視されます。
+
+\verb!\!ではじまる文字列が命令です
+\begin{commandline}
+ \XXXX{YYYY}
+\end{commandline}
+
+monthlyreport.sty で追加のコマンドが定義されています。
+\footnote{フットノートが追加できます}
 
 表を作ってみましょう。
 
-\begin{tabular}{|c|c|c|}
-\hline
-ディストリビューション & バージョン & 備考 \\
-\hline
-ディストリビューション & バージョン & 備考 \\
-ディストリビューション & バージョン & 備考 \\
-\hline
-\end{tabular}
+\begin{table}[h]
+\caption{キャプション}
+\label{tab:1234}
+ \begin{tabular}{|c|c|c|}
+ \hline
+ ディストリビューション & バージョン & 備考 \\
+ \hline
+ ディストリビューション & バージョン & 備考 \\
+ ディストリビューション & バージョン & 備考 \\
+ \hline
+ \end{tabular}
+\end{table}
 
-footnote 
+
+知っておきたい構文は実はあまりたくさんはありません。
+利用されている上位:
+
+\begin{commandline}
+$ sed -n 's/.*\(\\[a-z]\+\).*/\1/pg' *.tex  | sort | uniq -c | sort -rn  
+   6948 \item
+   6240 \end
+   5628 \begin
+   1952 \subsection
+   1623 \subsubsection
+   1491 \santaku
+   1258 \url
+   1189 \hsize
+    895 \hline
+    874 \texttt
+    522 \dancersection
+    473 \footnote
+    451 \includegraphics
+    447 \vspace
+    405 \label
+    378 \frametitle
+    357 \usepackage
+    323 \hspace
+    316 \hrule
+    300 \section
+    253 \bf
+    236 \index
+\end{commandline}
+
+利用されている上位の begin-end 構文
+
+\begin{commandline}
+$ sed -n 's/.*\(\\begin{[a-z]\+\).*/\1/pg' *.tex  | sort | uniq -c | sort -rn 
+   1742 \begin{itemize
+   1293 \begin{commandline
+   1245 \begin{frame
+    781 \begin{minipage
+    271 \begin{center
+    194 \begin{enumerate
+    148 \begin{tabular
+    133 \begin{figure
+\end{commandline}
+
+
+\newcommand{\debiangnulinux}{Debian GNU/Linux}
+\debiangnulinux{}のようによく使う文字列はnewcommandで定義できます。
+ただし、命令がファイル毎に別の意味を持つようになると
+管理がしにくくなるのでできるだけ monthlyreport.sty に定義は集中させています。
+monthlyreport.sty は共有しているので変更する際には御注意を。最初は変更内容につ
+いて誰かにレビューをお願いしたほうがよいと思います。
+\begin{commandline}
+$ git log --pretty=format:%an monthlyreport.sty | sort | uniq -c 
+     15 Junichi Uekawa
+      3 Nobuhiro Iwamatsu
+\end{commandline}
+
+エスケープが必要な文字列の出力方法
+\begin{itemize}
+ \item \verb!\! verb は見にくくなるので最終的手段
+ \item \~{}
+ \item \^{}
+ \item aaaa$<$aaaa そのままだと:<
+ \item aaaa$>$aaaa そのままだと:>
+ \item aaaa\#aaaa
+ \item aaaa\%aaaa
+ \item \_{}aaaa
+\end{itemize}
+
+
+よく使うコマンド
+\begin{itemize}
+ \item begin itemize / item / end itemize
+ \item begin enumerate / item / end enumerate
+ \item commandline (勉強会用に定義)
+ \item includegraphics 後述
+ \item 
+\end{itemize}
+
+\subsection{演習6: コマンドライン出力を追加してみる}
+
+\begin{commandline}
+\ begin{commandline}
+
+コマンドライン出力
+
+\ end{commandline}
+\end{commandline}
 
 \subsection{演習7: png 画像を挿入してみる}
 
@@ -387,6 +520,10 @@ $ git push
 \end{commandline}
 
 \subsection{演習10: git で変更をマージしてみる}
+
+\subsection{演習11: 全体を眺める}
+
+outline-minor-mode が便利です。
 
 
 %
