@@ -1,0 +1,545 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2008 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200811; ebb *.jpg")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+\usepackage[dvips]{xy}
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2008}
+\newcommand{\debmtgmonth}{11}
+\newcommand{\debmtgdate}{15}
+\newcommand{\debmtgnumber}{46}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料
+
+\hspace*{-2.4cm}
+\includegraphics[width=210mm]{image200801/2008title.eps}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+\end{titlepage}
+
+\dancersection{Introduction}{上川 純一}
+ 
+ 今月のDebian勉強会へようこそ。これからDebianの世界にあしを踏み入れると
+ いう方も、すでにどっぷりとつかっているという方も、月に一回Debianについ
+ て語りませんか？
+
+ Debian勉強会の目的は下記です。
+
+\begin{itemize}
+ \item \underline{Debian Developer} (開発者)の育成。
+ \item 日本語での「\underline{開発に関する情報}」を整理してまとめ、アップデートする。
+ \item \underline{場}の提供。
+ \begin{itemize}
+  \item 普段ばらばらな場所にいる人々が face-to-face で出会える場を提供
+	する。
+  \item Debian のためになることを語る場を提供する。
+  \item Debianについて語る場を提供する。
+ \end{itemize}
+\end{itemize}		
+
+ Debianの勉強会ということで究極的には参加者全員がDebian Packageをがりがり
+ と作るスーパーハッカーになった姿を妄想しています。情報の共有・活用を通し
+ て Debianの今後の能動的な展開への土台として、「場」としての空間を提供す
+ るのが目的です。
+
+以上を目的とした、2008 年アジェンダです：
+\begin{enumerate}
+ \item 新年会「気合を入れる」
+ \item Open Source Conference Tokyo (3/1)
+ \item データだけのパッケージを作成してみる、
+       ライセンスの考え方 (David Smith)
+ \item バイナリ一つのパッケージを作成してみる (吉田@板橋)\\
+       バージョン管理ツールを使いDebianパッケージを管理する(git)\\
+       アップストリームの扱い(svn/git/cvs)(岩松 信洋さん)
+ \item バイナリの分けたパッケージの作成。(前田さん)\\
+       バイナリの分け方の考え方、アップグレードなどの運用とか。
+ \item パッケージ作成(dpatch/debhelperで作成するパッケージ)(小林儀匡さん)\\
+       man の書き方(roff or docbook)(でんさん)
+       OSC 2008 Hokkaido
+ \item パッケージ作成(kernel patch、kernel module)(岩松 信洋)
+       Debconf発表練習（上川さん）
+
+ \item Debconf アルゼンチン、共有ライブラリパッケージ作成
+       コミックマーケット74
+
+ \item Open Source Conference Tokyo/Fall、
+       デーモン系のパッケージの作成、latex、 emacs-lisp、フォントパッケージ
+ \item パッケージの cross-compile の方法、amd64 上で i386 のパッケージと
+       か、OSC-Fall報告会、Debconf報告会
+ \item 国際化 po-debconf / po化 / DDTP
+ \item 忘年会
+\end{enumerate}
+
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{事前課題}{岩松 信洋}
+
+今回の事前課題は
+\begin{enumerate}
+ \item ....
+\end{enumerate}
+というものでした。
+その課題に対して下記の内容を提出いただきました。
+
+
+%%% trivia quiz
+\dancersection{Debian Trivia Quiz}{小林 儀匡}
+
+ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
+題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
+りあいがないので、理解度のテストをします。特に一人だけでは意味がわからな
+いところもあるかも知れません。みんなで一緒に読んでみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.deban.org} に投稿された
+内容とDebian Project Newsからです。
+
+\dancersection{最近のDebian関連のミーティング報告}{岩松 信洋}
+\subsection{東京エリアDebian勉強会44回目報告}
+% (query-replace-regexp "<.*?>" "")
+% (query-replace-regexp "^[	 ]\+" "")
+
+\dancersection{Debconf8 参加報告}{上川 純一}
+\label{sec:debconf8}
+\index{debconf8}
+\index{Debian Conference 2008}
+
+\subsection{Debconfとは}
+
+  2008年度の Debconf は 8月10日から8月16日まで、アルゼンチンのマルデル
+プラタで行われました。日本からは、上川 純一が参加しました。
+
+\subsubsection{Debconfの歴史・経緯}
+
+Debian Conference \url{http://debconf8.debconf.org/} は Debian 
+の開発者たちが一同に介するイベントです。通常顔をあわせることのないメンバー
+たちが一同に介し友好を深め、技術的な議論を戦わせます。過去の開催履歴を見
+てみると\tbref{tab:debconflist8}のようになります。
+
+\begin{table}[H]
+\caption{歴代のDebconf参加者推移}
+\label{tab:debconflist8}
+ \begin{center}
+ {\footnotesize
+ \begin{tabular}{|c|c|c|r|}
+ \hline
+ 年 & 名前 & 場所 & 参加人数 \\
+ \hline
+ 2000 & debconf 0 &フランス ボルドー & \\
+ 2001 & debconf 1 &フランス ボルドー & \\
+ 2002 & debconf 2 &カナダ トロント & 90名 \\
+ 2003 & debconf 3 &ノルウェー オスロ & 140名 \\
+ 2004 & debconf 4 &ブラジル ポルトアレグレ &  150名 \\
+ 2005 & debconf 5 &フィンランド ヘルシンキ & 200名 \\
+ 2006 & debconf 6 &メキシコ オアスタペック & 300名 \\
+ 2007 & debconf 7 &英国スコットランド エジンバラ & 約400名 \\
+ 2008 & debconf 8 &アルゼンチン マルデルプラタ & 約200名 \\
+ \hline
+ \end{tabular}
+ }
+ \end{center}
+\end{table}
+
+\subsubsection{Debconf 2007} 2008年度の Debconf は海辺のホテルを二棟借
+りて開催しました。宿泊しているホテルの7Fと1Fがハックラボになっており、
+7Fがカンファレンスルームになっているという便利な環境でした。
+
+\subsection{アルゼンチン・マルデルプラタ}
+
+\subsubsection{行き方}
+  日本からアルゼンチンまでは、直行便がありません。
+  上川はサンフランシスコ・カナダのトロント・チリのサンチャゴを経由して
+  アルゼンチンのブエノスアイレスまで移動(ここまでで約30時間程度)、
+  そこからバスで移動(5時間(直行）から10時間(乗り換え))しました。
+
+  今回の会期は従来と違い長期休暇でバカンスをとっている人の多い時期です。
+そのため、飛行機の予約のタイミングが難しかったかもしれません。
+また、日本からアルゼンチンにいく便には安いものがあまりみつからず苦労しました。
+
+ブエノスアイレスからマルデルプラタの間は東京・大阪間程度の距離があり、
+多数のバスが通っています。空港からブエノスアイレスの市街で乗り換えれば多数のバスがあるのですが、
+空港からの直行のバスは非常に少なく(Manuel Tenda Leonという会社のバスのみが運行している模様)、
+予約ができない人がでていたようです。
+
+\subsubsection{会場}
+
+\begin{wrapfigure}{r}{11cm}
+  \includegraphics[width=5cm]{image200810/mdq-area.jpg}
+\end{wrapfigure}
+会場はビーチリゾートとして知られるマルデルプラタの中央カジノ前のホテルでした。
+\\
+
+
+\subsection{スケジュール}
+
+8月10日から開始し、8月16日までイベントがぎっしりつまっていました。
+8月18日にブエノスアイレスに移動し、そこでDebian Day を開催しました。
+
+\subsection{会期中で気になったこと}
+
+上川が今回参加して気になったことを紹介します。
+
+Debconf に参加しているミラーサーバはフルミラーではなくアーキテクチャ
+i386, amd64, ppc と armel でした。
+
+qemubuilder を開発している関係でarmel関連の作業を行いました。
+qemubuilder の armel 移植と、armel 関連のデバッグなどです。
+しかしながら途中でPCのHDDが故障し後半はHDDの購入からインストール、
+macbookのブートローダのデバッグに費しました。
+
+PGPキーをICカードで利用する仕組みがあるみたいで、作成していました。
+ただ、仕組みがよくわからないので今回はスルーしました。
+
+%
+\dancersection{Emacs, Git, LaTeX で Debian 勉強会資料作成}{上川　純一}
+\label{sec:latexdebmtgres}
+\index{latex}
+
+\subsection{概要}
+
+ハンズオンでDebian 勉強会資料のチェックアウト、作成からコミットまでの流れ
+を一通りやってみましょう。途中でつまったらできるまで現地で対応します
+\footnote{ベストエフォート、もしかするとできない場合もあります}。
+
+\subsection{事前準備}
+
+現地に入るまでに準備しておくものです
+
+\begin{itemize}
+ \item 無線LAN接続可能なノートパソコン
+       (十分長いLANケーブルを持参しても可能)
+ \item 必要なパッケージをインストールした Debian GNU/Linux sid のシステ
+       ム
+ \item 記事にする内容。
+       紹介したいツール/パッケージ関連のコマンドライン出力と
+       画面写真と簡単な説明文章。
+\end{itemize}
+
+事前にインストールしておいて欲しい必要なパッケージは
+
+\begin{itemize}
+ \item 基本ツール: make 
+ \item LaTeX 一式: ptex-bin dvipdfmx latex-beamer  okumura-clsfiles gs-esp xpdf xpdf-japanese
+ \item emacs / whizzytex 関連一式: whizzytex advi emacs21 yatex gs-cjk-resource gv
+ \item Git 関連一式: git-core
+ \item DHCP / Avahi 関連一式: 
+\end{itemize}
+
+勉強会の会場で準備している環境です
+
+\begin{itemize}
+ \item avahi 経由で接続できる Debian package cache (i386, amd64)
+ \item 無線LAN(WEP) ESSID:XXXXX 
+\end{itemize}
+
+\subsection{演習0: 環境設定}
+
+DHCPでネットワーク接続してください。
+avahi(mDNS) で名前解決できることを確認してください。
+
+\begin{commandline}
+# ping XXX.local
+\end{commandline}
+
+Emacs の設定をします。
+yatex の設定と
+文字コードの設定をします。
+
+.emacs に
+
+\begin{commandline}
+(add-hook 'yatex-mode-hook
+	  '(lambda () 
+	     (progn 
+	       (if (string-match "/monthly-report/" default-directory)
+		   (progn (set-buffer-file-coding-system 'iso-2022-jp)
+			  (set-buffer-modified-p nil))))))
+\end{commandline}
+
+
+\subsection{演習1: リポジトリチェックアウト}
+
+\begin{commandline}
+$ git clone git://gitrepository.local/XXX
+\end{commandline}
+
+\begin{commandline}
+$ make -j4
+$ cp git-pre-commit.sh .git/hooks/pre-commit
+$ make -j4
+\end{commandline}
+
+\subsection{演習2: emacs whizzytex 起動}
+
+\begin{commandline}
+$ cd XXXXX
+$ emacs
+\end{commandline}
+
+whizzytexを起動します。
+プリビューが開始するというメリットだけでなく、即時コンパイルエラーを検出
+できるのが重要です。
+
+\begin{commandline}
+M-x whizzytex 
+\end{commandline}
+
+\begin{commandline}
+M-x flyspell-mode 
+\end{commandline}
+
+\subsection{演習3: セクションを追加}
+
+まずセクションを追加します。
+
+\begin{commandline}
+\dancersection{XXXX}{名前}
+\index{XXXX@YYYY}
+\label{XXXX@YYYY}
+
+% 本文
+
+\end{commandline}
+
+\subsection{演習4: 説明の章だてを書いてみる}
+
+\begin{commandline}
+
+\subsection{xxxx}
+
+\subsection{xxxx}
+
+\subsection{xxxx}
+
+\subsection{xxxx}
+
+\subsection{xxxx}
+
+\end{commandline}
+
+\subsection{演習5: 説明の中身を書いてみる}
+
+文章は空行区切りでパラグラフになります。roffなどと同じです。
+改行は無視されます。
+
+\verb!\!ではじまる文字列が命令です
+\begin{commandline}
+ \XXXX{YYYY}
+\end{commandline}
+
+monthlyreport.sty で追加のコマンドが定義されています。
+\footnote{フットノートが追加できます}
+
+表を作ってみましょう。
+
+\begin{table}[h]
+\caption{キャプション}
+\label{tab:1234}
+ \begin{tabular}{|c|c|c|}
+ \hline
+ ディストリビューション & バージョン & 備考 \\
+ \hline
+ ディストリビューション & バージョン & 備考 \\
+ ディストリビューション & バージョン & 備考 \\
+ \hline
+ \end{tabular}
+\end{table}
+
+
+知っておきたい構文は実はあまりたくさんはありません。
+利用されている上位:
+
+\begin{commandline}
+$ sed -n 's/.*\(\\[a-z]\+\).*/\1/pg' *.tex  | sort | uniq -c | sort -rn  
+   6948 \item
+   6240 \end
+   5628 \begin
+   1952 \subsection
+   1623 \subsubsection
+   1491 \santaku
+   1258 \url
+   1189 \hsize
+    895 \hline
+    874 \texttt
+    522 \dancersection
+    473 \footnote
+    451 \includegraphics
+    447 \vspace
+    405 \label
+    378 \frametitle
+    357 \usepackage
+    323 \hspace
+    316 \hrule
+    300 \section
+    253 \bf
+    236 \index
+\end{commandline}
+
+利用されている上位の begin-end 構文
+
+\begin{commandline}
+$ sed -n 's/.*\(\\begin{[a-z]\+\).*/\1/pg' *.tex  | sort | uniq -c | sort -rn 
+   1742 \begin{itemize
+   1293 \begin{commandline
+   1245 \begin{frame
+    781 \begin{minipage
+    271 \begin{center
+    194 \begin{enumerate
+    148 \begin{tabular
+    133 \begin{figure
+\end{commandline}
+
+
+\newcommand{\debiangnulinux}{Debian GNU/Linux}
+\debiangnulinux{}のようによく使う文字列はnewcommandで定義できます。
+ただし、命令がファイル毎に別の意味を持つようになると
+管理がしにくくなるのでできるだけ monthlyreport.sty に定義は集中させています。
+monthlyreport.sty は共有しているので変更する際には御注意を。最初は変更内容につ
+いて誰かにレビューをお願いしたほうがよいと思います。
+\begin{commandline}
+$ git log --pretty=format:%an monthlyreport.sty | sort | uniq -c 
+     15 Junichi Uekawa
+      3 Nobuhiro Iwamatsu
+\end{commandline}
+
+エスケープが必要な文字列の出力方法
+\begin{itemize}
+ \item \verb!\! verb は見にくくなるので最終的手段
+ \item \~{}
+ \item \^{}
+ \item aaaa$<$aaaa そのままだと:<
+ \item aaaa$>$aaaa そのままだと:>
+ \item aaaa\#aaaa
+ \item aaaa\%aaaa
+ \item \_{}aaaa
+\end{itemize}
+
+
+よく使うコマンド
+\begin{itemize}
+ \item begin itemize / item / end itemize
+ \item begin enumerate / item / end enumerate
+ \item commandline (勉強会用に定義)
+ \item includegraphics 後述
+ \item 
+\end{itemize}
+
+\subsection{演習6: コマンドライン出力を追加してみる}
+
+\begin{commandline}
+\ begin{commandline}
+
+コマンドライン出力
+
+\ end{commandline}
+\end{commandline}
+
+\subsection{演習7: png 画像を挿入してみる}
+
+includegraphics
+
+png 
+
+git add
+
+ebb
+
+make で確認。
+
+\subsection{演習8: git で変更をコミットしてみる}
+
+\begin{commandline}
+$ make 
+\end{commandline}
+
+\begin{commandline}
+M-x git-commit
+\end{commandline}
+
+\subsection{演習9: git での変更を送信してみる}
+
+\begin{commandline}
+$ git pull
+\end{commandline}
+
+コンフリクトを解消します。
+
+\begin{commandline}
+M-x git-commit
+\end{commandline}
+
+\begin{commandline}
+$ git push
+\end{commandline}
+
+\subsection{演習10: git で変更をマージしてみる}
+
+\subsection{演習11: 全体を眺める}
+
+outline-minor-mode が便利です。
+
+
+%
+
+%\printindex
+
+\cleartooddpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\ \\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+
+\end{document}
