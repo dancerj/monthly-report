@@ -219,6 +219,474 @@
 \dancersection{Po4a でドキュメント翻訳の保守を楽にしよう}{小林 儀匡}
 \label{sec:po4a}
 \index{po4a}
+
+翻訳の保守は新規翻訳よりも手間のかかる作業になりがちです。
+しかし、これを怠ると原文との乖離は大きくなり、折角の翻訳も価値が下がっていきます。
+Debianで開発されているPo4aは、プレーンテキスト、XML、HTML、LaTeX、nroff (man)
+など様々な形式のドキュメント翻訳をPOという形式で管理し、保守性を上げるツールです。
+今回はこのPo4aの使い方と、
+新たなドキュメント形式をPOで管理するために知っておくべき内部構造について説明します。
+
+\subsection{はじめに 〜地味で地道なドキュメント翻訳保守作業〜}
+
+長期的に見れば、ドキュメント翻訳者の作業で最も大変で最も大切なのは、
+ドキュメントの翻訳作業ではなく翻訳の{\bf 保守}作業でしょう。
+何週間、何ヶ月もの作業の末、1万行を超える長いドキュメントの翻訳作業を終えたとしても、
+原文が変わり続ける限り、保守をしなければ翻訳の価値は下がっていきます。
+
+保守は地味で地道な作業です。
+原文に対しては、次のような変更が発生します。
+
+\begin{itemize}
+ \item typoの修正
+ \item 記述の追加・変更・削除 (修正を含む)
+ \item パラグラフの位置の変更
+ \item マークアップの変更 (マークアップ言語で書かれたドキュメントの場合)
+\end{itemize}
+
+同時に、次のような非本質的な変更も頻繁に発生します。
+
+\begin{itemize}
+ \item パラグラフのインデントの変更
+ \item パラグラフの改行位置の変更 (主に語句の挿入・変更・削除に起因する)
+\end{itemize}
+
+こういった様々な種類の変更は大抵は混ざっています。
+ドキュメントの翻訳者は通常、\texttt{diff}で差分を眺めて変更を把握し、
+それを翻訳に反映させます。
+差分を読んで変更を把握する能力によって、翻訳に反映させる作業が楽にも大変にもなります。
+
+% FIXME: まだ書く
+
+このようなドキュメント翻訳の保守作業に必要な労力を和らげてくれるのがPo4aです。
+Po4aは、様々な形式のドキュメント翻訳をPOという形式で一括して管理し、
+保守性を上げるツールです。
+以下では、まずPOというファイル形式が、翻訳にとってどのように便利なのかを説明し、
+その上でPo4aがどのようなツールなのか説明します。
+
+\subsection{PO}
+
+POは、プログラムのメッセージの翻訳のために作られたファイル形式です。
+ここではその書式や編集用のツールについて見ていきましょう。
+
+\subsubsection{POの基本的な書式}
+
+まずは、POの基本的な書式を説明します。
+
+POには、原文と訳文の対からなるエントリが空行区切りで多数収められています。
+最初に、簡単なエントリの例を紹介します。
+
+\begin{commandline}
+#: src/apt_config_treeitems.cc:99
+msgid ""
+"%BOption:%b  %s\n"
+"%BDefault:%b %s\n"
+"%BValue:%b   %s\n"
+msgstr ""
+"%Bオプション:%b %s\n"
+"%Bデフォルト:%b %s\n"
+"%B値:%b         %s\n"
+\end{commandline}
+
+一目瞭然ですが、\texttt{msgid}から始まる一連の行、\texttt{msgstr}から始まる一連の行の、
+\texttt{"}で囲まれた部分は、それぞれ原文と訳文です。
+
+「\texttt{\#}」で始まる行は基本的にすべてコメントです。
+特に「\texttt{\#:}」で始まる行は、原文を抽出した位置を示す参照用の行です。
+これは\texttt{xgettext}がメッセージを抽出してPOTを生成するときに設定します。
+翻訳者は、\texttt{msgid}を見ても理解できない場合、
+この参照コメントをもとにしてソースコードを眺めることができます。
+
+「\texttt{\#:}」以外にも、様々な種類のコメントがあります。
+そのようなコメントを含んだエントリの例を紹介します。
+
+\begin{commandline}
+# 最後の %s は「 (core dumped)」。
+#. ForTranslators: "%s update %s" gets replaced by a command line, do not translate it!
+#: src/generic/apt/download_update_manager.cc:383
+#, c-format
+msgid "The debtags update process (%s update %s) was killed by signal %d%s."
+msgstr ""
+"debtags 更新プロセス (%s update %s) がシグナル %d に kill されました%s。"
+\end{commandline}
+
+「\texttt{\#.}」で始まる行は、
+原文のメッセージと一緒にソースコードから抽出されたコメントです。
+主に、メッセージの翻訳に注意が必要な場合やメッセージが翻訳しにくい場合に、
+開発者から翻訳者への説明に使われます。
+これも\texttt{xgettext}がメッセージ抽出時に設定します。
+
+「\texttt{\#,}」で始まる行はフラグです。
+最もよく使われるフラグはfuzzyというフラグでしょう。
+これについては後述します。
+これは様々なツールが設定します。
+
+それ以外の、
+「\texttt{\#}」の後に何の記号もない行は、翻訳者が翻訳作業時に勝手に追加したコメントです。
+各エントリにはこのような翻訳者コメントを自由自在につけることができます。
+
+このようなコメント情報は、
+プログラムのソースコードに書くコメントと同様、人間の作業にのみ必要となるものなので、
+MOに変換するときにすべて削除されます\footnote{したがって、\texttt{msgunfmt}でMOをPOに変換すると、コメントをまったく含まないPOが得られます。}。
+
+\subsubsection{fuzzyエントリ}
+
+\texttt{msgmerge}が古いPOに新しいPOTをマージする際、
+既に翻訳されているエントリの\texttt{msgid}に似た\texttt{msgid}を持つエントリが追加されることがあります。
+例えば、エントリAの\texttt{msgid}に似た\texttt{msgid}を持つエントリA'が追加されるとします。
+このとき、\texttt{msgmerge}はAをベースとしてA'を翻訳できると判断し、
+A'の\texttt{msgstr}にAの\texttt{msgstr}の内容を設定した上で、
+A'にfuzzyフラグをつけます。
+このようにして作られるエントリが、次のような{\bf fuzzyエントリ}です。
+
+\begin{commandline}
+#: src/main.cc:181
+#, fuzzy, c-format
+msgid ""
+" -q             In command-line mode, suppress the incremental progress\n"
+"                indicators.\n"
+msgstr " -q                コマンドラインモードで進行状況を逐一表示しません。"
+\end{commandline}
+
+しかしこれだけだと、翻訳者には、\texttt{msgid}がどう変化したのか分かりません。
+そこでGNU gettextのバージョン0.16から導入されたのが、
+次のような、「\texttt{\#|}」で始まるコメントです。
+
+\begin{commandline}
+#: src/main.cc:181
+#, fuzzy, c-format
+#| msgid ""
+#| " -q             In command-line mode, suppress the incremental progress "
+#| "indicators."
+msgid ""
+" -q             In command-line mode, suppress the incremental progress\n"
+"                indicators.\n"
+msgstr " -q                コマンドラインモードで進行状況を逐一表示しません。"
+\end{commandline}
+
+「\texttt{\#|}」で始まるコメントは、以前の\texttt{msgid}です。
+\texttt{msgmerge}に\texttt{--previous}を指定した場合に設定されます。
+このコメントを使えば、
+以前の\texttt{msgid}と現在の\texttt{msgid}を比較できるので、
+どのような変更を\texttt{msgstr}に加えれば翻訳を現在の\texttt{msgid}に対応できるのかが簡単に分かります。
+POの保守性を上げる仕組みと言えます。
+\texttt{msgmerge}に\texttt{--previous}が指定されていない場合は指定しておくとよいでしょう。
+
+\subsubsection{ヘッダ}
+
+翻訳を扱う際、
+翻訳者やその連絡先、原文の問題の連絡先、翻訳の更新日時、文字セットなどは重要なメタ情報です。
+POでは、最初のエントリを{\bf ヘッダ}として使用し、
+そのエントリの\texttt{msgstr}にこれらのメタ情報を含めることになっています。
+ヘッダの\texttt{msgid}は空文字列にすると決まっています。
+
+また、著作権情報など、書式が曖昧な情報や長い情報は、
+ヘッダのコメント (つまりファイルの冒頭) に書くことになっています。
+
+以下は、aptitudeのja.poの例です。
+
+\begin{commandline}
+# Japanese translations for aptitude
+# aptitude の日本語訳
+# Copyright (C) 2006-2008 Noritada Kobayashi <nori1@dolphin.c.u-tokyo.ac.jp>.
+# This file is distributed under the same license as the aptitude package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: aptitude 0.4.1\n"
+"Report-Msgid-Bugs-To: aptitude@packages.debian.org\n"
+"POT-Creation-Date: 2008-09-05 16:05+0200\n"
+"PO-Revision-Date: 2008-05-16 03:35+0900\n"
+"Last-Translator: Noritada Kobayashi <nori1@dolphin.c.u-tokyo.ac.jp>\n"
+"Language-Team: Japanese\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+\end{commandline}
+
+なお、ここでは省略しましたが、筆者は、
+メッセージカタログ内での用語統一を容易にするため、
+aptitudeやSubversionなど大規模なPOでは、ヘッダのコメントに対訳表を含めています。
+
+\subsubsection{その他の書式}
+
+ここまでで、POのエントリの書式についてざっと見ました。
+
+POのエントリについては、\texttt{msgid}と\texttt{msgstr}から成るもの以外にも、
+複数形への対応として\texttt{msgid}、\texttt{msgid\_plural}、\texttt{msgstr[n]}から成るものがあります。
+詳しくはGNU gettextのドキュメント\footnote{\texttt{gettext-doc}パッケージ。}の『3 The Format of PO Files』を参照してください。
+
+\subsubsection{PO編集ツール}
+
+POで翻訳作業を行うにはPO編集ツールが便利です。
+POはテキストなのでどんなテキストエディタでも編集できますが、
+翻訳に含まれる「\texttt{"}」や「\verb@\@」を手でエスケープするのは厄介です。
+そのような機械的な処理は、POに特化したPO編集ツールに任せるのがよいでしょう。
+また、PO編集ツールには翻訳支援機能を持つものもあるので、
+作業効率も上がるはずです。
+
+PO編集ツールとしてよく知られているのは、
+EmacsのPO専用メジャーモードであるpo-mode、
+KDEのPO編集スイートであるKBabel、
+GNOMEのPOエディタであるGtranslator、
+そしてpoeditです。
+
+ここでは、筆者が慣れているpo-modeについて、筆者がよく使う操作だけざっと説明します。
+説明中で何度も登場する「選択エントリ」とは「現在カーソルがあるエントリ」の意味です。
+
+まず、エントリ間の移動には以下のようなキー操作が使えます。
+
+\begin{description}
+ \item[\texttt{n}] 次のエントリに移動します。
+ \item[\texttt{p}] 前のエントリに移動します。
+ \item[\texttt{t}] 次の既訳エントリに移動します。
+ \item[\texttt{T}] 前の既訳エントリに移動します。
+ \item[\texttt{f}] 次のfuzzyエントリに移動します。
+ \item[\texttt{F}] 前のfuzzyエントリに移動します。
+ \item[\texttt{u}] 次の未訳エントリに移動します。
+ \item[\texttt{U}] 前の未訳エントリに移動します。
+ \item[\texttt{o}] 次のobsoleteエントリに移動します。
+ \item[\texttt{O}] 前のobsoleteエントリに移動します。
+ \item[\texttt{m}] 選択エントリの位置をスタックにpushします。
+ \item[\texttt{r}] スタックからpopして得られたエントリに移動します。
+\end{description}
+
+また選択エントリの操作には以下のようなキー操作が使えます。
+
+\begin{description}
+ \item[\texttt{RET}] 編集用バッファを開いて、選択エントリの\texttt{msgstr}を編集します。
+ \item[\texttt{\#}] 編集用バッファを開いて、選択エントリの翻訳者コメントを編集します。
+ \item[\texttt{k}] 選択エントリの\texttt{msgstr}をカット (kill) します。
+ \item[\texttt{K}] 選択エントリの翻訳者コメントをカット (kill) します。
+ \item[\texttt{w}] 選択エントリの\texttt{msgstr}をコピーします。
+ \item[\texttt{W}] 選択エントリの翻訳者コメントをコピーします。
+ \item[\texttt{y}] 選択エントリの\texttt{msgstr}にペースト (yank) します。
+ \item[\texttt{Y}] 選択エントリの翻訳者コメントにペースト (yank) します。
+ \item[\texttt{TAB}] 選択エントリのfuzzyフラグを取り除きます。
+ \item[\texttt{DEL}] 選択エントリが既訳の場合はfuzzyフラグをつけます。
+	    未訳またはfuzzyの場合はobsoleteにします。
+	    obsoleteの場合は削除します。
+ \item[\texttt{C-j}] 選択エントリの\texttt{msgid}の内容を\texttt{msgstr}にコピーします。
+ \item[\texttt{s}] 選択エントリの参照コメントをもとにソースコードの該当行を表示します。
+	    参照コメントに複数の位置が記述されている場合は、順番に表示します。
+\end{description}
+
+編集用バッファでは通常のEmacsの編集操作ができます。
+特殊な操作は以下のとおりです。
+
+\begin{description}
+ \item[\texttt{C-c C-c}] 編集用バッファの内容を\texttt{msgstr}または翻訳者コメントの内容として設定し、バッファを閉じます\footnote{もちろん、この変更はメインバッファで保存操作を行うまで保存されません。}。
+ \item[\texttt{C-c C-k}] 編集用バッファの内容を破棄してバッファを閉じます。
+\end{description}
+
+最後に、メインバッファでのPO全体に関わる操作は以下のとおりです。
+
+\begin{description}
+ \item[\texttt{\_}] 行った変更を取り消します。
+ \item[\texttt{?}, \texttt{h}] ヘルプを表示します。
+ \item[\texttt{V}] \texttt{msgfmt}に\texttt{--check} (\texttt{-c}) をつけて実行し、POに問題点がないか確認した上で保存します。
+	    例えば、\texttt{msgid}が改行記号で終わっているのに\texttt{msgstr}が改行記号で終わっていない場合、それが報告されます。
+\end{description}
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[width=0.4\hsize]{image200809/po-mode.png}
+  \includegraphics[width=0.4\hsize]{image200809/KBabel.png}
+ \end{center}
+ \caption{po-modeとKBabel}
+ \label{fig:po-editors}
+\end{figure}
+
+以上の簡単な説明から分かると思いますが、po-modeは移動や編集がしやすく、
+非常に便利です。
+
+ただ、po-modeには今のところ翻訳メモリのような機能はありません。
+KBabelやGtranslatorは翻訳メモリを備えているので、
+翻訳メモリに興味のあるかたはこれらを試してみるのもよいでしょう。
+
+\subsubsection{GNU gettextツール群}
+
+翻訳作業にはPO編集ツールを使うことになるでしょうが、
+一方でGNU gettextが提供する、
+POやPOTに対してコマンドラインから自動処理できるツール群も、知っておくと便利です。
+以下でざっと説明します。
+
+\begin{description}
+ \item[\texttt{msgattrib}] エントリの状態に応じた一括処理をします。
+	    例えば、「fuzzyエントリのみにする」、「fuzzyエントリからfuzzyフラグを取り除く」といったことが可能です。
+ \item[\texttt{msgcat}] 複数のPOを繋げます。
+ \item[\texttt{msgcmp}] POとPOTが含む\texttt{msgid}セットを比較します。
+ \item[\texttt{msgcomm}] 複数のPOに含まれる共通の\texttt{msgid}を抽出します。
+ \item[\texttt{msgconv}] POの文字セットを変換します。
+ \item[\texttt{msgen}] 英語のPOを作成します。
+	    入力ファイルの未訳のエントリの\texttt{msgstr}に、\texttt{msgid}と同じ文字列を設定します。
+ \item[\texttt{msgexec}] POに含まれるすべての翻訳に対してコマンドを実行します。
+ \item[\texttt{msgfilter}] POに含まれるすべての翻訳に対して共通の処理をします。
+ \item[\texttt{msgfmt}] POをコンパイルしてMOに変換します。
+ \item[\texttt{msggrep}] パターンにマッチしたエントリをPOから抽出します。
+ \item[\texttt{msginit}] POを初期化します。
+ \item[\texttt{msgmerge}] POにPOTをマージします。
+ \item[\texttt{msgunfmt}] MOからPOに逆コンパイルします。
+ \item[\texttt{msguniq}] POに含まれる重複した\texttt{msgid}を1つにまとめます。
+ \item[\texttt{xgettext}] ソースコードから\texttt{msgid}を抽出してPOTを生成します。
+\end{description}
+
+開発者が主に使うのは\texttt{xgettext}と\texttt{msgmerge}、\texttt{msgfmt}ですが、
+他のツールも使いこなせるようになっておくと便利です。
+使い方は各ツールのマニュアルページを参照してください。
+
+\subsubsection{まとめ}
+
+POはプログラム翻訳のために作られたファイル形式で、参照コメントのような翻訳に有用な情報や、
+fuzzyエントリのような翻訳作業・保守作業の効率を上げるための仕組みを含んでいることを説明しました。
+また、POという書式に特化した編集ツールについても説明しました。
+
+\subsection{ドキュメント翻訳でPOを使うという考え方}
+
+プログラム翻訳のために生み出されたPOは、
+翻訳者にとって翻訳と保守の両方の作業をしやすい環境を提供する存在となりました。
+その理由としては以下のようなものが考えられます。
+
+\begin{itemize}
+ \item PO自体に翻訳と保守を支援するための仕組みがある上、
+       翻訳支援機能を持つPO編集ツールも存在する。
+ \item メッセージの管理はツールがやってくれるので、人間は翻訳の管理に集中していればよい。
+       \begin{itemize}
+	\item メッセージがソースコードのどこにあるかが翻訳者にとって重要でないので、
+	      メッセージがソースコード内で移動しても翻訳者は気にする必要がない。
+	\item \texttt{msgmerge}でPOを更新すると、どのエントリの翻訳を更新すべきか瞬時に分かり、
+	      PO編集ツールでそのエントリへ簡単に移動できる。
+       \end{itemize}
+\end{itemize}
+
+一方でドキュメント翻訳については、通常は原文をそのままコピーして翻訳作業を開始するため、
+翻訳以外の部分 (インデント、ドキュメント内での位置など) に変更があった場合、
+その影響を翻訳者が受けます。
+プログラム翻訳と比べて分量が多いのに保守性が低いので、
+結果として翻訳者への負担は非常に大きくなります。
+この状況は、翻訳者にとって大きな悩みの種でした。
+
+そこで生まれたのが、ドキュメント翻訳に対してもPOを使おうという考え方です。
+具体的には、ドキュメントの各ブロックをエントリとしたPOを作り、
+ドキュメントとPOとを相互変換できるようにすることで、
+翻訳者がPOでの翻訳管理に集中できるようにします。
+以下のツールがそのような思想で作られています。
+
+\begin{description}
+ \item[Po4a] Debianで開発されている\footnote{厳密に書くと、Debian Projectのメンバーが、
+	    同プロジェクトが提供しているフリーソフトウェアプロジェクトホスティングサービスであるAlioth上で、
+	    1つのプロジェクトとして開発しています。}。
+	    対象とするドキュメント形式は、プレーンテキスト、XML、HTML、LaTeX、nroff (man)、Podなど多数で、
+	    Perlで書かれたモジュールおよびプログラムの集合として実装されている。
+	    Debianパッケージは\texttt{po4a}。
+ \item[poxml] KDEで、KDE SDKモジュールの1つのコンポーネントとして開発されている。
+	    対象とするドキュメント形式はDocBook XMLで、C++で実装された、
+	    \texttt{po2xml}、\texttt{xml2pot}などの実行可能プログラムから成る。
+	    Debianパッケージは\texttt{poxml}。
+ \item[xml2po] GNOMEでgnome-doc-utilsの1つのユーティリティとして開発されている。
+	    対象とするドキュメント形式はDocBook XMLである。
+	    Pythonで実装されたシンプルな1つのファイルから成るので、
+	    手軽にドキュメントのビルドに使用できる。
+	    Debianでは\texttt{gnome-doc-utils}パッケージに含まれる。
+\end{description}
+
+poxmlやxml2poがDocBook XMLのみを扱うツールであるのに対し、
+Po4aが様々な形式をサポートしているのは、
+おそらくGNOMEやKDEとDebianの立場の違いを反映しているのでしょう。
+GNOMEやKDEはプロジェクト内でドキュメント形式をDocBook XMLに統一できますが、
+ディストリビュータであるDebianでは、
+様々なソフトウェアの様々なドキュメントに対応する必要があるのです。
+
+以降のセクションでは、ドキュメント翻訳にPOを使用する3つのツールのうち、
+唯一複数のドキュメント形式をサポートしているPo4aについて見ていきます。
+
+\subsection{Po4aの基本}
+
+Po4aというソフトウェア名は、「po for anything」から来ています。
+名前からも分かるように、
+最初から様々なドキュメント形式の翻訳をPOで管理することを目的としており、
+そのために入力形式として複数の形式を扱うことを想定した作りとなっています。
+
+例えば、以下のような形式が現在サポートされています。
+
+\begin{description}
+ \item[KernelHelp] カーネル設定ヘルプのドキュメント形式です。
+ \item[nroff] Unixの伝統あるマニュアルページの形式です。
+	    BSDマニュアルページで使用されているmdoc形式もサポートされています。
+	    初心者が読み書きしにくい形式ですが、
+	    Po4aでサポートされたので、
+	    インラインのマークアップだけ分かれば (原文の真似をすれば) 翻訳できます。
+ \item[POD] Perl関連のドキュメントに使われる形式です。
+	    ソースコードの横にコメントとして書き込まれたドキュメントは翻訳しにくいですが、
+	    それをPOとして抽出し、翻訳しやすくします。
+ \item[SGML] 最近ではXMLのほうが主流ですが、一昔前のドキュメント形式の主流です。
+	    現在サポートされているDTDはDebianDoc-SGMLとDocBook SGMLのものです。
+ \item[TeX/LaTeX] 著名な組版ソフトウェア\LaTeX{}の形式です。
+ \item[GNU Texinfo] GNUのドキュメントに使用される形式です。
+ \item[XML] 最近よく使われるドキュメント形式です。
+	    現在サポートされているDTDはDia、DocBook XML、Guide XML、XHTMLのものです。
+\end{description}
+
+サポートされている形式の一覧は、
+\texttt{po4a-gettextize}、\texttt{po4a-translate}、\texttt{po4a-updatepo}などのコマンドに\texttt{--help-format}オプションを与えると表示できます。
+ドキュメント形式をコマンドに\texttt{--format} (\texttt{-f}) などで指定する場合、
+この一覧に載っている名前を使用してください。
+
+\begin{commandline}
+noritada[3:39]%  po4a-gettextize --help-format   terra:~/svnwc/build-common/doc
+有効フォーマット一覧:
+  - dia: 非圧縮 Dia ダイアグラム。
+  - docbook: Docbook XML。
+  - guide: Gentoo Linux の xml ドキュメントフォーマット。
+  - ini: .INI フォーマット。
+  - kernelhelp: 各カーネルのコンパイルオプションのヘルプメッセージ。
+  - latex: LaTeX フォーマット。
+  - man: 古き良きマニュアルページフォーマット。
+  - pod: Perl オンラインドキュメントフォーマット。
+  - sgml: debiandoc と docbook DTD の双方。
+  - texinfo: info ページフォーマット。
+  - tex: 汎用 TeX ドキュメント (latex を参照)。
+  - text: シンプルなテキストフォーマット。
+  - wml: WML ドキュメント。
+  - xhtml: XHTML ドキュメント。
+  - xml: 汎用 XML ドキュメント (docbook を参照)。
+\end{commandline}
+
+\subsection{Po4aの使い方}
+
+\subsubsection{原文ドキュメントファイルから新たにPOTを生成する}
+
+原文のドキュメントファイルから新たにPOTを生成するには、
+\texttt{po4a-gettextize}を使用してください。
+書式を\texttt{-f}で指定し、出力するPOTのファイル名を\texttt{-p}で指定します。
+
+\begin{commandline}
+noritada[3:37]% po4a-gettextize -v -f docbook -m cdbs-doc.xml -p cdbs-doc.pot
+\end{commandline}
+
+\subsubsection{原文・翻訳ドキュメントファイルからPOを生成する}
+
+\texttt{po4a-gettextize}
+
+\subsubsection{POと原文ドキュメントファイルから翻訳ドキュメントファイルを生成する}
+
+\texttt{po4a-translate}
+
+\subsubsection{原文ドキュメントファイルの更新をPOに反映させる}
+
+\texttt{po4a-updatepo}
+
+\subsubsection{POと翻訳ドキュメントファイルを一括更新する}
+
+\texttt{po4a}
+
+\subsubsection{原文にない要素を翻訳ドキュメントファイルに挿入する}
+
+\subsection{Po4aの内部構造}
+
+\subsubsection{TransTractor::parse()}
+
 \dancersection{【でびあん】Debian パッケージメンテナというお仕事【現在募集中】}{やまね ひでき}
 
 \label{sec:dm-yamane}
