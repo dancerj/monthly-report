@@ -1,9 +1,20 @@
 #!/usr/bin/python2.5
 # a sample code to join in chat room and log what is happening.
 
-import sys
-import os 
+import sys, os, time
 import xmpp
+
+class JabberChatLog:
+    def __init__(self, filename):
+        self.logfile = open(filename,"a")
+
+    def gettime(self):
+        return time. strftime("%Y%m%d %H:%M")
+
+    def log(self, nick, comment):
+        time = self.gettime()
+        print >>self.logfile,  (u"[%s] %s: %s"
+                                %(time, nick, comment)).encode('utf-8')
 
 class JabberConferenceLogger:
     # conference group name and password
@@ -24,10 +35,7 @@ class JabberConferenceLogger:
                 reply.setType("groupchat")
             if nick == self.jid.getNode(): # except my own message, to avoid infinite loop
                 return 
-            print (u"%s: %s: %s: %s\n"
-                   %(type, 
-                     group, 
-                     nick, text)).encode('utf-8')
+            self.log.log(nick, text)
             sess.send(reply)
 
     def presencehandler(self, sess, mess):
@@ -62,17 +70,15 @@ class JabberConferenceLogger:
         self.jabberclient = cl
         return cl
 
-    def __init__ (self):
+    def __init__ (self, logfilename):
         # Call Connect Jabber.
-        return
+        self.log = JabberChatLog(logfilename)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        sys.stderr.write("%s: username@jabbernetwork password\n"%sys.argv[0])
+    if len(sys.argv) != 4:
+        sys.stderr.write("%s: username@jabbernetwork password logfilename\n"%sys.argv[0])
         exit()
-    a = JabberConferenceLogger()
+    a = JabberConferenceLogger(sys.argv[3])
     cl = a.ConnectJabber(sys.argv[1], sys.argv[2])
     while 1: 
         cl.Process(1)
-
-
