@@ -6,7 +6,9 @@ RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 all: $(PDFFILES)
 
 publish: $(RELEASEFILES)
-	ssh alioth.debian.org chmod 662 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/*.pdf
+	# this gives error when I am not the owner of the
+	# file, but fixes all files that I am the owner
+	-ssh alioth.debian.org chmod 664 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/*.pdf
 
 %.release-stamp: %.pdf
 	touch $@
