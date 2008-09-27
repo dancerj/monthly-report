@@ -6,10 +6,11 @@ RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 all: $(PDFFILES)
 
 publish: $(RELEASEFILES)
+	ssh alioth.debian.org chmod 660 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/*.pdf
 
 %.release-stamp: %.pdf
 	touch $@
-	scp -p $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
+	scp $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
 
 %.pdf: %.dvi
 	umask 002 ; dvipdfmx $< 
