@@ -25,6 +25,7 @@ publish: $(RELEASEFILES)
 	# if this fails, please do:
 	# cp git-pre-commit.sh .git/hooks/pre-commit
 	diff -u .git/hooks/pre-commit git-pre-commit.sh
+	[ -x .git/hooks/pre-commit ]
 	## end of linting stuff
 	platex $< # create draft input
 	-mendex $(<:%.tex=%)
