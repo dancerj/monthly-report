@@ -1,0 +1,213 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Kansai Debian Meeting resources
+%     Copyright (C) 2007 Takaya Yamashita
+%     Thank you for Tokyo Debian Meeting resources
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200708; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{kansaimonthlyreport}
+\usepackage{ascmac}
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2008}
+\newcommand{\debmtgdate}{19}
+\newcommand{\debmtgmonth}{10}
+\newcommand{\debmtgnumber}{18}
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分, 本文の末尾も修正することをわすれずに
+
+ 第\debmtgnumber{}回 関西 Debian 勉強会資料
+
+\vspace{2cm}
+
+\begin{center}
+\includegraphics{image200802/kansaidebianlogo.png}
+\end{center}
+
+\begin{flushright}
+\hfill{}関西 Debian 勉強会担当者 山下 尊也\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+\end{flushright}
+
+\thispagestyle{empty}
+\end{titlepage}
+
+\dancersection{Introduction}{山下 尊也}
+ 
+ 関西 Debian 勉強会はDebian GNU/Linux のさまざ
+ まなトピック(新しいパッケージ、Debian 特有の機能の仕組、Debian 界隈で起
+ こった出来事、などなど）について話し合う会です。
+
+ 目的として次の三つを考えています。
+ \begin{itemize}
+  \item MLや掲示板ではなく、直接顔を合わせる事での情報交換の促進
+  \item 定期的に集まれる場所
+  \item 資料の作成
+ \end{itemize}
+
+ それでは、楽しい一時をお楽しみ下さい。
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ {\rotatebox{90}{\fontsize{80}{80}
+{\gt 関西デビアン勉強会}}}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\setcounter{tocdepth}{1}
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関係のイベント報告}{山下 尊也}
+
+\subsection{第17回 関西 Debian 勉強会}
+
+\subsubsection{発表内容}
+
+\begin{itemize}
+ \item pbuilder でパッケージをビルドしてみる
+ \item HotPlug の現状
+ \item SSL のサーバー証明書が失効する時
+\end{itemize}
+
+%% sasaki
+\dancersection{はじめての CDBS}{佐々木 洋平}
+
+%% araki
+\dancersection{cdn.debian.or.jp, cdn.debian.netにおける取り組み}{荒木 靖宏}
+
+いつでも必要なソフトウェアやコンテンツを安価に入手する手段としてCDNが広
+くつかわれている． Debianはdebの安定入手手段の有無がシステム の信頼性を
+左右するシステムであり、その特殊性を考慮したCDNシステムが必要となる． 今
+回はcdn.debian.or.jp, cdn.debian.netにおける取り組みを紹介する．
+
+\subsection{CDNとは}
+
+Content Delivery Network（CDN）はウェブコンテンツ配置および配送方法とし
+てAkamai社によりサービスされ広く知られることになった。当初から一部の人気
+の高いサーバへのトラフィック集中によるサーバ停止の回避、海外のリッチコン
+テンツ取得の高速化、トラフィック分散によるネットワークおよびサーバの利用
+平準化などの理由で広く受け入れられた。
+
+CDNという用語自体はWWWに限ることなく、一般にコンテンツを取得するための配
+送手段や方法全体を指す場合がある。たとえば、WinnyやBittorrentなどのコン
+テンツを取得するために特別に設計されたプロトコルを用いて、P2Pネットワー
+クを構成するような手法も含まれる。
+
+\subsection{DebianにおけるCDNの現状}
+
+\subsubsection{利用法とユーザから見た動作}
+
+cdn.debian.or.jpではDebianでインストール時から広くdebファイルの入手に使
+われるaptで使えるCDNとして設計し、運用している。そのため、Debianにおける
+CDNの利用法は至極簡単である。/etc/apt/source.listに記述するAPTリポジトリ
+として、
+
+\begin{commandline}
+deb http://cdn.debian.or.jp/debian/ stable main contrib non-free
+deb-src http://cdn.debian.or.jp/debian/ stable main contrib non-free
+\end{commandline}
+
+以上のように指定するだけでユーザは今までとなんら変わることなくaptコマンドを使用できる。
+現在，cdn.debian.or.jp, ftp.jp.debian.org, cdn.debian.netの名で運用している．
+
+サービス時の手順と構成は以下のようになる．
+
+\begin{itemize}
+ \item ユーザがapt-getコマンドを行うとcdn.debian.or.jpをDNSで問い合わせ
+       る
+ \item cdn.debian.or.jpを管理するDNSはサーバ候補(surrogate)選択する
+ \item 選択結果をDNSのリプライとして返す
+ \item aptはcdn.debian.or.jpとしてSurrogate Cを使用する。
+\end{itemize}
+
+日本国内向けの設定ファイルは以下のような単純なものである．
+
+\begin{commandline}
+$ more JPN_deb_cdn_araki_net.rb 
+
+$tracefile = 'hanzubon.jp' # hanzubon 2007apr5
+$first_surrogate = '61.115.118.67'
+
+$surrogates = {
+  '203.178.137.175' => '9000', # naist
+  '61.115.118.67' => '1000', # hanzubon 2007apr5
+  '210.157.158.38' => '9900', # plat
+  '202.229.186.27' => '50', # topstudio
+  '133.5.166.3' => '10', # dennou-q.gfd-dennou.org
+  '130.54.59.159' => '10', # dennou-k.gfd-dennou.org
+  '133.87.45.30' => '10', # dennou-h.gfd-dennou.org
+  '61.206.119.174' => '20', # oyu-net.jp
+  '218.219.152.77' => '20', # mirrors.nemui.org
+##  '219.111.15.135' => '1000', # tagoh
+#  '15.12.218.222' => '9900', # fail data for test
+#  '210.157.158.59' => '9900' ## fail data for test
+}
+\end{commandline}
+
+\dancersection{今後の予定}{山下 尊也}
+
+\subsection{次回}
+次回は、2008年11月7日8日に行われる
+関西オープンフォーラム\footnote{\url{http://k-of.jp/}}にて開催する予定です。
+
+\subsection{KDRのおしらせ}
+関西Debian勉強会の有志で
+関西Debian勉強会とは独立した形で、
+週に一度、読書会(KDR)を開いています。
+詳しくはKDR公開用ページ\footnote{\url{http://qwik.jp/kdrweb/}}
+をご覧下さい。
+
+\dancersection{メモ}{}
+\mbox{}\newpage
+
+\printindex
+ \cleartooddpage
+
+ \begin{minipage}[b]{0.2\hsize}
+  \rotatebox{90}{\fontsize{80}{80} {\gt 関西デビアン勉強会} }
+ \end{minipage}
+ \begin{minipage}[b]{0.8\hsize}
+
+ \vspace*{15cm}
+ \rule{\hsize}{1mm}
+ \vspace{2mm}
+ \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+ \noindent \Large \bf Debian 勉強会資料\\ \\
+ \noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+ \noindent \normalfont 関西 Debian 勉強会 （編集・印刷・発行）\\
+ \rule{\hsize}{1mm}
+ \end{minipage}
+
+\end{document}
