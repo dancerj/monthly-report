@@ -102,9 +102,488 @@
 \end{itemize}
 
 %% sasaki
+% 図, 表の番号にセクション入れる
+\def\thefigure{\thesection.\arabic{figure}}
+\def\thetable{\thesection.\arabic{table}}
 \dancersection{はじめての CDBS}{佐々木 洋平}
+\setcounter{figure}{0}
+\setcounter{table}{0}
 
+\subsection{はじめに}
 
+CDBS -- {\bf C}ommon {\bf D}ebian {\bf B}uild {\bf S}ystem は,
+debian/rules の共通部分を抽出し共有することで, 
+debian/rules を簡潔かつ理解しやすくすることを目的としたツールです.
+%
+\cite{lenny CDBS doc} の Introduction によれば, 当初の開発動機は GNU
+autoconf \& GNU automake を使用している Debian パッケージの重複した
+debian/rules をなんとかしたい, だった様です:
+\begin{quotation}
+    The motivating factor for CDBS was originally that more and more
+    programs today are created using GNU Autoconf configure scripts and
+    GNU Automake, and as such they are all very similar to configure and
+    build.  It was realized that a lot of duplicated code in everyone's
+    debian/rules could be factored out. ...
+\end{quotation}
+
+今では CDBS はもっと汎用的になっており, 
+autotools に限らず, Gnome, KDE, Python, Haskel など, 
+様々なパッケージの作成に使用できるようになっています.
+%
+\cite{CDBS ギャラリ}によると, 
+現時点で CDBS を使用しているソースパッケージは 1805 個, 
+ソースパッケージ全体の $\sim 16 \%$ だそうです
+\footnote{これ, 正しいですかね? }.
+
+ドキュメントで上げられている CDBS の利点は以下の通りです%
+\footnote{%
+\cite{CDBS doc} の CDBS advantages の超訳です - -;)
+}:
+\begin{enumerate}
+    \item 簡潔で, 可読性が高く, 効率的な debin/ruls を作成できる.
+    \item debhelper と autotools の呼び出しを自動化することによって,
+          繰り返し作業を気にする必要がなくなる.
+    \item カスタマイズ性に限界が無いので,
+          メンテナはパッケージ作成時のより重要な問題に集中できる.
+    \item 提供されるクラスは十分にテストされており,
+          よくある問題を回避するための汚い hack をする必要がない.
+    \item 既存のパッケージを CDBS へ移行するのは容易である.
+    \item 拡張性が高い.
+\end{enumerate}
+確かにそうなんですけれども, 
+以下の例では逆に何をしているのかわからなくて不安になったりします:
+\begin{commandline}
+#!/usr/bin/make -f
+                                
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/autotools.mk
+\end{commandline}
+
+ここでは \cite{CDBS doc} の冒頭をざっくり解説してみようと思います.
+
+\subsection{CDBS のディレクトリ構成\& ファイル群}
+
+CDBS の実態は細分化された Makefile 群です.
+実際に {\tt /usr/share/cdbs/} 以下を眺めてみましょう:
+\begin{commandline}
+% ls -aR /usr/share/cdbs
+/usr/share/cdbs/:
+./  ../  1/
+
+/usr/share/cdbs/1:
+./  ../  class/  rules/
+
+/usr/share/cdbs/1/class:
+./                  autotools-vars.mk  hbuild.mk         perlmodule-vars.mk
+../                 autotools.mk       kde.mk            perlmodule.mk
+ant-vars.mk         cmake.mk           langcore.mk       python-distutils.mk
+ant.mk              docbookxml.mk      makefile-vars.mk  qmake.mk
+autotools-files.mk  gnome.mk           makefile.mk
+
+/usr/share/cdbs/1/rules:
+./   buildcore.mk  debhelper.mk  patchsys-quilt.mk   tarball.mk
+../  buildvars.mk  dpatch.mk     simple-patchsys.mk  utils.mk
+\end{commandline}
+中間ディレクトリ{\bf 1} は
+将来の API 変更を考慮したディレクトリです.
+rules, class ディレクトリ以下にあるファイルが
+細分化された Makefile です.
+パッケージを作成する際には
+これらのファイルを適宜 debian/rules 内で include して使用します.
+個々の Makefile の依存関係は以下の通りです:
+%
+\begin{figure}[htbp!]
+ \begin{center}
+  \includegraphics[width=160mm]{image200810/cdbs-mk-depend.png}
+ \end{center}
+    \caption{%
+    CDBS で提供される Makefile の依存関係
+    (\cite{lenny CDBS doc}).
+    }
+    \label{fig:cdbs-mk-depend}
+\end{figure}
+
+\subsection{基本となる rules}
+\label{section:rules}
+
+\subsubsection{buildvars.mk}
+
+buildvars.mk を include すると
+パッケージ作成のための環境変数が設定されます.
+%
+設定される変数の一覧を表 \ref{table:buildvars.mk} に記載します.
+%
+良く使われるのは {\tt CURDIR} と {\tt DEB\_DESTDIR} でしょう.
+%
+\begin{table}[htbp!]
+    \begin{center}
+        \caption{{\tt /usr/share/cdbs/1/rules/buildvars.mk} で設定される変数}
+        \label{table:buildvars.mk}
+        {\small 
+        \begin{tabular}[tb]{|l|l|}
+            \hline
+            {\tt CURIDR} & 
+            パッケージを作成しているディレクトリの名前.\\
+            \hline
+            {\tt DEB\_SOURCE\_PACKAGE} & 
+                ソースパッケージの名前.\\
+            \hline
+            {\tt DEB\_VERSION} & 
+                完全な Debian Version.\\
+            \hline
+            {\tt DEB\_NOEPOCH\_VERSION} & 
+                Debian version without epoch .\\
+            \hline
+            {\tt DEB\_ISNATIVE} & 
+                native パッケージの場合は空ではない(条件分岐に使用)..\\
+            \hline
+            {\tt DEB\_ALL\_PACKAGES} & 
+                作成される全てのパッケージのリスト.\\
+            \hline
+            {\tt DEB\_INDEP\_PACKAGES} & 
+                アーキテクチャに依存しないパッケージのリスト.\\
+            \hline
+            {\tt DEB\_ARCH\_PACKAGES} & 
+                アーキテクチャに依存するパッケージのリスト.\\
+            \hline
+            {\tt DEB\_PACKAGES} & 
+                通常の(udeb ではない)パッケージのリスト.\\
+            \hline
+            {\tt DEB\_UDEB\_PACKAGES} & 
+                udeb の場合, そのリスト.\\
+            \hline
+            {\tt DEB\_ARCH} & 
+                Debian アーキテクチャ. 後方互換のために残されている..\\
+            \hline
+            {\tt DEB\_HOST\_ARCH\_CPU} & 
+                Debian アーキテクチャの CPU 情報.\\
+            \hline
+            {\tt DEB\_HOST\_ARCH\_OS} & 
+                Debian アーキテクチャの OS 情報.\\
+            \hline
+            {\tt DEB\_DESTDIR} & 
+                パッケージ作成の際にソフトを install するディレクトリ. .\\
+            & 単一パッケージの場合, {\tt \$(CURDIR)debian/パッケージ名} \\
+            & 複数のパッケージを作成する場合には {\tt \$(CURDIR)debian/tmp}\\
+            \hline
+        \end{tabular}
+        }
+    \end{center}
+\end{table}
+これらの変数を変更したい場合には, buildvars.mk を include した後で
+debian/rules 内部で以下の様に設定します:
+\begin{commandline}
+# where sources are
+DEB_SRCDIR = $(CURDIR)/src
+# in which directory to build
+DEB_BUILDDIR = $(DEB_SRCDIR)/build
+# in which directory to install the sofware
+DEB_DESTDIR = $(CURDIR)/destination
+\end{commandline}
+
+\subsubsection{buildcore.mk によるターゲットの設定}
+
+buildcore.mk はパッケージ作成のための基本的なターゲットを提供します.
+\cite{ポリシー}によれば, パッケージ作成の際
+debian/rules ファイルの中で外部から参照されうるターゲットは,
+以下の通りです:
+\begin{itemize}
+    \item build
+    \item binary, binary-arch, binary-indep
+    \item build-arch, build-indep (optional)
+    \item get-orig-source (optional)
+    \item clean (optional)
+    \item path (optional)
+\end{itemize}
+buidcore.mk を include すると 
+これらのターゲットが {\bf 細分化されて}提供されます.
+buildcore.mk が提供する
+ターゲットの一覧を図\ref{fig:cdbs-target}に示します.
+%
+\begin{figure}[htbp!]
+ \begin{center}
+  \includegraphics[width=160mm]{image200810/cdbs-target.png}
+ \end{center}
+    \caption{%
+    buildcore.mk で提供されるターゲットの流れ
+    (\cite{lenny CDBS doc}).
+    }
+    \label{fig:cdbs-target}
+\end{figure}
+
+実際には, buildcore.mk 自体はパッケージに対してなんの処理もしません. 
+よって適宜 rules を記述することになります. 
+例として, \cite{CDBS doc} に記載されている foo ついて解説します.
+ここで foo は
+\begin{itemize}
+    \item ソースパッケージ foo を生成
+    \item バイナリとして foo(arch-dep) と foo-data(arch-indep) を生成
+\end{itemize}
+するパッケージだとします.
+\begin{commandline}
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/buildcore.mk
+
+# pre-configure action
+makebuilddir/foo::
+        ln -s plop plop2
+# post-configure action
+configure/foo::
+    sed -ri 's/PLOP/PLIP/' Makefile
+configure/foo-data::
+    touch src/z.xml
+# post-build action
+build/foo::
+    /bin/bash debian/scripts/toto.sh
+build/foo-data::
+    $(MAKE) helpfiles
+# post-install action
+install/foo:
+    cp debian/tmp/myfoocmd debian/foo/foocmd
+      find debian/foo/ -name ``CVS'' -depth -exec rm -rf {} \;
+install/foo-data:
+    cp data/*.png debian/foo-data/usr/share/foo-data/images/
+    dh_stuff -m ipot -f plop.bz3 debian/foo-data/libexec/
+# post deb action
+binary/foo:
+    strip --remove-section=.comment --remove-section=.note --strip-unneeded \
+      debian/foo/usr/lib/foo/totoz.so
+# pre-clean action
+cleanbuilddir/foo::
+    rm -f debian/fooman.1
+\end{commandline}
+コメントとしてターゲットを記述するタイミングを記載しました.
+ターゲットの記法は
+\begin{center}
+    {\tt {\bf target/packagename::}}
+\end{center}
+です. 後ろの {\tt {\bf ::}} が重要です.
+
+\subsubsection{debhelper.mk による dh\_ の自動化}
+
+CDBS の一番の御利益が, この debhelper.mk です.
+CDBS では主な dh\_\* コマンドの呼び出しを debhelper.mk において行なうため,
+debian/rules 内の dh\_\* の殆んどが不要になります.
+debhelper.mk によって呼び出される dh\_\* を
+表\ref{table:debhelper.mk}に示します.
+\begin{table}[htbp!]
+    \begin{center}
+        \caption{%
+        {\tt /usr/share/cdbs/1/rules/debhelper.mk} で管理される dh\_ コマンド}
+        \label{table:debhelper.mk}
+        \begin{tabular}[tb]{|llll|}
+            \hline
+            dh\_builddeb  & 
+            dh\_installchangelogs  &
+            dh\_installemacsen  & 
+            dh\_installman   \\
+            dh\_perl & 
+                dh\_clean  & dh\_installcron  & dh\_installexamples \\
+            dh\_installmenu  & 
+                dh\_shlibdeps & dh\_compress  & dh\_installdeb  \\
+            dh\_installinfo  & 
+                dh\_installpam  & dh\_strip   & dh\_fixperms  \\
+            dh\_installdebconf  & 
+                dh\_installinit  & dh\_link  & dh\_gencontrol  \\
+            dh\_installdirs  & 
+                dh\_installlogcheck  & dh\_makeshlibs  & dh\_install  \\
+             dh\_installdocs  & dh\_installlogrotate  & dh\_md5sums & \\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{table}
+
+debhelper.mk によって呼び出される dh\_ コマンドに対しては,
+パラメータ設定は(大抵の場合)不要です. 
+debelpher の呼び出しをカスタマイズする変数は 
+debhelper.mk 冒頭のコメント行を参照して下さい.
+\cite{CDBS doc} には以下の例があります:
+
+\noindent {\bf 依存関係がシビアな共有ライブラリについて}
+\begin{commandline}
+DEB_DH_MAKESHLIBS_ARGS_libfoo := -V''libfoo (>= 0.1.2-3)``
+DEB_SHLIBDEPS_LIBRARY_arkrpg := libfoo
+DEB_SHLIBDEPS_INCLUDE_arkrpg := debian/libfoo/usr/lib/
+\end{commandline}
+\noindent {\bf ChangeLog のファイル名が一般的でない場合}
+\begin{commandline}
+DEB_INSTALL_CHANGELOGS_ALL := ProjectChanges.txt
+\end{commandline}
+\noindent {\bf .py を圧縮せずにパッケージ化する場合}
+\begin{commandline}
+DEB_COMPRESS_EXCLUDE := .py
+\end{commandline}
+
+ここでの記法
+\begin{center}
+    {\tt {\bf :=}}
+\end{center}
+に注意して下さい. 
+{\tt {\bf :=}} は上書きです. 
+CDBS の提供する変数に追加する場合には {\tt {\bf +=}} を使用します.
+
+\subsubsection{patch の管理}
+
+dpatch, quilt, そして CDBS 用の simple-patchsys の rules が提供されていま
+す.  quilt, dpatch については include するだけで patch を適用する rule が
+適用されます. 
+%
+
+simple-patchsys の場合は debian/patches に patch を置くだけ
+で, パッケージ作成時に patch を適用し clean の際には元に戻します.
+patch level は 3 まで ok です. 自動的に適用しようと試みます.
+
+\subsection{class を使用する}
+
+前小説で rules について簡単にまとめました. 
+ここでは幾つかの class について紹介します.
+
+\subsubsection{Makefile の場合:makefile.mk}
+
+autotools を使わず Makefile のみを使用するソフトウェアには
+makefile.mk が便利です. 
+\cite{CDBS doc} では,
+元々の Makefile が
+\begin{itemize}
+    \item 名前が MaKeFile で
+    \item make mrproper で clean 
+    \item make myprog で build
+    \item make check  で check
+    \item make install で install
+\end{itemize}
+というソフトウェアの場合について例示しています:
+\begin{commandline}
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/debheper.mk
+include /usr/share/cdbs/1/class/makefile.mk
+
+DEB_MAKE_CLEAN_TARGET    := mrproper
+DEB_MAKE_BUILD_TARGET    := myprog 
+DEB_MAKE_INSTALL_TARGET  := install DESTDIR=$(CURDIR)/debian/tmp/
+# no check for this software
+DEB_MAKE_CHECK_TARGET    := check
+# allow changing the makefile filename in case of emergency exotic practices
+DEB_MAKE_MAKEFILE        := MaKeFiLe
+# example when changing environnement variables is necessary :
+DEB_MAKE_ENVVARS         := CFLAGS=''-fomit-frame-pointer''
+\end{commandline}
+
+\subsubsection{Autotoolsの場合: autotools.mk}
+
+いわゆる {\tt configure \&\& make \&\& make install} なソフトウェアの場合は
+autotools.mk が便利です. 
+%
+冒頭にも例示しましたが, 
+標準的な autotools を使用するソフトウェアの場合には
+\begin{commandline}
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debheper.mk
+include /usr/share/cdbs/1/class/autotools.mk
+\end{commandline}
+となります. 
+
+configure へのオプションや環境変数の設定を行なう場合には
+以下の様にします:
+\begin{commandline}
+DEB_CONFIGURE_EXTRA_FLAGS := --with-ipv6 --with-foo
+COMMON_CONFIGURE_FLAGS := --program-dir=/usr
+DEB_CONFIGURE_SCRIPT_ENV += LDFLAGS='' -Wl,-z,defs -Wl,-O1''
+\end{commandline}
+ここでも {\tt +=}, \tt{ :=} の意味は変わりません.
+例えば
+\begin{commandline}
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debheper.mk
+include /usr/share/cdbs/1/class/autotools.mk
+
+# normally
+DEB_MAKE_INSTALL_TARGET := install DESTDIR=$(DEB_DESTDIR)
+# example to work around dirty makefile
+# DEB_MAKE_INSTALL_TARGET := install prefix=$(CURDIR)/debian/tmp/usr
+DEB_MAKE_CLEAN_TARGET := distclean
+# example to activate check rule
+DEB_MAKE_CHECK_TARGET := check
+# overriding make-only environnement variables :
+# (should never be necessary in a clean build system)
+# (example borrowed from the bioapi package)
+DEB_MAKE_ENVVARS    := ``SKIPCONFIG=true''
+\end{commandline}
+など.
+
+他にも Perl, Python, Ruby, GNOME, KDE, Ant, HBuild(Haskel) 用の 
+class があります
+
+\subsection{まとまってないまとめ}
+
+そんな所で時間が切れてしましました%
+\footnote{数日前 HDD が逝って四苦八苦してました.うー}.
+
+CDBS を使いはじめたら, もう debhelper には戻れない体になってしまうわけで
+すが, いかんせん CDBS ってドキュメント少ないんですよね. 
+%
+この文書が最初の一歩になれば幸いです.
+
+\newpage
+\begin{thebibliography}{99}
+    \bibitem[CDBS Documentation Rev. 0.4.0]{CDBS doc}
+                    Marc (Duck) Dequ\'enes,
+                    Arnaud (Rtp) Patard, 
+                    2007:
+                    CDBS Documentation,
+                    \url{http://perso.duckcorp.org/duck/cdbs-doc/cdbs-doc.xhtml}
+                    \newline
+                    CDBS の online ドキュメンテーションです. 
+                    パッケージに含まれているドキュメントより, 
+                    こっちの方が情報が多く, 参考になります.
+                    
+    \bibitem[CDBS Documentation Rev.0.1.2]{lenny CDBS doc}
+                    Marc (Duck) Dequ\'enes,
+                    Arnaud (Rtp) Patard, 
+                    Peter Eisentraut,
+                    Colin Walters,
+                    2007:
+                    {\tt /usr/share/doc/cdbs/cdbs-doc.html}.
+                    \newline
+                    Lenny の CDBS(ver. 0.4.52) 付属のドキュメントです.
+                    Web で公開されているドキュメントよりは古いです.
+
+    \bibitem[CDBS 移行への 1st step]{CDBS 1st}
+                    Tatsuki Sugiura, 2006:
+                    CDBS 移行への 1st step
+                    \url{http://sugi.nemui.org/doc/cdbs/cdbs-trans-1st.html}\\
+                    既存のパッケージを CDBS へ移行する場合, 
+                    非常に参考になると思います.
+
+    \bibitem[Online CDBS Gallery]{CDBS ギャラリ}
+                    Online CDBS Gallery, 
+                    \url{http://cdbs.ueberalles.net/index.html}\\
+                    CDBS を使っている debian/rules を見ることができます.
+                    新たに CDBS へ移行する際に参考になるでしょう.
+                    
+    \bibitem[Debian Policy Manual]{ポリシー}
+                    Ian Jackson \& Christian Schwarz, 1996:
+                    Debian Policy Manual,
+                    \url{http://www.debian.org/doc/debian-policy/}
+
+    \bibitem[Debian パッケージ作成の手引き]{パッケージ手引き}
+                    小林 儀匡, 
+                    Debianパッケージ作成の手引き,
+                    \url{http://www.debian.or.jp/~nori/debian-packaging-guide/index.html}
+                    \newline
+                    Debian パッケージ作成の手引きです.
+                    「debhelper を使わない場合 → 
+                    使う場合 →
+                    CDBS への移行」と順序立てて説明されています.
+
+    \bibitem[やまだ \& 鵜飼(2006)]{入門 Debian パッケージ}
+                    やまだあきら(著), 鵜飼文敏(監修), 2006:
+                    入門 Debian パッケージ, 技術評論社,
+                    ISBN4-7741-2768-X
+\end{thebibliography}
+\setcounter{figure}{0}
+\setcounter{table}{0}
 
 %% araki
 \dancersection{cdn.debian.or.jp, cdn.debian.netにおける取り組み}{荒木 靖宏}
@@ -341,59 +820,6 @@ ITA & 2196 \\ \hline
 \end{tabular}
 \label{dnsquery}
 \end{table}
-
-% \begin{minipage}[t]{0.45\hsize}
-% \begin{table}[htbp]
-% \caption{DNSクエリ数上位20カ国}
-% \begin{tabular}{|l|r|}
-% \hline
-% JPN & 808138 \\ \hline
-% USA & 87767 \\ \hline
-% CAN & 82566 \\ \hline
-% KOR & 38596 \\ \hline
-% CHIN & 26670 \\ \hline
-% FIN & 14558 \\ \hline
-% TWIN & 12527 \\ \hline
-% IND & 7941 \\ \hline
-% IDN & 6463 \\ \hline
-% HKG & 5616 \\ \hline
-% RUS & 3975 \\ \hline
-% SGP & 3656 \\ \hline
-% DEU & 2990 \\ \hline
-% GBR & 2792 \\ \hline
-% AUS & 2635 \\ \hline
-% ESP & 2632 \\ \hline
-% THA & 2623 \\ \hline
-% MYS & 2475 \\ \hline
-% PHL & 2359 \\ \hline
-% ITA & 2196 \\ \hline
-% \end{tabular}
-% \label{dnsquerytop20}
-% \end{table}
-% \end{minipage} 
-% \begin{minipage}[t]{0.45\hsize}
-% \begin{table}[htbp]
-% \caption{CDN振り分け先実績}
-% \begin{tabular}{|l|r|l|}
-% \hline
-% 地域 & \multicolumn{1}{l|}{アクセス数} &  \\ \hline
-% アジア & 570137 &  \\ \hline
-% アジア(日本と韓国除く) & \multicolumn{1}{l|}{} & \multicolumn{1}{r|}{55539} \\ \hline
-% 日本 & \multicolumn{1}{l|}{} & \multicolumn{1}{r|}{509367} \\ \hline
-% 韓国 & \multicolumn{1}{l|}{} & \multicolumn{1}{r|}{5231} \\ \hline
-% ヨーロッパ & 16804 &  \\ \hline
-% ヨーロッパ(フランス除く) & \multicolumn{1}{l|}{} & \multicolumn{1}{r|}{15154} \\ \hline
-% フランス & \multicolumn{1}{l|}{} & \multicolumn{1}{r|}{1650} \\ \hline
-% 北米 & 142207 &  \\ \hline
-% オセアニア & 10766 &  \\ \hline
-% アフリカ & 160 &  \\ \hline
-% その他 & 404996 &  \\ \hline
-% 総有効アクセス数 & 1145070 &  \\ \hline
-% \end{tabular}
-% \label{dnsquery}
-% \end{table}
-% \end{minipage}
-
 
 \begin{figure}[htbp]
  \begin{center}
