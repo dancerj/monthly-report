@@ -226,6 +226,68 @@ CMR10, CMSS17, ・・・とあるので
 他のPDFビューア ePDFVewer でも日本語が表示できないようですので
 その点は注意が必要かなと思います。
 
+\subsection{濱野さん}
+
+ノートPC は会社から借りてるのしか持ってなくて普通に仕事で使っているので
+sid にするのはカンベンしてください。
+といっても、sid じゃないとダメな理由があるでしょうから、KVM/QEMU で仮想環
+境を構築し、外付けUSBハードディスク内に sid の環境を用意してみました。
+
+\begin{commandline}
+ % dd if=/dev/zero of=vda.img seek=4G bs=1 count=0
+ % mkdir ./mnt
+ % mount -o loop vda.img ./mnt
+ % debootstrap sid mnt/
+ % echo "sid" > mnt/etc/hostname
+ % echo "auto eth0" >> mnt/etc/network/interfaces
+ % echo "iface eth0 inet dhcp" >> mnt/etc/network/interfaces
+ % umount mnt/
+
+ % qemu -m 256M -kernel vmlinuz-2.6.27.2 \
+   -drive file=vda.img,if=virtio,boot=on \
+   -append root=/dev/vda -k ja -curses -redir tcp:10022::22
+\end{commandline}
+
+sid の環境が出来ました。
+ゲストにて
+\begin{commandline}
+ % apt-get make install ptex-bin dvipdfmx latex-beamer \
+   okumura-clsfiles gs-esp xpdf xpdf-japanese whizzytex evince \
+   texlive-latex-extra advi emacs22 yatex gs-cjk-resource gv \
+   git-core git-gui qgit avahi-daemon libnss-mdns avahi-autoipd
+\end{commandline}
+
+いろいろ入りました。
+ゲストのカーネルを削ってしまったせいか、途中 CONFIG\_HIBERNATION=y にしろ
+とか言われましたが無視しました。
+\begin{commandline}
+ % git clone git://git.debian.org/git/tokyodebian/monthly-report.git
+ % cd monthly-report
+ % cp -p git-pre-commit.sh .git/hooks/pre-commit
+ % time make
+ % ls *.pdf
+\end{commandline}
+
+10 分程度で PDF が出来上がりました。
+ゲスト側に windomanager などが入っていないので、ホスト側に持ってきて
+xpdf で読んでみるとばっちり日本語も表示されました。
+当日までにゲスト側の X の環境も整えておこうとおもいます。
+
+また、texlive を使うのは初めてなのでのでハンズオンを楽しみにしています。
+
+\subsection{前田さん}
+普段からSidの環境を使っているので、環境の準備という点では特に困ったことはありませんでした。
+以前、MacBook Airを64bit化したときにはちょっと苦労したことはありました\footnote{http://d.hatena.ne.jp/mkouhei/20080713\#1215913997}が、
+今回の課題とは論点が外れるので省略。
+LaTeXの環境も、5月度の勉強会のときに環境を整備していたので、こちらも特に苦労せず。
+あえて言えば、gitを普段から使っていないので、以前git cloneで取得したDebian勉強会のリポジトリを
+最新状態に更新する方法と、yatexの設定を.emacsのどこに書くのかを調べました。
+
+気になったのはPDFが110くらいではなく、95しかできていないのは何故か？
+何か足りないものがあるのでしょうか。（あまり追求せず）
+
+細かく挙げると意外とあるもんですね。
+
 
 %%% trivia quiz
 \dancersection{Debian Trivia Quiz}{小林 儀匡}
