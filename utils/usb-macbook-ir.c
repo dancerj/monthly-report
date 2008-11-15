@@ -12,6 +12,7 @@ http://www.gniibe.org/software/hub-ctrl.c
 #include <stdlib.h>
 #include <usb.h>
 #include <errno.h>
+#include <sched.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
 
@@ -119,10 +120,13 @@ main(int ac, char** av)
 		     bus->dirname, 
 		     dev->devnum);
 	      process_device(usb_open(dev));
+	      return 0;
 	    }
 	  
 	}
     }
-  return 0;
+  fprintf (stderr, "Cound not find device %x:%x\n", 
+	  USB_VENDOR_ID_APPLE, USB_DEVICE_ID_APPLE_IR);
+  return 1;
 }
 
