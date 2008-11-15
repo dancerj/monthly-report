@@ -49,3 +49,5 @@ listtopic:
 
 .PHONY: deb clean all publish listtopic
 
+check-syntax:
+	$(CC) -c -O2 -Wall $(CHK_SOURCES) -o/dev/null $(shell pkg-config --cflags gtk+-2.0)
