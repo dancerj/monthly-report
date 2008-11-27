@@ -11,8 +11,8 @@ publish: $(RELEASEFILES)
 	-ssh alioth.debian.org chmod 664 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/*.pdf
 
 %.release-stamp: %.pdf
-	touch $@
 	scp $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
+	touch $@
 
 %.pdf: %.dvi
 	umask 002 ; dvipdfmx $< 
