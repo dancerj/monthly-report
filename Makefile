@@ -15,7 +15,9 @@ publish: $(RELEASEFILES)
 	touch $@
 
 %.pdf: %.dvi
-	umask 002 ; dvipdfmx $< 
+	umask 002 ; dvipdfmx -o $@.tmp $< 
+	# ./utils/pdfshiorilint.sh $(<:%.dvi=%.tex) $@.tmp # This code is not 100%, cannot handle everything.
+	mv $@.tmp $@
 
 %.dvi: %.tex
 	## start of linting stuff
