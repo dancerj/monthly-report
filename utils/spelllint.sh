@@ -1,6 +1,8 @@
 #!/bin/bash
 
-if lgrep -i -n debain /dev/null "$@"; then
+if lgrep -i -n \
+    'debain\|¡¥\|¡¤' \
+    /dev/null "$@"  ; then
     exit 1
 else
     exit 0
