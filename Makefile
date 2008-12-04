@@ -25,6 +25,8 @@ publish: $(RELEASEFILES)
 	## start of linting stuff
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
+	# check some obvious spelling mistakes
+	./utils/spelllint.sh $<
 	# check that pre-commit hook is installed.
 	# if this fails, please do:
 	# cp git-pre-commit.sh .git/hooks/pre-commit
