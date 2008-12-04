@@ -16,7 +16,9 @@ publish: $(RELEASEFILES)
 
 %.pdf: %.dvi
 	umask 002 ; dvipdfmx -o $@.tmp $< 
-	# ./utils/pdfshiorilint.sh $(<:%.dvi=%.tex) $@.tmp # This code is not 100%, cannot handle everything.
+	# Just check the first entry to hope it's okay; ignore *-presentation* files 
+	# because they don't have dancersection.
+	case '$<' in *-presentation*) ;; *) ./utils/pdfshiorilint.sh $(<:%.dvi=%.tex) $@.tmp;; esac
 	mv $@.tmp $@
 
 %.dvi: %.tex
