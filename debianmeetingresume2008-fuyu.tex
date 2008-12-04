@@ -4328,7 +4328,313 @@ Application→Internet→Iceweasel Web Browserを選択し、icewease
 ディスプレイデバイスを持たないcoLinuxでのXアプリケーションの起動について紹介いたしました。
 
 % kansairesume200809
-% 何かのイベント？
+
+%% takaya
+\dancersection{Debian Live に Ubiquity を移植できるか？}{山下 尊也}
+\label{sec:ubiquity}
+
+% \subsection{Ubiquityって何してるの？}
+
+% Ubiquity is a simple graphical live CD installer designed to integrate
+% well with Debian- and Ubuntu-based systems、 written largely in Python、
+% using d-i as a backend for many of its functions for ease of
+% maintenance。
+
+% Ubiquityは大部分がPythonで書かれており、
+% メンテナンスの簡潔さのためにそのほとんどの関数を Debian Installer を使用
+% しております。Debian と Ubuntu ベースのシステムでLive CDに統合したデザイ
+% ンのインストーラです。
+
+\subsection{Ubiquityパッケージをビルドする}
+
+\url{http://jp.archive.ubuntu.com/ubuntu/}からubiquityのソースを取って
+きます。
+
+今回、私は、
+{\tt ubiquity\_1.8.12.tar.gz}
+をダウンロードしてきました。
+
+なんとか、snapshot.debianやソースパッケージを用いて、依存関係を解決しま
+した。\footnote{rulesの変更だけしたら大丈夫かも？本来はちゃんとした依存
+関係を調べないといけません。}
+
+しかし、ビルドの行程で、
+{\tt /usr/share/iso-codes/iso\_3166.tab}
+が存在しないと怒られます。
+{\tt iso\_3166.tab}
+は、地理情報を表しているものです。
+調べてみたところ、sargeやetchにはiso-3166-udebと言う形で提供されています
+が、lennyからは、iso-3166-udebパッケージが廃止されています。
+
+調べていく過程で、tzdataパッケージに、
+iso3166.tabと言うファイルが存在する事が分かりました。
+中身を見たところ、これを利用すればDebianでもビルド出来そうです。
+今回は、時間がなかったため、
+{\tt iso\_3166.tab}
+をUbuntu Hardyが起動している環境から持ってきて、利用しました。
+
+なんとか、以下のパッケージを作成する事が出来ました。
+\begin{itemize}
+ \item {\tt ubiquity-frontend-gtk\_1.8.12\_i386.deb}
+ \item {\tt ubiquity-frontend-kde\_1.8.12\_all.deb}
+ \item {\tt ubiquity-frontend-mythbuntu\_1.8.12\_all.deb}
+ \item {\tt ubiquity-ubuntu-artwork\_1.8.12\_all.deb}
+ \item {\tt ubiquity\_1.8.12\_i386.deb}
+\end{itemize}
+
+また、
+{\tt d-i/source/localechooser/mkshort}
+を変更し、
+{\tt /usr/share/zoneinfo/iso3166.tab}
+を用いる変更を加えれば、
+この問題は解決出来そうです。
+
+\subsection{Ubiquity で必要になるパッケージ}
+
+\subsubsection{Ubiquity 関係パッケージの Depends で関係するもの}
+\label{sec:depends}
+
+Ubuntu Hardyが起動している環境から、
+{\tt /var/lib/apt/lists/}
+ディレクトリ下にある
+
+{\tt jp.archive.ubuntu.com\_ubuntu\_dists\_hardy\_main\_binary-i386\_Packages}
+
+を持ってきて、ubiquity関連パッケージのDependsに書かれている
+ものを書き出したものが以下のものです。
+
+\begin{commandline}
+adduser
+console-setup
+debconf
+grub
+iso-codes
+kwin
+laptop-detect
+libatk1.0-0
+libc6
+libcairo2
+libdebconfclient0
+libdebian-installer4
+libffi4
+libglib2.0-0
+libgtk2.0-0
+libpango1.0-0
+libparted1.7-1
+libxml2
+lsb-release
+os-prober
+passwd
+python
+python-apt
+python-central
+python-glade2
+python-gtk2
+python-qt4
+sudo
+ubiquity
+ubiquity-artwork-1.8.7
+ubiquity-casper
+ubiquity-frontend-1.8.7
+x-window-manager
+\end{commandline}
+
+同様に、Debian Lennyが動いている環境の{\tt /var/lib/apt/lists/}にある
+
+\begin{itemize}
+ \item {\tt cdn.debian.or.jp\_debian\_dists\_lenny\_main\_binary-i386\_Packages}
+ \item {\tt cdn.debian.or.jp\_debian\_dists\_lenny\_contrib\_binary-i386\_Packages}
+ \item {\tt cdn.debian.or.jp\_debian\_dists\_lenny\_non-free\_binary-i386\_Packages}
+\end{itemize}
+
+をチェックしたところ、Debian Lennyには以下のパッケージが存在しない事が
+分かりました。
+
+\begin{commandline}
+libffi4
+libparted1.7-1
+ubiquity
+ubiquity-artwork-1.8.7
+ubiquity-casper
+ubiquity-frontend-1.8.7
+x-window-manager
+\end{commandline}
+
+libffi4は、etchに存在し、
+libparted1.7-1は、ソースからビルドすれば、パッケージの作成をする事が出来
+ます。\footnote{現在、automake1.8とのバグのため、ビルド出来ない状況になっ
+ているため、今回は、snapshot.debianからパッケージをダウンロードしました。}
+
+x-window-managerは仮想パッケージのため、このリストには存在しません。
+と言うことで、依存関係は解決出来たみたいです。
+
+\subsection{Debian Liveに依存関係を解決し、入れてみる}
+
+OSC Kansaiで配布したDebian Liveで使われていたものをある程度、
+利用したいため、git hubから取ってきて、\ref{sec:depends}で追加したリストを追記します。
+
+\begin{commandline}
+ % git clone git://github.com/nogajun/debian-study-live-cd.git
+ % vi debian-study-live-cd/config/chroot_local-packageslists/06-ubiquity
+\end{commandline}
+
+また、GTKの環境だけを考えているため、以下のパッケージをインストールする事を考
+えます。
+
+\begin{commandline}
+ubiquity-frontend-gtk_1.8.12_i386.deb
+ubiquity-ubuntu-artwork_1.8.12_all.deb
+ubiquity_1.8.12_i386.deb 
+\end{commandline}
+
+% \verb|debian-study-live-cd/config/chroot_local-packages|
+{\tt debian-study-live-cd/config/chroot\_local-packages|}
+ディレクトリに入れ、パッケージの正当性チェックを無効にしておきます。
+
+\begin{commandline}
+ % sudo lh_build
+\end{commandline}
+
+しかし、ここでまたもや、依存関係のエラーがでます。
+
+\begin{commandline}
+  libffi4: Depends: gcc-4.1-base (= 4.1.1-21) but it is not going to be installed
+  ubiquity: Depends: ubiquity-casper but it is not installable 
+\end{commandline}
+
+とりあえず、リストの前に追加しますが、ubiquity-casperは、Ubuntuにしかあ
+りません。
+ubiquity-casperは、live installerからの設定を行うものですが、
+これをソースからビルドすると
+
+\begin{commandline}
+Some packages could not be installed. This may mean that you have
+requested an impossible situation or if you are using the unstable
+distribution that some required packages have not yet been created
+or been moved out of Incoming.
+The following information may help to resolve the situation:
+ casper: Depends: busybox-initramfs (>= 1:1.1.3-4ubuntu3) but it is not installable
+         Depends: localechooser-data but it is not installable
+ libffi4: Depends: gcc-4.1-base (= 4.1.1-21) but it is not going to be installed
+E: Broken packages
+\end{commandline}
+
+Ubiquityの問題ではなく、依存関係をどうするかを考えた方が良かったみたいで
+す。少しずつ時間を見つけて、依存関係を見直していこうと思います。
+
+
+\dancersection{10分でわかる Debianフリーソフトウェアガイドライン (DFSG)}{木下 達也}
+\subsection{Debianフリーソフトウェアガイドラインとは}
+
+ある著作物が「フリー」かどうか、
+フリー(自由な)OSであるDebianの構成要素として
+適しているかどうかを判定する際の基準、それが
+Debianフリーソフトウェアガイドライン
+(DFSG: Debian Free Software Guidelines)です。
+
+\url{http://www.debian.org/social_contract#guidelines}
+ 
+フリー(自由な)ソフトウェアとは、自由に使ったり、
+変更したり、コピーして配ったりできるソフトウェアの
+ことをいいます。
+
+ただし、「自由」とはいっても、無制限というわけではなく、
+ある種の制約は認められています。
+(著作権表示・ライセンスの維持、変更の明示など)
+
+\subsection{著作権とライセンス}
+
+著作物には、基本的に著作者に対して「著作権」
+が発生しています。
+
+つまり、著作物を変更したりコピーして配ったりするには、
+著作者からの許可(ライセンス)が必要になります。
+
+ライセンスは次のように確認します。
+
+\begin{itemize}
+ \item 変更や配布が許可されているか
+ \item それらに付随する制約はどうか
+\end{itemize}
+
+その他、個別の事情も検討する必要があります。
+(特許、商標など)
+
+\newpage
+\subsection{Debianフリーソフトウェアガイドラインの説明}
+
+\begin{itemize}
+ \item 1. 自由な再配布 (Free Redistribution)
+
+有償・無償を問わず、
+別途の許可を必要とすることなく、
+プログラムを複数まとめて配布できる。
+
+(Artistic License: プログラム単体への課金は禁止、複数まとめての販売は可)
+
+ \item 2. ソースコード (Source Code)
+
+ソースコード(変更に適した形式)が必要。
+
+実行形式だけでなくソースコードでも配布できる。
+
+ \item 3. 派生ソフトウェア (Derived Works)
+
+同様のライセンスで変更版を配布できる。
+
+(GNU GPL: 変更版全体に同様のライセンスを強制)
+
+(BSD License: 変更版全体には別ライセンスの適用可)
+
+ \item 4. 原作者によるソースコードの整合性維持
+   (Integrity of The Author's Source Code)
+
+変更版のソースコードを配布する場合に、
+元のソースコードと差分(パッチ)という形式のみ許可
+という制約は許容、ただし非推奨。
+
+(QPL: 元のソースコードと差分の要求)
+
+ \item 5. すべての個人、団体の平等
+   (No Discrimination Against Persons or Groups)
+
+いかなる個人・団体も差別せずに許可。
+
+ \item 6. 目標分野の平等
+   (No Discrimination Against Fields of Endeavor)
+
+商用・非商用・平和利用・軍事目的など、用途を制限しない。
+
+ \item 7. ライセンスの配布
+   (Distribution of License)
+
+ライセンスは、再配布されたすべての人々に、
+別途の許可を必要とすることなく、適用される。
+
+ \item 8. ライセンスはDebianに限定されない
+   (License Must Not Be Specific to Debian)
+
+Debianの一部としてのみの許可ではなく、
+他のシステムにも適用できるように。
+特定の製品に依存しないように。
+
+ \item 9. ライセンスは他のソフトウエアを侵害しない
+   (License Must Not Contaminate Other Software)
+
+たとえば、同じ媒体で配布されるソフトウエアすべてが
+フリーソフトウエアであることを要求しないように。
+
+ \item 10. フリーなライセンスの例
+   (Example Licenses)
+
+GNU GPL, BSD License, Artistic License
+
+(私見としては、Artistic Licenseは推奨しません。
+Free Software Foundationでは「曖昧過ぎる」としてNon-Freeに分類されています)
+
+\url{http://www.gnu.org/licenses/license-list.ja.html#ArtisticLicense}
+
+\end{itemize}
 
 % kansairesume200810
 \dancersection{はじめての CDBS}{佐々木 洋平}
@@ -5807,7 +6113,7 @@ int main()
 \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
 \noindent \Large \bf あんどきゅめんてっど でびあん 2008年冬号\\ \\
 % FIXME 開催日がわかったら更新すること
-\noindent \normalfont 2008年12月31日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 2008年12月29日 \hspace{5mm}  初版第1刷発行\\
 \noindent \normalfont 東京エリア Debian 勉強会/関西エリア Debian 勉強会 （編集・印刷・発行）\\
 {\color{dancerdarkblue}\rule{\hsize}{1mm}}
 
