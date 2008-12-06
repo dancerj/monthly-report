@@ -13,20 +13,16 @@ theme.reinitialize()
  
 csv_reader = csv.reader(file('serialized.csv'))
 data = []
-monthname = []
 halfyear = [] # half-year moving average.
 i = 1
 for row in csv_reader:
     halfyear.append(atoi(row[2]))
     if len(halfyear) > 12:
         halfyear = halfyear[1:]
-
     data.append((i,
                  atoi(row[2]), 
                  sum(halfyear) / len(halfyear)
                  ))
-    
-    monthname.append(['%s-%s' % (row[0], row[1])])
     i = i + 1
 
 xaxis = axis.X(tic_interval = 12, label="Year Month", 
