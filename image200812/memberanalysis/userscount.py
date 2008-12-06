@@ -23,4 +23,4 @@ for key, value in member.iteritems():
 # print out the list of people
 for f in sorted(numrank.keys(), reverse=True):
     for item in numrank[f]:
-        print "%s,%i" % (item, f)
+        print "%s,%i" % (item.encode('utf-8'), f)
