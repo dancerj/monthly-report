@@ -4,7 +4,6 @@
 
 import csv
 from pychart import *
-from string import *
 
 theme.use_color=True
 theme.default_font_size=26
@@ -16,11 +15,11 @@ data = []
 halfyear = [] # half-year moving average.
 i = 1
 for row in csv_reader:
-    halfyear.append(atoi(row[2]))
+    halfyear.append(int(row[2]))
     if len(halfyear) > 12:
         halfyear = halfyear[1:]
     data.append((i,
-                 atoi(row[2]), 
+                 int(row[2]), 
                  sum(halfyear) / len(halfyear)
                  ))
     i = i + 1
