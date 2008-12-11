@@ -33,11 +33,11 @@ publish: $(RELEASEFILES)
 	diff -u .git/hooks/pre-commit git-pre-commit.sh
 	[ -x .git/hooks/pre-commit ]
 	## end of linting stuff
-	platex $< # create draft input
+	platex -halt-on-error $< # create draft input
 	-mendex $(<:%.tex=%)
-	platex $< # create draft content with correct spacing for index and toc
+	platex -halt-on-error $< # create draft content with correct spacing for index and toc
 	-mendex $(<:%.tex=%) # recreate index with correct page number
-	platex $< # recreate toc with correct page number
+	platex -halt-on-error $< # recreate toc with correct page number
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
