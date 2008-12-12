@@ -30,8 +30,16 @@ A quick and dirty webserver that does almost nothing.
 #include <unistd.h>
 #include <unistd.h>
 
+/* Xtest key code for PgUp and PgDn keys. */
+const int KEY_PGUP=99;
+const int KEY_PGDOWN=105;
+
+/* The X Display */
 Display *display = NULL;
 
+/* Xtest code to type in a key. Emulates press down and then
+   release. sched_yield is there to cause a bit of timeslicing but I'm not
+   quite sure if it's really sufficient or necessary. */
 void xkeyboardevent(int key)
 {
   XTestFakeKeyEvent(display, key, 1, 0);
@@ -43,6 +51,7 @@ void xkeyboardevent(int key)
   sched_yield();
 }
 
+/* Output the template HTML, which shows the Up and Down png file. */
 void output_html(int sock) 
 {
   FILE*f;
@@ -57,20 +66,25 @@ void output_html(int sock)
   fclose(f);
 }
 
+/* Handler when 'up' or 'down' button is pressed; show the HTML page, and emulate PgUp/PgDn */
 void move_up(int sock)
 {
   printf("move up!\n");
   output_html(sock);
-  xkeyboardevent(99);		/* page up */
+  xkeyboardevent(KEY_PGUP);		/* page up */
 }
 
 void move_down(int sock)
 {
   printf("move down!\n");
   output_html(sock);
-  xkeyboardevent(105);		/* page down */
+  xkeyboardevent(KEY_PGDOWN);		/* page down */
 }
 
+/* 
+   Show a png file. Expects the data to be in the current directory.
+   Currently, up.png and down.png only.
+ */
 void dump_png(int sock, const char* filename)
 {
   int fd=open(filename, O_RDONLY);
@@ -91,9 +105,21 @@ void dump_png(int sock, const char* filename)
   close(fd);
 }
 
+/* 
+   The main HTTP handler.
+
+   Will receive call every time HTTP request comes.
+
+   This will serve the initial '/' page, and 'up' and 'down' HTML
+   pages, and also 'up.png', 'down.png' png files.
+ */
 void handler(int sock, const char* path, const char* filename)
 {
-  if (!strcmp(filename, "up")) 
+  if (!strcmp(filename, ""))
+    {				/* initial page */
+      output_html(sock);
+    } 
+  else if (!strcmp(filename, "up")) 
     {
       move_up(sock);
     }
@@ -105,20 +131,22 @@ void handler(int sock, const char* path, const char* filename)
     {
       dump_png(sock, filename);
     }
-  else if (!strcmp(filename, ""))
-    {
-      output_html(sock);
-    }
   else 
     {
-      printf("Unknown path [%s]!\n", filename);
+      printf("Unknown filename [%s]!\n", filename);
     }
-  
 }
 
 
 int main(int ac, char** av)
 {
+  if (ac != 2)
+    {
+      fprintf(stderr, "Please specify the port as the command-line parameter\n");
+      exit(1);
+    }
+
+  /* initialize X */
   display=XOpenDisplay(NULL);
 
   if(!display)
@@ -127,11 +155,7 @@ int main(int ac, char** av)
       return;
     }
 
-  if (ac != 2)
-    {
-      fprintf(stderr, "Please specify the port as the command-line parameter\n");
-      exit(1);
-    }
+  /* initialize HTTP handler */
   http_add_handler("/", handler);
   http_initiate_webserver(atoi(av[1]));
   return 0;
