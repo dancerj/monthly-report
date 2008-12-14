@@ -10,6 +10,13 @@ sqlite3 /tmp/debmtg.db
 
 # see attendance for each month
  select year, month, count(name) from attend where type='attendance' group by year,month 
+
+
+# see what kind of activities people are doing.
+select name, sum(type = 'attendance'), sum(type = 'postwork'), sum(type = 'prework') from attend group by name order by count(name); 
+
+# rank the attendance with pre-work and post-work percentage.
+select name,  sum(type = 'attendance'), sum(type = 'prework'),  sum(type = 'postwork'), sum(type = 'prework') * 1.0 / sum(type = 'attendance') as preworkpct, sum(type = 'postwork') * 1.0 / sum(type = 'attendance') as postworkpct from attend  group by name order by postworkpct, preworkpct; 
 """
 
 from pysqlite2 import dbapi2
