@@ -13,7 +13,10 @@ sqlite3 /tmp/debmtg.db
 
 
 # see what kind of activities people are doing.
-select name, sum(type = 'attendance'), sum(type = 'postwork'), sum(type = 'prework') from attend group by name order by count(name); 
+select name, sum(type = 'attendance'), sum(type = 'prework'), sum(type = 'postwork') from attend group by name order by count(name); 
+
+# see what are the attendance / prework / postwork
+ select year, month, sum(type='attendance'), sum(type='prework'), sum(type='postwork') from attend group by year,month order by year, month ;
 
 # rank the attendance with pre-work and post-work percentage.
 select name,  sum(type = 'attendance'), sum(type = 'prework'),  sum(type = 'postwork'), sum(type = 'prework') * 1.0 / sum(type = 'attendance') as preworkpct, sum(type = 'postwork') * 1.0 / sum(type = 'attendance') as postworkpct from attend  group by name order by postworkpct, preworkpct; 
@@ -32,7 +35,7 @@ try:
 except dbapi2.Error, e:
     print "An error occurred:", e.args[0]
 
-cur.execute('create table attend(year text, month text, name text, type text)')
+cur.execute('create table attend(year number, month number, name text, type text)')
 
 for rows in csv.reader(file('memberls.csv')):
     for name in rows[2:]:
