@@ -1,4 +1,5 @@
-%; whizzy section -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
 % platex, latex-beamer でコンパイルすることを想定。 
 
@@ -42,9 +43,6 @@
 \begin{document}
 
 \frame{\titlepage{}}
-
-
-\section{Intro}
 
 \emtext{設営準備にご協力ください}
 
@@ -186,6 +184,145 @@ Debian の常識、もちろん知ってますよね?
 \end{frame}
 
 \emtext{2009年を計画する}
+
+
+\emtext{LT}
+
+\emtext{sqlite3をつかってみた}
+\section{sqlite3}
+\begin{frame}{はじめに: sqlite3 とは?}
+
+ お手軽なSQLデータベース
+
+ \fbox{\includegraphics[width=1\hsize]{image200812/sqlite.eps}}
+\end{frame}
+
+\begin{frame}[containsverbatim]{簡単:データベースの作成}
+
+データベースを作成してみる!
+
+\begin{commandline}
+$ sqlite3 debmtg.db
+sqlite> 
+\end{commandline}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{独自だけど簡単なインタフェース}
+\begin{commandline}
+$ sqlite3 /tmp/a.db 
+SQLite version 3.5.9
+Enter ".help" for instructions
+sqlite> create table unko(test text, count number); 
+sqlite> .tables
+unko
+sqlite> .dump unko
+BEGIN TRANSACTION;
+CREATE TABLE unko(test text, count number);
+COMMIT;
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{言語バインディング}
+\begin{commandline}
+$ apt-cache search sqlite3 [抜粋]
+cl-sql-sqlite3 - CLSQL database backend, SQLite3
+libdbd-sqlite3 - SQLite3 database driver for libdbi
+libdbd-sqlite3-perl - Perl DBI driver with a self-contained RDBMS
+libdbd-sqlite3-ruby - Ruby/DBI driver for SQLite3
+libdbd-sqlite3-ruby1.8 - Ruby/DBI SQLite driver for Ruby 1.8
+libghc6-hdbc-sqlite3-dev - Sqlite v3 HDBC (Haskell Database Connectivity) Driver for GHC
+libghc6-hsql-sqlite3-dev - SQLite driver of the HSQL library for GHC6
+liblua5.1-sql-sqlite3-2 - luasql library for the lua language version 5.1
+libsoci-sqlite3-gcc - C++ Database Access Library (SQLite3 backend)
+libsqlite3-0 - SQLite 3 shared library
+libsqlite3-gst - SQLite bindings for GNU Smalltalk
+libsqlite3-ocaml - Embeddable SQL Database for OCaml Programs
+libsqlite3-ocaml-dev - Embeddable SQL Database for OCaml Programs
+libsqlite3-ruby - SQLite3 interface for Ruby
+libsqlite3-tcl - SQLite 3 Tcl bindings
+slang-sqlite - S-Lang bindings to the sqlite3 database library
+\end{commandline} 
+\end{frame}
+
+\begin{frame}[containsverbatim]{python の例}
+\begin{commandline}
+from pysqlite2 import dbapi2
+import csv
+
+con = dbapi2.connect('debmtg.db')
+cur = con.cursor()
+
+cur.execute('create table test(name text, score number)')
+
+for rows in csv.reader(file('test.csv')):
+    cur.execute('insert into test(name, score) values(?,?)', 
+                    (rows[0].decode('utf-8'),int(rows[1])))
+
+con.commit()
+con.close()
+
+\end{commandline}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{python の例}
+\begin{commandline}
+from pysqlite2 import dbapi2
+import csv
+\end{commandline}
+
+pysqlite2 をインポートします。
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{python の例}
+\begin{commandline}
+con = dbapi2.connect('debmtg.db')
+cur = con.cursor()
+\end{commandline}
+
+データベースにコネクションをはります。
+通常のDBだとDBサーバに接続するのだけど、sqlite3 ではデータベースファイルを
+ openする処理相当。
+
+cursor というのをオープンします。操作するためのハンドルみたいなもの。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{python の例}
+\begin{commandline}
+cur.execute('create table test(name text, score number)')
+
+for rows in csv.reader(file('test.csv')):
+    cur.execute('insert into test(name, score) values(?,?)', 
+                    (rows[0].decode('utf-8'),int(rows[1])))
+
+\end{commandline}
+
+cursor の execute コマンドで適当に SQL 文を実行します。
+? で指定した部分をパラメータ置換してくれるのがポイント。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{python の例}
+\begin{commandline}
+con.commit()
+con.close()
+\end{commandline}
+データベースへの書き込みトランザクションをコミットしてクローズします。
+コミット(end transaction)しないと反映されません。
+\end{frame}
+
+\begin{frame}{勉強方法}
+\begin{itemize}
+ \item SQL関連の書籍など(Oracle, PostgreSQL, MySQL関連は充実)、一部DDLは
+       違うので注意。
+ \item SQLite のオンラインドキュメンテーションを参考にしながらがむばる?
+\end{itemize}
+\end{frame}
 
 \emtext{次回の勉強会}
 \begin{frame}{次回の勉強会}
