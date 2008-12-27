@@ -111,7 +111,110 @@
 
 %TODO fill
 
-\dancersection{何かネタ}{上川純一}
+\dancersection{Git+メールでの事前課題提出にまつわる課題}{上川純一}
+\index{git}
+
+2008年11月、12月、および2009年1月には事前課題をGit+メールで提出してもら
+うという形式にしていました。
+その場合にコンフリクトが発生します。
+その原因となる仕組みと対策方法について説明します。
+
+\subsection{コンフリクトが発生しやすい理由}
+
+
+\subsubsection{元のファイルの形式}
+
+\begin{commandline}
+-\subsection{}
++\subsection{XXXX}
+\end{commandline}
+
+挿入だけであればコンフリクトにはならない。
+
+
+\subsubsection{メールを利用したサブミット}
+
+複数の人が同じHEADに対してパッチを作成、
+それを上川がマージした。
+コンフリクトを上川が解消しているため、提出したバージョンとは若干違うパッ
+チになっている。
+
+
+\subsection{マージ・コンフリクトの発生のしかた}
+
+master ブランチでパッチを作成する
+
+git format-patch の結果を送付、上川が適用する。
+
+最新バージョンをpullしてくると origin ブランチでは、
+若干変更の加わったパッチが入る。
+
+整合性がとれるとはかぎらないため、コンフリクト。
+
+コンフリクトがおきなかったとしても履歴にマージが残る。
+
+git pull --rebase すると、おそらくマージが残らないが、
+コンフリクトの解消は必要?
+
+\subsection{マージ・コンフリクトの解消方法}
+
+\subsubsection{rebase して履歴をきれいにする}
+
+git rebase -i origin 
+すると、同じパッチだったということで解消される?
+これは同じコミットログの場合だけか?
+
+git rebase -i origin
+ すると、同じパッチを二度適用しようとしているということでパッ
+チが解消されることになる?
+
+
+
+
+\subsubsection{作業の仕方を変える}
+
+提出用のブランチを作成して、そこで提出用のデータを作成してしまえばよい?
+
+
+\begin{commandline}
+ 
+$ git checkout -b preworkXXXX origin
+$ # ... work work work
+$ git format-patch ... 
+
+$ git checkout master 
+$ git pull
+$ git checkout -b preworkYYYY origin
+\end{commandline}
+
+preworkXXXX ブランチを毎回捨てる。
+
+\subsection{リポジトリ管理者側の課題}
+
+マージするのが面倒。
+
+git am がコンフリクトを起こす確率が大きい。
+パッチが置き換えでなく、元のデータに対しての追加のみになるように問題を設
+定すると負荷は減る。
+現状はマージで回避してみている。
+
+\begin{commandline}
+  git checkout -b マージ用のブランチ master
+  git am -3 パッチ
+  git checkout -b マージ用のブランチ master
+  git am -3 パッチ
+  git checkout master 
+  git merge マージ用のブランチ
+  コンフリクトの解消
+  git merge マージ用のブランチ
+\end{commandline}
+
+ただ、10人以上の事前課題のハンドリングには時間もかかるので毎回したい作業
+ではない。
+
+自動でコンフリクトするかしないかについては判定できるし、その結果がビルド
+するかはチェックできるのであれば、なんらかのデーモンを立ち上げることはできないか?
+
 
 \clearpage
 
