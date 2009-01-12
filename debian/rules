@@ -17,7 +17,7 @@ build-stamp:
 
 	# Add here commands to compile the package.
 	-rm *.pdf
-	$(MAKE)
+	$(MAKE) -j4
 
 	touch $@
 
@@ -62,8 +62,10 @@ binary-arch: build install
 local-make-orig: ../tokyodebian_$(VERSION).orig.tar.gz
 
 ../tokyodebian_$(VERSION).orig.tar.gz: 
-	git-archive --format=tar HEAD | gzip -9 > $@.tmp
-	mv $@.tmp $@
+	git archive --format=tar HEAD > $@.tmp
+	cat $@.tmp | gzip -9 > $@.tmp.gz
+	mv $@.tmp.gz $@
+	rm $@.tmp
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure local-make-orig
