@@ -17,6 +17,8 @@ build-stamp:
 
 	# Add here commands to compile the package.
 	-rm *.pdf
+	# fool the check scripts
+	-mkdir -p .git/hooks; cp -p git-pre-commit.sh .git/hooks/pre-commit
 	$(MAKE) -j4
 
 	touch $@
@@ -68,10 +70,10 @@ local-make-orig: ../tokyodebian_$(VERSION).orig.tar.gz
 	rm $@.tmp
 
 # run the necessary things to get this running inside chroot.
+# debian/rules try-build-chroot
 try-build-chroot:
-	# warning: requires package from non-free.
 	dpkg-buildpackage -S -i'(.git|_whizzy_|dvi$$|pdf$$|pdf.tmp$$)'
-	sudo cowbuilder --build ../tokyodebian_$(DEBIANVERSION).dsc
+	sudo cowbuilder --build --hookdir $(CURDIR)/debian/pbuilder-hook ../tokyodebian_$(DEBIANVERSION).dsc 
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install configure local-make-orig
