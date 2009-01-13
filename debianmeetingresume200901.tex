@@ -356,6 +356,150 @@ git am でパッチを適用して、マージするという作業を行うのですが、そのワー
 ような仕組み、ないもんでしょうかねぇ?
 
 %============================================================
+\dancersection{NamazuみたいにGoogle AJAX Search API}{小室 文}
+\index{Google AJAX Search API}
+%============================================================
+
+Namazuを導入しなくてもGoogleの検索エンジンを使って御手軽にサイト内全文検索する方法を説明します。
+\subsection{Googleの検索を使うには}
+\begin{enumerate}
+\item JavaScriptあり
+\begin{enumerate}
+\item 自分でJavaScriptを組む
+\item ウィザードを使う
+\end{enumerate}
+\item JavaScriptなし
+\end{enumerate}
+
+\subsubsection{JavaScriptあり・なし両方}
+Google AJAX Search APIのKEYを取得
+\subsubsection{JavaScriptあり}
+Google AJAX Search API JavaScript ライブラリをロードする
+\begin{commandline}
+<script src="http://www.google.com/uds/api?file=uds.js&v=1.0" type="text/javascript"></script>
+\end{commandline}
+\begin{commandline}
+//名前空間の為に追加
+    google.load("search", "1.0"); 
+
+//検索をするオブジェクトを作成する
+    var searchControl = new google.search.SearchControl(); 
+
+//検索準備
+//子オブジェクトのサーチャーメソッドを検索コントロールに追加。必要であればオプションも。 
+    var options = new GsearcherOptions(); //表示オプション指定
+    options.setExpandMode(GSearchControl.EXPAND_MODE_OPEN);//結果一覧を開いた状態で出力する
+    options.setExpandMode(GSearchControl.EXPAND_MODE_CLOSED);//結果を閉じた状態のまま結果出力をする
+    options.setExpandMode(GSearchControl.EXPAND_MODE_PARTIAL);//結果がオープン拡張モード
+    options.setRoot(document.getElementById("resultsComeHere"));//結果を指定する場所に表示するオプション
+
+//サイト制限の設定
+    var siteSearch = new GwebSearch();
+    siteSearch.setUserDefinedLabel("Aya's Site");
+    siteSearch.setSiteRestriction("popowa.com");//直接URLを指定
+    siteSearch.setSiteRestriction("000455696194071821846:reviews");//カスタムエンジンのKeyを指定
+//準備終了、セットする
+    searchControl.addSearcher(siteSearch, options);//オプションがあれば
+    searchControl.addSearcher(new GwebSearch());//オプションがなければ
+//出力準備
+    var result = document.getElementById("googleResults");
+    var drawOptions = new GdrawOptions();//オプション用にdrawOptions オブジェクトを作成
+    drawOptions.setDrawMode(GSearchControl.DRAW_MODE_LINEAR);//1)一列に出力
+    drawOptions.setDrawMode(GSearchControl.DRAW_MODE_TABBED);//2)タブに出力
+    drawOptions.setSearchFormRoot(document.getElementById("searchForm"));//検索結果と検索フォームを切り離す機能
+    searchControl.draw(result, drawOptions);
+//検索結果の保持(prototype)
+    searchControl.setOnKeepCallback(this, MyKeepHandler);//この(this)検索状況をMyKeepHandlerに持たせておく。
+    searchControl.setSearchCompleteCallback(this, OnSearchComplete); //検索の実行後
+    searchControl.setSearchStartingCallback(this, OnSearchStarting); //検索の完了前
+//検索する！
+    searchControl.execute(keyword);
+\end{commandline}
+body内に検索窓、検索結果を出力したい場所にdivを入れる
+\begin{commandline}
+ <div id="searchForm" class="searchForm">form</div>
+ <div id="googleResults" class="googleResults">googleResults</div>
+\end{commandline}
+\subsubsection{JavaScriptなし}
+\url http://ajax.googleapis.com/ajax/services/search/web
+に引数を渡してリクエストするとJSON形式でレスポンスが得られる
+
+\begin{table}[h]
+\begin{tabular}{|c|c|c|}
+\hline
+   q? & 検索したいキーワード、検索式 & 日本語だった場合はurlencode()しないとうまく動かない\\
+\hline
+   v=1.0 & プロトコル番号の指定 & 現在は1.0しかない\\
+\hline
+   key? & Google AJAX Search APIのKey & 申請したFQDN=実際に使っているFQDNでなくてもよい\\
+\hline
+   start? & 検索結果の開始インデックス & ドメイン指定をすると160件から持って来てくれなくなる\\
+\hline
+   cx? & カスタム検索エンジンのID & 特定のドメインからのみ検索する事が出来る\\
+\hline
+   lr? & 特定の言語のドキュメントを検索対象とする & \\
+\hline
+\end{tabular}
+\end{table}
+レスポンス形式
+\begin{commandline}
+{"responseData": {
+ "results": [
+  {
+   "GsearchResultClass": "GwebSearch",
+   "unescapedUrl": "http://en.wikipedia.org/wiki/Paris_Hilton",
+   "url": "http://en.wikipedia.org/wiki/Paris_Hilton",
+   "visibleUrl": "en.wikipedia.org",
+   "cacheUrl": "http://www.google.com/search?q\u003dcache:TwrPfhd22hYJ:en.wikipedia.org",
+   "title": "\u003cb\u003eParis Hilton\u003c/b\u003e - Wikipedia, the free encyclopedia",
+   "titleNoFormatting": "Paris Hilton - Wikipedia, the free encyclopedia",
+   "content": "\[1\] In 2006, she released her debut album..."
+  },
+  ...
+ ],
+ "cursor": {
+  "pages": [
+   { "start": "0", "label": 1 },
+   { "start": "4", "label": 2 },
+   { "start": "8", "label": 3 },
+   { "start": "12","label": 4 }
+  ],
+  "estimatedResultCount": "59600000",
+  "currentPageIndex": 0,
+  "moreResultsUrl": "http://www.google.com/search?oe\u003dutf8\u0026ie\u003dutf8..."
+ }
+}
+, "responseDetails": null, "responseStatus": 200}
+\end{commandline}
+レスポンスを個々のプログラムで処理する
+\begin{commandline}
+<?php
+function search($keyword, $page, $key){
+	$uri = 'http://ajax.googleapis.com/ajax/services/search/web';
+	$uri .= '?q=' . urlencode($keyword);
+	$uri .= '&key='.$key;
+	$uri .= '&v=1.0&rsz=large&hl=ja&start=' . $page;
+	return json_decode(file_get_contents($uri));
+}
+$keyword = "東京エリアDebian勉強会";
+$key = 'アプリケーションのキー';
+$data = search($keyword, 1, $key);
+var_dump($data);
+?>
+
+\end{commandline}
+
+\subsubsection{現状の問題点}
+Google AJAX Search APIはbugがある。\\
+JavaScriptあり:setSiteRestrictionでドメインを指定して検索をしようとした場合、検索結果が検索する事に変わる。
+JavaScriptなし:?q=DMC\%20site:http://www.debian.or.jp/とするとドメイン検索は出来るが、start?で引数を渡すたびに同じように結果が変わる。
+
+\subsubsection{まとめ}
+Namazuみたいに完璧には検索が出来ませんでした(2009/1現時点)。Google AJAX Search APIのbugは長い事放置プレイ中(2008/3頃から)。\\
+ちなみにYahoo Web検索でも同じようなbugがあるが、Yahoo!は検索リクエストがある度に検索結果を積算しているので違います、と予め免責してある。
+
+
+%============================================================
 %\dancersection{XXX}{名前}
 %\index{XXX}
 %============================================================
