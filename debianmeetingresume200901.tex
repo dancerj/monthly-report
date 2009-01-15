@@ -1123,6 +1123,121 @@ bootchartでどれぐらい起動が速くなったか、調べてみました。
 
 
 %============================================================
+\dancersection{黒 MacBook の Lenny/Sid 64bit 化でのハマりポイント}{まえ
+だこうへい}
+%\index{MacBook}
+%\index{lilo}
+%============================================================
+
+年末のネタ\footnote{2008 年 12 月の勉強会で発表した、ヨメを Debian
+GNU/Linux Sid ユーザにする。}を実現するために、冬休みを利用して 32bit
+Sid 環境だった黒 MacBook を 64bit Sid で再構築しました。インストール
+自体はいつものとおりの作業なので、皆さんもいつもやっていらっしゃることで面白みも
+ないのですが、年明けにリリースされていた Lenny の
+Snapshot イメージでブートローダに LILO を選択し、インストール後に起動さ
+せると Kernel Panic になってしまい、いきなり起動できない問題に遭遇します。
+今回はその回避方法について\footnote{バグの修正ではありません。新婚旅行前
+日の数時間しか冬休みは時間を割けませんでした…。 orz}説明します。
+
+
+\subsection{用意したインストールイメージ}
+ご存知のとおり、MacBook を 64bit でインストールするには、 amd64 版のイン
+ストールイメージが必要です。今回は、 Lenny のスナップショット
+\footnote{Debian GNU/Linux testing "Lenny" - Official Snapshot amd64
+NETINST Binary-1 20090104-09:09}を使いました。
+
+\subsection{簡単なインストール手順}
+MacBook への Debian のインストールに関する情報は、過去の Debian 勉強会の
+資料や、 Debian Wiki に公開されています。今回もそれらと同様の手順です。
+\begin{enumerate}
+\item expert install での起動。
+\item 日本語ロケール、米国キーボードを指定。
+\item パーティションの指定し直し。\footnote{LVM でボリュームを
+作っているパーティションはパーティションを切り直せない問題があります。}
+\item 基本パッケージのインストール。
+\item シェルモードへ移行。
+\item gptsync, refit パッケージのインストール、 gptsync の実行。
+\item apt-line の変更、apt-get \{update,upgrade,dist-upgrade\}の実行。
+\item 再起動。
+\end{enumerate}
+
+\subsection{起動時させると…。}
+次のようなメッセージを吐いて、 Kernel Panic になります。
+
+\begin{commandline}
+RAMDISK: Couldn't find valid RAM disk image staring at 0.
+List of all partitions:
+No filesystem could mount root, tried:
+Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(8,4)
+\end{commandline}
+
+実は、インストール直後に Kernel Panic となるのは今回が初めてではありません。 MacBook Air
+を 64bit 化した際にも同じ現象が発生しました。
+\footnote{\url{http://d.hatena.ne.jp/mkouhei/20080713/1215913997}}しかし、
+MacBook Air の時は、レスキューモードで起動し、 Kernel を再構築してインス
+トールしたら再発しなくなりました。ところが今回は Kernel を再構築しただけ
+では解決できません。困ったものです。
+
+
+
+\subsection{回避方法}
+困ったので、ググってみたところ、同じ現象に対しての回避策も公開さ
+れていました。
+\footnote{\url{http://linux.derkeiler.com/Mailing-Lists/Debian/2008-11/msg01918.html}}
+簡単に回避策をまとめると次の手順です。
+
+\begin{enumerate}
+\item レスキューモードで起動します。
+\item シェルモードになり、 /target へ chroot します。
+\item カーネルソースを展開します。
+\item /boot 以下の該当の kernel config をカーネルソースツリーにコピーし
+      ます。
+\item kernelを構築し、インストールします。
+\begin{commandline}
+REVISION=$(date +%Y%m%d.%H%M)
+make-kpkg --initrd --revision $REVISION kernel_image
+dpkg -i ../kernel-image-2.6.26_20090105.2330_amd64.deb
+\end{commandline}
+
+\item /ramdisk ディレクトリを作り\footnote{ディレクトリ名は任意。/ 直下
+      に 所有者、グループを root:root で作ります。}、 initrd を展開しま
+      す。
+\begin{commandline}
+mkdir /ramdisk
+cd /ramdisk
+zcat /boot/initrd-2.6.26 | cpio -i
+\end{commandline}
+
+\item 先ほどインストールした kernel をアンインストールします。
+\begin{commandline}
+dpkg --purge kernel-image-2.6.26
+\end{commandline}
+
+\item .config の ''INITRAMFS\_SOURCE'' を書き換え、--initrd オプションな
+      しで kernel をリビルドします。
+\begin{commandline}
+sed -i 's:INITRAMFS_SOURCE="":INITRAMFS_SOURCE="/ramdisk":' .config
+make-kpkg --revision $REVISION kernel\_image
+\end{commandline}
+
+\item できた kernel パッケージをインストールします。
+\item lilo.conf の ''initrd=/initrd.img'' をコメントアウトし、liloを書き
+      込みます。
+
+\end{enumerate}
+
+これで、kernel panic を起こさず、ちゃんと起動できるようになりました。た
+だし、今のところ、新たなバージョンの kernel を構築する度、同じ手順を踏ま
+なければなりません。
+
+
+\subsection{もっと簡単な回避方法。}
+\textbf{ lilo なんかをやめて、grub2 にしてしまいましょう。}
+おあとがよろしいようで。
+
+
+
+%============================================================
 %\dancersection{XXX}{名前}
 %\index{XXX}
 %============================================================
