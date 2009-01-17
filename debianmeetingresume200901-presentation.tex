@@ -298,6 +298,133 @@ master にはマージされた後の内容が反映される
 \end{frame}
 
 \emtext{前田耕平}
+
+\begin{frame}{}
+
+\begin{center}
+
+ 黒 MacBook の Lenny/Sid 64bit 化 でのハマりポイント
+
+ まえだこうへい mkouhei@debian.or.jp\\IRC nick: mkouhei
+\end{center}
+
+
+\end{frame}
+
+\section{}
+\begin{frame}
+ \frametitle{Agenda}
+  \begin{enumerate}
+  \item 用意したインストールイメージ
+  \item 簡単なインストール手順
+  \item 起動させると…。
+  \item 回避方法
+  \item もっと簡単な回避方法。
+ \end{enumerate}
+\end{frame}
+
+\section{事前準備}
+
+\begin{frame}
+ \frametitle{用意したインストールイメージ}
+  \begin{itemize}
+  \item Lenny のスナップショットイメージ
+	 
+Debian GNU/Linux testing ''Lenny'' - Official Snapshot amd64
+	 NETINST Binary-1 20090104-09:09
+
+ \end{itemize}
+\end{frame}
+
+\section{手順}
+\begin{frame}
+ \frametitle{簡単なインストール手順}
+ \begin{enumerate}
+  \item expert install での起動。
+  \item 日本語ロケール、米国キーボードを指定。
+  \item パーティションの指定し直し。
+  \item 基本パッケージのインストール。
+  \item シェルモードへ移行。
+  \item gptsync, refit パッケージのインストール、 gptsync の実行。
+  \item apt-line の変更、apt-get \{update,upgrade,dist-upgrade\}の実行。
+  \item 再起動。
+ \end{enumerate}
+\end{frame}
+
+\section{Kernel Panic}
+
+\begin{frame}[containsverbatim]
+\frametitle{起動させると…。}
+Kernel Panic となってしまいます。
+\begin{commandline}
+RAMDISK: Couldn't find valid RAM disk image staring at 0.
+List of all partitions:
+No filesystem could mount root, tried:
+Kernel panic - not syncing: VFS: Unable to mount root fs on
+ unknown-block(8,4)
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\frametitle{回避方法}
+\begin{itemize}
+\item レスキューモードで起動。
+\item シェルモードになり、 /target へ chroot 。
+\item カーネルソースを展開。
+\item /boot 以下の該当の kernel config をカーネルソースツリーにコピー。
+\item kernelをビルドし、インストール。
+\begin{commandline}
+REVISION=$(date +%Y%m%d.%H%M)
+make-kpkg --initrd --revision $REVISION kernel_image
+dpkg -i ../kernel-image-2.6.26_20090105.2330_amd64.deb
+\end{commandline}
+
+\item /ramdisk ディレクトリを作り、 initrd を展開。
+\begin{commandline}
+mkdir /ramdisk
+cd /ramdisk
+zcat /boot/initrd-2.6.26 | cpio -i
+\end{commandline}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\frametitle{回避方法(cont.)}
+\begin{itemize}
+\item 先ほどインストールした kernel をアンインストール。
+\begin{commandline}
+dpkg --purge kernel-image-2.6.26
+\end{commandline}
+\item .config の ''INITRAMFS\_SOURCE'' を書き換え、--initrd オプションな
+      しで kernel をリビルド。
+\begin{commandline}
+sed -i 's:INITRAMFS_SOURCE="":INITRAMFS_SOURCE="/ramdisk":' .config
+make-kpkg --revision $REVISION kernel\_image
+\end{commandline}
+\item できた kernel パッケージをインストール。
+\item lilo.conf の ''initrd=/initrd.img'' をコメントアウトし、liloを書き
+      込み。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\frametitle{もっと簡単な回避方法。}
+\textbf{ lilo をやめて、grub2 にしてしまいましょう。}
+
+\begin{commandline}
+# apt-get install grub-pc
+# update-grub
+# grub-install /dev/sda3
+\end{commandline}
+
+これで、initrdを作ってもちゃんとブートできます。
+
+
+\end{frame}
+
+
 \emtext{小室文}
 
 \begin{frame}{}
