@@ -357,7 +357,380 @@ Debian の常識、もちろん知ってますよね?
 
 \emtext{id774}
 \emtext{山本 浩之}
-\emtext{岩松　信洋}
+
+\section{岩松信洋}
+\emtext{岩松信洋}
+
+\emtext{はじめに}
+\section{はじめに}
+\begin{frame}{はじめに}
+2008年末に2.6.28が出ましたが、みなさんコンパイルしていますか？
+2、3名ほどは毎朝昼晩Linusツリーからgit pullしてコンパイルされていると思いますが、
+大抵の方はDebianが提供しているカーネルを使っていると思います。
+使っている理由は様々ですが、コンフィグレーションがめんどうくさいとか、ど
+こを変えていいのかわからない、などが理由だと思います。(i386で約4000の設定項目がある)
+
+また、最近でLinuxカーネルも賢くなり、ドライバをモジュールにしておくと、
+ある程度自動的に必要なモジュールをロードしてくれるようになったのも理由の
+一つかもしれません。
+今回はユーザの立場からカーネルを触れるようにする方法の一つとして、Debian
+が提供しているカーネルからモジュールを組み込みにするためのスクリプトを作
+りました。
+これによって、どこを有効にすればいいのかわからないなどの問題がすべて解決
+します。
+\end{frame}
+
+
+\emtext{なぜ彼らはカーネルをリコンパイルするのか？}
+\section{なぜ彼らはカーネルをリコンパイルするのか？}
+\begin{frame}[containsverbatim]{なぜ彼らはカーネルをリコンパイルするのか？}
+なぜ彼らはカーネルをリコンパイルするのか？
+\end{frame}
+
+\begin{frame}{なぜ彼らはカーネルをリコンパイルするのか？}
+
+カーネルをリコンパイルする理由
+\begin{itemize}
+\item カーネルハックのため。
+\item カーネルBTSの深追い。
+\item 最新のカーネルは新しいドライバや機能が使えるから。
+\item ドライバを組み込みにして、起動の高速化。
+\item ドキドキ感を味わうことができる。
+\item 無駄にCPUを使いたい。(反エコ)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{なぜ彼らはカーネルをリコンパイルするのか？}
+カーネルをリコンパイルすることによるデメリット
+\begin{itemize}
+\item 失敗したら動かなくなるかもしれない。
+\item コンパイルにCPUリソースを食いすぎる(CPUが遅いため)。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{なぜ彼らはカーネルをリコンパイルするのか？}
+
+ここにいるひとたちには関係ないことだと思います。
+
+\end{frame}
+
+\emtext{今回作ったもの}
+\section{今回作ったもの}
+\begin{frame}[containsverbatim]{今回作ったもの}
+
+システム情報を元に、システムに必要なカーネル
+モジュールが組み込み指定に変換されたカーネルコンフィグファイルを
+出力するというありそうでなさそうなプログラム
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+
+\begin{itemize}
+\item 使うカーネル\\
+      Debianで提供しているカーネル(lenny では 2.6.26)
+\item 入力するデータ
+\begin{enumerate}
+  \item カーネルソースコード
+  \item 動いているカーネルのコンフィグファイル\\
+	\url{/boot/config-2.6.26-1-xxx}
+  \item システム情報
+\end{enumerate}
+\item 出力されるデータ\\
+      システム情報を元にシステムに必要なカーネルモジュールが組み込み
+      状態になっているカーネルコンフィグファイル
+\end{itemize}
+\end{frame}
+
+     
+\subsection{システム情報の取得方法}
+\begin{frame}[containsverbatim]
+今回のキモはどのようにして、システム情報を取得するか、にかかっています。
+今動いているカーネルから得られる情報は以下のものが考えられます。
+
+\begin{table}[h]
+ \begin{center}
+ {
+   \begin{tabular}{l|l} \hline
+     コマンド & 内容  \\ \hline \hline
+     dmidecode & BIOS からシステム情報を出力する \\
+     lspci & PCI の情報を出力する \\
+     lsusb & USB の情報を出力する \\
+     dmesg & カーネルデバッグメッセージを出力する \\
+     lsmod & ロードしてるモジュールを出力する \\
+   \end{tabular}
+ }
+ \caption{起動しているカーネルから得られる情報}
+ \label{kernel-output}
+ \end{center}
+\end{table}
+
+これらの中で信用できて簡単に扱えるものは lsmod でしょう。
+理由は
+{\bf ロードしているモジュール＝現在の Linux システムに必要なもの}
+なので、わかりやすいためです。
+よって、今回は lsmod の出力を利用することにしました。
+\end{frame}
+
+\emtext{簡単な流れ}
+
+\begin{frame}
+1. データとして、カーネルソースコードへのパス、動作しているカーネル
+       コンフィグファイル、lsmod の出力結果を指定する。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+2.lsmod からロードしているドライバモジュール一覧を取得する
+
+lsmod を実行すると、以下のような内容が出力されます。
+\begin{commandline}
+$ lsmod
+Module                  Size  Used by
+i915                   25280  2   
+drm                    65256  3 i915
+ipv6                  235300  10  
+rfcomm                 28272  2   
+l2cap                  17248  9 rfcomm
+........
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+3. ドライバモジュール名 と modinfo コマンドから ドライバモジュールのパスを取得する。
+
+modinfo コマンドを使うと、指定したドライバモジュール名の情報を取得するこ
+       とができます。-n オプションを使うと、ドライバオブジェクトファイル
+       のパスが出力されます。
+
+\begin{commandline}
+$ modinfo -n i915
+/lib/modules/2.6.26-1-amd64/kernel/drivers/char/drm/i915.ko
+\end{commandline}
+       上の結果を例にすると、{\bf /lib/modules/2.6.26-1-amd64/kernel/} 以下と カーネルソース
+       コードのパス構造は同じなため、ドライバモジュール名{\bf i915}の Makefile
+       のあるパスは {\bf drivers/char/drm/Makefile} になります。また、ドライバオブジェクトファイ
+       ルは {\bf i915.ko} であることが分かります。
+\end{frame}
+       
+\begin{frame}[containsverbatim]
+4. 先で取得したMakefile へのパスとドライバオブジェクトファイル名より、
+      対象になるドライバコンフィグ名を取得する。
+
+      ドライバオブジェクトファイル(i915.ko)とドライバモジュール名(i915)
+      は必ずしも一致するとは限らないので、ドライバモジュール名を使って、
+      ドライバコンフィグ名を検索します。
+      \footnote{例えば snd\_hda\_intel}
+
+\begin{commandline}
+.....
+obj-$(CONFIG_DRM_I830)  += i830.o
+obj-$(CONFIG_DRM_I915)  += i915.o <- これ
+obj-$(CONFIG_DRM_SIS)   += sis.o
+.....
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+5. 取得したドライバコンフィグ名を保存する。
+\end{frame}
+
+\begin{frame}[containsverbatim]
+6. 動作しているカーネルコンフィグファイルのドライバコンフィグを書き換える。
+
+正規表現を使って書き換えると、以下のようになります。
+{\bf m} はモジュールを意味し、{\bf y} は組み込みを意味します。
+
+変更前
+\begin{commandline}
+....
+CONFIG_DRM_I830=m
+CONFIG_DRM_I915=m
+CONFIG_DRM_MGA=m
+....
+\end{commandline}
+
+変更後
+\begin{commandline}
+....
+CONFIG_DRM_I830=m
+CONFIG_DRM_I915=y <- 書き換え
+CONFIG_DRM_MGA=m
+....
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+7. 変更したものをファイルに出力する。
+\end{frame}
+
+
+\emtext{実際に使ってみる}
+
+\begin{frame}[containsverbatim]{ 実際に使ってみる}
+今回作成したソフトウェアは以下のように使います。
+ちなみに、lsmod の出力ファイルを指定しない場合は、プログラムの中で自動的
+に取得します。
+\begin{commandline}
+$ moge -h
+moge - Script to Kernel Module Enabler from lsmod command output
+
+Copyright (C) 2008,2009 Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Usage: moge [options]
+	-c, --configfile <file>   Kernel config file name
+	-k, --kernel              Kernel source path
+	-o, --output <file>       outout file
+	-l, --lsmod               lsmod command output file
+	-h, --help                display this help screen and exit
+	-v, --version             show the version and exit
+
+By Nobuhiro Iwamatsu <iwmatsu@nigauri.org>
+$ moge -o sage -c config-2.6.26-1-686 -l lsmod.list -k /usr/src/linux-2.6-2.6.26/
+\end{commandline}
+\end{frame}
+
+
+\emtext{作成されたコンフィグファイルを使ってカーネルをコンパイルする}
+
+\begin{frame}[containsverbatim]{}
+さっそく、作成されたコンフィグファイルを使ってカーネルをコンパイルしてみ
+ましょう。
+カーネルコンパイルの方法は以下の通りです。
+\begin{commandline}
+$ sudo apt-get update
+$ sudo apt-get install linux-source-2.6.26 kernel-package
+$ cd /usr/src/linux-source-2.6.26
+$ make oldconfig
+$ fakeroot make-kpkg --revision=yourpc00 kernel_image kenrel_header
+$ ls ../
+linux-image-2.6.26_yourpc00_i386.deb
+linux-headers-2.6.26_yourpc00_i386.deb
+.......
+\end{commandline}
+\end{frame}
+
+\section{変更結果}
+\begin{frame}[containsverbatim]{lsmodの結果}
+
+eeePC で試してみて、どれぐらい変わったのか調べました。
+
+変更前は61モジュール
+\begin{commandline}
+Module                  Size  Used by
+i915                   25280  2   
+drm                    65256  3 i915
+ipv6                  235300  10  
+rfcomm                 28272  2   
+l2cap                  17248  9 rfcomm
+bluetooth              44900  4 rfcomm,l2cap
+psmouse                32336  0   
+uvcvideo               45704  0   
+serio_raw               4740  0   
+compat_ioctl32          1312  1 uvcvideo
+videodev               27520  1 uvcvideo
+v4l1_compat            12260  2 uvcvideo,videodev
+i2c_i801                7920  0   
+i2c_core               19828  1 i2c_i801
+pcspkr                  2432  0   
+iTCO_wdt                9508  0   
+snd_hda_intel         324248  0   
+rng_core                3940  0   
+snd_pcm_oss            32800  0   
+snd_pcm                62596  2 snd_hda_intel,snd_pcm_oss
+snd_mixer_oss          12320  1 snd_pcm_oss
+video                  16432  0   
+output                  2912  1 video
+battery                10180  0   
+ac                      4196  0   
+snd_seq_dummy           2660  0   
+eeepc_laptop            7440  0   
+button                  6096  0   
+atl2                   22872  0   
+snd_seq_oss            24992  0   
+snd_seq_midi_event      6432  1 snd_seq_oss
+snd_seq                41456  5
+ snd_seq_dummy,snd_seq_oss,snd_seq_midi_event 
+snd_timer              17800  2 snd_pcm,snd_seq
+snd_seq_device          6380  3 snd_seq_dummy,snd_seq_oss,
+snd_seq 
+snd                    45604  8 snd_hda_intel,snd_pcm_oss,
+snd_pcm,snd_mixer_oss,snd_seq_oss,snd_seq,snd_timer,
+snd_seq_device
+soundcore               6368  1 snd 
+snd_page_alloc          7816  2 snd_hda_intel,snd_pcm
+intel_agp              22332  1   
+agpgart                28776  3 drm,intel_agp
+evdev                   8000  6   
+ext3                  105512  1   
+jbd                    39444  1 ext3
+mbcache                 7108  1 ext3
+usb_storage            75936  0
+sd_mod                 22200  3
+ata_piix               14180  2
+ahci                   23176  0
+ata_generic             4676  0
+libata                140384  3 ata_piix,ahci,ata_generic
+scsi_mod              129356  3 usb_storage,sd_mod,libata
+dock                    8304  1 libata
+ide_pci_generic         3908  0 [permanent]
+ide_core               96168  1 ide_pci_generic
+ehci_hcd               28428  0
+uhci_hcd               18672  0
+usbcore               118160  5 uvcvideo,usb_storage,ehci_hcd,
+uhci_hcd
+thermal                15228  0
+processor              32576  2 thermal
+fan                     4164  0
+thermal_sys            10856  4 video,thermal,processor,fan
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lsmodの結果}
+
+ 変更後 0モジュール
+\begin{commandline}
+Module                  Size  Used by
+\end{commandline}
+ 
+\end{frame}
+
+\begin{frame}{bootchart 変更前}
+bootchartでどれぐらい起動が速くなったか、調べてみました。
+\begin{figure}
+ \begin{center}
+ \includegraphics[scale=0.45]{image200901/bootchart-eeepc.png}
+ \caption{変更前のbootchart}
+ \label{fig:bootchart-eeepc}     
+ \end{center}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{bootchart 変更前}
+\begin{figure}
+ \begin{center}
+ \includegraphics[scale=0.45]{image200901/bootchart-eeepc-new.png}
+ \caption{変更後のbootchart}
+ \label{fig:bootchart-eeepc-new}
+ \end{center}
+\end{figure}
+
+上の起動チャート図より、起動時のモジュールの読み込みがなくなり、
+三秒ほど速くなっていることが分かります。
+\end{frame}
+
+
+\section{今後の予定}
+\begin{frame}{今後の予定}
+\begin{enumerate}
+ \item make-kpkg に入れる？
+ \item パッケージ化？
+ \item カーネルコンパイルWebサービスの提供？
+ \item ドライバオブジェクトファイルとドライバモジュール名が一致しないやつを直す。
+\end{enumerate}
+\end{frame}
+
+
 
 \emtext{次回の勉強会}
 \begin{frame}{次回の勉強会}
