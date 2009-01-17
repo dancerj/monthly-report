@@ -36,8 +36,21 @@
 %シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
+\newenvironment{commandline0}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{0.95\hsize}\begin{fontsize}{9}{9} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{10pt}
+
+\vspace{10pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandline
+
 \title{東京エリア Debian 勉強会}
-\subtitle{Linuxカーネルコンフィグ変換ツールを作ってみた}
+\subtitle{Linuxカーネルコンフィグ変換ツール\\を作ってみた}
 \author{岩松 信洋 iwamatsu@debian.or.jp\\IRC nick: iwamatsu}
 \date{2009年1月17日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
@@ -46,35 +59,72 @@
 
 \frame{\titlepage{}}
 
-\emtext{はじめに}
-\section{はじめに}
-\begin{frame}{はじめに}
-2008年末に2.6.28が出ましたが、みなさんコンパイルしていますか？
-2、3名ほどは毎朝昼晩Linusツリーからgit pullしてコンパイルされていると思いますが、
-大抵の方はDebianが提供しているカーネルを使っていると思います。
-使っている理由は様々ですが、コンフィグレーションがめんどうくさいとか、ど
-こを変えていいのかわからない、などが理由だと思います。(i386で約4000の設定項目がある)
 
-また、最近でLinuxカーネルも賢くなり、ドライバをモジュールにしておくと、
-ある程度自動的に必要なモジュールをロードしてくれるようになったのも理由の
-一つかもしれません。
-今回はユーザの立場からカーネルを触れるようにする方法の一つとして、Debian
-が提供しているカーネルからモジュールを組み込みにするためのスクリプトを作
-りました。
-これによって、どこを有効にすればいいのかわからないなどの問題がすべて解決
-します。
+\emtext{冬休み}
+\section{赤ちゃんが生まれました}
+\begin{frame}[containsverbatim]{赤ちゃんが生まれました}
+赤ちゃんが生まれたので、世話をしていました。
+ \begin{center}
+ \includegraphics[scale=0.5]{image200901/baby.jpg}
+ \label{fig:baby}     
+ \end{center}
+\end{frame}
+
+\emtext{今回作ったもの}
+\section{今回作ったもの}
+\begin{frame}[containsverbatim]{今回作ったもの}
+\begin{center}\bfseries
+システム情報を元に\\
+システムに必要なカーネルモジュールを\\
+組み込み指定に変換した\\
+カーネルコンフィグファイルを出力する\\
+スクリプト
+\end{center}
+\end{frame}
+\begin{frame}[containsverbatim]{今回作ったもの}
+\begin{center}
+たいしてものではないです
+\end{center}
 \end{frame}
 
 
-\emtext{なぜ彼らはカーネルをリコンパイルするのか？}
+\begin{frame}{なぜこれを作ろうと思ったのか}
+\begin{enumerate}
+\item ひさびさにあまり使ってないマシンのカーネルコンフィグレーションをした。
+\item コンフィグレーションが多すぎる。
+\item 特にPCだと何を指定していいものやら。
+\item 自動化できるんじゃね？
+\item 自分は正規表現が苦手。正規表現の勉強のため。
+\item Perlを学習する必要があった。
+\item これらができて、アウトプットのできるものを作りますか。
+\item 帰省の新幹線内で。
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{これができると}
+\begin{enumerate}
+\item カーネルコンフィグに悩まされずにすむ
+\item 取り合えず動くカーネルはできる（はず）
+\item 一般ユーザからvanilaカーネルアクセスへの敷居が下がる（かも）
+\end{enumerate}
+\end{frame}
+
 \section{なぜ彼らはカーネルをリコンパイルするのか？}
-\begin{frame}[containsverbatim]{なぜ彼らはカーネルをリコンパイルするのか？}
-なぜ彼らはカーネルをリコンパイルするのか？
+\begin{frame}[containsverbatim]{}
+\begin{center}
+\large\bfseries
+そういや、カーネルコンパイル！コンパイル！ってうるさい人たちいるよね？
+\end{center}
 \end{frame}
 
-\begin{frame}{なぜ彼らはカーネルをリコンパイルするのか？}
+\begin{frame}[containsverbatim]
+\begin{center}
+\large\bfseries
+なぜ彼らはカーネルをリコンパイルするのか？
+\end{center}
+\end{frame}
 
-カーネルをリコンパイルする理由
+\begin{frame}{カーネルをリコンパイルする理由}
 \begin{itemize}
 \item カーネルハックのため。
 \item カーネルBTSの深追い。
@@ -85,8 +135,7 @@
 \end{itemize}
 \end{frame}
 
-\begin{frame}{なぜ彼らはカーネルをリコンパイルするのか？}
-カーネルをリコンパイルすることによるデメリット
+\begin{frame}{カーネルをリコンパイルすることによるデメリット}
 \begin{itemize}
 \item 失敗したら動かなくなるかもしれない。
 \item コンパイルにCPUリソースを食いすぎる(CPUが遅いため)。
@@ -94,22 +143,16 @@
 \end{frame}
 
 \begin{frame}{なぜ彼らはカーネルをリコンパイルするのか？}
-
-ここにいるひとたちには関係ないことだと思います。
-
+\begin{center}
+\large\bfseries
+ここにいるひとたちには\\
+後者なんて気にしないと思いますが。
+\end{center}
 \end{frame}
 
-\emtext{今回作ったもの}
-\section{今回作ったもの}
-\begin{frame}[containsverbatim]{今回作ったもの}
+\emtext{内容}
 
-システム情報を元に、システムに必要なカーネル
-モジュールが組み込み指定に変換されたカーネルコンフィグファイルを
-出力するというありそうでなさそうなプログラム
-
-\end{frame}
-
-\begin{frame}[containsverbatim]
+\begin{frame}[containsverbatim]{必要なデータ}
 
 \begin{itemize}
 \item 使うカーネル\\
@@ -129,9 +172,8 @@
 
      
 \subsection{システム情報の取得方法}
-\begin{frame}[containsverbatim]
-今回のキモはどのようにして、システム情報を取得するか、にかかっています。
-今動いているカーネルから得られる情報は以下のものが考えられます。
+\begin{frame}[containsverbatim]{システム情報の取得方法}
+どのようにして、システム情報を取得するか。
 
 \begin{table}[h]
  \begin{center}
@@ -150,26 +192,49 @@
  \end{center}
 \end{table}
 
-これらの中で信用できて簡単に扱えるものは lsmod でしょう。
-理由は
+\end{frame}
+
+\subsection{システム情報の取得方法}
+\begin{frame}[containsverbatim]{システム情報の取得方法}
+
+今回利用したもの
+
+\begin{table}[h]
+ \begin{center}
+ {
+   \begin{tabular}{l|l} \hline
+     コマンド & 内容  \\ \hline \hline
+     lsmod & ロードしてるモジュールを出力する \\
+   \end{tabular}
+ }
+ \caption{起動しているカーネルから得られる情報}
+ \label{kernel-output}
+ \end{center}
+\end{table}
+
+
 {\bf ロードしているモジュール＝現在の Linux システムに必要なもの}
-なので、わかりやすいためです。
-よって、今回は lsmod の出力を利用することにしました。
+なので、わかりやすい。
 \end{frame}
 
 \emtext{簡単な流れ}
 
-\begin{frame}
-1. データとして、カーネルソースコードへのパス、動作しているカーネル
-       コンフィグファイル、lsmod の出力結果を指定する。
+\begin{frame}{簡単な流れ}
+1. データとして、
+\begin{enumerate}
+\item カーネルソースコードへのパス
+\item 動作しているカーネルコンフィグファイル
+\item lsmod の出力結果
+\end{enumerate}
+を指定する。
 
 \end{frame}
 
-\begin{frame}[containsverbatim]
-2.lsmod からロードしているドライバモジュール一覧を取得する
+\begin{frame}[containsverbatim]{簡単な流れ}
+2. lsmod からロードしているドライバモジュール一覧を取得する
 
-lsmod を実行すると、以下のような内容が出力されます。
-\begin{commandline}
+lsmod を実行すると、以下のような内容が出力される。
+\begin{commandline0}
 $ lsmod
 Module                  Size  Used by
 i915                   25280  2   
@@ -178,85 +243,97 @@ ipv6                  235300  10
 rfcomm                 28272  2   
 l2cap                  17248  9 rfcomm
 ........
-\end{commandline}
+\end{commandline0}
 \end{frame}
 
-\begin{frame}[containsverbatim]
-3. ドライバモジュール名 と modinfo コマンドから ドライバモジュールのパスを取得する。
+\begin{frame}[containsverbatim]{簡単な流れ}
+
+{\bf 3. ドライバモジュール名 と modinfo コマンドから ドライバモジュールのパスを取得する。}
+\\
 
 modinfo コマンドを使うと、指定したドライバモジュール名の情報を取得するこ
        とができます。-n オプションを使うと、ドライバオブジェクトファイル
-       のパスが出力されます。
+       のパスが出力される。
 
-\begin{commandline}
+\begin{commandline0}
 $ modinfo -n i915
 /lib/modules/2.6.26-1-amd64/kernel/drivers/char/drm/i915.ko
-\end{commandline}
-       上の結果を例にすると、{\bf /lib/modules/2.6.26-1-amd64/kernel/} 以下と カーネルソース
-       コードのパス構造は同じなため、ドライバモジュール名{\bf i915}の Makefile
-       のあるパスは {\bf drivers/char/drm/Makefile} になります。また、ドライバオブジェクトファイ
-       ルは {\bf i915.ko} であることが分かります。
+\end{commandline0}
 \end{frame}
+
+\begin{frame}[containsverbatim]{簡単な流れ}
+\begin{commandline0}
+$ modinfo -n i915
+/lib/modules/2.6.26-1-amd64/kernel/drivers/char/drm/i915.ko
+\end{commandline0}
+ 上の結果を例にすると、{\bf /lib/modules/2.6.26-1-amd64/kernel/} 以下と カーネルソース
+ コードのパス構造は同じなため、ドライバモジュール名{\bf i915}の Makefile
+ のあるパスは {\bf drivers/char/drm/Makefile} になる。
+
+また、ドライバオブジェクトファイルは {\bf i915.ko} であることが分かる。
+\end{frame}
+
        
-\begin{frame}[containsverbatim]
-4. 先で取得したMakefile へのパスとドライバオブジェクトファイル名より、
-      対象になるドライバコンフィグ名を取得する。
+\begin{frame}[containsverbatim]{簡単な流れ}
+
+{\bf 4. 先で取得したMakefile へのパスとドライバオブジェクトファイル名より、
+      対象になるドライバコンフィグ名を取得する。}
 
       ドライバオブジェクトファイル(i915.ko)とドライバモジュール名(i915)
       は必ずしも一致するとは限らないので、ドライバモジュール名を使って、
-      ドライバコンフィグ名を検索します。
-      \footnote{例えば snd\_hda\_intel}
+      ドライバコンフィグ名を検索する。(例えば snd\_hda\_intel)
 
-\begin{commandline}
+\begin{commandline0}
 .....
 obj-$(CONFIG_DRM_I830)  += i830.o
 obj-$(CONFIG_DRM_I915)  += i915.o <- これ
 obj-$(CONFIG_DRM_SIS)   += sis.o
 .....
-\end{commandline}
+\end{commandline0}
 \end{frame}
 
-\begin{frame}[containsverbatim]
-5. 取得したドライバコンフィグ名を保存する。
+\begin{frame}[containsverbatim]{簡単な流れ}
+
+{\bf 5. 取得したドライバコンフィグ名を保存する。}
 \end{frame}
 
-\begin{frame}[containsverbatim]
-6. 動作しているカーネルコンフィグファイルのドライバコンフィグを書き換える。
+\begin{frame}[containsverbatim]{簡単な流れ}
 
-正規表現を使って書き換えると、以下のようになります。
-{\bf m} はモジュールを意味し、{\bf y} は組み込みを意味します。
+{\bf 6. 動作しているカーネルコンフィグファイルのドライバコンフィグを書き換える。}
+
+正規表現を使って書き換えると、以下のようになる。
+{\bf m} はモジュールを意味し、{\bf y} は組み込みを意味する。
 
 変更前
-\begin{commandline}
+\begin{commandline0}
 ....
 CONFIG_DRM_I830=m
 CONFIG_DRM_I915=m
 CONFIG_DRM_MGA=m
 ....
-\end{commandline}
+\end{commandline0}
 
 変更後
-\begin{commandline}
+\begin{commandline0}
 ....
 CONFIG_DRM_I830=m
 CONFIG_DRM_I915=y <- 書き換え
 CONFIG_DRM_MGA=m
 ....
-\end{commandline}
+\end{commandline0}
 \end{frame}
 
-\begin{frame}[containsverbatim]
-7. 変更したものをファイルに出力する。
+\begin{frame}[containsverbatim]{簡単な流れ}
+
+{\bf 7. 変更したものをファイルに出力する。}
+
 \end{frame}
 
 
 \emtext{実際に使ってみる}
 
 \begin{frame}[containsverbatim]{ 実際に使ってみる}
-今回作成したソフトウェアは以下のように使います。
-ちなみに、lsmod の出力ファイルを指定しない場合は、プログラムの中で自動的
-に取得します。
-\begin{commandline}
+\begin{commandline0}
 $ moge -h
 moge - Script to Kernel Module Enabler from lsmod command output
 
@@ -270,18 +347,18 @@ Usage: moge [options]
 	-v, --version             show the version and exit
 
 By Nobuhiro Iwamatsu <iwmatsu@nigauri.org>
-$ moge -o sage -c config-2.6.26-1-686 -l lsmod.list -k /usr/src/linux-2.6-2.6.26/
-\end{commandline}
+$ moge -o sage -c config-2.6.26-1-686 -l lsmod.list -k \ 
+                         /usr/src/linux-2.6-2.6.26/
+\end{commandline0}
 \end{frame}
 
 
 \emtext{作成されたコンフィグファイルを使ってカーネルをコンパイルする}
 
-\begin{frame}[containsverbatim]{}
-さっそく、作成されたコンフィグファイルを使ってカーネルをコンパイルしてみ
-ましょう。
-カーネルコンパイルの方法は以下の通りです。
-\begin{commandline}
+\begin{frame}[containsverbatim]{カーネルコンパイルをする}
+作成されたコンフィグファイルを使ってカーネルをコンパイルしてみる。
+
+\begin{commandline0}
 $ sudo apt-get update
 $ sudo apt-get install linux-source-2.6.26 kernel-package
 $ cd /usr/src/linux-source-2.6.26
@@ -291,73 +368,25 @@ $ ls ../
 linux-image-2.6.26_yourpc00_i386.deb
 linux-headers-2.6.26_yourpc00_i386.deb
 .......
-\end{commandline}
+\end{commandline0}
 \end{frame}
 
 \section{変更結果}
 \begin{frame}[containsverbatim]{lsmodの結果}
 
-eeePC で試してみて、どれぐらい変わったのか調べました。
+eeePC で試してみて、どれぐらい変わったのか調べてみた。
 
-変更前は61モジュール
-\begin{commandline}
+変更前 61モジュール
+\begin{commandline0}
+$ lsmod
 Module                  Size  Used by
 i915                   25280  2   
 drm                    65256  3 i915
 ipv6                  235300  10  
 rfcomm                 28272  2   
-l2cap                  17248  9 rfcomm
-bluetooth              44900  4 rfcomm,l2cap
-psmouse                32336  0   
-uvcvideo               45704  0   
-serio_raw               4740  0   
-compat_ioctl32          1312  1 uvcvideo
-videodev               27520  1 uvcvideo
-v4l1_compat            12260  2 uvcvideo,videodev
-i2c_i801                7920  0   
-i2c_core               19828  1 i2c_i801
-pcspkr                  2432  0   
-iTCO_wdt                9508  0   
-snd_hda_intel         324248  0   
-rng_core                3940  0   
-snd_pcm_oss            32800  0   
-snd_pcm                62596  2 snd_hda_intel,snd_pcm_oss
-snd_mixer_oss          12320  1 snd_pcm_oss
-video                  16432  0   
-output                  2912  1 video
-battery                10180  0   
-ac                      4196  0   
-snd_seq_dummy           2660  0   
-eeepc_laptop            7440  0   
-button                  6096  0   
-atl2                   22872  0   
-snd_seq_oss            24992  0   
-snd_seq_midi_event      6432  1 snd_seq_oss
-snd_seq                41456  5
- snd_seq_dummy,snd_seq_oss,snd_seq_midi_event 
-snd_timer              17800  2 snd_pcm,snd_seq
-snd_seq_device          6380  3 snd_seq_dummy,snd_seq_oss,
-snd_seq 
-snd                    45604  8 snd_hda_intel,snd_pcm_oss,
-snd_pcm,snd_mixer_oss,snd_seq_oss,snd_seq,snd_timer,
-snd_seq_device
-soundcore               6368  1 snd 
-snd_page_alloc          7816  2 snd_hda_intel,snd_pcm
-intel_agp              22332  1   
-agpgart                28776  3 drm,intel_agp
-evdev                   8000  6   
-ext3                  105512  1   
-jbd                    39444  1 ext3
-mbcache                 7108  1 ext3
-usb_storage            75936  0
-sd_mod                 22200  3
-ata_piix               14180  2
-ahci                   23176  0
-ata_generic             4676  0
-libata                140384  3 ata_piix,ahci,ata_generic
-scsi_mod              129356  3 usb_storage,sd_mod,libata
-dock                    8304  1 libata
-ide_pci_generic         3908  0 [permanent]
+
+......
+
 ide_core               96168  1 ide_pci_generic
 ehci_hcd               28428  0
 uhci_hcd               18672  0
@@ -367,23 +396,29 @@ thermal                15228  0
 processor              32576  2 thermal
 fan                     4164  0
 thermal_sys            10856  4 video,thermal,processor,fan
-\end{commandline}
+\end{commandline0}
 \end{frame}
 
 \begin{frame}[containsverbatim]{lsmodの結果}
 
  変更後 0モジュール
-\begin{commandline}
+\begin{commandline0}
+$ lsmod
 Module                  Size  Used by
-\end{commandline}
+\end{commandline0}
  
 \end{frame}
 
+\begin{frame}{bootchart}
+
+{\bf bootchartでどれぐらい起動が速くなったか、調べてみました。}
+
+\end{frame}
+
 \begin{frame}{bootchart 変更前}
-bootchartでどれぐらい起動が速くなったか、調べてみました。
 \begin{figure}
  \begin{center}
- \includegraphics[scale=0.45]{image200901/bootchart-eeepc.png}
+ \includegraphics[scale=1.0]{image200901/bootchart-eeepc.png}
  \caption{変更前のbootchart}
  \label{fig:bootchart-eeepc}     
  \end{center}
@@ -391,17 +426,26 @@ bootchartでどれぐらい起動が速くなったか、調べてみました。
 
 \end{frame}
 
-\begin{frame}{bootchart 変更前}
+\begin{frame}{bootchart 変更後}
 \begin{figure}
  \begin{center}
- \includegraphics[scale=0.45]{image200901/bootchart-eeepc-new.png}
+ \includegraphics[scale=1.0]{image200901/bootchart-eeepc-new.png}
  \caption{変更後のbootchart}
  \label{fig:bootchart-eeepc-new}
  \end{center}
 \end{figure}
 
-上の起動チャート図より、起動時のモジュールの読み込みがなくなり、
-三秒ほど速くなっていることが分かります。
+\end{frame}
+
+\begin{frame}{モジュールロード部分}
+\begin{figure}
+ \begin{center}
+ \includegraphics[scale=0.6]{image200901/bootchart-eeepc-merge.png}
+ \caption{モジュールロード部分}
+ \label{fig:bootchart-eeepc-merge}
+ \end{center}
+\end{figure}
+
 \end{frame}
 
 
@@ -418,6 +462,6 @@ bootchartでどれぐらい起動が速くなったか、調べてみました。
 
 \end{document}
 
-;;; Local Variables: ***
-;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
-;;; End: ***
+%;;; Local Variables: ***
+%;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+%;;; End: ***
