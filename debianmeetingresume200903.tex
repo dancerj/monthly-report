@@ -176,6 +176,226 @@
 \index{ぶんさん@分散}
 % ===============================================================
 
+%============================================================
+\dancersection{adviをデバッグしてみた}{日比野 啓}
+\index{OCaml}
+\index{TeX}
+%============================================================
+
+11月のLaTeXを使ったハンズオンで、wizzytex-modeから使われている
+adviがときどき固まってしまう問題について調べてみました。
+
+\subsection{adviがまる?}
+
+adviは一見普通のDVI viewerなのですが、なぜかOCamlという変わった言語で実装されています。
+今回はadviから呼ばれるghostscriptが止まっているらしい、
+ということまで分かっている状態から調べ始めました。
+
+\subsection{とりあえずアタリをつける}
+
+とりあえず、問題が起きているソースを取ってきて展開してみます。
+
+\begin{commandline}
+% apt-get  source advi
+...
+dpkg-source: extracting advi in advi-1.6.0
+dpkg-source: info: unpacking advi_1.6.0.orig.tar.gz
+dpkg-source: info: applying advi_1.6.0-13.diff.gz
+% cd advi-1.6.0
+% ls *.ml
+addons.ml     drawimage.ml  font.ml            gs.ml             main.ml     search.ml      transimpl.ml
+ageometry.ml  driver.ml     global_options.ml  gterm.ml          misc.ml     shot.ml        ttfont.ml
+...
+\end{commandline}
+
+*.mlというのがOCamlのソースファイルです。なんか、gs.mlとかいうそのものズバリっぽいものが見えます。
+gs.mlの中をまずgsで検索していってみると、
+
+\begin{commandline}
+...
+  let command = Config.gs_path in
+  let command_args =
+    [|
+      command; 
+      "-dNOPLATFONTS"; "-dNOPAUSE";
+      "-sDEVICE=" ^ (if !antialias then x11alpha else x11);
+      "-q";
+      "-dSAFER";
+      "-";
+    |] in
+
+  let _ = debugs command;
+...
+\end{commandline}
+
+おお、それっぽい。あと、デバッグ用っぽい機能 - debugs を発見。
+さらにこんどはcommandで探していくと、
+
+\begin{commandline}
+...
+  let lpd_in, lpd_out = Unix.pipe () in
+...
+  let leftout = Unix.out_channel_of_descr lpd_out in
+...
+  let pid =
+    Unix.create_process command command_args lpd_in rpd_out
+      (* Unix.stdout *) Unix.stderr
+...
+    method line l =
+      try
+        showps l;
+        output_string leftout l;
+        output_char leftout '\n';
+...
+\end{commandline}
+
+どうやらgsにパイプでPSを書きこんでいるようです。
+showps とかいうのでPSの中身を見ることができるんじゃないかなーとか。
+
+\subsection{まじめに調べてみたんですが...}
+
+もう一度、こんどはgs.mlの最初の方からデバッグ用の機能だけ見ていきます。
+
+\begin{commandline}
+...
+let debugs = Misc.debug_endline;;
+...
+let showps_ref = ref false;;
+let showps s =
+  if !showps_ref then (print_endline  (Printf.sprintf "%s" s));;
+...
+Options.add
+  "--showps" (Arg.Set showps_ref)
+  "  ask advi to print to stdout a copy\
+  \n\t of the PostScript program sent to gs.";;
+...
+\end{commandline}
+
+\verb|Misc.| というのは Miscという別のモジュールへの参照です。ここでは単にmisc.mlの中を見ればよさそうです。
+\verb|showps_ref|は書き換え可能なフラグのようです。
+と思ったらすぐ下にコマンドライン引数からフラグをセットできるようになっているようです。
+misc.mlの中も見てみると、
+
+\begin{commandline}
+...
+(* Debugging. *)
+let forward_debug_endline =
+  ref (function (_ : string) -> failwith "undefined forward debug_endline");;
+
+let debug_endline s = (!forward_debug_endline s : unit);;
+
+let set_forward_debug_endline f = forward_debug_endline := f;;
+...
+\end{commandline}
+
+さらに\verb|set_forward_debug_endline|でgrepすると、\verb|global_options.ml|が引っかかるので、その中も見てみると
+
+\begin{commandline}
+...
+(* To print debugging messages. *)
+let debug_endline = Options.debug "--debug" " General debug";;
+
+(* Setting the forward in Misc. *)
+Misc.set_forward_debug_endline debug_endline;;
+...
+\end{commandline}
+
+結局、どっちもコマンドラインから設定できるようですね。
+さっそく試してみると、
+
+\begin{commandline}
+% platex debianmeetingresume200812-presentation.tex
+...
+% advi debianmeetingresume200812-presentation.dvi
+...
+/usr/bin/gs
+-dNOPLATFONTS
+-dNOPAUSE
+-sDEVICE=x11
+-q
+-dDELAYSAFER
+-
+...
+%!PS-Adobe-2.0
+%%Creator: Active-DVI
+%!
+[1 0 0 -1 0 0] concat
+(/usr/share/texmf-texlive/dvips/base/texc.pro) run
+(/usr/share/texmf-texlive/dvips/base/special.pro) run
+...
+%% Newpage
+
+grestore
+0 0 moveto
+TeXDict begin 12769384 12769384 div dup /Resolution X /VResolution X end
+TeXDict begin /DVImag 194.845342 def end
+gsave
+flushpage (...
+) print flush 
+\end{commandline}
+
+たしかにgsのコマンドラインらしきものと、それから書きこんだPSの内容らしいものが見えてます。
+PSで目印となる文字列を出力される命令 \verb|flushpage (...) print flush| をgsに書きこんで、
+その出力を待っているようなのですが、戻ってきていないようです。
+
+gsが止まってしまう場合とそうでない場合も比べてみたのですが、
+止まってしまう場合のPSの最小セットを割り出すのが難しく、よくわかりませんでした。
+
+\subsection{別の回避策?}
+
+なにか別の方法で止まってしまうのを回避できないか、とgsの出力を待っている部分も見てみます。
+
+\begin{commandline}
+...
+let rec select fd_in fd_out fd_exn timeout =
+  (* dirty hack: Graphics uses itimer internally! *)
+  let start = Unix.gettimeofday () in
+  try
+    Unix.select fd_in fd_out fd_exn timeout
+  with
+    Unix.Unix_error (Unix.EINTR, _, _) as exn ->
+      let now = Unix.gettimeofday () in
+      let remaining = start +. timeout -. now in
+      if remaining > 0.0 then select fd_in fd_out fd_exn timeout else [], [], []
+...
+      match select [ rpd_in ] [] [] 1.0 with
+      | [], _, _ ->
+          begin match Unix.waitpid [ Unix.WNOHANG ] pid with
+          | x, Unix.WEXITED y when x > 0 ->
+              raise (Killed "gs exited")
+          | 0, _ ->
+              raise (Killed "gs alive but not responding")
+          | _, _ ->
+              raise (Killed "gs in strange state")
+          end
+...
+\end{commandline}
+
+gsの出力をselectで待っているようです。タイムアウトも仕込んであるようです。
+なぜうまくいっていないのでしょう。
+
+ここでは前半で定義されているselectに注目です。
+せっかくタイムアウトの残り時間を計算しているのに、渡しているのはもとの値です。
+どうりでいつまでたってもタイムアウトしないわけです。
+
+\begin{commandline}
+...
+if remaining > 0.0 then select fd_in fd_out fd_exn timeout else [], [], []
+...
+\end{commandline}
+
+これを
+\begin{commandline}
+...
+if remaining > 0.0 then select fd_in fd_out fd_exn remaining else [], [], []
+...
+\end{commandline}
+
+と直すと、gsを待ってもタイムアウトするようになります。
+gsが固まる原因を取り除くような根本的な解決はできませんでしたが、
+とりあえずは advi が止まらないようにはなりそうです。
+
+
 \clearpage
 
 %\printindex
