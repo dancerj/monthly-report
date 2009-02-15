@@ -1,0 +1,430 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200901; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2009}
+\newcommand{\debmtgmonth}{2}
+\newcommand{\debmtgdate}{21}
+\newcommand{\debmtgnumber}{49}
+
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料
+
+\hspace*{-2.4cm}
+\includegraphics[width=210mm]{image200801/2008title.eps}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+\end{titlepage}
+
+\dancersection{Introduction}{上川 純一}
+
+\begin{multicols}{2}
+ 
+ 
+ 今月のDebian勉強会へようこそ。これからDebianの世界にあしを踏み入れると
+ いう方も、すでにどっぷりとつかっているという方も、月に一回Debianについ
+ て語りませんか？
+
+ Debian勉強会の目的は下記です。
+
+ \begin{itemize}
+ \item \underline{Debian Developer} (開発者)の育成。
+ \item 日本語での「\underline{開発に関する情報}」を整理してまとめ、アップデートする。
+ \item \underline{場}の提供。
+ \begin{itemize}
+  \item 普段ばらばらな場所にいる人々が face-to-face で出会える場を提供
+	する。
+  \item Debian のためになることを語る場を提供する。
+  \item Debianについて語る場を提供する。
+ \end{itemize}
+ \end{itemize}		
+
+ Debianの勉強会ということで究極的には参加者全員がDebian Packageをがりがり
+ と作るスーパーハッカーになった姿を妄想しています。情報の共有・活用を通し
+ て Debianの今後の能動的な展開への土台として、「場」としての空間を提供す
+ るのが目的です。
+
+ 2009年の計画は仮です。
+
+ \begin{enumerate}
+  \item 新年の企画 (アンサンブル荻窪開催)
+  \item OSC
+  \item (東京大学?)
+  \item (千代田区都立図書館?\footnote{\url{http://www.library.chiyoda.tokyo.jp/}})
+  \item (東京大学?)
+  \item 
+  \item スペインにて開催
+  \item Debconf報告会
+  \item 
+  \item 
+  \item 
+  \item 忘年会
+ \end{enumerate}
+
+ 会場候補としては下記があります:
+
+ \begin{itemize}
+  \item 大学
+  \item 恵比寿SGIホール
+  \item Googleオフィス
+  \item 公民館(あんさんぶる荻窪等)
+  \item 都立会議室(無線LAN)
+  \item 健保の施設
+ \end{itemize}
+
+\end{multicols}
+
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+%
+% there are too many entries in 200901, usually
+% we have tocdepth=2.
+%
+\setcounter{tocdepth}{1}
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+
+
+\dancersection{最近のDebian関連のミーティング報告}{上川 純一}
+\subsection{東京エリアDebian勉強会47回目報告}
+% (query-replace-regexp "<.*?>" "")
+% (query-replace-regexp "^[	 ]\+" "")
+
+
+\dancersection{Debian パッケージングハンズオンの手引書}{岩松 信洋}
+
+\subsection{本日の流れ}
+\begin{enumerate}
+\item 講師紹介
+\item 作業を始める前の前準備
+\item ソフトウェアのコンパイル
+\item パッケージの雛形
+\item CDBS
+\item debianディレクトリ以下ファイルの編集
+\item パッケージのビルド
+\item パッケージのインストール
+\item パッケージのビルドテスト
+\item パッケージのインストール/アンインストールテスト
+\item 質疑応答
+\end{enumerate}
+
+
+\subsection{記号の説明}
+\$ が付いている場合は、コンソールからの入力を意味します。\$は入力せずに
+コマンドを入力してください。
+
+\subsection{エディタ}
+本ハンズオンでは、エディタとして vi および mousepad を使えるようにしてい
+ます。　vi が使えない人は、mousepad を使ってください。Windows のメモ帳と
+同じ機能を持ったエディタです。
+
+\subsection{ルート権限について}
+本ハンズオンでは、root権限を使った作業を行う場合があります。
+その場合には sudo コマンドを使って作業をします。sudo コマンドが必要な場
+合にはコマンドラインの説明のところに sudo を指定しています。
+
+\subsection{前準備} 
+\subsubsection{パッケージメンテナ名の設定}
+適当なでエディタを使って、/home/user/.bashrc に以下の内容を追加し、保存
+してください。
+\begin{commandline}
+export DEBFULLNAME="your name"
+export DEBEMAIL=your@email-address
+\end{commandline}
+保存できたら、ターミナルを起動し、
+\begin{commandline}
+$ source ~/.bashrc
+\end{commandline}
+を実行してください。
+
+\subsection{webサーバの立ち上げ}
+コンソールから以下のコマンドを実行してください。
+\begin{commandline}
+$ sudo ruby1.8 ./tools/web.rb
+\end{commandline}
+
+\subsection{apt-lineの変更}
+/etc/apt/sources.list ファイルを以下のように変更してください。
+apt-line が書かれていますが、削除するか、コメントアウト(\# でコメントア
+ウト)してください。
+\begin{commandline}
+deb http://localhost/debian lenny main
+\end{commandline}
+
+変更には root 権限が必要ですので、以下のように実行してください。
+\begin{commandline}
+$ sudo vi /etc/apt/sources.list
+\end{commandline}
+
+\subsection{リポジトリ情報のアップデート}
+リポジトリのアップデートを行います。以下のようにコマンドを実行してくださ
+い。
+\begin{commandline}
+$ sudo apt-get update
+\end{commandline}
+
+\subsection{今回のサンプル}
+今回のサンプルは、cwidget を使ったサンプルプログラムを用意したのでそれを
+Debian パッケージ化します。
+以下にソースファイルがあるので、ホームディレクトリに展開します。
+\begin{commandline}
+$ cd
+$ tar -xzf /live/image/osc/data/hello-cwidget-0.1.tar.gz
+\end{commandline}
+
+このソフトウェアは C++ でかかれています。また、コンパイルに必要なライブ
+ラリやソフトウェアがインストールされている場合には、./configure ; make ;
+make install でコンパイルおよびインストールまでができるようになっていま
+す。
+
+\subsection{パッケージング化開始}
+\subsubsection{とりあえず、コンパイルしてみる}
+
+\begin{commandline}
+$ sudo apt-get install build-essential
+\end{commandline}
+
+\begin{commandline}
+$ cd hello-cwidget-0.1
+$ ./configure
+...
+エラー
+\end{commandline}
+
+\subsection{必要なライブラリを探す}
+
+\begin{commandline}
+$ sudo apt-get install apt-file
+\end{commandline}
+
+通常は、 apt-file update でファイル情報データを取得しますが、
+すでに live-cd に入れているので省略します。
+
+\begin{commandline}
+$ apt-file search pkg-config
+\end{commandline}
+
+\begin{commandline}
+./configure
+...エラー
+\end{commandline}
+
+
+\begin{commandline}
+$ apt-file search pkg-config
+\end{commandline}
+
+\begin{commandline}
+./configure
+...エラー
+\end{commandline}
+
+
+\begin{commandline}
+$ apt-file search pkg-config
+\end{commandline}
+
+\begin{commandline}
+./configure
+...
+\end{commandline}
+
+configure が通ったので、make を実行し、コンパイルします。
+\begin{commandline}
+./make
+<snip>
+\end{commandline}
+
+コンパイルも通ったので、試しに実行してみます。
+\begin{commandline}
+./src/hello
+\end{commandline}
+
+\subsection{Debanパッケージの雛形}
+
+dh\_make コマンドでパッケージの雛形を作成することができます。
+以下のコマンドを実行し、インストールします。
+\begin{commandline}
+$ sudo apt-get install dh-make
+\end{commandline}
+
+雛形の作成は以下のコマンドを実行します。
+\begin{commandline}
+$ dh_make --createorig -s
+\end{commandline}
+--createorig オプションはオリジナルソースコードのtar.gzイメージを構築し
+  ます。 今回はシングルバイナリパッケージ（一つのソースコードから一つの
+  バイナリパッケージが作成される）なので -s を指定します。実行すると以下
+  のようなメッセージが表示されるので、エンターキーを押します。
+\begin{commandline}
+Maintainer name : Nobuhiro Iwamatsu
+Email-Address   : iwamatsu@nigauri.org 
+Date            : Sun, 15 Feb 2009 23:51:58 +0900
+Package Name    : hello-cwidget
+Version         : 0.1
+License         : blank
+Using dpatch    : no
+Using quilt     : no
+Type of Package : Single
+Hit <enter> to confirm: 
+\end{commandline}
+
+\subsubsection{debianディレクトリ}
+うまく動作すると、debian ディレクトリが作成され、この中に雛形が作成され
+ます。パッケージメンテナはこのディレクトリの中以外は触りません。
+以下のような状態になっています。
+\begin{commandline}
+.
+|-- README.Debian
+|-- changelog
+|-- compat
+|-- control
+|-- copyright
+|-- cron.d.ex
+|-- dirs
+|-- docs
+|-- emacsen-install.ex
+|-- emacsen-remove.ex
+|-- emacsen-startup.ex
+|-- hello-cwidget.default.ex
+|-- hello-cwidget.doc-base.EX
+|-- init.d.ex
+|-- init.d.lsb.ex
+|-- manpage.1.ex
+|-- manpage.sgml.ex
+|-- manpage.xml.ex
+|-- menu.ex
+|-- postinst.ex
+|-- postrm.ex
+|-- preinst.ex
+|-- prerm.ex
+|-- rules
+`-- watch.ex
+\end{commandline}
+
+\subsection{CDBS}
+./configure ; make ; make install でパッケージのコンパイルができる
+ソフトウェアは cdbs を使った方が楽にパッケージ化できます。
+
+\subsubsection{不要なファイルの削除}
+\subsubsection{debian/changelogファイルの編集}
+\subsubsection{debian/copyrightファイルの編集}
+\subsubsection{debian/controlファイルの編集}
+
+
+\subsubsection{パッケージのビルド}
+
+\begin{commandline}
+$ sudo apt-get install devscripts
+\end{commandline}
+
+\begin{commandline}
+$ debuild -us -uc
+\end{commandline}
+
+\subsection{パッケージのインストール}
+\begin{commandline}
+$ sudo dpkg -i ../
+\end{commandline}
+
+\subsection{パッケージのビルドテスト}
+
+\subsubsection{pbuilderパッケージのインストール}
+\begin{commandline}
+$ sudo apt-get install pbuilder
+\end{commandline}
+
+\subsubsection{pbuilder環境の構築}
+
+/var/lib 以下に書き込み権限がないので、--basetgzオプションを使って、base
+システムイメージの作成位置を指定しています。
+\begin{commandline}
+$ sudo apt-get clean
+$ sudo pbuilder --create --distribution lenny --basetgz /tmp/base.tgz
+\end{commandline}
+
+\subsubsection{パッケージのビルドテスト}
+\begin{commandline}
+$ sudo pbuilder --build --basetgz /tmp/base.tgz *.dsc
+\end{commandline}
+
+\subsubsection{なぜエラーになるのか}
+
+\subsubsection{再ビルドテスト}
+
+\subsection{パッケージのインストール/アンインストールテスト}
+
+\subsubsection{piupartsのインストール}
+\begin{commandline}
+$ sudo apt-get install piuparts
+\end{commandline}
+
+\subsubsection{パッケージのインストール/アンインストールテスト}
+\begin{commandline}
+$ sudo piuparts -d
+\end{commandline}
+
+\subsection{質疑応答}
+
+\cleartooddpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\ \\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+
+\end{document}
