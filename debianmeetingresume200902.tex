@@ -140,7 +140,9 @@
 % (query-replace-regexp "^[	 ]\+" "")
 
 
-\dancersection{Debian パッケージングハンズオンの手引書}{岩松 信洋}
+\twocolumn
+%\dancersection{Debian パッケージングハンズオンの手引書}{岩松 信洋}
+\section{Debian パッケージングハンズオンの手引書}
 
 \subsection{本日の流れ}
 \begin{enumerate}
@@ -163,18 +165,18 @@
 コマンドを入力してください。
 
 \subsection{エディタ}
-本ハンズオンでは、エディタとして vi および mousepad を使えるようにしてい
-ます。　vi が使えない人は、mousepad を使ってください。Windows のメモ帳と
+本ハンズオンでは、エディタとして{\bf vi}および{\bf mousepad}を使えるようにしてい
+ます。{\bf vi}が使えない人は、{\bf mousepad}を使ってください。Windowsのメモ帳と
 同じ機能を持ったエディタです。
 
 \subsection{ルート権限について}
 本ハンズオンでは、root権限を使った作業を行う場合があります。
-その場合には sudo コマンドを使って作業をします。sudo コマンドが必要な場
-合にはコマンドラインの説明のところに sudo を指定しています。
+その場合には sudo コマンドを使って作業をします。{\bf sudo}コマンドが必要な場
+合にはコマンドラインの説明のところに{\bf sudo}を指定しています。
 
 \subsection{前準備} 
 \subsubsection{パッケージメンテナ名の設定}
-適当なでエディタを使って、/home/user/.bashrc に以下の内容を追加し、保存
+適当なでエディタを使って、{\bf /home/user/.bashrc} に以下の内容を追加し、保存
 してください。
 \begin{commandline}
 export DEBFULLNAME="your name"
@@ -193,29 +195,28 @@ $ sudo ruby1.8 ./tools/web.rb
 \end{commandline}
 
 \subsection{apt-lineの変更}
-/etc/apt/sources.list ファイルを以下のように変更してください。
-apt-line が書かれていますが、削除するか、コメントアウト(\# でコメントア
-ウト)してください。
+エディタを使い、{\bf /etc/apt/sources.list}ファイルを以下のように変更してください。
+apt-line が書かれていますが、削除してください。また、変更には{\bf sudo}を使ってください。
 \begin{commandline}
 deb http://localhost/debian lenny main
 \end{commandline}
 
-変更には root 権限が必要ですので、以下のように実行してください。
-\begin{commandline}
-$ sudo vi /etc/apt/sources.list
-\end{commandline}
-
 \subsection{リポジトリ情報のアップデート}
-リポジトリのアップデートを行います。以下のようにコマンドを実行してくださ
-い。
+リポジトリのアップデートを行います。以下のようにコマンドを実行してください。
 \begin{commandline}
 $ sudo apt-get update
 \end{commandline}
 
+\subsection{/tmp のマウントオプションの変更}
+/etc/fstab を 以下のように変更してください。また、変更には{\bf sudo}を使ってください。
+\begin{commandline}
+FXIME
+\end{commandline}
+
 \subsection{今回のサンプル}
-今回のサンプルは、cwidget を使ったサンプルプログラムを用意したのでそれを
-Debian パッケージ化します。
-以下にソースファイルがあるので、ホームディレクトリに展開します。
+今回は、{\bf cwidget}を使ったサンプルプログラムを用意しました。
+このサンプルプログラムをDebianパッケージ化します。
+{\bf /live/image/osc/data}ディレクトリにソースファイルがあるので、ホームディレクトリに展開します。
 \begin{commandline}
 $ cd
 $ tar -xzf /live/image/osc/data/hello-cwidget-0.1.tar.gz
@@ -229,35 +230,51 @@ make install でコンパイルおよびインストールまでができるようになっていま
 \subsection{パッケージング化開始}
 \subsubsection{とりあえず、コンパイルしてみる}
 
+パッケージ化には最低限コンパイルに必要なパッケージをインストールする必要
+があります。それが{\bf build-essential}パッケージです。以下のように
+実行し、インストールします。
 \begin{commandline}
 $ sudo apt-get install build-essential
 \end{commandline}
 
+先ほど解凍したディレクトリに移動します。移動したら、{\bf configure}を実
+行します。
 \begin{commandline}
 $ cd hello-cwidget-0.1
 $ ./configure
 ...
 エラー
 \end{commandline}
-
+実行すると、エラーになります。
 \subsection{必要なライブラリを探す}
-
+Debianで特定のファイルが提供されているパッケージを探す場合には、
+{\bf apt-file}を利用します。以下のように実行し、インストールします。
 \begin{commandline}
 $ sudo apt-get install apt-file
 \end{commandline}
 
-通常は、 apt-file update でファイル情報データを取得しますが、
-すでに live-cd に入れているので省略します。
 
+通常は、 この後、{\bf apt-file update}を実行し、ファイル情報データを取得しますが、
+す既にLive-CDに入れているので省略します。
+
+ファイルを探すには以下のように実行します。
 \begin{commandline}
 $ apt-file search pkg-config
 \end{commandline}
+実行すると、指定したファイルを提供しているパッケージ名が出力されます。
+出力されたパッケージをインストールします。
 
+\begin{commandline}
+$ sudo apt-get install pkg-config
+\end{commandline}
+
+再度{\bf configure}を実行してみましょう。
 \begin{commandline}
 ./configure
 ...エラー
 \end{commandline}
-
+まだ足りないパッケージがあるようです。先ほどと同じように{\bf apt-file}を
+利用して検索し、インストールしてみましょう。
 
 \begin{commandline}
 $ apt-file search pkg-config
@@ -278,20 +295,25 @@ $ apt-file search pkg-config
 ...
 \end{commandline}
 
-configure が通ったので、make を実行し、コンパイルします。
+{\bf configure}が正常に終了しました。終了すると、{\bf Makefile}が
+作成されています。{\bf make}を実行し、コンパイルします。
 \begin{commandline}
-./make
+make
 <snip>
 \end{commandline}
 
-コンパイルも通ったので、試しに実行してみます。
+コンパイルも正常に終了したので、、試しに実行してみます。
 \begin{commandline}
 ./src/hello
 \end{commandline}
 
-\subsection{Debanパッケージの雛形}
+%ここまではサンプルプログラムの動作確認です。動作しないプログラムをパッケー
+%ジ化してもしょうがないので、先にどのようなソフトウェアなのか理解するため
+%にもパッケージング化する前にソースコード等を読んでおくことをお勧めします。
 
-dh\_make コマンドでパッケージの雛形を作成することができます。
+\subsection{Debanパッケージの雛形}
+{\bf dh\_make}コマンドでパッケージの雛形を作成することができます。
+{\bf dh\_make}は、{\bf dh-make}パッケージで提供されています。
 以下のコマンドを実行し、インストールします。
 \begin{commandline}
 $ sudo apt-get install dh-make
@@ -301,10 +323,10 @@ $ sudo apt-get install dh-make
 \begin{commandline}
 $ dh_make --createorig -s
 \end{commandline}
---createorig オプションはオリジナルソースコードのtar.gzイメージを構築し
+{\bf --createorig}オプションはオリジナルソースコードのtar.gzイメージを構築し
   ます。 今回はシングルバイナリパッケージ（一つのソースコードから一つの
-  バイナリパッケージが作成される）なので -s を指定します。実行すると以下
-  のようなメッセージが表示されるので、エンターキーを押します。
+  バイナリパッケージが作成される）なので{\bf -s} を指定します。実行すると以下
+  のようなメッセージが表示されるので、Enterキーを押します。
 \begin{commandline}
 Maintainer name : Nobuhiro Iwamatsu
 Email-Address   : iwamatsu@nigauri.org 
@@ -319,41 +341,73 @@ Hit <enter> to confirm:
 \end{commandline}
 
 \subsubsection{debianディレクトリ}
-うまく動作すると、debian ディレクトリが作成され、この中に雛形が作成され
+うまく動作すると、{\bf debianディレクトリ}が作成され、この中に雛形が作成され
 ます。パッケージメンテナはこのディレクトリの中以外は触りません。
 以下のような状態になっています。
 \begin{commandline}
 .
-|-- README.Debian
-|-- changelog
-|-- compat
-|-- control
-|-- copyright
-|-- cron.d.ex
-|-- dirs
-|-- docs
-|-- emacsen-install.ex
-|-- emacsen-remove.ex
-|-- emacsen-startup.ex
-|-- hello-cwidget.default.ex
-|-- hello-cwidget.doc-base.EX
-|-- init.d.ex
-|-- init.d.lsb.ex
-|-- manpage.1.ex
-|-- manpage.sgml.ex
-|-- manpage.xml.ex
-|-- menu.ex
-|-- postinst.ex
-|-- postrm.ex
-|-- preinst.ex
-|-- prerm.ex
-|-- rules
-`-- watch.ex
+|-- README.Debian  (Debianパッケージの README)
+|-- changelog      (Debianパッケージのチェンジログ)
+|-- compat         (Debianパッケージのバージョン)
+|-- control        (Debianパッケージ情報)
+|-- copyright      (コピーライト情報)
+|-- cron.d.ex      (cron を使うパッケージ用設定ファイル)
+|-- dirs           (作成するディレクトリ名を指定する)
+|-- docs           (インストールするドキュメントファイルを指定する)
+|-- emacsen-install.ex (emacs 用設定ファイル)
+|-- emacsen-remove.ex  (emacs 用設定ファイル)
+|-- emacsen-startup.ex (emacs 用設定ファイル)
+|-- hello-cwidget.default.ex (debfonf用)
+|-- hello-cwidget.doc-base.EX (doc-base用)
+|-- init.d.ex      (init.dを使うパッケージ用設定ファイル)
+|-- init.d.lsb.ex  (init.dを使うパッケージ用設定ファイル)
+|-- manpage.1.ex   (manpage の雛形)
+|-- manpage.sgml.ex(manpage の雛形)
+|-- manpage.xml.ex (manpage の雛形)
+|-- menu.ex        (メニューの雛形)
+|-- postinst.ex    (postinstメンテナファイルの雛形)
+|-- postrm.ex      (postrmメンテナファイルの雛形)
+|-- preinst.ex     (preinstメンテナファイルの雛形)
+|-- prerm.ex       (prermメンテナファイルの雛形)
+|-- rules          (パッケージビルドスクリプト)
+`-- watch.ex       (アップストリームチェック用ファイル)
 \end{commandline}
 
 \subsection{CDBS}
 ./configure ; make ; make install でパッケージのコンパイルができる
-ソフトウェアは cdbs を使った方が楽にパッケージ化できます。
+ソフトウェアは cdbs を使った方が容易にDebianパッケージ化できます。
+
+
+\subsubsection{一回 hello-cwidgetディレクトリを削除する}
+現状では先ほどの{\bf dh\_make}の結果が残っているので一回、サンプルプログ
+ラムのディレクトリごと削除し、再度展開します。
+\begin{commandline}
+$ cd 
+$ rm -rf hello-cwidget-0.1
+$ tar -xzf /live/image/osc/data/hello-cwidget-0.1.tar.gz
+$ cd hello-cwidget-0.1
+\end{commandline}
+
+\subsubsection{dh\_makeを実行し、パッケージの雛形を作成する}
+
+{\bf CDBS}を使うDebianパッケージの雛形作成は以下のコマンドを実行します。
+\begin{commandline}
+$ dh_make --createorig -b
+\end{commandline}
+{\bf -b}オプションを指定すると、CDBS を使った雛形を作成します。
+以下のようなメッセージが表示されるので、エンターキーを押します。
+\begin{commandline}
+Maintainer name : Nobuhiro Iwamatsu
+Email-Address   : iwamatsu@nigauri.org 
+Date            : Sun, 15 Feb 2009 23:51:58 +0900
+Package Name    : hello-cwidget
+Version         : 0.1
+License         : blank
+Using dpatch    : no
+Using quilt     : no
+Type of Package : cdbs
+Hit <enter> to confirm: 
+\end{commandline}
 
 \subsubsection{不要なファイルの削除}
 \subsubsection{debian/changelogファイルの編集}
@@ -363,21 +417,27 @@ Hit <enter> to confirm:
 
 \subsubsection{パッケージのビルド}
 
+パッケージのビルドには{\bf debuild}コマンド を使います。
+debuildコマンドは{\bf devscripts}パッケージで提供されています。
+パッケージをインストールしたら、パッケージのビルドをしてみましょう。
 \begin{commandline}
 $ sudo apt-get install devscripts
-\end{commandline}
-
-\begin{commandline}
 $ debuild -us -uc
 \end{commandline}
 
 \subsection{パッケージのインストール}
+パッケージが無事ビルドできたら、実際にインストールしてみます。
+インストールには dpkg コマンドを使ってインストールします。インストールし
+たら、実際に動くか確認してみましょう。
 \begin{commandline}
 $ sudo dpkg -i ../
+$ which hello
+$ hello
 \end{commandline}
 
 \subsection{パッケージのビルドテスト}
-
+パッケージができたあとにはパッケージのテストを行います。
+パッケージのビルドテストには{\bf pbuilder}を使います。
 \subsubsection{pbuilderパッケージのインストール}
 \begin{commandline}
 $ sudo apt-get install pbuilder
@@ -385,32 +445,46 @@ $ sudo apt-get install pbuilder
 
 \subsubsection{pbuilder環境の構築}
 
-/var/lib 以下に書き込み権限がないので、--basetgzオプションを使って、base
-システムイメージの作成位置を指定しています。
+ビルドテストを行う前にbaseシステムイメージを構築する必要があります。
+今回は{\bf /var/lib}以下に書き込み権限がないので、{\bf --basetgz}オプションを使って、base
+システムイメージの作成位置を指定しています。また、メモリ上で作業を行って
+いるので、イメージ作成前に{\bf apt-get clean}コマンドを実行してキャッシュをクリアし
+ます。
 \begin{commandline}
 $ sudo apt-get clean
-$ sudo pbuilder --create --distribution lenny --basetgz /tmp/base.tgz
+$ sudo pbuilder --create --distribution lenny\
+       --basetgz /tmp/base.tgz
 \end{commandline}
 
 \subsubsection{パッケージのビルドテスト}
+
+pbuilder でテストする場合には作成されたパッケージの dsc ファイルを指定し
+ます。このファイルには、Debianパッケージの構成に必要なファイル名が書かれ
+ているので、その情報を元に再ビルドを行います。
+
 \begin{commandline}
 $ sudo pbuilder --build --basetgz /tmp/base.tgz *.dsc
+....
+エラー
 \end{commandline}
 
 \subsubsection{なぜエラーになるのか}
 
+
 \subsubsection{再ビルドテスト}
 
 \subsection{パッケージのインストール/アンインストールテスト}
-
+パッケージのインストール/アンインストールのテストには{\bf piuparts}パッ
+ケージを使います。
 \subsubsection{piupartsのインストール}
+以下のように実行し、インストールします。
 \begin{commandline}
 $ sudo apt-get install piuparts
 \end{commandline}
 
 \subsubsection{パッケージのインストール/アンインストールテスト}
 \begin{commandline}
-$ sudo piuparts -d
+$ sudo piuparts -d lenny -b /tmp/base.tgz
 \end{commandline}
 
 \subsection{質疑応答}
