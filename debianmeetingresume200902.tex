@@ -156,6 +156,7 @@
 \item パッケージのインストール
 \item パッケージのビルドテスト
 \item パッケージのインストール/アンインストールテスト
+\item プログラムの編集
 \item 質疑応答
 \end{enumerate}
 
@@ -188,29 +189,29 @@ $ source ~/.bashrc
 \end{commandline}
 を実行してください。
 
-\subsection{webサーバの立ち上げ}
+\subsubsection{webサーバの立ち上げ}
 コンソールから以下のコマンドを実行してください。
 \begin{commandline}
 $ sudo ruby1.8 ./tools/web.rb
 \end{commandline}
 
-\subsection{apt-lineの変更}
+\subsubsection{apt-lineの変更}
 エディタを使い、{\bf /etc/apt/sources.list}ファイルを以下のように変更してください。
 apt-line が書かれていますが、削除してください。また、変更には{\bf sudo}を使ってください。
 \begin{commandline}
 deb http://localhost/debian lenny main
 \end{commandline}
 
-\subsection{リポジトリ情報のアップデート}
+\subsubsection{リポジトリ情報のアップデート}
 リポジトリのアップデートを行います。以下のようにコマンドを実行してください。
 \begin{commandline}
 $ sudo apt-get update
 \end{commandline}
 
-\subsection{/tmp のマウントオプションの変更}
-/etc/fstab を 以下のように変更してください。また、変更には{\bf sudo}を使ってください。
+\subsubsection{/tmp のマウントオプションの変更}
+{\bf /tmp}を{\bf nodev}オプションなしで{\bf remount}します。
 \begin{commandline}
-FXIME
+sudo mount -o remount,dev /tmp
 \end{commandline}
 
 \subsection{今回のサンプル}
@@ -222,17 +223,23 @@ $ cd
 $ tar -xzf /live/image/osc/data/hello-cwidget-0.1.tar.gz
 \end{commandline}
 
-このソフトウェアは C++ でかかれています。また、コンパイルに必要なライブ
+このソフトウェアは C++ で記述されており、コンパイルに必要なライブ
 ラリやソフトウェアがインストールされている場合には、./configure ; make ;
 make install でコンパイルおよびインストールまでができるようになっていま
 す。
 
 \subsection{パッケージング化開始}
-\subsubsection{とりあえず、コンパイルしてみる}
+\subsubsection{ソースでも読んでみる}
+動作しないプログラムをパッケー
+ジ化してもしょうがないので、先にどのようなソフトウェアなのか理解するため
+にもパッケージング化する前にソースコードを読んで、ソフトウェアの中身を理
+解して置きましょう。
 
-パッケージ化には最低限コンパイルに必要なパッケージをインストールする必要
-があります。それが{\bf build-essential}パッケージです。以下のように
-実行し、インストールします。
+\subsubsection{とりあえず、コンパイルしてみる}
+動かないプログラムをパッケージ化してもしょうがないので、動作確認をします。
+まずは最低限コンパイルに必要なパッケージをインストールする必要
+があります。それが{\bf build-essential}パッケージです。これは、パッケー
+ジ化の場合にも必要です。以下のように実行し、インストールします。
 \begin{commandline}
 $ sudo apt-get install build-essential
 \end{commandline}
@@ -243,6 +250,11 @@ $ sudo apt-get install build-essential
 $ cd hello-cwidget-0.1
 $ ./configure
 ...
+
+Alternatively, you may set the environment variables SIGC_CFLAGS
+and SIGC_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+...
 エラー
 \end{commandline}
 実行すると、エラーになります。
@@ -252,14 +264,15 @@ Debianで特定のファイルが提供されているパッケージを探す場合には、
 \begin{commandline}
 $ sudo apt-get install apt-file
 \end{commandline}
-
-
 通常は、 この後、{\bf apt-file update}を実行し、ファイル情報データを取得しますが、
-す既にLive-CDに入れているので省略します。
-
-ファイルを探すには以下のように実行します。
+既にLive-CDに入れているので省略します。ファイルを探すには以下のように実行します。
 \begin{commandline}
 $ apt-file search pkg-config
+...
+nant: /usr/share/doc/nant/help/functions/pkg-config.is-max-version.html
+pkg-config: /usr/bin/pkg-config
+pkg-config: /usr/share/doc/pkg-config/AUTHORS
+...
 \end{commandline}
 実行すると、指定したファイルを提供しているパッケージ名が出力されます。
 出力されたパッケージをインストールします。
@@ -270,46 +283,81 @@ $ sudo apt-get install pkg-config
 
 再度{\bf configure}を実行してみましょう。
 \begin{commandline}
-./configure
-...エラー
+$ ./configure
+...
+No package 'sigc++-2.0' found
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+...
 \end{commandline}
 まだ足りないパッケージがあるようです。先ほどと同じように{\bf apt-file}を
-利用して検索し、インストールしてみましょう。
+利用して検索し、インストールします。
 
 \begin{commandline}
-$ apt-file search pkg-config
+$ apt-file search sigc++-2.0.pc
+libsigc++-2.0-dev: /usr/lib/pkgconfig/sigc++-2.0.pc
+$ sudo apt-get install libsigc++-2.0-dev 
 \end{commandline}
-
+再度 configure を実行します。
 \begin{commandline}
-./configure
-...エラー
+$ ./configure
+...
+checking for CWIDGET... configure: error: Package requirements \
+(cwidget) were not met:
+
+No package 'cwidget' found
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+...
 \end{commandline}
-
+エラーになります。まだ足りないようなので、再度検索してインストールします。
 
 \begin{commandline}
-$ apt-file search pkg-config
+$ apt-file search cwidget.pc
+libcwidget-dev: /usr/lib/pkgconfig/cwidget.pc
+$ sudo apt-get install libcwidget-dev
 \end{commandline}
 
 \begin{commandline}
 ./configure
 ...
+config.status: WARNING:  Makefile.in seems to ignore the --datarootdir setting
+config.status: creating src/Makefile
+config.status: WARNING:  src/Makefile.in seems to ignore the --datarootdir setting
+config.status: creating config.h
 \end{commandline}
 
 {\bf configure}が正常に終了しました。終了すると、{\bf Makefile}が
 作成されています。{\bf make}を実行し、コンパイルします。
 \begin{commandline}
-make
-<snip>
+$ make
+...
+make[1]: ディレクトリ `/home/user/hello-cwidget-0.1' に入ります
+Making all in src
+make[2]: ディレクトリ `/home/user/hello-cwidget-0.1/src' に入ります
+g++ -DHAVE_CONFIG_H -I. -I. -I..     -g -O2 -I/usr/include/sigc++-2.0 \
+-I/usr/lib/sigc++-2.0/include   -I/usr/lib/cwidget
+ -I/usr/include/sigc++-2.0  -I/usr/lib/sigc++-2.0/include    -c hello.cc
+g++  -g -O2 -I/usr/include/sigc++-2.0 -I/usr/lib/sigc++-2.0/include   \
+-I/usr/lib/cwidget -I/usr/include/sigc++-2.0
+-I/usr/lib/sigc++-2.0/include \
+-o hello  hello.o  -lsigc-2.0   -lcwidget -lncursesw -lsigc-2.0  
+make[2]: ディレクトリ `/home/user/hello-cwidget-0.1/src' から出ます
+make[2]: ディレクトリ `/home/user/hello-cwidget-0.1' に入ります
+make[2]: ディレクトリ `/home/user/hello-cwidget-0.1' から出ます
+make[1]: ディレクトリ `/home/user/hello-cwidget-0.1' から出ます
 \end{commandline}
 
-コンパイルも正常に終了したので、、試しに実行してみます。
+コンパイルも正常に終了したので、試しに実行してみます。
 \begin{commandline}
-./src/hello
+$ ./src/hello
 \end{commandline}
 
-%ここまではサンプルプログラムの動作確認です。動作しないプログラムをパッケー
-%ジ化してもしょうがないので、先にどのようなソフトウェアなのか理解するため
-%にもパッケージング化する前にソースコード等を読んでおくことをお勧めします。
+ここまではサンプルプログラムの動作確認です。動作しないプログラムをパッケー
+ジ化してもしょうがないので、先にどのようなソフトウェアなのか理解するため
+にもパッケージング化する前にソースコード等を読んでおくことをお勧めします。
 
 \subsection{Debanパッケージの雛形}
 {\bf dh\_make}コマンドでパッケージの雛形を作成することができます。
@@ -383,7 +431,7 @@ Hit <enter> to confirm:
 ラムのディレクトリごと削除し、再度展開します。
 \begin{commandline}
 $ cd 
-$ rm -rf hello-cwidget-0.1
+$ rm -rf hello-cwidget-0.1.*
 $ tar -xzf /live/image/osc/data/hello-cwidget-0.1.tar.gz
 $ cd hello-cwidget-0.1
 \end{commandline}
@@ -410,18 +458,53 @@ Hit <enter> to confirm:
 \end{commandline}
 
 \subsubsection{不要なファイルの削除}
+今回のパッケージ化に必要ではないファイルを{\bf debian}ディレクトリ以下から削除
+します。
+\begin{commandline}
+$ rm -rf debian/*.ex debian/*.EX
+\end{commandline}
+
 \subsubsection{debian/changelogファイルの編集}
+{\bf debian/changelog}ファイルには{\bf ITP}(Intent To Package)
+のバグが既に書かれているで削除します。以下のように変更します。
+\begin{commandline}
+hello-cwidget (0.1-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Nobuhiro Iwamatsu <iwamatsu@nigauri.org> \
+                  Wed, 18 Feb 2009 16:31:25 +0000
+
+\end{commandline}
 \subsubsection{debian/copyrightファイルの編集}
 \subsubsection{debian/controlファイルの編集}
+\begin{commandline}
+Source: hello-cwidget
+Section: devel
+Priority: extra
+Maintainer: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+Build-Depends: cdbs, debhelper (>= 7), autotools-dev
+Standards-Version: 3.7.3
+Homepage: http://www.example.org/
 
+Package: hello-cwidget
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Debian Packaging Hands-on sample program
+ This is sample program of Debian Hands-on done with
+ OSC2009 TOKYO Spring.
+ This is very easy program that uses CWidget.
+\end{commandline}
 
 \subsubsection{パッケージのビルド}
 
 パッケージのビルドには{\bf debuild}コマンド を使います。
 debuildコマンドは{\bf devscripts}パッケージで提供されています。
+また、まだ {\bf CDBS}パッケージをインストールしていないので、一緒にイン
+ストールします。
 パッケージをインストールしたら、パッケージのビルドをしてみましょう。
 \begin{commandline}
-$ sudo apt-get install devscripts
+$ sudo apt-get install devscripts cdbs
 $ debuild -us -uc
 \end{commandline}
 
