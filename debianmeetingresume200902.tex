@@ -143,7 +143,10 @@
 \twocolumn
 %\dancersection{Debian パッケージングハンズオンの手引書}{岩松 信洋}
 \section{Debian パッケージングハンズオンの手引書}
-
+\subsection{本日の目的}
+Debianパッケージ化されていないソフトウェアをパッケージ化して、
+ビルドテストとパッケージの変更までを体験します。
+ところどころにトラップがあるので注意しましょう。
 \subsection{本日の流れ}
 \begin{enumerate}
 \item 講師紹介
@@ -162,8 +165,14 @@
 
 
 \subsection{記号の説明}
-\$ が付いている場合は、コンソールからの入力を意味します。\$は入力せずに
+{\bf \$} が付いている場合は、コンソールからの入力を意味します。{\bf \$}は入力せずに
 コマンドを入力してください。
+
+コマンドラインやファイルの中身で{\bf \textbackslash}が書かれている場所は行が続いて
+いる事を意味します。入力しないでください。 
+
+{\bf ...}は省略を意味します。実際には長い出力がある場合に省略している場
+合に利用しています。
 
 \subsection{エディタ}
 本ハンズオンでは、エディタとして{\bf vi}および{\bf mousepad}を使えるようにしてい
@@ -177,11 +186,13 @@
 
 \subsection{前準備} 
 \subsubsection{パッケージメンテナ名の設定}
-適当なでエディタを使って、{\bf /home/user/.bashrc} に以下の内容を追加し、保存
-してください。
+パッケージメンテナの名前とメールアドレスを環境変数に設定します。
+適当なでエディタを使って、{\bf /home/user/.bashrc} に以下の例のように変
+更して保存してください。各項目には自分の名前とメールアドレスをいれてくだ
+さい。
 \begin{commandline}
-export DEBFULLNAME="your name"
-export DEBEMAIL=your@email-address
+export DEBFULLNAME="Nobuhiro Iwamatsu"
+export DEBEMAIL=iwamatsu@nigauri.org
 \end{commandline}
 保存できたら、ターミナルを起動し、
 \begin{commandline}
@@ -190,32 +201,37 @@ $ source ~/.bashrc
 を実行してください。
 
 \subsubsection{webサーバの立ち上げ}
-コンソールから以下のコマンドを実行してください。
+コンソールから以下のコマンドを実行してください。これはLive-CD環境で
+apt-getができるようにするための対策として行っています。実際のパッケージ
+作成では必要ありません。
 \begin{commandline}
 $ sudo ruby1.8 ./tools/web.rb
 \end{commandline}
 
 \subsubsection{apt-lineの変更}
 エディタを使い、{\bf /etc/apt/sources.list}ファイルを以下のように変更してください。
-apt-line が書かれていますが、削除してください。また、変更には{\bf sudo}を使ってください。
+apt-line が書かれていますが、削除してください。
 \begin{commandline}
 deb http://localhost/debian lenny main
 \end{commandline}
 
 \subsubsection{リポジトリ情報のアップデート}
-リポジトリのアップデートを行います。以下のようにコマンドを実行してください。
+リポジトリのアップデートを行います。以下のようにコマンドを実行します。
 \begin{commandline}
 $ sudo apt-get update
 \end{commandline}
 
 \subsubsection{/tmp のマウントオプションの変更}
 {\bf /tmp}を{\bf nodev}オプションなしで{\bf remount}します。
+以下のように実行します。
 \begin{commandline}
 sudo mount -o remount,dev /tmp
 \end{commandline}
 
 \subsection{今回のサンプル}
-今回は、{\bf cwidget}を使ったサンプルプログラムを用意しました。
+今回は、{\bf cwidget}を使ったサンプルプログラム
+{\bf /live/image/osc/data/hello-cwidget-0.1.tar.gz}
+を用意しました。
 このサンプルプログラムをDebianパッケージ化します。
 {\bf /live/image/osc/data}ディレクトリにソースファイルがあるので、ホームディレクトリに展開します。
 \begin{commandline}
@@ -229,7 +245,7 @@ make install でコンパイルおよびインストールまでができるようになっていま
 す。
 
 \subsection{パッケージング化開始}
-\subsubsection{ソースでも読んでみる}
+\subsubsection{ソースを読んでみる}
 動作しないプログラムをパッケー
 ジ化してもしょうがないので、先にどのようなソフトウェアなのか理解するため
 にもパッケージング化する前にソースコードを読んで、ソフトウェアの中身を理
@@ -250,12 +266,11 @@ $ sudo apt-get install build-essential
 $ cd hello-cwidget-0.1
 $ ./configure
 ...
-
-Alternatively, you may set the environment variables SIGC_CFLAGS
+Alternatively, you may set the environment variables \
+SIGC_CFLAGS
 and SIGC_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 ...
-エラー
 \end{commandline}
 実行すると、エラーになります。
 \subsection{必要なライブラリを探す}
@@ -269,7 +284,8 @@ $ sudo apt-get install apt-file
 \begin{commandline}
 $ apt-file search pkg-config
 ...
-nant: /usr/share/doc/nant/help/functions/pkg-config.is-max-version.html
+nant: /usr/share/doc/nant/help/functions/pkg-config.\
+     is-max-version.html
 pkg-config: /usr/bin/pkg-config
 pkg-config: /usr/share/doc/pkg-config/AUTHORS
 ...
@@ -303,12 +319,13 @@ $ sudo apt-get install libsigc++-2.0-dev
 \begin{commandline}
 $ ./configure
 ...
-checking for CWIDGET... configure: error: Package requirements \
-(cwidget) were not met:
+checking for CWIDGET... configure: error: Package \
+  requirements(cwidget) were not met:
 
 No package 'cwidget' found
 
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
+Consider adjusting the PKG_CONFIG_PATH environment variable \
+if you
 installed software in a non-standard prefix.
 ...
 \end{commandline}
@@ -323,9 +340,11 @@ $ sudo apt-get install libcwidget-dev
 \begin{commandline}
 ./configure
 ...
-config.status: WARNING:  Makefile.in seems to ignore the --datarootdir setting
+config.status: WARNING:  Makefile.in seems to ignore the \
+   --datarootdir setting
 config.status: creating src/Makefile
-config.status: WARNING:  src/Makefile.in seems to ignore the --datarootdir setting
+config.status: WARNING:  src/Makefile.in seems to ignore the \
+  --datarootdir setting
 config.status: creating config.h
 \end{commandline}
 
@@ -334,17 +353,24 @@ config.status: creating config.h
 \begin{commandline}
 $ make
 ...
-make[1]: ディレクトリ `/home/user/hello-cwidget-0.1' に入ります
+make[1]: ディレクトリ `/home/user/hello-cwidget-0.1' \
+に入ります
 Making all in src
-make[2]: ディレクトリ `/home/user/hello-cwidget-0.1/src' に入ります
-g++ -DHAVE_CONFIG_H -I. -I. -I..     -g -O2 -I/usr/include/sigc++-2.0 \
+make[2]: ディレクトリ `/home/user/hello-cwidget-0.1/src' \
+に入ります
+g++ -DHAVE_CONFIG_H -I. -I. -I..     -g -O2 -I/usr/ \
+include/sigc++-2.0 \
 -I/usr/lib/sigc++-2.0/include   -I/usr/lib/cwidget
- -I/usr/include/sigc++-2.0  -I/usr/lib/sigc++-2.0/include    -c hello.cc
-g++  -g -O2 -I/usr/include/sigc++-2.0 -I/usr/lib/sigc++-2.0/include   \
+ -I/usr/include/sigc++-2.0  -I/usr/lib/sigc++-2.0/include \
+ -c hello.cc
+g++  -g -O2 -I/usr/include/sigc++-2.0 -I/usr/lib/ \
+sigc++-2.0/include   \
 -I/usr/lib/cwidget -I/usr/include/sigc++-2.0
 -I/usr/lib/sigc++-2.0/include \
--o hello  hello.o  -lsigc-2.0   -lcwidget -lncursesw -lsigc-2.0  
-make[2]: ディレクトリ `/home/user/hello-cwidget-0.1/src' から出ます
+-o hello  hello.o  -lsigc-2.0   -lcwidget -lncursesw \
+-lsigc-2.0  
+make[2]: ディレクトリ `/home/user/hello-cwidget-0.1/src' \
+から出ます
 make[2]: ディレクトリ `/home/user/hello-cwidget-0.1' に入ります
 make[2]: ディレクトリ `/home/user/hello-cwidget-0.1' から出ます
 make[1]: ディレクトリ `/home/user/hello-cwidget-0.1' から出ます
@@ -477,6 +503,29 @@ hello-cwidget (0.1-1) unstable; urgency=low
 
 \end{commandline}
 \subsubsection{debian/copyrightファイルの編集}
+\begin{commandline}
+This package was debianized by Nobuhiro Iwamatsu \ 
+                                <iwamatsu@nigauri.org> on
+Wed, 18 Feb 2009 16:31:25 +0000.
+
+It was downloaded from <http://www.nigauri.org/~iwamatsu/>
+
+Upstream Author:
+
+    Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+
+Copyright:
+
+    Copyright (C) 2009 Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+
+License:
+
+    GPLv2
+
+The Debian packaging is (C) 2009, Nobuhiro Iwamatsu \ 
+        <iwamatsu@nigauri.org> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+\end{commandline}
 \subsubsection{debian/controlファイルの編集}
 \begin{commandline}
 Source: hello-cwidget
@@ -484,8 +533,8 @@ Section: devel
 Priority: extra
 Maintainer: Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
 Build-Depends: cdbs, debhelper (>= 7), autotools-dev
-Standards-Version: 3.7.3
-Homepage: http://www.example.org/
+Standards-Version: 3.8.0
+Homepage: http://www.nigauri.org/~iwamatsu/
 
 Package: hello-cwidget
 Architecture: any
@@ -506,6 +555,12 @@ debuildコマンドは{\bf devscripts}パッケージで提供されています。
 \begin{commandline}
 $ sudo apt-get install devscripts cdbs
 $ debuild -us -uc
+...
+dpkg-buildpackage: full upload (original source is included)
+Now running lintian...
+W: hello-cwidget: binary-without-manpage usr/bin/hello
+W: hello-cwidget: new-package-should-close-itp-bug
+Finished running lintian.
 \end{commandline}
 
 \subsection{パッケージのインストール}
@@ -513,7 +568,7 @@ $ debuild -us -uc
 インストールには dpkg コマンドを使ってインストールします。インストールし
 たら、実際に動くか確認してみましょう。
 \begin{commandline}
-$ sudo dpkg -i ../
+$ sudo dpkg -i ../hello-cwidget_0.1-1_i386.deb
 $ which hello
 $ hello
 \end{commandline}
@@ -521,6 +576,9 @@ $ hello
 \subsection{パッケージのビルドテスト}
 パッケージができたあとにはパッケージのテストを行います。
 パッケージのビルドテストには{\bf pbuilder}を使います。
+pbuilderはDebianに必要な最低限の環境からビルドを行い、
+依存関係等のチェックを行ってビルドテストを行うツールです。
+
 \subsubsection{pbuilderパッケージのインストール}
 \begin{commandline}
 $ sudo apt-get install pbuilder
@@ -529,34 +587,47 @@ $ sudo apt-get install pbuilder
 \subsubsection{pbuilder環境の構築}
 
 ビルドテストを行う前にbaseシステムイメージを構築する必要があります。
-今回は{\bf /var/lib}以下に書き込み権限がないので、{\bf --basetgz}オプションを使って、base
-システムイメージの作成位置を指定しています。また、メモリ上で作業を行って
-いるので、イメージ作成前に{\bf apt-get clean}コマンドを実行してキャッシュをクリアし
-ます。
+通常は以下のように実行しますが、
 \begin{commandline}
-$ sudo apt-get clean
-$ sudo pbuilder --create --distribution lenny\
-       --basetgz /tmp/base.tgz
+$ sudo pbuilder --create --distribution lenny
 \end{commandline}
+今回はメモリの制限があるため、既に用意してあるbaseシステムイメージを利用
+します。イメージは{\bf /live/image/osc/data/base.tgz}にあります。
 
 \subsubsection{パッケージのビルドテスト}
 
-pbuilder でテストする場合には作成されたパッケージの dsc ファイルを指定し
+pbuilder でテストする場合には作成されたパッケージの{\bf dsc}ファイルを指定し
 ます。このファイルには、Debianパッケージの構成に必要なファイル名が書かれ
-ているので、その情報を元に再ビルドを行います。
-
+ているので、その情報を元に再ビルドを行うことができます。
+また、実行前に{\bf apt-get clean}コマンドを実行してキャッシュをクリアし
+てください。メモリが足りないためです。
 \begin{commandline}
-$ sudo pbuilder --build --basetgz /tmp/base.tgz *.dsc
-....
-エラー
+$ cd ..
+$ sudo apt-get clean
+$ sudo pbuilder --build --distribution lenny \ 
+     --basetgz /live/image/osc/data/base.tgz \
+     --buildplace /tmp hello-cwidget_0.1-1.dsc
+...
 \end{commandline}
 
 \subsubsection{なぜエラーになるのか}
-
+先ほどの手順でやってもビルドエラーになります。
+なぜエラーになるのでしょうか。考えてみましょう。
 
 \subsubsection{再ビルドテスト}
+エラーになる理由は先にインストールしたパッケージ{\bf libcwidget-dev}をパッケー
+ジビルド時の依存関係を記述するフィールド{\bf Build-Depends}に追加してい
+ないためです。追加して、再ビルドしてみます。
+再ビルドには以下のように実行します。今度はうまくビルドができるはずです。
+\begin{commandline}
+$ sudo pdebuild -- --distribution lenny --basetgz \
+ /live/image/osc/data/base.tgz --buildplace /tmp
+\end{commandline}
+
 
 \subsection{パッケージのインストール/アンインストールテスト}
+パッケージがビルドできただけでは喜んではいけません。インストール/アンイ
+ンストールのテストも行いましょう。
 パッケージのインストール/アンインストールのテストには{\bf piuparts}パッ
 ケージを使います。
 \subsubsection{piupartsのインストール}
@@ -566,11 +637,134 @@ $ sudo apt-get install piuparts
 \end{commandline}
 
 \subsubsection{パッケージのインストール/アンインストールテスト}
+piupartsもpbuilderと同様に最低限の環境からのインストールをチェックします。
+よって、baseシステムイメージが必要です。普段は指定する必要はありませんが、
+今回は{\bf -b}オプションを付けて、{\bf /live/image/osc/data/base.tgz}に
+あるbaseシステムイメージを指定して実行します。
 \begin{commandline}
-$ sudo piuparts -d lenny -b /tmp/base.tgz
+$ cd ..
+$ sudo piuparts -d lenny -b /live/image/osc/data/base.tgz \
+   hello-cwidget_0.1-1_i386.deb
+...
+0m41.9s DEBUG: Removed directory tree at /tmp/tmpHliOKO
+0m41.9s INFO: PASS: All tests.
+0m41.9s INFO: piuparts run ends.
 \end{commandline}
 
+\subsection{プログラムの編集}
+hello-cwidgetを実行して、違和感のある方がおられたと思います。
+そう、{\bf Lenny}がリリースされたというのに{\bf Etch}になっていました。
+これはよくないので変更してみます。今回はよく利用されている{\bf dpatch}
+を使って説明します。
+\subsubsection{dpatchのインストール}
+dpatchをインストールするには、以下のように実行します。
+\begin{commandline}
+$ sudo apt-get install dpatch
+\end{commandline}
+\subsubsection{dpatchを使うための準備}
+dpatchを使う前に、{\bf debian/rules}ファイルにdpatchを使うように設定する必要が
+あります。dpatchは一回、パッケージの状態を初期化してから行うためです。
+{\bf hello-cwidget-0.1} ディレクトリに移動して、{\bf debian/rules}を以下のように修正します。
+
+\begin{commandline}
+$ cd  hello-cwidget-0.1
+\end{commandline}
+
+\begin{commandline}
+#!/usr/bin/make -f
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/autotools.mk
+include /usr/share/cdbs/1/rules/dpatch.mk
+include /usr/share/dpatch/dpatch.make
+\end{commandline}
+
+\subsubsection{dpatchの実行}
+dpatchは自パッケージを一回コピーし、dpatch環境に移行します。
+その中で変更して、dpatch環境を終了する時に差分を作成します。
+dpatch環境に移行するには{\bf dpatch-edit-patch}コマンドに
+作成する差分を保存するファイル名を指定して実行します。
+以下のように実行してください。
+\begin{commandline}
+$ dpatch-edit-patch 01_change_dist
+\end{commandline}
+
+\subsection{ファイルの変更}
+今回変更するファイルは{\bf src/hello.cc}です。
+エディタを起動し、対象のファイルを変更します。mousepadの場合は以下のよう
+に実行します。
+\begin{commandline}
+$ mousepad ./src/hello.cc
+\end{commandline}
+{\bf Etch}の部分を{\bf Lenny}に変更したあと、保存してエディタを
+終了します。
+
+\subsubsection{dpatch環境を終了する}
+dpatch環境を終了するには以下のように実行してください。
+実行すると、差分をファイルに保存してdpatch環境を終了します。
+\begin{commandline}
+$ exit
+\end{commandline}
+
+\subsubsection{作成された差分(patch)の中身}
+作成された差分は\\
+{\bf debian/patches/01\_change\_dist.dpatch}
+として保存されています。以下のような内容になっているはずです。
+\begin{commandline}
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 01_change_dist.dpatch by Nobuhiro Iwamatsu <iwamatsu@nigauri.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad hello-cwidget-0.1~/src/hello.cc hello-cwidget-0.1/src/hello.cc
+--- hello-cwidget-0.1~/src/hello.cc 2009-02-15 06:56:01.000000000 +0000
++++ hello-cwidget-0.1/src/hello.cc  2009-02-18 16:54:40.668274925 +0000
+@@ -26,7 +26,7 @@
+    toplevel::init();
+
+    widgets::widget_ref dialog =
+-       dialogs::ok(L"Hello, Debian GNU/Linux Etch!",
++       dialogs::ok(L"Hello, Debian GNU/Linux Lenny!",
+            util::arg(sigc::ptr_fun(toplevel::exitmain)));
+
+    toplevel::settoplevel(dialog);
+\end{commandline}
+パッチにはなぜそのような説明をしたのか、説明を書く必要があります。
+{\bf \#\# DP: No description.}の部分に説明を書きます。
+以下のように変更するといいかもしれません。
+\begin{commandline}
+## DP: Change distributin name from Etch to Lenny.
+\end{commandline}
+
+\subsubsection{作成した差分をパッケージに反映させる}
+
+差分は作成されましたが、このままではパッケージ作成時に差分が適用され
+ません。dpatchを使って差分をパッケージに適用させるには{\bf
+debian/patches/00list}ファイルを作成し、パッケージに
+パッチをファイルに列挙する必要があります。{\bf debian/patches/00list}を
+以下のように変更します。
+\begin{commandline}
+01_change_dist.dpatch
+\end{commandline}
+
+\subsubsection{差分を適用したパッケージを作成する}
+差分を適用したパッケージを作成するには通常のパッケージ作成と変わりません。
+{\bf debuild}コマンドを使って作成します。
+\begin{commandline}
+$ debuild -us -uc
+....
+\end{commandline}
+
+\subsubsection{パッケージ作成エラーになる}
+説明どおりに操作している人は、パッケージ作成エラーになると思います。
+理由は何なのか、考えてみましょう。原因が分かった人は、再ビルドした後に、実際に
+インストールして、差分が反映されているか確認してください。
+もちろん{\bf pbuilder}/{\bf piuparts}を使ってパッケージのテストを行う事も忘れずに。
+
 \subsection{質疑応答}
+以上で、本ハンズオンは終了です。何か質問等はありますか？
 
 \cleartooddpage
 
