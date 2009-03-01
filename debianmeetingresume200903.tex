@@ -401,6 +401,431 @@ if remaining > 0.0 then select fd_in fd_out fd_exn remaining else [], [], []
 gsが固まる原因を取り除くような根本的な解決はできませんでしたが、
 とりあえずは advi が止まらないようにはなりそうです。
 
+% ===============================================================
+\dancersection{Debian on chumbyの作り方 }{まえだこうへい}
+\index{chumby}
+\index{lenny}
+\index{chroot}
+% ===============================================================
+
+OSC 2009 Tokyo/Springでの東京エリア Debian 勉強会のブースで、Debian on
+chumby を行いました。今回はその環境の作り方についてまとめました。
+\begin{multicols}{2}
+\subsection{概要}
+今回、実はchumbyの上でネイティブにDebianを動かしたわけではありません。
+USBメモリにインストールしたDebianにchrootして擬似的に動かしてい
+るように見せかけました。ネイティブに動かすとなるとブートローダをいじる必
+要がありますが、今回はchumby自体はほとんど変更せずに済む方法をとりました。
+
+\subsubsection{chumbyの仕様}
+chumbyは、インターネットに接続可能な無線LAN環境が必要で、接続できな
+ければアナログ時計のwidgetの表示しかできません。また、書き込み可能なメモ
+リ領域はフラッシュメモリも64MBのうち、わずかです\footnote{jffs2ファイルシステムで/pspとしてマウントされています。}。当然、Debianをローカルにインストールすることはできないので、USBメモリを外部ストレージとして使います。
+
+もう一つの制約は、chumbyは、ext2などを使えません。USBメモリを使う場合は
+vfatのみです。しかしvfatではLinuxをインストールできません\footnote{原因
+はsymlinkを作成できないこと、適切なパーミッションを設定できないこと、な
+ど。}。そこで、大きく３つやることがあります。
+\begin{enumerate}
+\item chumbyのカーネルリビルド
+\item USBメモリへのDebianインストール
+\item USBメモリのDebianへのchroot設定
+\end{enumerate}
+\subsection{環境構築}
+\subsubsection{前提条件}
+\textbf{環境構築時に最低限必要なもの}
+\begin{itemize}
+\item chumby
+\item USBメモリ
+\item Debian環境構築用のPC
+\item ネットワーク環境
+\end{itemize}
+\subsubsection{chumbyのカーネルリビルド}
+前述のとおり、chumbyのkernelはext2を使えません。今回、USBメモリにはext2
+フォーマットでDebianをインストールするので、chumby自体もext2を読み込める
+ようにします。
+まず、下記リンク先からchumbyのカーネル構築用のツールキットを入手します。
+手順はリンク先に従います。
+\begin{itemize}
+\item GNU Toolchain\footnote{\url{http://wiki.chumby.com/mediawiki/index.php/GNU_Toolchain}}
+\item GCC Toolchain\footnote{\url{http://wiki.chumby.com/mediawiki/index.php/GCC_Toolchain}}
+\end{itemize}
+これらのツールキットは、/usr以下に展開されるので、kvm/qemuなどの仮想OS環
+境に、環境を構築すると良いでしょう。
+\begin{commandline}
+$ cd /
+$ sudo tar zxf ~/arm-linux-v4.1.2b.tar.gz
+$ sudo tar zxf ~/Gcc-3.3.2-glibc-2.3.2.tar.gz
+$ sudo mkdir -p /opt/Embedix/usr/local/arm-linux
+$ sudo ln -s /usr \
+ /opt/Embedix/usr/local/arm-linux/gcc-3.3.2-glibc-2.3.2
+$ sudo vi /usr/bin/arm-linux-make
+$ sudo chmod +x /usr/bin/arm-linux-make
+\end{commandline}
+/usr/bin/arm-linux/makeには以下のように記述します。
+\begin{commandline}
+#!/bin/sh
+echo make ARCH=arm CROSS=arm-linux- CC=arm-linux-gcc \
+ AR=arm-linux-ar NM=arm-linux-nm RANLIB=arm-linux-ranlib \
+ CXX=arm-linux-g++ AS=arm-linux-as LD=arm-linux-ld \
+ STRIP=arm-linux-strip BUILDCC=gcc BUILD_CC=gcc \
+ CC_FOR_BUILD=gcc ``$@''
+exec make ARCH=arm CROSS=arm-linux- CC=arm-linux-gcc \
+ AR=arm-linux-ar NM=arm-linux-nm RANLIB=arm-linux-ranlib \
+ CXX=arm-linux-g++ AS=arm-linux-as LD=arm-linux-ld \
+ STRIP=arm-linux-strip BUILDCC=gcc
+ BUILD_CC=gcc CC_FOR_BUILD=gcc ``$@''
+\end{commandline}
+私のchumbyのファームウェアは1.6\footnote{確認方法は、sshでchumbyにログイ
+ン後、chumby\_version -fを実行します。}なので、Wikiのfirmware 1.6の手順を実施し
+ます。
+\begin{itemize}
+\item Hacking Linux for chumby - ChumbyWiki\footnote{\url{http://wiki.chumby.com/mediawiki/index.php/Hacking_Linux_for_chumby}}
+\end{itemize}
+また、カーネルビルド用の環境には次のDebianパッケージは最低限入れておく必
+要があります。
+\begin{itemize}
+\item make
+\item gcc
+\item libncurses5-dev
+\item libncursesw5-dev
+\item zip
+\end{itemize}
+また、chumby用のカーネルソースコードと、chumbyへ新しいカーネルをインストールす
+るためにアライメントするPerlスクリプトをそれぞれダウンロードしておきます。
+\begin{itemize}
+\item linux-2.6.16-chumby-1.6.0.tar.gz\footnote{\url{http://files.chumby.com/source/ironforge/build733/linux-2.6.16-chumby-1.6.0.tar.gz}}
+\item align.pl\footnote{\url{http://files.chumby.com/source/ironforge/build396/align.pl}}
+\end{itemize}
+
+カーネルソースを展開し、make menuconfigでext2を組み込みます\footnote{モ
+ジュールにしても構いませんが、その場合は手動でカーネルモジュールをロード
+する必要があるので面倒です。}。
+\begin{commandline}
+$ cd
+$ mkdir kernel
+$ cd kernel
+$ cp ~/{align.pl,linux-2.6.16-chumby-1.6.0.tar.gz} ./
+$ tar zxf linux-2.6.16-chumby-1.6.0.tar.gz
+$ cd linux-2.6.16-chumby-1.6.0
+$ ARCH=arm BOARD=mx21ads CROSS_COMPILE=arm-linux- \
+ make menuconfig
+$ ARCH=arm BOARD=mx21ads CROSS_COMPILE=arm-linux- make
+$ perl ../align.pl arch/arm/boot/zImage
+$ zip k1.bin.zip arch/arm/boot/zImage
+\end{commandline}
+これで、kernel/linux-2.6.16-chumby-1.6.0/ディレクトリ直下に、k1.bin.zip
+が生成されます。これをUSBメモリのvfat領域にコピーします。
+\begin{commandline}
+$ sudo mount -t vfat /dev/sda1 /media/usb
+$ sudo mkdir /media/usb/update2
+$ sudo cp -i k1.bin.zip /media/usb/update2/
+$ sudo umount /media/usb
+\end{commandline}
+chumbyをspecial option modeで起動し、kernelをアップデートします。
+\begin{enumerate}
+\item chumbyの電源をOFFにした状態でUSBメモリを挿します。
+\item タッチスクリーンを押したまま、電源を入れる。途中で押したままにする
+      とspecial option modeになるよ、と表示されるのでそのまま押しつづけ
+      ます。
+\item special option modeのメニュー画面で''install updates''をクリックし
+      ます。
+\item ``Install from USB flash drive''をクリックすると、kernelがアップデー
+      トされ、自動的に再起動されます。
+\end{enumerate}
+\subsubsection{USBメモリへのDebianインストール}
+次に、USBメモリにDebianをインストールしますが、USBメモリにはchumby自体の設
+定を行うためのファイルを置くvfat領域も必要なので、fdiskコマンドで
+/dev/sda1をvfat、/dev/sda2をLinux用領域を作り、mkfsコマンドでファイルシ
+ステムを作成しておきます。
+\begin{commandline}
+$ sudo fdisk /dev/sda
+$ sudo mkfs.vfat /dev/sda1
+$ sudo mke2fs    /dev/sda2
+\end{commandline}
+このsda2の方に、Debianをインストールします。chumbyは、EABI(armel)ではな
+く、OABI(arm)であるため、arm版のインストーラを用意する必要があります。し
+かし、Qemuではarmelのサブアーキテクチャversatileしかサポートしていないた
+め、arm版のkernelイメージを起動させることしかできません。なので、今回は、
+同じOABIのアットマークテクノ社のarmadillo-9用に公開されているDebian Etchイメー
+ジを利用しました。下記リンク先から、5つのtarボールを全てダウンロードします。
+\begin{itemize}
+ \item debian directory - Armadillo 開発者サイト\footnote{\url{http://armadillo.atmark-techno.com/filebrowser/armadillo-9/debian}}
+\end{itemize}
+ext2領域をマウントし、tarボールを展開します。
+\begin{commandline}
+$ sudo mount /dev/sda2 /mnt
+$ cd /mnt
+$ tar zxf ~/debian-etch-a9-1.tgz
+$ tar zxf ~/debian-etch-a9-2.tgz
+$ tar zxf ~/debian-etch-a9-3.tgz
+$ tar zxf ~/debian-etch-a9-4.tgz
+$ tar zxf ~/debian-etch-a9-5.tgz
+\end{commandline}
+chumbyの電源を落とし、このUSBメモリを挿して電源を入れると、自動的にext2
+領域もマウントされ、この下の領域のバイナリも正常に実行できます。
+\subsubsection{USB環境へのchroot準備}
+USBメモリのDebian環境にchrootし、そしてその環境下でEtchからLennyにバー
+ジョンアップさせます。まず、sshでログインし、/proc、/dev、devptsをバインドさせ
+ます。
+\begin{commandline}
+chumby:~# mount -o bind /proc /mnt/usb2/proc
+chumby:~# mount -o bind /dev  /mnt/usb2/dev
+chumby:~# mount -t devpts devpts /mnt/usb2/dev/pts/
+chumby:~# chroot /mnt/usb2
+chumby:/1 df
+Filesystem    1K-blocks      Used Available Use% Mounted on
+/dev/hda1       1373548    181321   1118946  14% /
+tmpfs           1373548    181321   1118946  14% /lib/init/rw
+sysfs           1373548    181321   1118946  14% /sys
+udev            1373548    181321   1118946  14% /dev
+tmpfs           1373548    181321   1118946  14% /dev/shm
+devpts          1373548    181321   1118946  14% /dev/pts
+\end{commandline}
+apt lineをetchからlennyに書き換え、バージョンアップを行うと、問題なくアッ
+プグレードできるはずです。
+
+次に、chrootのDebianで、sshを自動起動させるた
+め、次の設定を行います。22/tcpはchumby自体のsshdが使うので別のポートを割
+り当てる方が良いでしょう。
+
+\textbf{/mnt/usb2/etc/ssh/sshd\_config (一部抜粋)}
+\begin{commandline}
+Port 2222
+(snip)
+PermitRootLogin no
+StrictModes yes
+RSAAuthentication yes
+PubkeyAuthentication yes
+(snip)
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+PasswordAuthentication no
+(snip)
+\end{commandline}
+次に、chumby側の設定。USBメモリに配置したWidgetをロードさせる手順の応用
+で、6.2.3で作成したvfat領域の直下に、以下の内容でdebugchumbyというファイ
+ル名でスクリプトを作成します。
+\begin{commandline}
+#!/bin/bash
+
+mount -o bind /proc /mnt/usb2/proc
+mount -o bind /dev  /mnt/usb2/dev
+mount -t devpts devpts /mnt/usb2/dev/pts/
+chmod 666 /mnt/usb2/dev/null
+chroot /mnt/usb2 /bin/hostname chumby
+chroot /mnt/usb2 /usr/sbin/sshd
+\end{commandline}
+これで、次回以降、自動的にchroot環境のDebianのsshdが2222/tcpで起動するよ
+うになります。
+
+\subsection{OSC会場での展示準備}
+6.1でも書きましたが、Chumnyはインターネットに繋がらないと単なる時計です。
+理由は、起動時にchumby.comからcontrolpanel.swfという管理コンソールの
+flashファイルや、その他自分で設定しているWidgetをダウンロードしてくるた
+めです。そこで、簡単なWidgetを作成し、画面上はそれを表示しつつ、スタンド
+アロン環境でも有線LANを介してSSHでログインできるようにします。
+
+\subsubsection{前提条件}
+\textbf{環境構築に加えて必要なもの}
+\begin{itemize}
+\item mtascパッケージ
+\item USB-Ethernet変換アダプタ
+\item クロスケーブル
+\item 展示用のPC
+\end{itemize}
+
+\subsubsection{Widget作成}
+chumbyのWidgetはFlashです。Debianを使っているのでWidgetはもちろんテキス
+トエディタでActionScriptを書いて、フリーソフトウェアでコンパイルします。
+今回の展示で表示させていたWidgitのソースコードは以下のとおりです。
+\begin{commandline}
+class DisplayDebian {
+  public static function main(mc:MovieClip):Void
+  {
+    var app = new DisplayDebian(mc);
+  }
+
+  public function DisplayDebian(mc:MovieClip)
+  {
+    mc.createEmptyMovieClip(``image'',
+    mc.getNextHighestDepth());
+    var image:MovieClip = mc.image;
+    var imageArr:Array = [ ``./openlogo.png'' ];
+    image._xscale= 100;
+    image._yscale= 100;
+    image._x= 69;
+    image._y= 0;
+    image.loadMovie(imageArr[0]);
+
+    var textField:TextField = mc.createTextField('textField',
+    mc.getNextHighestDepth(), 15, 10, 320, 240);
+    var fmt:TextFormat = new TextFormat('', 24, 0x000000);
+    textField.text = '東京エリア Debian 勉強会\n\n\n' +
+    '次回は3/21,東大で開催予定';
+    textField.setTextFormat(fmt);
+  }
+}
+\end{commandline}
+これをHoge.asとして保存し、同じディレクトリに
+openlogo.png\footnote{Debian.orgのサイトのロゴ
+\url{http://www.debian.org/logos/openlogo.xcf.gz}を利用。そのままでは画
+像サイズが合わないため、gimpで高さ240ピクセルに収まるようにリサイズして
+います。}を配置します。
+
+そして以下のワンライナー(ascompile.sh)の引数として渡し、コンパイルします。
+\begin{commandline}
+$ ./ascompile.sh Hoge.as
+\end{commandline}
+ワンライナーascompile.shは以下のように記述します。
+\begin{commandline}
+#!/bin/bash
+test -z $1 && exit 1
+mtasc -swf `basename $1 .as`.swf -main $1 -header \
+ 320:240:12 -version 8
+\end{commandline}
+コンパイルすると、Hoge.swfというflashファイルができます。このHoge.swfを
+Widgetとして読み込むために、profile.xmlという名前で設定します。
+
+\begin{commandline}
+<?xml version=''1.0'' encoding=''utf-8'' ?>
+<profile>
+ <widget_instances>
+  <widget_instance id=''1''>
+   <widget>
+    <name>Debian Logo</name>
+    <description>Debian GNU/Linux Logo</description>
+    <version>1.0</version>
+    <mode time=''30'' mode=''timeout'' />
+    <access sendable=''false'' deletable=''false''
+     access=''private'' virtualable=''false'' />
+    <user username=''Kouhei Maeda'' />
+    <thumbnail href=''file:////mnt/usb/openlogo.png''
+     contenttype=''image/png'' />
+    <movie href=''file:////mnt/usb/Hoge.swf''
+     contenttype=''application/x-shockwave-flash'' />
+   </widget>
+   <access access=''private'' />
+   <mode time=''30'' mode=''timeout'' />
+   <widget_parameters>
+    <widget_parameter>
+     <name>auther1</name>
+     <value>Kouhei</value>
+    </widget_parameter>
+    <widget_paramter>
+     <name>auther2</name>
+     <value>Maeda</value>
+    </widget_parameter>
+   </widget_parameters>
+  </widget_instance>
+ </widget_instances>
+</profile>
+\end{commandline}
+このprofile.xmlおよび、Hoge.swfとopenlogo.pngをUSBメモリのvfat領域直下
+にコピーします。これで、起動時にUSBメモリからこのWidgetが読み込まれるよ
+うになります。
+
+\subsubsection{スタンドアロンでの起動設定}
+次に、スタンドアロンで先ほどのWidgetが読み込まれ、sshでログインできるよ
+うにします。基本的にはフォーラム
+\footnote{\url{http://forum.chumby.com/viewtopic.php?pid=12258}}の内容に
+従って行えば問題ありません。
+まず、
+chumby-offline.zip\footnote{\url{http://stud3.tuwien.ac.at/~e9825447/chumby-offline.zip}}
+をダウンロードします。展開するとoffline-howto.txtというドキュメントがあ
+るので、これに従い設定します。profile.xmlは既に6.3.2で作成していますので、
+これを利用してください。USBメモリのvfat領域の直下に以下のファイルをコピー
+します。
+\begin{itemize}
+\item chumby-offline.zipを展開してできるofflineディレクトリ以下にある
+      www/ディレクトリ\footnote{offline-howto.txtに従い、設定済みである
+      こと。}
+\item chumbyの/usr/widgets/controlpanel.swf
+\end{itemize}
+USBメモリのvfat領域の直下のdebugchumbyを次のように書き換えます。
+\begin{commandline}
+#!/bin/bash
+
+killall httpd
+/usr/sbin/httpd -h /mnt/usb/www
+cp /mnt/usb/www/hosts.offline /psp/hosts
+#cp /mnt/usb/www/hosts.online /psp/hosts
+
+mount -o bind /proc /mnt/usb2/proc
+mount -o bind /dev  /mnt/usb2/dev
+mount -t devpts devpts /mnt/usb2/dev/pts/
+chmod 666 /mnt/usb2/dev/null
+chroot /mnt/usb2 /bin/hostname chumby
+\end{commandline}
+なお、オフラインモードからオフラインモードに戻す場合は、killallから３行
+をコメントアウトし、hosts.onlineをコピーする行を有効にしてください。
+
+そして最後に、USB-Ethernetアダプタを使い、有線LAN経由でアクセスできるよ
+うに設定します。今までと同じく、vfat領域にuserhook1というファイルを作成
+します。内容は以下のとおりです。
+\begin{commandline}
+#!/bin/sh
+
+USE_DHCP=0
+IPADDR=192.168.3.10
+NETMASK=255.255.255.0
+GATEWAY=192.168.3.1
+
+/sbin/insmod /drivers/usbnet.ko
+/sbin/insmod /drivers/pegasus.ko
+
+ifconfig rausb0 127.0.0.1
+
+if [ $USE_DHCP == 1 ]\daggerhen
+   udhcpc -t 5 -n -p /var/run/udhcpc.eth0.pid -i eth0
+else
+   /sbin/ifconfig eth0 $IPADDR netmask $NETMASK
+   /sbin/route add default gw $GATEWAY eth0
+fi 
+\end{commandline}
+ちなみに、今回はBUFFALOのLUA2-TXを使っています。\footnote{これのデバイスドライ
+バはpegasus.koです。}
+
+以上で、まったくインターネットを使えない環境でも、有線LAN経由でSSH接続か
+つ、液晶モニタ上にUSBに入れたWidgetを稼働させることができるようになりま
+す。
+\subsection{残作業}
+以下が残っていますが、気が向いたらやるかもしれないし、やらないかもしれません。
+\begin{itemize}
+\item debootstrapでLenny arm版を作ってみてchroot環境として使えるか？
+\item chroot環境からフレームバッファを乗っ取る。
+\item ブートローダをハックして、直接USBブートさせる。
+\end{itemize}
+\subsection{おまけ：今月のヨメ八苦}
+2月はこのOSC準備と別件で、ヨメよりも早く帰ってきても晩飯を作らなかった
+（作れなかった）のと、毎週水曜にHack Meetingに参加するようになったため、
+めっちゃ不機嫌になりました。コワ。方々のアドバイスを頂き、３月現在は``す
+い〜つ''でなだめています。
+
+\subsection{参考文献}
+\begin{itemize}
+\item chumbyで遊ぼう！
+
+6.3.2のHoge.asは本書のp.48-49のMain.asを、profile.xmlはp.53のUSBメモリ
+      用profile.xmlの例を、6.3.3のuserhook1はp.156のuserhook1を引用しま
+      した。（一部パラメータを変更）
+
+\begin{itemize}
+\item ISBN : 978-4-7973-5039-5
+\item 著者 : 米田 聡
+\item 発行所 : ソフトバンククリエイティブ株式会社
+\end{itemize}
+\item Using Chumby offline  - Chumbysphere Forum
+\begin{itemize}
+\item \url{http://forum.chumby.com/viewtopic.php?pid=12258}
+\end{itemize}
+\item Hacking Linux for chumby - ChumbyWiki
+\begin{itemize}
+\item \url{http://wiki.chumby.com/mediawiki/index.php/Hacking_Linux_for_chumby}
+\end{itemize}
+\end{itemize}
+\end{multicols}
+
 
 \clearpage
 
