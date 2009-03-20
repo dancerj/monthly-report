@@ -231,6 +231,420 @@ TODO:
  \input{image200903/quiz.tex}
 \end{multicols}
 
+% ===============================================================
+\dancersection{DebianにおけるCommon Lispプログラミング環境}{日比野 啓}
+\index{Common Lisp}
+\index{Lisp}
+% ===============================================================
+
+\subsection{Common Lispはどんな言語か}
+
+DebianがCommon Lispのために用意している仕組みが何を目的としているのか、
+なぜそのような仕組みが用意されているのかを理解するために、
+まずはCommon Lispがどんな言語でライブラリをどのように構築しているのかを説明します。
+
+\subsubsection{Lispのプログラムの構文}
+
+Lispのプログラムは、S式と呼ばれる、トークンと入れ子の括弧の列で表現されます。
+表記と構造を対応づけて説明するために、まずはドット . を使った表記から説明します。
+
+\begin{commandline}
+ S-exp  : () | token | (S-exp . S-exp)
+\end{commandline}
+
+S式は 空の括弧() かトークンか S式のペア (ドットをはさんで括弧でくくったもの) ということになります。
+S式のペアの構造を考えるには以下のようなポインタの組を考えると構造的な理解がしやすいです。
+
+\begin{commandline}
+ (A . B)
+\end{commandline}
+
+\includegraphics[scale=0.5]{image200903/abpair.eps}
+
+\begin{commandline}
+((A . ()) . (B . ()))
+\end{commandline}
+
+\includegraphics[scale=0.5]{image200903/pairs.eps}
+
+\begin{commandline}
+(A . (B . (C . ())))
+\end{commandline}
+
+\includegraphics[scale=0.5]{image200903/lpair.eps}
+
+このポインタのペアのことをLispではconsセルと呼びます。
+左側のポインタはcar、右側のポインタはcdrと呼びます。
+
+cdrがconsセルあるいは空の括弧()を指している場合は . とcdr内の括弧 ( ) を省略できます
+
+\includegraphics[scale=0.5]{image200903/red-pairs.eps}
+
+\includegraphics[scale=0.5]{image200903/red-lpair.eps}
+
+このようにcdrで連なる連結リストを簡潔に表現することができます。
+空の括弧()は要素が一つもない空のリストということです。
+Common Lispでは空リスト()はnilと書くこともできます。
+この . の省略まで含んだのが一般的にS式と呼ばれている表記です。
+
+Lispの処理系はこのリスト構造で表現されるプログラムを処理することで実現できます。
+LISPはLISt Processing languageの略だというわけです。
+LISPのプログラムがリスト構造と等価であるということが
+今回の話の重要なポイントなので注意しておいてください。
+
+\subsubsection{Common Lispのプログラム}
+
+では実際にLispのプログラムを見ていきましょう。
+ここから先は実際に対話環境でプログラムを試しながら説明していきます。
+\verb|CL-USER>|というのが対話環境のプロンプトです。
+
+\paragraph{関数の呼び出し}
+
+ではもともと定義されている関数を呼び出してみます。
+足し算を行なう関数\verb|+|の例です。
+
+\begin{commandline}
+CL-USER> (+ 1 2 3)
+
+6
+\end{commandline}
+
+リストの最初の要素が関数の名前で、残りの要素が引数です。
+かけ算の関数\verb|*|も使ってみましょう。
+
+\begin{commandline}
+CL-USER> (* (+ 1 2) 3)
+
+9
+\end{commandline}
+
+引数の計算を行なったのちに関数の呼び出しが行なわれます。
+この引数の計算のことを引数を 評価する と言います。
+
+\paragraph{関数の定義}
+
+自分でも関数の定義を行なってみましょう。
+
+\begin{commandline}
+CL-USER> (defun my-plus (x y)
+ (+ x y))
+MY-PLUS
+CL-USER> (my-plus (* 2 3) 2)
+8
+\end{commandline}
+
+2つの引数を足し算する関数が定義できました。
+
+
+\begin{commandline}
+(defun <関数名> (<引数>*) [<省略可能なドキュメント文字列>] <本体の式>*)
+\end{commandline}
+
+最後の body form の結果が関数の返り値になります。
+
+
+\paragraph{特殊オペレーター - special operator}
+
+Common Lispの構文はほぼS式しかありません。
+では条件分岐やループといったプログラムの制御構造はどうやって実現しているのでしょうか。
+
+たとえば条件分岐を行なうために\verb|if|という特殊オペレーターがあります。
+\verb|t|は真を示したいときに慣習的に使用する値です。
+
+\begin{commandline}
+(if <式> <条件がnilではない> [<条件がnil>])
+\end{commandline}
+
+\begin{commandline}
+CL-USER> (if t (print "then") (print "else"))
+
+"then"
+"then"
+CL-USER> (if nil (print "then") (print "else"))
+
+"else"
+"else"
+\end{commandline}
+
+Common Lispでは\verb|nil|が偽でそれ以外は真です。
+\verb|if|は関数で表現することはできません。
+もし関数であったとすると、
+
+\begin{commandline}
+CL-USER> (defun my-if (p then else) (if p then else))
+MY-IF
+CL-USER> (my-if T (print "then") (print "else"))
+
+"then"
+"else"
+"then"
+\end{commandline}
+
+というように、\verb|then|の部分も\verb|else|の部分も関数\verb|my-if|の引数ですから、
+両方とも評価された後にmy-ifが呼び出されてしまうのです。
+
+長くなりそうなので詳しくは述べませんが、ループを実現できる機能としては
+Cのgotoのような動きをする\verb|go|という特殊オペレーターがあります。
+
+\paragraph{マクロの呼び出し}
+
+LispではS式で表現できる構文を自分でも定義することができます。
+それがLispのマクロです。
+
+まずはもともと定義されているマクロ and を使ってみます。
+
+\begin{commandline}
+CL-USER> (and (print "A") (print "B") (print "C"))
+
+"A"
+"B"
+"C"
+"C"
+CL-USER> (and (print "A") nil (print "C"))
+
+"A"
+NIL
+\end{commandline}
+
+\verb|and|マクロは引数の式の評価が真であるかぎりは残りを評価し、
+偽(\verb|nil|)より後は評価しません。最後に評価した値が結果になります。
+引数が無い場合は\verb|t|が結果になります。
+マクロはS式をS式に変換する機能だと考えるとわかりやすいです。
+これはあるリスト構造を別のリスト構造に変換するということでもあります。
+関数\verb|macroexpand-1|を使うと\verb|and|マクロで
+どのような変換が行なわれたのかを見ることもできます。
+
+\begin{commandline}
+CL-USER> (macroexpand-1 '(and (print "A") nil (print "C")))
+(IF (PRINT "A") (AND NIL (PRINT "C")) NIL)
+T
+\end{commandline}
+
+引数の一つ目を条件とするifの式になりました。
+評価はマクロが全て変換された後に行なわれます。
+リストだと思って見てみれば以下のような変形です。
+
+\includegraphics[scale=0.5]{image200903/macro.eps}
+
+マクロの動きを理解するにはS式とリストを対応づけて見ていくのがコツです。
+
+\paragraph{マクロの定義}
+
+自分でも\verb|and|マクロのようなもの定義してみます。
+
+\begin{commandline}
+CL-USER> (defmacro my-and (&rest forms)
+ (if forms
+     (list 'if (car forms) (cons 'my-and (cdr forms)))
+     t))
+MY-AND
+CL-USER> (my-and (print "A") (print "B") (print "C"))
+
+"A"
+"B"
+"C"
+T
+CL-USER> (my-and (print "A") NIL (print "C"))
+
+"A"
+NIL
+CL-USER> (macroexpand-1 '(my-and (print "A") nil (print "C")))
+(IF (PRINT "A") (MY-AND NIL (PRINT "C")))
+T
+\end{commandline}
+
+\verb|car|はconsセルからcarを返す関数、
+\verb|list|は複数の引数をリストにして返す関数、
+\verb|cons|は2つの引数をcar cdr の順に指すconsセルを作る関数です。
+\verb|&rest|は可変引数をリストで受けとるためのパラメータの指定です。
+
+このように、マクロはリスト構造を変換するようなプログラムを書いて定義を行ないます。
+マクロの定義の中身はマクロの展開のときに評価が行なわれるということが、
+ここでの重要なポイントです。
+
+似たような動きをしているようですが、オリジナル\verb|and|とは少し違っています。
+最後に評価されたものが結果にはなっていないようです。
+ここでは定義を単純にするために少し動きを変えてみました。
+
+\begin{commandline}
+(defmacro <マクロの名前> (<引数>*) [<省略可能なドキュメント文字列>] <本体の式>*)
+\end{commandline}
+
+
+\subsection{Common Lispのライブラリとマクロ}
+
+Common Lispにも他の実用的な言語と同様に数多くのライブラリがあります。
+他の言語とは異なるかもしれない事情はライブラリ内のマクロの存在です。
+マクロの展開がすべて終わった後でないとプログラムをコンパイルし、
+実行することができないからです。
+
+たとえば、あるライブラリAは別のライブラリBのマクロを使用しているかもしれません。
+すると、AのコードはBのマクロ定義をすべて展開した後でないとコンパイルすることができません。
+さらに、対話環境で開発を行なうことを考えたとき、
+利用することにしているライブラリをコンパイルが済んだ状態でロードしておきたいと思うかもしれません。
+そのときにはライブラリをロードした後にマクロ展開を全て行ない、
+その後にコンパイルする必要があるのです。
+数多くのライブラリを使用することにしていたら対話環境を利用できる状態にするまでに
+多くの時間がかかってしまいます。
+
+このような状況を解決するために、Lispの処理系では、
+マクロの展開とコンパイルが済んだ状態のイメージをダンプして保存しておいて再利用するのが一般的です。
+
+\subsubsection{ASDF - Another System Definition Facility}
+
+Common Lispライブラリのコンパイルを支援するためのライブラリとしてASDFがあります。
+Makefileのようなもので、コンパイルに必要な情報を記述しておくことができます。
+ASDFではライブラリモジュールのことをsystemと呼んでいて、
+systemごとに名前(system name)を付けることになっています。
+同じモジュール内でファイル間に依存関係がある場合はそれを記述します。
+コンパイルに必要な別のsystemがある場合はそのsystem nameも記述します。
+Debianではcl-asdfパッケージです。
+以下はSBCLのドキュメントにあったASDFのシステム定義の例です。
+
+\begin{commandline}
+    (defpackage hello-lisp-system
+      (:use :common-lisp :asdf))
+
+    (in-package :hello-lisp-system)
+
+    (defsystem "hello-lisp"
+        :description "hello-lisp: a sample Lisp system."
+        :version "0.2"
+        :author "Joe User <joe@example.com>"
+        :licence "Public Domain"
+        :components ((:file "packages")
+                     (:file "macros" :depends-on ("packages"))
+                     (:file "hello" :depends-on ("macros"))))
+\end{commandline}
+
+\verb|hello-lisp|という名前のシステム定義を行なっています。
+
+\subsubsection{Common Lisp Controller}
+
+Common Lispの処理系のダンプイメージを作りなおしてくれるツールです。
+処理系のパッケージを追加するとダンプイメージを作ってくれます。
+ライブラリをインストールすると各々の処理系ごとにダンプイメージを作り直してくれます。
+ライブラリがASDFに対応していることが条件です。
+Debianではcommon-lisp-controllerパッケージです。
+
+\subsubsection{dh-lisp}
+
+Common Lispの処理系やライブラリのDebianパッケージ作成時に
+common-lisp-controller に対応させるための支援をしてくれるツールです。
+
+パッケージのビルドの過程でdh\_lispコマンド呼び出すようにすると、
+パッケージ内のASDFの定義を書いたファイル(.asd)を検索して、
+common-lisp-controllerを呼び出すフックをメンテナスクリプトに
+追加してくれます。
+common-lisp-controllerがメンテナスクリプトから呼びだされたときには
+asdファイルの名前を見てダンプイメージ作り直しの対象かどうか
+調べてからダンプが行なわれます。
+\verb|/etc/common-lisp/images/<implementation>|にasdファイルの
+名前を書いておくと作り直しの対象になります。
+
+現状だと例えばパッケージインストール用には以下のような
+フックが追加されます。
+
+\begin{commandline}
+if [ "$1" = "configure" ] &&
+   which register-common-lisp-source > /dev/null; then
+   register-common-lisp-source "#SYSTEMDIR#"
+fi
+\end{commandline}
+
+\verb|#SYSTEMDIR#|がasdファイルの名前に置き換わります。
+
+Common Lispの処理系のパッケージを作成する場合には、
+ダンプイメージ出力のスクリプトを用意して、
+dh\_lispの引数に与える名前に合わせた名前を付けてやれば、
+やはりcommon-lisp-controllerを呼び出すフックをメンテナスクリプトに追加してくれます。
+
+現状だと例えばパッケージインストール用には以下のような
+フックが追加されます。
+
+\begin{commandline}
+case "$1" in
+   configure)
+           if [ -x /usr/lib/common-lisp/bin/"#IMPLEMENTATION#.sh" ] &&
+               which register-common-lisp-implementation > /dev/null; then
+               register-common-lisp-implementation "#IMPLEMENTATION#"
+           fi
+           ;;
+   abort-upgrade|abort-remove|abort-deconfigure)
+           if which register-common-lisp-implementation > /dev/null; then
+               unregister-common-lisp-implementation "#IMPLEMENTATION#"
+           fi
+           ;;
+esac
+\end{commandline}
+
+\verb|#IMPLEMENTATION#|がdh\_lispの引数に与える名前に置き換わります。
+
+
+\subsection{Emacsでの開発環境}
+
+最後に今回の話で使用しているEmacs上の対話環境の紹介をしておきます。
+
+\subsubsection{SLIME - Superior Lisp Interaction Mode for Emacs}
+
+SLIMEはEmacs用のLisp開発環境です。Debianではslimeというパッケージに入っています。
+Emacs側のElispで書かれたクライアントと
+Lispの処理系側で書かれたサーバーが通信しながら対話的な開発環境を実現しています。
+Lispの処理系側で書かれたサーバーの実装はswankを呼ばれています。
+swankを実装すれば他のLispの処理系でもslimeを使うことができるらしいです。
+
+Emacsからの利用方法ですが、
+たとえば処理系にSBCLを使用する場合は.emacsには以下のように書いておけばよいでしょう。
+
+\begin{commandline}
+(setq slime-auto-connect 'ask)
+(setq inferior-lisp-program "sbcl")
+\end{commandline}
+
+Emacsのキーバインドで、対話環境で試験的に実行してみるときに良く使いそうなものを挙げておきます。
+
+\begin{description}
+\item[C-c C-z run-lisp]
+ Lisp処理系との対話用バッファへスイッチ
+\item[C-c C-c slime-compile-defun]
+ カーソル位置の関数を対話用バッファの環境でコンパイル
+\item[C-c C-k slime-compile-and-load-file]
+ 編集中のプロラグラムのバッファのファイルを対話用バッファの環境でコンパイルしてロードする
+\item[C-c C-l slime-load-file]
+  対話用バッファの環境でLispプログラムのファイルをロードする
+\end{description}
+
+\subsubsection{Hyperspec}
+
+ANSI Common Lispの仕様のオンラインドキュメントをSLIMEから読むことができます。
+Debianではhyperspecというパッケージがインストーラーのパッケージになっています。
+
+たとえばw3m-elパッケージを入れておいた状態で .emacsで
+
+\begin{commandline}
+(set-default 'browse-url-browser-function 'w3m-browse-url)
+\end{commandline}
+
+などとやっておくとemacsバッファ内で関数やマクロのヘルプを読むことができます。
+次のキーバインドでドキュメント内の検索を行なうことができます。
+
+\begin{description}
+\item[C-c C-d h  slime-hyperspec-lookup]     カーソル位置のワードでHyperspecのドキュメント内を検索
+\end{description}
+
+\subsection{参考文献}
+
+\begin{itemize}
+\item 実践Common Lisp
+
+\begin{itemize}
+\item ISBN : 978-4274067211
+\item 著者 : Peter Seibel
+\item 出版社 : オーム社
+\end{itemize}
+
+\end{itemize}
+
 %============================================================
 \dancersection{adviをデバッグしてみた}{日比野 啓}
 \index{OCaml}
