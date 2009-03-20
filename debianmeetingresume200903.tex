@@ -231,6 +231,833 @@ TODO:
  \input{image200903/quiz.tex}
 \end{multicols}
 
+
+% ===============================================================
+\dancersection{研究室のソフトウェアを Debian パッケージにしてみる}{藤澤 徹}
+\index{debhelper}
+\index{gxp}
+\index{mcmpi}
+% ===============================================================
+
+\subsection{対象とするソフトウェア}
+
+今回パッケージにしてみるソフトウェアは東京大学 近山・田浦研究室で開発されている
+グリッド用の MPI ライブラリである MC-MPI,
+および MC-MPI を動作させるのに必要となる,
+同じく近山・田浦研究室で開発されている並列分散シェルの GXP の 2 つです.
+
+\subsection{パッケージにするに際して}
+
+ソフトウェアをパッケージにするには, そのソフトウェアの構成と特徴をよく
+理解する必要があります.以下にそれぞれのソフトウェアの特徴のうち,
+パッケージを作る際に関係のありそうな事を並べます.
+
+\subsubsection{MC-MPI}
+
+MC-MPI は主に C 言語で記述されたコンパイラとライブラリによって構成されています.
+また, 一部に Fortran のコードも含まれており, Fortran インターフェースも
+持っていますが, これはオブションによりオフにする事もできます.
+
+Autotools を使用しており, \verb|./configure && make && make install| という
+見慣れたコマンドによってビルド, インストールする事ができます.
+
+\subsubsection{GXP}
+
+GXP は Python で記述されたコマンドと,
+そのコマンドが必要とする Python モジュールによって構成されています.
+
+インストールする, という作業は想定されておらず,
+ダウンロードして展開して出てきたディレクトリをどこかに置き,
+そこにパスを通して使うように作られています.
+
+\subsection{使用するツール}
+
+Debian のパッケージを作成する方法にはいくつかあるらしいのですが,
+今回は debhelper を使用してみます.
+
+\subsection{とりあえず動かしてみる}
+
+とりあえずは自分の環境で動く事を確かめるため, パッケージとは関係なく
+使ってみます.
+
+MC-MPI は GXP を必要とするので, まず GXP から試してみましょう.
+
+\subsubsection{GXP を使ってみる}
+
+以下のサイトから執筆時点で最新版である \verb|gxp-3.05.tar.bz2| をダウンロードし, 展開します.
+
+\begin{center}
+\url{http://www.logos.t.u-tokyo.ac.jp/gxp/}
+\end{center}
+
+\begin{commandline}
+$ mkdir gxp
+$ cd gxp
+$ # なんとかして gxp-3.05.tar.bz2 を持ってくる
+$ tar jxvf gxp-3.05.tar.bz2
+$ cd gxp-3.05
+\end{commandline}
+
+さて, GXP はインストール不要なので, このままでも動きます.
+GXP の制御は全て \verb|gxpc| コマンドで行います.
+
+\begin{commandline}
+$ ./gxpc
+gxpc: no daemon found, create one
+/tmp/gxp-***-default/gxpsession-***-***-2009-03-20-06-46-07-15360-92311801
+\end{commandline}
+
+問題なく動いているようです.
+
+\subsubsection{MC-MPI を使ってみる}
+
+以下のサイトから執筆時点で最新版である \verb|mcmpi-0.21.0.tar.gz| をダウンロードし, 展開します.
+
+\begin{center}
+\url{http://www.logos.ic.i.u-tokyo.ac.jp/~h_saito/mcmpi/}
+\end{center}
+
+\begin{commandline}
+$ mkdir mcmpi
+$ cd mcmpi
+$ # なんとかして mcmpi-0.21.0.tar.gz を持ってくる
+$ tar zxvf mcmpi-0.21.0.tar.gz
+$ cd mcmpi-0.21.0
+\end{commandline}
+
+前述のとおり, Autotools を使用しているので以下の見慣れたコマンドを打ちます.
+
+\begin{commandline}
+$ ./configure
+$ make
+$ sudo make install
+\end{commandline}
+
+サンプルプログラムが付属しているので,
+これを \verb|mpicxx| でコンパイルしてみます.
+
+\begin{commandline}
+$ cd app
+$ mpicxx -o hello ./hello.cpp
+printf: 28: %q: invalid directive
+printf: 28: %q: invalid directive
+printf: 28: %q: invalid directive
+[ g++ -I/usr/local/include    /usr/local/lib/libmpigxp.a -lresolv -lpthread -lnsl -lm  ]
+/usr/lib/gcc/i486-linux-gnu/4.3.2/../../../../lib/crt1.o: In function `_start':
+(.text+0x18): undefined reference to `main'
+collect2: ld はステータス 1 で終了しました
+\end{commandline}
+
+おや, 動かないようです.
+調べてみたところどうやら \verb|%q| は使えない事もあるようです.
+これは文字列を必要ならばクォートするという指定子なので (おそらく),
+サクッと \verb|\"%s\"| に置き換えてしまいます.
+\verb|util| 以下の \verb|mpicc.in|, \verb|mpicxx.in|, \verb|mpif77.in| に修正を加え, ビルドし直します.
+
+\begin{commandline}
+$ cd ..
+$ make distclean
+$ ./configure
+$ make
+$ sudo make install
+\end{commandline}
+
+さて改めてコンパイルします.
+
+\begin{commandline}
+$ cd app
+$ mpicxx -o hello ./hello.cpp
+[ g++ -I/usr/local/include "-o" "hello" "./hello.cpp" /usr/local/lib/libmpigxp.a -lresolv -lpthread -lnsl -lm  ]
+\end{commandline}
+
+今度は上手くいったようです.
+では実行してみましょう.
+まず GXP で \verb|localhost| のみのクラスタを指定し, カレントディレクトリに移動します.
+そこで \verb|mpirun| によって実行を開始します.
+
+\begin{commandline}
+$ gxpc
+$ gxpc use ssh localhost
+$ gxpc explore localhost
+$ gxpc cd `pwd`
+$ mpirun -np 1 ./hello
+/usr/local/bin/mpirun: 157: Bad substitution
+\end{commandline}
+
+おや, またしても失敗です.
+該当行を見ても
+
+\begin{commandline}
+done
+\end{commandline}
+
+と, よく分からない感じですが, よく調べてみると
+
+\begin{commandline}
+        if [ "$CONF_OPT" == "" -o "${CONF_OPT:0:1}" == "#" ] ; then
+\end{commandline}
+
+の行で落ちています.
+
+\verb|${CONF_OPT:0:1}| という書き方は Bash では動きますが POSIX Shell では
+動かないようなので, とりあえず Bash で動かすように変更してしまいます.
+
+\begin{commandline}
+$ cd ..
+$ make distclean
+$ ./configure
+$ make
+$ sudo make install
+\end{commandline}
+
+では改めて実行しましょう.
+
+\begin{commandline}
+$ cd app
+$ mpirun -np 1 ./hello
+INFO: _exchange_end_points: 42498
+INFO: _measure_latencies: 23884
+INFO: _create_bounding_graph: 26520
+INFO: _create_routing_table: 57663
+INFO: _create_spanning_tree: 20144
+INFO: Env_Init: 172304
+Hello 0/1
+\end{commandline}
+
+今度こそ見事動きました.
+
+\subsection{MC-MPI のパッケージ作成}
+
+まずは MC-MPI のパッケージを作成します.
+
+\subsubsection{準備}
+
+とりあえずさっきとは別のディレクトリで作業をしたほうが良さそうです.
+
+\begin{commandline}
+$ mkdir deb_mcmpi
+$ cd deb_mcmpi
+$ # なんとかして mcmpi-0.21.0.tar.gz を持ってくる
+$ tar zxvf mcmpi-0.21.0.tar.gz
+$ cd mcmpi-0.21.0
+\end{commandline}
+
+ここでさっきのバグの修正を加えておきます.
+
+\subsubsection{さらに修正}
+
+MC-MPI では自身のバージョンを \verb|/usr/etc/VERSION| に記述する事になっているのですが,
+これはビミョーなので \verb|/usr/share/mcmpi/VERSION| あたりに変更しておきます.
+変更するファイルは以下のとおりです.
+
+\begin{itemize}
+ \item \verb|etc/Makefile.in|
+ \item \verb|util/mpicc.in|
+ \item \verb|util/mpicxx.in|
+ \item \verb|util/mpif77.in|
+ \item \verb|util/mpirun.in|
+\end{itemize}
+
+\subsubsection{パッケージ情報記述用のファイルの作成}
+
+パッケージを作成する場合にはソフトウェア本体はもちろんの事,
+インストール方法や依存関係等, そのパッケージの情報を記述したファイルが
+必要になります.
+
+\verb|dh_make| コマンドを使用するとこれらを記述するためのファイルの雛形を
+作成してくれます.
+この際, \verb|DEBFULLNAME|, \verb|DEBEMAIL| 変数により作者情報を指定できます.
+この名前, メールアドレスが GPG の鍵の情報と一致しないと
+作成したパッケージにサインできないので困ります.
+
+\begin{commandline}
+$ export DEBFULLNAME="Tooru Fujisawa"
+$ export DEBEMAIL="arai_a@mac.com"
+$ dh_make -e arai_a@mac.com -f ../mcmpi-0.21.0.tar.gz
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b]
+> s
+
+Maintainer name : Tooru Fujisawa
+Email-Address   : arai_a@mac.com 
+Date            : Fri, 20 Mar 2009 06:55:00 +0900
+Package Name    : mcmpi
+Version         : 0.21.0
+License         : blank
+Using dpatch    : no
+Type of Package : Multi-Binary
+Hit <enter> to confirm: 
+> [ENTER]
+\end{commandline}
+
+途中で \verb|Type of package| と聞かれます.
+MC-MPI はライブラリも含みますが, メインはコンパイラ等なので
+とりあえず \verb|single binary| を選んでおけばよさそうです.
+
+\subsubsection{パッケージ情報記述用のファイルの修正}
+
+さて, さきほどの \verb|dh_make| によって, \verb|debian| というディレクトリが作成され,
+この中にいろいろなファイルが並んでいます.
+
+この中で重要なのは次のものです.
+
+\begin{itemize}
+ \item \verb|changelog|
+ \item \verb|copyright|
+ \item \verb|dirs|
+ \item \verb|control|
+ \item \verb|rule|
+\end{itemize}
+
+順番に修正していきましょう.
+
+\subsubsubsection{changelog}
+
+これはパッケージの更新履歴です.
+ソフトウェア本体の更新履歴とは別モノです.
+とりあえず雛形に沿って以下のようにしておきます.
+
+\begin{commandline}
+mcmpi (0.21.0-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Tooru Fujisawa <arai_a@mac.com>  Fri, 20 Mar 2009 06:55:00 +0900
+\end{commandline}
+
+\subsubsubsection{copyright}
+
+これはソフトウェアの著作権情報を記述するファイルです.
+雛形に沿ってダウンロード元, 元々の作者, ライセンス等を記述します.
+
+\begin{commandline}
+This package was debianized by Tooru Fujisawa <arai_a@mac.com> on
+Fri, 20 Mar 2009 06:55:00 +0900.
+
+It was downloaded from http://www.logos.ic.i.u-tokyo.ac.jp/~h_saito/mcmpi/
+
+Upstream Author(s):
+    Hideo Saito <h_saito@logos.ic.i.u-tokyo.ac.jp>
+
+Copyright:
+    (c) 2007 Hideo Saito. All Rights Reserved.
+
+License:
+    GPL Version 2
+
+The Debian packaging is (C) 2009, Tooru Fujisawa <arai_a@mac.com> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+\end{commandline}
+
+\subsubsubsection{dirs}
+
+これはパッケージ作成時に自動的に作成してほしいディレクトリを
+記述するファイルです.
+デフォルトでは \verb|usr/bin| と \verb|usr/sbin| が入っていますが,
+\verb|usr/sbin| は要らないので削除してしまいます.
+また, \verb|VERSION| を \verb|usr/share/mcmpi| にコピーするようにしたので
+これを追加します.
+
+\begin{commandline}
+usr/bin
+usr/share/mcmpi
+\end{commandline}
+
+\subsubsubsection{control}
+
+これはパッケージの依存関係や説明を記述するファイルです.
+
+雛形通りに進むと, まず \verb|Homepage| にダウンロード元を書き,
+\verb|Depends| に次に作成する \verb|gxp| を追加しておきます.
+また, バグ修正の際に Bash を使用する事にしたので \verb|bash| も追加します.
+最後に説明を短いものと長いものと書いておきます.
+
+\begin{commandline}
+Source: mcmpi
+Subsection: unknown
+Priority: extra
+Maintainer: Tooru Fujisawa <arai_a@mac.com>
+Build-Depends: debhelper (>= 7), autotools-dev
+Standards-Version: 3.7.3
+Homepage: http://www.logos.ic.i.u-tokyo.ac.jp/~h_saito/mcmpi/
+
+Package: mcmpi
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends} bash gxp
+Description: Grid-enabled implementation of MPI
+  MC-MPI is a Grid-enabled implementation of MPI, developed by Hideo
+  Saito at the University of Tokyo.  Its main features include the
+  following:
+  - [Firewall and NAT traversal]: MC-MPI constructs an overlay
+    network, allowing nodes behind firewalls and nodes without global
+    IP addresses to participate in computations.  There is no need to
+    perform maual configuration; MC-MPI automatically probes
+    connectivity, selects which connections to establish, and performs
+    routing.
+  - [Locality-aware connection management]: Establishing too many
+    connections, especially wide-area connections, results in many
+    problems, including but not limited to the follwing: exhaustion of
+    system resources (e.g., file descriptors, memory), high message
+    reception overhead, and congestion between clusters during
+    all-to-all communication.  Therefore, MC-MPI limits the number of
+    connections that are established.  If we assume, for simplicity,
+    that n processes are distributed equally among c clusters, then at
+    most O(log n) connections are established by each process and at
+    most O(n log c) connections are established between clusters.  As
+    MC-MPI uses a lazy connect strategy, fewer connections are
+    established for applications in which few process pairs
+    communicate.  The maximum number of connections allowed can be
+    controlled by passing the -beta option to mpirun (see Subsection 3).
+  - [Locality-aware rank assignment]: Temporarily disabled in this
+    version.
+\end{commandline}
+
+\subsubsubsection{rule}
+
+これはビルドやパッケージの方法を記述する \verb|Makefile| です.
+MC-MPI の場合には Autotools を使っているので得に変える所は無いハズです.
+(実はありますがそれは後述...)
+
+\subsubsection{ソースパッケージの作成}
+
+準備が出来たら \verb|debuild| コマンドでパッケージを作成します.
+ソースパッケージとバイナリパッケージの両方を作ってみます.
+
+まずはソースパッケージです.
+
+\begin{commandline}
+$ debuild -S
+\end{commandline}
+
+小人さんが頑張ってくれた後, サインをするためのパスフレーズを聞いてくるので
+2 回くらい入力します.
+
+するとソースパッケージの完成です.
+上のディレクトリに色々出来ています.
+
+\subsubsection{バイナリパッケージの作成}
+
+さて, 続いてバイナリパッケージです.
+
+\begin{commandline}
+$ debuild
+\end{commandline}
+
+\verb|configure|, \verb|make| なんかが走っている様子が流れていきます.
+
+\begin{commandline}
+fortran/.libs/libfortran.a(farg.o): In function `mpigxp_getarg':
+*/deb_mcmpi/mcmpi-0.21.0/src/fortran/farg.f:9: undefined reference to `_gfortran_getarg_i4'
+fortran/.libs/libfortran.a(farg.o): In function `mpigxp_iargc':
+*/deb_mcmpi/mcmpi-0.21.0/src/fortran/farg.f:2: undefined  reference to `_gfortran_iargc'
+fortran/.libs/libfortran.a(initf.o): In function `mpi_init__':
+*/deb_mcmpi/mcmpi-0.21.0/src/fortran/initf.c:16: undefined reference to `mpigxp_iargc__'
+*/deb_mcmpi/mcmpi-0.21.0/src/fortran/initf.c:20: undefined reference to `mpigxp_getarg__'
+collect2: ld returned 1 exit status
+\end{commandline}
+
+超怒られました. しかも私の知らない Fortran のコードです.
+調べてみたところ, この関数は処理系によっては勝手に作られるものだそうで,
+gFortran は作らないようです.
+解決する方法が分からないので, ここはいさぎよく Fortran インターフェースを
+無効にして作り直しましょう.
+
+\verb|debian/rule| ファイルの中で, \verb|./configure| してる行に \verb|--disable-f77| を追加します
+
+\begin{commandline}
+        ./configure $(CROSS) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info \
+        CFLAGS="$(CFLAGS)" LDFLAGS="-Wl,-z,defs" --disable-f77
+\end{commandline}
+
+改めてビルドします.
+
+\begin{commandline}
+$ debuild
+...
+/usr/bin/install -c -d /usr/etc
+/usr/bin/install: `/usr/etc' の属性を変更できません: No such file or directory
+\end{commandline}
+
+またまた怒られました.
+debuild は \verb|debian/mcmpi/| 以下にソフトウェアをインストールして
+パッケージにするハズなのに, 外にインストールしようとしています.
+これは \verb|rule| ファイルからディレクトリを \verb|DESTDIR| として
+渡しているのに, \verb|Makefile| の方が対応していないためです.
+
+\verb|etc/Makefile.in|, \verb|util/Makefile.in|, の中で \verb|prefix| に
+\verb|DESTDIR| を追加します.
+
+\begin{commandline}
+prefix = $(DESTDIR)@prefix@
+\end{commandline}
+
+\begin{commandline}
+$ debuild
+\end{commandline}
+
+今度は成功しました.
+
+上のディレクトリに \verb|mcmpi_0.21.0-1_i386.deb| が出来ています.
+
+\subsubsection{インストールテスト}
+
+依存関係が正しいかどうか, インストールしてみましょう.
+
+\begin{commandline}
+$ cd ..
+$ sudo dpkg -i mcmpi_0.21.0-1_i386.deb
+未選択パッケージ mcmpi を選択しています。
+(データベースを読み込んでいます ... 現在 219582 個のファイルとディレクトリがインストールされています。)
+(mcmpi_0.21.0-1_i386.deb から) mcmpi を展開しています...
+dpkg: 依存関係の問題により mcmpi の設定ができません:
+ mcmpi は以下に依存 (depends) します: gxp ...しかし:
+  パッケージ gxp はまだインストールされていません。
+dpkg: mcmpi の処理中にエラーが発生しました (--install):
+ 依存関係の問題 - 設定を見送ります
+以下のパッケージの処理中にエラーが発生しました:
+ mcmpi
+\end{commandline}
+
+\verb|gxp| が無いと言われました. 予定通り作成できているようです.
+とりあえず削除しておきます.
+
+\begin{commandline}
+$ sudo apt-get remove --purge mcmpi
+\end{commandline}
+
+\subsection{GXP のパッケージ作成}
+
+さて, 無いと言われた GXP パッケージの方を作ります.
+
+\subsubsection{準備}
+
+こちらもさっきとは別のディレクトリで作業をします.
+ただし今回, 作業を開始した時点では 3.03 が最新バージョンだったので,
+バージョンアップのテストも兼ねて 3.03 のパッケージをまず作ります.
+
+\begin{commandline}
+$ mkdir deb_gxp
+$ cd deb_gxp
+$ # なんとかして gxp-3.03.tar.bz2 を持ってくる
+$ tar jxvf gxp-3.03.tar.bz2
+$ cd gxp-3.03
+\end{commandline}
+
+\subsubsection{パッケージ情報記述用のファイルの作成}
+
+ほぼ同様です.
+
+\begin{commandline}
+$ export DEBFULLNAME="Tooru Fujisawa"
+$ export DEBEMAIL="arai_a@mac.com"
+$ dh_make -e arai_a@mac.com -f ../gxp-3.03.tar.bz2 
+Type of package: single binary, multiple binary, library, kernel module or cdbs?
+ [s/m/l/k/b]
+> s
+
+Maintainer name : Tooru Fujisawa
+Email-Address   : arai_a@mac.com 
+Date            : Fri, 20 Mar 2009 07:15:35 +0900
+Package Name    : gxp
+Version         : 3.03
+License         : blank
+Using dpatch    : no
+Type of Package : Single
+Hit <enter> to confirm: 
+> [ENTER]
+\end{commandline}
+
+GXP は外から見ればコマンド 1 つなので, これも \verb|single binary| で
+よさそうです.
+
+\subsubsection{パッケージ情報記述用のファイルの修正}
+
+さて, これらを記述する前に考えなければならない事があります.
+GXP はインストールを想定されていないため, パッケージにした場合に
+どこに置いてどのように使うかを決めなければいけません.
+
+今回は \verb|/usr/share/gxp| 以下にファイルをコピーし,
+\verb|/usr/bin/gxpc| を \verb|/usr/share/gxp/gxpc| にリンクする事にします.
+
+\subsubsubsection{changelog}
+
+特に変わった事はしません.
+
+\begin{commandline}
+gxp (3.03-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Tooru Fujisawa <arai_a@mac.com>  Fri, 20 Mar 2009 07:15:35 +0900
+\end{commandline}
+
+\subsubsubsection{copyright}
+
+こちらも特に変わった事はしません.
+
+\begin{commandline}
+This package was debianized by Tooru Fujisawa <arai_a@mac.com> on
+Fri, 20 Mar 2009 07:15:35 +0900.
+
+It was downloaded from http://www.logos.t.u-tokyo.ac.jp/gxp/
+
+Upstream Author(s): 
+    Dun Nan
+    Kenjiro Taura 
+    Yoshikazu Kamoshida 
+
+Copyright:
+    (c) 2008 by Kenjiro Taura. All rights reserved.
+    (c) 2007 by Kenjiro Taura. All rights reserved.
+    (c) 2006 by Kenjiro Taura. All rights reserved.
+    (c) 2005 by Kenjiro Taura. All rights reserved.
+
+License:
+    GPL Version 2
+
+The Debian packaging is (C) 2009, Tooru Fujisawa <arai_a@mac.com> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+\end{commandline}
+
+\subsubsubsection{dirs}
+
+さて, GXP はインストーラを持っていないので,
+インストールのコードは直接 \verb|rule| に書く事になります.
+できるだけ作業を減らしたいので, 必要なディレクトリはこちらに全部書いてしまいましょう.
+
+\begin{commandline}
+usr/bin
+usr/share
+usr/share/gxp
+\end{commandline}
+
+\subsubsubsection{control}
+
+GXP は Python のモジュールを内部に持っているので,
+これらをインストール先でバイトコードにコンパイルしてあげる作業を
+してあげなければいけません.
+この作業を勝手にしてくれるのが \verb|dh_pycentral| です.
+このために, 2 箇所に \verb|XS-Python-Version: all| を追加します.
+
+また, GXP は環境にアーキテクチャに依存しないので, \verb|Architecture| を
+\verb|all| にします.
+ただし, 実行に Python が必要になるので \verb|Depends| に \verb|python| を,
+また前述の作業のために \verb|dh_pycentral| が必要になるので,
+\verb|Depends|, \verb|Build-Depends| に \verb|python-central| を追加します.
+
+\begin{commandline}
+Source: gxp
+Subsection: unknown
+Priority: extra
+Maintainer: Tooru Fujisawa <arai_a@mac.com>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.7.3
+XS-Python-Version: all
+Homepage: http://www.logos.t.u-tokyo.ac.jp/gxp/
+
+Package: gxp
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python
+XS-Python-Version: all
+Description: parallel/distributed shell
+ GXP is a parallel/distributed shell, plus a parallel task execution engine
+ that runs your Makefile in parallel on distributed machines.
+ Very easy to install
+ (no need to compile. install it on YOUR machine and use it on ALL machines). 
+\end{commandline}
+
+\subsubsubsection{rule}
+
+まず, \verb|Makefile| が無いので \verb|$(MAKE)| と入った行は全てコメントアウトします.
+
+そして, \verb|$(MAKE) DESTDIR=$(CURDIR)/debian/gxp install| の行の後に
+次のようなインストールのコマンドを追加します.
+展開して出てきたもの全部, としたいのですが, \verb|debian| ディレクトリがあるので
+ファイルを並べます.
+
+\begin{commandline}
+        cp -r ChangeLog License README doc ex expectd.py gxpbin gxpc gxpc.py gxpd.py gxpm.py ifconfig.py inst_local.py \
+        inst_remote.py inst_remote_stub.py ioman.py misc mkrelease opt.py $(CURDIR)/debian/gxp/usr/share/gxp
+        ln -s $(CURDIR)/debian/gxp/usr/share/gxp/gxpc $(CURDIR)/debian/gxp/usr/bin/gxpc
+\end{commandline}
+
+また, \verb|dh_pycentral| を動かすために, \verb|dh_python| の次の行あたりに
+\verb|dh_pycentral| と書いておきます.
+
+\begin{commandline}
+#       dh_python
+        dh_pycentral
+\end{commandline}
+
+\subsubsection{ソースパッケージの作成}
+
+まずはソースパッケージを作ります.
+
+\begin{commandline}
+$ debuild -S
+\end{commandline}
+
+何事もなく完了します.
+
+\subsubsection{バイナリパッケージの作成}
+
+さて, 続いてバイナリパッケージです.
+
+\begin{commandline}
+$ debuild
+...
+E: gxp: missing-dep-for-interpreter expect => expect (./usr/share/gxp/gxpbin/ssh_passwd)
+E: gxp: missing-dep-for-interpreter expect => expect (./usr/share/gxp/gxpbin/su_cmd)
+...
+\end{commandline}
+
+途中でエラーが出ています.
+これは \verb|ssh_passwd|, \verb|su_cmd| が \verb|/usr/bin/expect| を使用しているのに,
+\verb|Depends| に入っていないという事なので, \verb|debian/control| を更新します.
+
+\begin{commandline}
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-central, expect
+\end{commandline}
+
+ではビルドし直します.
+
+\begin{commandline}
+$ debuild
+\end{commandline}
+
+今度は何事もなく完了し, 上のディレクトリに \verb|gxp_3.03-1_all.deb| が
+できています.
+
+\subsubsection{バージョンアップ}
+
+さて, 作業をしている間に GXP の新しいバージョン 3.05 がリリースされたので
+これをパッケージに反映します.
+
+debhelper には新しいバージョンのチェック, 更新を自動化するための機構があります.
+\verb|debian/watch| ファイルに以下のように記述します.
+(というか, SourceForge なモノは例にあるので拡張子だけ変えます)
+
+\begin{commandline}
+version=3
+http://sf.net/gxp/gxp-(.*)\.tar\.bz2
+\end{commandline}
+
+2行目が最新バージョンの URL のパターンです.
+ここから自動的に最新バージョンを探して落としてくれます.
+
+\begin{commandline}
+$ uscan -verbose
+-- Scanning for watchfiles in .
+-- Found watchfile in ./debian
+-- In debian/watch, processing watchfile line:
+   http://sf.net/gxp/gxp-(.*)\.tar\.bz2
+-- Found the following matching hrefs:
+     /sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.02.tar.bz2
+     /sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.02.tar.bz2
+     /sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.03.tar.bz2
+     /sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.03.tar.bz2
+     /sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.05.tar.bz2
+     /sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.05.tar.bz2
+Newest version on remote site is 3.05, local version is 3.03
+ => Newer version available from
+    http://www.mirrorservice.org/sites/download.sourceforge.net/pub/sourceforge/g/gx/gxp/gxp-3.05.tar.bz2
+-- Downloading updated package gxp-3.05.tar.bz2
+-- Successfully downloaded updated package gxp-3.05.tar.bz2
+    and symlinked gxp_3.05.orig.tar.bz2 to it
+-- Scan finished
+\end{commandline}
+
+と, いう感じで 3.05 がダウンロードされました.
+これを展開し, 簡単に現在と同じような構成にする事ができます.
+
+\begin{commandline}
+$ uupdate ../gxp-3.05.tar.bz2
+New Release will be 3.05-0ubuntu1.
+-- Untarring the new sourcecode archive ../gxp-3.05.tar.bz2
+Success!  The diffs from version 3.03-1 worked fine.
+Remember: Your current directory is the OLD sourcearchive!
+Do a "cd ../gxp-3.05" to see the new package
+$ cd ../gxp-3.05/
+\end{commandline}
+
+はて, 何かバージョンがおかしな事になっています.
+これは \verb|debian/changelog| にのみ影響するので, これを書き換えておきます.
+
+\begin{commandline}
+gxp (3.05-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Tooru Fujisawa <arai_a@mac.com>  Fri, 20 Mar 2009 07:32:35 +0900
+
+gxp (3.03-1) unstable; urgency=low
+
+  * Initial release
+
+ -- Tooru Fujisawa <arai_a@mac.com>  Fri, 20 Mar 2009 07:15:35 +0900
+\end{commandline}
+
+あとはビルドし直せば完了です.
+
+\begin{commandline}
+$ debuild -S
+$ debuild
+...
+E: gxp: ruby-script-but-no-ruby-dep ./usr/share/gxp/gxpbin/tmsub.rb
+...
+\end{commandline}
+
+さて, 今度は Ruby が必要になったようなので, これを \verb|debian/control| に
+追加します.
+
+\begin{commandline}
+Depends: ${shlibs:Depends}, ${misc:Depends}, python, python-central, expect, ruby1.8
+\end{commandline}
+
+ではビルドし直します.
+
+\begin{commandline}
+$ debuild
+\end{commandline}
+
+\subsubsection{インストールテスト}
+
+GXP の方は特別な依存関係は無いのでインストールできるハズです.
+
+\begin{commandline}
+$ cd ..
+$ sudo dpkg -i gxp_3.05-1_all.deb 
+...
+ gxp は以下に依存 (depends) します: expect ...しかし:
+  パッケージ expect はまだインストールされていません。
+...
+\end{commandline}
+
+と思ったら \verb|expect| が入ってませんでした.
+
+\begin{commandline}
+$ apt-get remove --purge gxp
+$ sudo apt-get install expect
+$ sudo dpkg -i gxp_3.05-1_all.deb 
+未選択パッケージ gxp を選択しています。
+(データベースを読み込んでいます ... 現在 219600 個のファイルとディレクトリがインストールされています。)
+(gxp_3.05-1_all.deb から) gxp を展開しています...
+gxp (3.05-1) を設定しています ...
+\end{commandline}
+
+続いて MC-MPI もインストールします.
+
+\begin{commandline}
+$ cd ../deb_mcmpi
+$ sudo dpkg -i mcmpi_0.21.0-1_i386.deb 
+未選択パッケージ mcmpi を選択しています。
+(データベースを読み込んでいます ... 現在 219699 個のファイルとディレクトリがインストールされています。)
+(mcmpi_0.21.0-1_i386.deb から) mcmpi を展開しています...
+mcmpi (0.21.0-1) を設定しています ...
+\end{commandline}
+
+今度は正しくインストールできました.
+
 % ===============================================================
 \dancersection{DebianにおけるCommon Lispプログラミング環境}{日比野 啓}
 \index{Common Lisp}
