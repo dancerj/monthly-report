@@ -8,8 +8,9 @@
 
 int fibonacci(int i)
 {
-  if (i < 2) return i;
-  return fibonacci(i - 1) + fibonacci(i - 2);
+  switch (i) {case 0:case 1:return i;
+  default:return fibonacci(i - 1) + fibonacci(i - 2);
+  }
 }
 
 int main(int argc, char **argv)
