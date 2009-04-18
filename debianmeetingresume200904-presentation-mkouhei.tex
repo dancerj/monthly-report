@@ -1,0 +1,275 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Java ポリシーを読んでみた}
+\author{まえだ こうへい mkouhei@debian.or.jp\\IRC nick: mkouhei}
+\date{2009年4月18日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+
+%begin of commandline0
+\newenvironment{commandline0}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{0.95\hsize}\begin{fontsize}{9}{9} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{10pt}
+
+\vspace{10pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandline0
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\emtext{読むハメになった経緯}
+\section{読むハメになった経緯}
+\begin{frame}[containsverbatim]{そもそも別の目的がありました}
+\begin{center}\bfseries
+友人と別件の活動でのなかで、進捗管理が必要に。
+
+\begin{enumerate}
+ \item 某所のPCで使えるのがGanttProjectだけ。
+ \item オープンソースだからDebianでも使えるベ。
+ \item Debianではパッケージになってない！
+ \item 「You, ITPしちゃいなよ。」と天の声。
+ \item 初めてITPしてみました。
+\end{enumerate}
+→ まず、ここで最初の脱線。
+\end{center}
+
+\end{frame}
+
+\section{}
+\begin{frame}[containsverbatim]{２回目の脱線}
+ \begin{center}
+  \begin{enumerate}
+   \item 「次は、Javaポリシー読んで、勉強会のネタにしちゃいなよ。」
+   \item 翻訳して、資料作った。← 今ココ。
+  \end{enumerate}
+
+
+ \textbf{\\問題は山積み。}
+  \begin{itemize}
+   \item まだITPしただけでdebパッケージ化できていない。
+   \item GanttProjectを利用できていない。
+   \item 肝心の当初の活動自体の進捗も遅れ気味。
+  \end{itemize}
+ \end{center}
+\end{frame}
+
+\section{Java ポリシーの内容}
+\begin{frame}{概要}
+ 大きくこんな構成になっています。
+ \begin{enumerate}
+  \item 背景説明
+  \item ポリシーの内容
+  \item 議論すべき問題
+  \item Javaパッケージメンテナ向けのアドバイス
+ \end{enumerate}
+ 対象は、Java仮想マシン、Javaコンパイラ、Javaプログラム、Javaライブラリで
+ す。
+\end{frame}
+
+\section{背景説明}
+
+\begin{frame}{要点は２つ。}
+ \begin{itemize}
+  \item Java固有の特徴が多いので、Debianポリシーから分けて、サブポリシー
+	とて扱われている。
+  \item サブポリシー自体へのコメント、提案などは、java-commonパッケージか
+	\footnote{\url{java-common@packages.debian.org}}、Debian Javaメーリング
+	リスト\footnote{\url{debian-java@lists.debian.org}}に投稿しる。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{ポリシー}
+Javaパッケージのポリシーは大きく分けて５つあります。
+ \begin{enumerate}
+  \item 仮想マシン
+  \item コンパイラ
+  \item プログラム
+  \item ライブラリ
+  \item main, contrib, non-free
+ \end{enumerate}
+\end{frame}
+
+\begin{frame}{Javaポリシー}
+ \begin{itemize}
+  \item Javaパッケージ自体は、コンパイラ、仮想マシン、ランタイム用の仮想
+	パッケージが作られます。
+  \item Javaのコードはバイトコードとして、全アーキテクチャ向けに配布しな
+	ければなりません。
+  \item 開発者向けのライブラリと、エンドユーザ向けのプログラムに分類され
+	ます。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{仮想マシン}
+JVMをパッケージ化する際のポリシーです。パッケージ名、依存関係、コマンド
+ 名を規程しています。\\
+ \begin{itemize}
+  \item java-virtual-machineパッケージを提供し、java-commonパッケージに
+	依存していること。
+  \item ランタイム環境も一緒に配布しても良い。
+  \item Java2に準拠したランタイムなら、java2-runtimeを提供。
+  \item Sun Javaプログラムと互換性がある場合は、/etc/alternatives/javaという名前で提供。
+  \item CLASSPATHも事前に定義しておけ。
+  \item 仮想マシンのコードを提供する場合は、hogehoge-devという名前にする。
+ \end{itemize}
+ \end{frame}
+
+\begin{frame}{コンパイラ}
+Javaコンパイラをパッケージかする際のポリシー。\\
+ \begin{itemize}
+  \item java2-compilerパッケージを提供し、java-commonに依存していること。
+  \item Sun JavaのJDKと互換性がある場合は、/etc/alternatives/javacという
+	名前にする。
+  \item コンパイルに必要なJavaのコアクラスをCLASSPATHに設定する。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{プログラム}
+Javaプログラムをパッケージかする際のポリシー。
+ \begin{itemize}
+  \item /usr/bin/以下に配置して、実行可能にしておかなければならない。
+  \item プログラムはbinfmt\_miscを使用したJavaクラスかラッパーでもよい。
+  \item 特定の環境変数がなくても実行できないとアカン。
+  \item 実行ファイルのポリシールールに従わないとダメ。
+  \item 補助クラスの場合は、/usr/share/javaディレクトリ以下に配置する。
+  \item 仮想マシンとランタイムに依存していないとダメ。
+  \item プログラムの名前には規則はない。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{binfmt\_miscとは}
+ Javaプログラムをネイティブコードのように、直接実行させるための仕組み
+ のようです。
+ \begin{quote}
+  Binfmt\_misc はファイルの先頭の何バイトかをあなたの指定したマジックバイ
+  トシーケンスと(特定のビットはマスクして)比較し、バイナリタイプを判定し
+  ます。
+ \end{quote}\footnote{\url{http://www.linux.or.jp/JF/JFdocs/kernel-docs-2.2/binfmt_misc.txt}}
+
+ \begin{quote}
+  OS 内で Javaバイナリの直接サポート(中略)、Linux はサポートをしています！
+  下記のことを行った後、他のプログラムと同じように Java アプリケーションと
+  Java アプレットを実行できます -
+ \end{quote}\footnote{\url{http://www.linux.or.jp/JF/JFdocs/kernel-docs-2.2/java.txt}}
+\end{frame}
+
+\begin{frame}{ライブラリ}
+ Javaライブラリをパッケージ化する際のポリシー。\\
+ 開発者向け、ユーザ向けのようには分かれていない。
+ \begin{itemize}
+  \item libHOGE[version]-javaという形式の名前でないとアカン。
+  \item jarアーカイブは/usr/share/java以下に配置しないとダメ。
+  \item pacage[-extraname]-fullversion.jarの形式にする。
+  \item ランタイムには依存しないとダメだが、仮想マシンには依存してはダメ。
+ \end{itemize}
+ 
+\end{frame}
+
+\begin{frame}{main, contrib, non-free}
+ パッケージはmain, contrib, non-freeのどれあたるかの判断基準です。
+ \begin{itemize}
+  \item ソースパッケージをnon-freeなツールでしか正しくコンパイルできなけ
+	ればmainにはできない。\\
+	パッケージ自体はフリーならcontrib。
+  \item フリーなコンパイラは、guavac, gcj, jikesがある。
+  \item バイナリパッケージがnon-freeな仮想マシンでしか動かせないと、mainに
+	はできない。\\
+	パッケージ自体がフリーならcontrib。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{議論すべき問題}
+概要が列挙されています。詳細がよく分からないものもあります。
+ \begin{itemize}
+  \item リポジトリの名前と存在自体について。
+  \item /usr/share/java以下のシンボリックリンクをスクリプトで置き換える
+	べきか。
+  \item コアクラスの必要性について。
+  \item SunのコミュニティーライセンスはDebianで使えるのか？
+ \end{itemize}
+など。
+\end{frame}
+
+\begin{frame}{Javaパッケージメンテナ向けのアドバイス}
+Javaパッケージ作成者向けのアドバイス。\\
+でも記載内容は、
+ \begin{itemize}
+ \item 足りないツールをだれか作ってくれ。
+  \item 他の言語向けパッケージ作成では自動で行っている部分は(まだ環境が整っ
+	てないから)を手動でやれ。
+  \item 「これはアドバイスに過ぎず、ポリシーの一部ではない」\\
+	…ひどい。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{まとめ}
+ \begin{itemize}
+  \item 通常のポリシーに比べた場合の、Javaポリシーの特徴はどうなのかはよ
+	く分からない。
+  \item でも、フリーなコンパイラが3つある。\\
+	（だから、３つともでパッケージ作成検証を行わないとダメ)
+  \item mainに入れるための制約が明確に規定されている。\\
+	（今までのDebian勉強会で聞いた限りでは他と変わらない気がする。)
+  \item ファイルの配置場所や、命名規約やら、依存関係が一部Java固有っぽい。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{今後やること}
+ 以上を踏まえて、
+ \begin{itemize}
+  \item ganttprojectのdebパッケージ化を進める。
+  \item 今回訳した文章は、debian-docに投げて査読してもらう。
+  \item 翻訳のやり方もちゃんと学ぶ。
+  \item 本来の目的をちゃんと遂行する。
+  \item ヨメに「またDebian？」とイヤな顔をされないように努力する。
+ \end{itemize}
+
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
