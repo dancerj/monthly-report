@@ -1,0 +1,352 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Kansai Debian Meeting resources
+%     Copyright (C) 2007 Takaya Yamashita
+%     Thank you for Tokyo Debian Meeting resources
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200708; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{kansaimonthlyreport}
+\usepackage[dvips]{xy}
+
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2009}
+\newcommand{\debmtgmonth}{4}
+\newcommand{\debmtgdate}{26}
+\newcommand{\debmtgnumber}{28}
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分、本文の末尾も修正することをわすれずに
+
+ 第\debmtgnumber{}回 関西 Debian 勉強会資料
+
+\vspace{2cm}
+
+\begin{center}
+\includegraphics{image200802/kansaidebianlogo.png}
+\end{center}
+
+\begin{flushright}
+\hfill{}関西 Debian 勉強会担当者 山下 尊也\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+\end{flushright}
+
+\thispagestyle{empty}
+\end{titlepage}
+
+\dancersection{Introduction}{山下 尊也}
+ 
+ 関西 Debian 勉強会はDebian GNU/Linux のさまざ
+ まなトピック(新しいパッケージ、Debian 特有の機能の仕組、Debian 界隈で起
+ こった出来事、などなど）について話し合う会です。
+
+ 目的として次の三つを考えています。
+ \begin{itemize}
+  \item MLや掲示板ではなく、直接顔を合わせる事での情報交換の促進
+  \item 定期的に集まれる場所
+  \item 資料の作成
+ \end{itemize}
+
+ それでは、楽しい一時をお楽しみ下さい。
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ {\rotatebox{90}{\fontsize{80}{80}
+{\gt 関西デビアン勉強会}}}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\setcounter{tocdepth}{1}
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{パッケージの依存性を解く：EDOS から Mancoosi まで}{Ralf Treinen}
+
+
+注) Ralf Treinen さんの発表用スライドを、簡単かつ適当に抄訳しました。英語が苦手な方は、発表前にざっと読んで内容を把握しておいてください。
+
+訳の間違いなど、苦情は倉敷まで。
+
+\subsection{Mancoosi プロジェクト}
+
+\begin{itemize}
+\item ヨーロッパにおける研究プロジェクト
+\item 期間：2008/2 → 2011/1
+\item EDOS プロジェクト (2004/1 → 2007/6) の後継
+\end{itemize}
+
+
+\subsection{EDOS と Mancoosi の目的}
+
+\begin{itemize}
+\item コンピュータサイエンスの研究成果をフリー/オープンソースソフトウェア (F/OSS) ディストリビューションに応用：
+
+\begin{itemize}
+\item 形式手法：論理に基くツールと手法 from Verification
+\item ツール from ソフトウェア工学
+\end{itemize}
+\item F/OSS ディストリビューションと、科学的研究において、到達水準を向上させるのが目的
+\end{itemize}
+
+
+\subsection{なぜ科学研究者が F/OSS に興味をもつのか？}
+
+F/OSS インフラストラクチャが特に興味深いのは：
+
+\begin{itemize}
+\item 中心となる設計者がいない
+\item 開発が速く、分散されている
+\item パッケージの相互依存が強い
+\item 巨大なコードベース
+\item 同時に複数の CPU アーキテクチャにパッケージを提供
+\item 複数の OS に対して同時にパッケージを提供
+\end{itemize}
+
+
+\subsection{なぜ F/OSS が科学の研究成果に興味をもつのか？}
+
+F/OSS における品質保証の現状は：
+
+\begin{itemize}
+\item コンパイルとインストールの (時には自動化された) テスト
+\item テストケースの自動生成はなされない
+\item 自動検証ツールは使われていない
+\item 個別のパッケージと、ディストリビューション全体について、品質保証のための自動化されたツールが必要に迫られている
+\end{itemize}
+
+
+\subsection{パッケージの依存関係における EDOS workpackage}
+
+焦点：リリース管理者の観点によるディストリビューションの一貫性
+
+質問：規定のリポジトリにあるパッケージしか使えない場合に、ユーザが選択したパッケージはインストール可能だろうか？
+
+リリース管理者や品質保証チームが、問題のある、もしくは無用なパッケージを見つける助けになる質問
+
+
+
+\subsection{パッケージのインストーラビリティ as SAT (命題論理の充足可能性判定問題)}
+
+パッケージの関係について、命題論理に基いて数学的なモデルを作ることから始めた。
+
+\begin{itemize}
+\item 各パッケージ p (バージョンは v) は、ブール変数 Pv (Pv であればパッケージはインストール可能。そうでなければ不可能) として解釈される
+\item 依存関係は、それぞれ連鎖として解釈される。例：aterm →libc6 \^{} (libice6 v xlibs) \^{} \dots{}
+\item パッケージ a と b での衝突は、公式 !(a \^{} b) として解釈される
+\end{itemize}
+
+定理：
+
+あるパッケージ p のバージョン v は、Pv を真とする真偽値が存在し、リポジトリの記号化を満足すれば、「インストール可能」である
+
+
+\subsection{パッケージインストールの容易さ as SAT − 例}
+
+
+平均的な式は 400 の定数を持つ。KDE のインストールでは 32000
+
+
+\subsection{EDOS ツールチェイン}
+
+EDOS を通じていくつかのツールが開発された (OCaml で 110000 行のコード)
+
+\begin{description}
+\item[edos-debcheck] \mbox{}
+
+パッケージのインストーラビリティをチェックするコマンドラインツール
+\item[pkglab] \mbox{}
+
+インタラクティブなコンソール環境で、リポジトリの検査用
+\item[ceve] \mbox{}
+
+パッケージリストの複数フォーマットをパース/変換する
+\item[tart] \mbox{}
+
+リポジトリを分割 (メディアなど) する。この時、i 番目のメディアに含まれているパッケージは、i 番目までのメディアを使えばインストール可能となる
+\end{description}
+
+いくつかを詳細に見てみよう……
+
+
+\subsection{edos-debcheck}
+
+\begin{itemize}
+\item edos-debcheck は APT パッケージリスト (/var/lib/apt/lists/* など) をもとに、ある/いくつかの/全てのパッケージがインストール可能かどうかをチェックする
+\end{itemize}
+
+カスタマイズされた SAT 解決器がベースになっていて、とても高速：testing/amd64 の main にある全パッケージのインストーラビリティのチェックにかかる時間は、エントリーレベルのマシン上で 5 秒。
+
+\begin{description}
+\item[大きな成功例] \mbox{}
+
+emdebian ではパッケージのアップロード前に edos-debcheck を使って、壊れたパッケージをアーカイブにアップロードしないようにしている
+\end{description}
+
+Debian のパッケージ名：edos-debcheck, edos-rpmcheck
+
+
+\subsection{pkglab}
+
+- pkglab はインタラクティブな、コンソールベースの環境で、パッケージベースのソフトウェアディストリビューションのリポジトリを調査するもの
+
+機能：
+
+\begin{itemize}
+\item 現在と過去のパッケージリストを読み込む
+\item パッケージのインストーラビリティをチェック (edos-debcheck で)
+\item 関数型のクエリ言語 (map, filter, fold, \dots{})
+\item リポジトリがどのような変遷を経て発展してきているかを調べる (edos-debcheck 単体では不可能)
+\end{itemize}
+
+Debian のパッケージ名：dose2 (基本のライブラリ), ceve (パッケージリストのパーサ/コンバータ), pkglab (インタラクティブ環境), edos-debcheck (debian 向けのインストーラビリティチェッカ), edos-rpmcheck (RPM 向けのインストーラビリティチェッカ)
+
+
+\subsection{Debian で、インストールできないパッケージを見つける}
+
+Debian, Skilelinux, Debian GNU/kFreeBSD において、毎日 edos-debcheck を使ってインストール不可能なパッケージをモニターしている：
+
+\url{http://edos.debian.net/edos-debcheck}
+
+インストールできないパッケージの頻出ケース：
+
+\begin{enumerate}
+\item autobuilder の追随 (例えば、arch:all のパッケージが arch:any のパッケージと同時にアップロードされ、autobuilder が遅延している)：通常の一過性のインストール不可状態
+\item a が b に依存しており、全アーキテクチャに b がない：b のビルドに問題があったり、a において、とってもおおらかなアーキテクチャ指定がなされている (厳密にすべき)
+
+\begin{itemize}
+\item 上記の特殊な例：a は arch:all。最近のInstall-To フィールドを追加する提案はこれに対処するもの (\#436733)
+\end{itemize}
+\item 深刻なパッケージのバグで、実際に修正する必要がある :-)
+\end{enumerate}
+
+
+\subsection{Debian で、宣言されていない衝突を見つける}
+
+ユーザにこういったエラーを見せる前に取り除く。
+
+\begin{enumerate}
+\item 愚直に：パッケージ全部 (200,000,000) を同時にインストールしてみる……そんなバカな!
+\item 少なくとも 1 ファイルを共有しているペアのみ考慮 (Contents を使えば簡単)：867 ペア (2008/4/16 の amd64/sid)
+\item 依存性のうえで同時インストール可能なペアに絞る (pkglab を使えば簡単)：102 ペア
+\item diversion によって誤検知されているかも：ペアでのインストールを chroot 環境でテスト：27 のバグもちパッケージペアが検出された
+\end{enumerate}
+
+レポート：\url{http://edos.debian.net/missing-conflicts/}
+
+BTS:ユーザ \verb|treinen@debian.org|、タグ edos-file-overwrite
+
+
+\subsection{Mancoosi プロジェクト}
+
+アップグレード問題 = インストールされたパッケージのローカルなステータスを変更するようメタインストーラが要求することで発生する問題。
+
+アップグレード問題の解決は、いくつかの理由で失敗し得る：
+
+\begin{itemize}
+\item 呼び出しエラー、依存性解決、パッケージ受信、パッケージ展開、メンテナスクリプトの実行、……
+\end{itemize}
+
+Mancoosi は 2 つの側面からアップグレード問題に取り組もうとしている：
+
+\begin{description}
+\item[ロールバックのサポート] \mbox{}
+
+想定外のエラー (メンテナスクリプトなど) があった場合、事後のリカバリが唯一の解決策
+\item[依存性解決] \mbox{}
+
+メタインストーラが最新の水準を満たしていない (例えば、不完全性：when there is one、解決法を見つけることができない)：我々がうまくやらねば！
+\end{description}
+
+
+\subsection{依存性の解決に必要なもの}
+
+\begin{description}
+\item[完全性] \mbox{}
+
+アップグレード問題への解決法が存在するなら、メタインストーラはそれを発見できなくてはならない
+\item[最適性] \mbox{}
+
+同等の異なる複数の解決法を区別するため、最適化の基準を指定できる必要がある。例えば：
+\end{description}
+
+\begin{itemize}
+\item ダウンロードサイズを最小化
+\item 使用するディスクスペースを最小化
+\item J. Random DD (DD の誰か) がメンテしているパッケージのブラックリスト
+\item などなど
+\end{itemize}
+
+\begin{description}
+\item[効率] \mbox{}
+
+依存性の解決は、可能な限り高速でなくてはならない
+\end{description}
+
+\subsection{依存性解決法の competition}
+
+我々は、依存性解決における魔法の銀の弾丸となるアルゴリズムを探そうとしているわけではもちろんないが、依存性解決の competition 運営につながる助けとなることができる
+
+\begin{itemize}
+\item popcon のように収集した現実におけるアップグレード問題 (メタインストーラが持つオプトインのデータ収集プラグイン)
+\item 様々な証跡：平易な分析 (スピード)、最適化した分析 (よりよい解法)、……
+\item 開発者と研究者が、独自アルゴリズムの独自実装を提示することができる
+\item 勝者は幸運と栄光をゲット
+\end{itemize}
+
+SAT 解決自体のような関連分野において、同様の competition が技術水準を最新に押しあげるのに大いに寄与しています。なぜこの分野でやらないのでしょう？
+
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+
+\printindex
+ \cleartooddpage
+
+ \begin{minipage}[b]{0.2\hsize}
+  \rotatebox{90}{\fontsize{80}{80} {\gt 関西デビアン勉強会} }
+ \end{minipage}
+ \begin{minipage}[b]{0.8\hsize}
+
+ \vspace*{15cm}
+ \rule{\hsize}{1mm}
+ \vspace{2mm}
+ \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+ \noindent \Large \bf Debian 勉強会資料\\ \\
+ \noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+ \noindent \normalfont 関西 Debian 勉強会 （編集・印刷・発行）\\
+ \rule{\hsize}{1mm}
+ \end{minipage}
+
+\end{document}
