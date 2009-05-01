@@ -1,4 +1,8 @@
 /*BINFMTC: $(pkg-config --cflags --libs gtk+-2.0)
+
+  Timer application
+  Copyright 2007-2009 Junichi Uekawa
+
  */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -15,7 +19,7 @@ typedef struct
   const char* command;
 } timeout_t;
 
-timeout_t timeout[] = 
+timeout_t timeout[] =
   {
     /* reverse order of timeout */
     {5*60, "mpg321 image200708/ato5fun.mp3"},
@@ -34,13 +38,13 @@ typedef struct datastruct
 
 static gint delete_event (GtkWidget * w, GdkEvent * e, gpointer data)
 {				/* I will be deleted */
-  return FALSE;  
+  return FALSE;
 }
 
 static gint destroy_callback (GtkWidget * w, gpointer data)
 {
   gtk_main_quit();
-  return 0;  
+  return 0;
 }
 
 void
@@ -51,10 +55,10 @@ CreateItems(datastruct * ds, GtkWidget *vbox)
   gtk_progress_set_format_string(GTK_PROGRESS(ds->progress), "%v%%");
   gtk_progress_set_show_text(GTK_PROGRESS(ds->progress), TRUE);
   gtk_box_pack_start(GTK_BOX(vbox), ds->progress, TRUE, TRUE, FALSE);
-  gtk_widget_show(ds->progress);  
+  gtk_widget_show(ds->progress);
 
   ds->text = gtk_label_new("time");
-  gtk_box_pack_start(GTK_BOX(vbox), ds->text, 
+  gtk_box_pack_start(GTK_BOX(vbox), ds->text,
 		     TRUE,
 		     TRUE,
 		     FALSE);
@@ -65,7 +69,7 @@ CreateItems(datastruct * ds, GtkWidget *vbox)
 GtkWidget *
 CreateVBox(datastruct*ds, GtkWidget * w)
 {
-  GtkWidget * v = gtk_vbox_new (FALSE, FALSE);  
+  GtkWidget * v = gtk_vbox_new (FALSE, FALSE);
   gtk_container_add (GTK_CONTAINER (w), v);
   CreateItems(ds, v);
   gtk_widget_show(v);
@@ -76,16 +80,16 @@ CreateVBox(datastruct*ds, GtkWidget * w)
 void
 CreateMainWindow(datastruct * ds)
 {
-  GtkWidget *winMain ;  
+  GtkWidget *winMain ;
   GtkWidget * vbox;
-  
+
   winMain=gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_usize (winMain, 512, 256);
-  
-  gtk_signal_connect (GTK_OBJECT(winMain), "delete_event", 
+
+  gtk_signal_connect (GTK_OBJECT(winMain), "delete_event",
 		      GTK_SIGNAL_FUNC(delete_event), NULL);
   gtk_signal_connect (GTK_OBJECT(winMain), "destroy",
-		      GTK_SIGNAL_FUNC(destroy_callback), NULL);  
+		      GTK_SIGNAL_FUNC(destroy_callback), NULL);
   vbox=CreateVBox(ds, winMain);
   gtk_widget_show(winMain);
   return ;
@@ -96,11 +100,11 @@ gint timeout_command (gpointer data)
   datastruct * ds = (datastruct * )data;
   char * strbuf=NULL;
   int time_current=time_max-(time(NULL)-start_time);
-  
-  gtk_progress_configure(GTK_PROGRESS(ds->progress), 
-			 (float)time_current / (float)time_max * 100.0, 
+
+  gtk_progress_configure(GTK_PROGRESS(ds->progress),
+			 (float)time_current / (float)time_max * 100.0,
 			 0.0, 100);
-  asprintf (&strbuf, "%i:%.2i", 
+  asprintf (&strbuf, "%i:%.2i",
 	    time_current / 60,
 	    time_current % 60);
 
@@ -114,8 +118,8 @@ gint timeout_command (gpointer data)
       if (!timeout[current_timeout].command)
 	exit (1);
     }
-  
-  return 1;  
+
+  return 1;
 }
 
 int main (int ac, char**av)
@@ -128,11 +132,11 @@ int main (int ac, char**av)
   gtk_init (&ac, &av);
   if (ac < 2)
     {
-      fprintf(stderr, "Usage:\n\t%s minutes\n\n", 
+      fprintf(stderr, "Usage:\n\t%s minutes\n\n",
 	      av[0]);
       return 1;
     }
-  
+
   start_time=time(NULL);
   time_max= atoi(av[1])*60;
   CreateMainWindow(&ds);
