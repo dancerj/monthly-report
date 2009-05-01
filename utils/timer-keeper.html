@@ -3,8 +3,10 @@
   <head>
     <title>Kitchen Timer</title>
     <script type="text/javascript">
-// the number of minutes to wait for
-var num_minutes = 5
+// global variables
+var num_minutes;
+var end_time;
+var opened_time;
 
 // constant value; number of msecs in seconds and minutes.
 var kSecMsecs = 1000
@@ -13,15 +15,10 @@ var kMinuteMsecs = 1000 * 60
 // The timer interval, make it fire every second.
 var timer_interval = 1 * kSecMsecs; 
 
-// get time in msecs.
-var opened_time = (new Date()).getTime()
-
-// get time 5 minutes later
-var end_time = opened_time + num_minutes * kMinuteMsecs
-
+// function called once in a second; will do count-down.
 var my_onTimer = function () {
       var current_time = (new Date()).getTime()
-      
+
       // use 90%, not 100% of the width for display
       var total_width = 90.0
       var spent_per_total = (current_time - opened_time) * total_width / (end_time - opened_time)
@@ -37,21 +34,38 @@ var my_onTimer = function () {
         String(total_width - spent_per_total) + "%";
 }
 
-window.onload = function() {
-      my_onTimer()
+// restart timer with new time values.
+var restart_timer = function () {
+      // the number of minutes to wait for
+      opened_time = (new Date()).getTime()
+      num_minutes = Number(document.getElementById("timeminutes").value);
+      // get time 5 minutes later
+      end_time = opened_time + num_minutes * kMinuteMsecs;
+      my_onTimer();
 }
+
+window.onload = function() {
+      restart_timer();
+}
+
     </script>
   </head>
   
   <body>
-    <img id="timedone" width="40%" height="30%" src="img/red.png">
-    <img id="timeremain" width="40%" height="30%" src="img/bluebackground.png">
+    <p>
+      <img id="timedone" width="40%" height="30%" src="img/red.png">
+      <img id="timeremain" width="40%" height="30%" src="img/bluebackground.png">
+    </p>
+    <form>
+      minutes: <input type="text" name="minutes" id="timeminutes" value="5">
+      <input type="button" value="Start" onclick="restart_timer();" />
+    </form>      
 
     <hr>
     <address><a href="mailto:dancer@debian.org">Junichi Uekawa</a></address>
 <!-- Created: Fri May  1 12:12:20 JST 2009 -->
 <!-- hhmts start -->
-Last modified: Fri May  1 16:05:19 JST 2009
+Last modified: Fri May  1 17:05:45 JST 2009
 <!-- hhmts end -->
   </body>
 </html>
