@@ -3,6 +3,7 @@ exit 1
 
 A HTTP-based button system for iPod Touch.
 Remote control your X session.
+Copyright 2008,2009 Junichi Uekawa
 
 A simple webserver in C.
 7 May 2005 Junichi Uekawa
@@ -45,19 +46,19 @@ void xkeyboardevent(int key)
   XTestFakeKeyEvent(display, key, 1, 0);
   XSync(display, 0);
   sched_yield();
-  
+
   XTestFakeKeyEvent(display, key, 0, 0);
   XSync(display, 0);
   sched_yield();
 }
 
 /* Output the template HTML, which shows the Up and Down png file. */
-void output_html(int sock) 
+void output_html(int sock)
 {
   FILE*f;
   http_header(sock, "text/html");
   f=fdopen(sock,"w");
-  fprintf(f, 
+  fprintf(f,
 	  "<html><header><title>HTTP Buttons by dancerj</title></header>\n"
 	  "<body><h1>HTTP Buttons by dancerj</h1>"
 	  "<a href=up><img src=up.png width=80%%></a><br>"
@@ -81,7 +82,7 @@ void move_down(int sock)
   xkeyboardevent(KEY_PGDOWN);		/* page down */
 }
 
-/* 
+/*
    Show a png file. Expects the data to be in the current directory.
    Currently, up.png and down.png only.
  */
@@ -92,7 +93,7 @@ void dump_png(int sock, const char* filename)
   int len;
   char buf[PNGBUFSIZ];
 
-  if (fd == -1) 
+  if (fd == -1)
     {
       fprintf(stderr, "cannot open [%s]\n", filename);
       perror("open");
@@ -105,7 +106,7 @@ void dump_png(int sock, const char* filename)
   close(fd);
 }
 
-/* 
+/*
    The main HTTP handler.
 
    Will receive call every time HTTP request comes.
@@ -118,8 +119,8 @@ void handler(int sock, const char* path, const char* filename)
   if (!strcmp(filename, ""))
     {				/* initial page */
       output_html(sock);
-    } 
-  else if (!strcmp(filename, "up")) 
+    }
+  else if (!strcmp(filename, "up"))
     {
       move_up(sock);
     }
@@ -131,7 +132,7 @@ void handler(int sock, const char* path, const char* filename)
     {
       dump_png(sock, filename);
     }
-  else 
+  else
     {
       printf("Unknown filename [%s]!\n", filename);
     }
@@ -160,4 +161,4 @@ int main(int ac, char** av)
   http_initiate_webserver(atoi(av[1]));
   return 0;
 }
- 
+
