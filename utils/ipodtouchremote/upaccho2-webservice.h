@@ -1,5 +1,5 @@
 /*
-header file for upaccho2 webserver. 
+header file for upaccho2 webserver.
 7 May 2005 Junichi Uekawa
 */
 
@@ -12,4 +12,4 @@ void* http_add_handler(const char* path,
 		      void (*func)(int, const char*, const char*));
 int http_initiate_webserver(int portnumber);
 
-#endif 
+#endif
