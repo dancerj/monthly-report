@@ -153,7 +153,7 @@ int main(int ac, char** av)
   if(!display)
     {
       fprintf(stderr, "Cannot open display\n");
-      return;
+      return 1;
     }
 
   /* initialize HTTP handler */
