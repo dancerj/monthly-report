@@ -29,13 +29,13 @@ const char* servername="Upaccho Webserver";
 void http_404(int sock)
 {
   const char* errormessage=
-    "HTTP/1.1 404 File not found\n" 
+    "HTTP/1.1 404 File not found\n"
     "Server: %s\n"
     "Content-Type: text/html\n\n"
     "<html><head><title>404 File not found</title></head>"
     "<body><h1>404 File not found</h1></body></html>\n";
   char* buf=NULL;
-  
+
   asprintf(&buf, errormessage, servername);
   if (buf)
     {
@@ -46,12 +46,12 @@ void http_404(int sock)
 
 void http_header(int sock, const char* contenttype)
 {
-  const char* message= 
-    "HTTP/1.1 200 OK\n" 
+  const char* message=
+    "HTTP/1.1 200 OK\n"
     "Server: %s\n"
     "Content-Type: %s\n\n";
   char* buf=NULL;
-  
+
   asprintf(&buf, message, servername, contenttype);
   if (buf)
     {
@@ -89,12 +89,12 @@ void* http_add_handler(const char* path,
 
   u->path=strdup(path);
   u->func=func;
-  pthread_mutex_lock(&urlhandlers_lock); /* the two lines interrupted is not a good idea for 
-					    http_add_handler; 
+  pthread_mutex_lock(&urlhandlers_lock); /* the two lines interrupted is not a good idea for
+					    http_add_handler;
 					    lock it. */
   u->next=urlhandlers;
   urlhandlers=u;		/* NB: this line must be atomic for http_find_handler to work.
-				   real i386 is non-atomic for this line; which might be a 
+				   real i386 is non-atomic for this line; which might be a
 				   problem.
 				 */
   pthread_mutex_unlock(&urlhandlers_lock);
@@ -104,7 +104,7 @@ void* http_add_handler(const char* path,
 /**
    function to find the http handler.
 
-   This should be fast enough, but if there are too many handlers, it might be better to 
+   This should be fast enough, but if there are too many handlers, it might be better to
    have a hash function than searching linearly.
  */
 static void http_find_handler(int sock, const char* path)
@@ -130,7 +130,7 @@ static void handle_incoming(int sock)
   char* buf_processed=NULL;
   char* htmlversion=NULL;
   int i;
-  
+
   if ((i=read(sock, buf, TMPBUFSIZE))<=0)
     return ;
   buf[i]=0;
@@ -162,7 +162,7 @@ int http_initiate_webserver(int portnumber)
   int t;			/* new incoming calls */
   struct hostent *hp;
   int i;
-  
+
   puts ("Upaccho web server version 0.0.1\n"
 	"copyright 2001,2005 Junichi Uekawa\n");
   gethostname (localhostname, MAXHOSTNAMELEN) ;
@@ -174,14 +174,14 @@ int http_initiate_webserver(int portnumber)
   if ((incoming_socket = socket (hp->h_addrtype, SOCK_STREAM, 0 )) == -1 )
     {
       perror  ("socket");
-      exit (1);      
+      exit (1);
     }
 
   sa.sin_port = htons(portnumber);	/* this should hopefully be portable */
   sa.sin_addr.s_addr= htonl(INADDR_ANY); /* should it be like this? it's 0 in linux */
   sa.sin_family = hp->h_addrtype;
-  
-  if (bind(incoming_socket, (struct sockaddr*)&sa, sizeof(sa)) < 0  ) 
+
+  if (bind(incoming_socket, (struct sockaddr*)&sa, sizeof(sa)) < 0  )
     {
       perror("bind");
       exit(1);
@@ -208,7 +208,7 @@ void example_handler(int sock, const char* fullpath, const char* param)
   FILE*f;
   http_header(sock, "text/html");
   f=fdopen(sock,"w");
-  fprintf(f, 
+  fprintf(f,
 	  "<html><header><title>%s</title></header>\n"
 	  "<body><h1>%s</h1><p>%s</p></body></html>\n",
 	  param, param, fullpath);
