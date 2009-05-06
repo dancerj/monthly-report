@@ -381,9 +381,63 @@ Hello Worldあたりがよさげです。
 
 \url{http://developer.android.com/guide/tutorials/hello-world.html}
 
+一通り読んで、とりあえずサンプルを眺めてどうやれば文字列を表示できるのか
+を確認したので、好きな文字列を表示するアプリケーションを作ってみます。
 
+Android の top コマンドでプロセスの一覧を出力できるので、
+コマンドを実行してその出力を表示するだけのアプリケーションを作成してみま
+した。
+
+\begin{commandline}
+package jp.gr.netfort.dancer;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.widget.TextView;
+import java.io.*;
+
+public class TopView extends Activity {
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		String [] command = { "top", "-n", "1"};
+		String output = "";
+
+		Runtime runtime = Runtime.getRuntime();
+		Process process = null;
+		try { 
+			process = runtime.exec(command);
+		} catch (Exception exception){
+			System.exit(1);
+		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+		String line;
+		try {
+			while((line = reader.readLine()) != null) {
+				output = output + line + "\n";
+			}
+		} catch (Exception exception) {
+			System.exit(1);
+		} finally {
+			try {
+				reader.close();
+			} catch (Exception exception) {
+				System.exit(1);
+			}
+		}
+		TextView tv = new TextView(this);
+		tv.setText(output);
+		setContentView(tv);
+	}
+} 
+\end{commandline}
 
 \subsection{Androidの簡単なアプリケーションを実機で稼働させてみる}
+
+実際に使う便利なアプリケーションを作ってみましょう。
+へぇボタンでも作成しましょうか。
 
 \subsection{参考文献}
 
