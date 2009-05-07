@@ -22,7 +22,7 @@
 
 %  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 % 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
-%(shell-command "cd image200901; ebb *.png")
+%(shell-command "cd image200905; ebb *.png")
 
 %%ここからヘッダ開始。
 
@@ -229,18 +229,82 @@ SDK 1.5r1 がリリースされたのを機にそろそろ試してみることにします。
 
 \subsection{ダウンロード・インストール}
 
+Debian上で開発するために、各種必要なパッケージなどをインストールします。
+
+\subsubsection{必要なDebianパッケージのインストール}
+
+Javaや32bitエミュレーション環境のパッケージなどをまずインストールしてお
+きます。
+
+\begin{commandline}
+# apt-get install ia32-libs sun-java6-bin sun-java6-jdk 
+\end{commandline}
+
+x86\_64の64bit環境で32bitのアプリケーションを利用できるために、ia32-libs
+をインストールします。
+
+また、javaもインストールしておきます。
+
 \subsubsection{SDKダウンロード}
 
-AndroidのSDKをダウンロードしてきます。
-i386 版しかないので、注意。
+AndroidのSDKをダウンロードしてきます。Debian 用は Linux を選択します。
+i386 版しかないので、注意。amd64 でも i386 エミュレーション上で稼働するの
+で利用できます。
 
-ダウンロード元とか。
+\url{http://developer.android.com/sdk/1.5_r1/index.html}
+
+\begin{commandline}
+$ unzip android-sdk-linux_x86-1.5_r1.zip
+$ ls -l android-sdk-linux_x86-1.5_r1
+合計 24
+-rw-rw----  1 dancer dancer  193 2009-04-22 13:15 RELEASE_NOTES.html
+drwxrwx---  3 dancer dancer 4096 2009-04-23 10:50 add-ons
+drwxrwx--- 12 dancer dancer 4096 2009-05-01 16:13 docs
+-rw-rw----  1 dancer dancer  176 2009-04-22 13:15 documentation.html
+drwxrwx---  4 dancer dancer 4096 2009-04-23 10:50 platforms
+drwxrwx---  3 dancer dancer 4096 2009-04-22 13:14 tools
+\end{commandline}
+
+toolsディレクトリにパスを通しておきます。
+.bashrc 辺りに下記を記述しておきます。
+\begin{commandline}
+export PATH="${PATH}":path/to/android/android-sdk-linux_x86-1.5_r1/tools/ 
+\end{commandline}
 
 \subsubsection{eclipseダウンロード}
 
-Debianパッケージになっているバージョンは古いため、ダウンロードしてきます。
+Debianパッケージになっているバージョンは古いため、eclipse のサイトからダウンロードしてきます。
 
-ダウンロード元とか。
+\url{http://www.eclipse.org/}でバージョン Ganymede の
+x86-64 アーキテクチャ向けのバイナリをダウンロードしてきました。
+
+展開すればそこで ./eclipse を実行すればエディタが起動します。
+
+\begin{commandline}
+$ tar xfz eclipse-java-ganymede-SR1-linux-gtk-x86_64.tar.gz
+$ ls eclipse
+about.html     configuration  eclipse.ini   libcairo-swt.so  plugins
+about_files    dropins	      epl-v10.html  notice.html      readme
+artifacts.xml  eclipse	      features	    p2
+$ cd eclipse/
+$ ./eclipse 
+
+\end{commandline}
+
+\subsubsection{Eclipse に Android用プラグインの追加}
+
+Eclipse のプラグインをインストールします。
+\url{http://developer.android.com/sdk/1.5_r1/installing.html}を参考に設
+定します。
+うまく動かない部分はメーリングリスト検索を駆使し、正しい方法を探します。
+
+プラグインは
+\url{http://dl-ssl.google.com/android/eclipse/site.xml}
+からAndroid DDMS と Android Development Tools をインストールすればよいよ
+うです。
+
+あと、設定する内容としては、Window のPropertiesの Androidでさきほど展開し
+た SDK のパスを指定します。
 
 \subsubsection{Androidデバイス接続}
 
@@ -253,17 +317,39 @@ SYSFS{idVendor}=="0bb4",MODE="0666",
 SYMLINK+="%k"
 \end{commandline}
 
+接続できていれば、adb コマンドで接続を確認できます。
+
+\begin{commandline}
+$ adb devices 
+List of devices attached 
+HT------	device
+\end{commandline}
+
+adb shell コマンドでシェルが起動します。
+\begin{commandline}
+$ adb shell 
+
+\end{commandline}
+
 \subsection{emulator を試してみる}
 
-emulator を試してみました。
+まず、コマンドラインから
+emulator を起動するのを試してみました。
+emulator の起動には AVD (Android Virtual Device)の作成がまず必要なようで
+す。
+とりあえず適当に作成してみました。
+
 \begin{commandline}
-$ tools/android create avd -n uekawadroid -t 2   
+$ android list targets
+[選択可能なターゲットの一覧]
+$ android create avd -n uekawadroid -t 2   
 Android 1.5 is a basic Android platform.
 Do you wish to create a custom hardware profile [no]
 Created AVD 'uekawadroid' based on Android 1.5
-$ tools/emulator -avd uekawadroid
+$ emulator -avd uekawadroid
 \end{commandline}
 
+エミュレータはAndroidの実機をあつかうのと同じような感覚で操作できます。
 Android のブラウザを起動したりできます。
 エミュレータ内部から見ると、10.0.2.2がホストOSのアドレスになります。
 HTML+javascriptで作成したキッチンタイマーを動作させて見たところ、
@@ -271,9 +357,111 @@ HTML+javascriptで作成したキッチンタイマーを動作させて見たところ、
 
 \includegraphics[width=0.3\hsize]{image200905/android-timer.png}
 
-\subsection{Androidの簡単なアプリケーションを書いてみる}
-\subsection{Androidの簡単なアプリケーションを稼働させてみる}
+\subsection{Androidの簡単なアプリケーションを作成して起動してみる}
 
+それでは、Android 用の簡単なアプリケーションを書いてみましょう。
+
+\url{http://developer.android.com/guide/developing/eclipse-adt.html}
+にしたがって淡々と作成します。
+まず、
+FileのNew Project で Android のをプロジェクト選択して作成しました。
+ターゲットビルドは1.1にとりあえずしろと書いてありますが、よくわからない
+ので、手元のファームウェアのバージョン 1.5 にあわせておきました。
+
+RunのRun(Ctrl-F11)でAndroid Applicationを選択するとエミュレータを起動し
+てアプリケーションを実行することができます。
+最初に生成されたソースコードのままの状態だと Hello World アプリケーショ
+ンが起動します。
+
+\subsection{Androidの簡単なアプリケーションを書いてみる}
+
+アプリケーションの作成やエディタの起動の部分はなんとかなるようになったの
+で、次はチュートリアルを眺めてみます。
+Hello Worldあたりがよさげです。
+
+\url{http://developer.android.com/guide/tutorials/hello-world.html}
+
+一通り読んで、とりあえずサンプルを眺めてどうやれば文字列を表示できるのか
+を確認したので、好きな文字列を表示するアプリケーションを作ってみます。
+
+Android の top コマンドでプロセスの一覧を出力できるので、
+コマンドを実行してその出力を表示するだけのアプリケーションを作成してみま
+した。
+中核をなすsrc/jp.gr.netfort.dancer/TopView.javaは以下のようになりました。
+
+\begin{commandline}
+package jp.gr.netfort.dancer;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.widget.TextView;
+import java.io.*;
+
+public class TopView extends Activity {
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.main);
+		String [] command = { "top", "-n", "1"};
+		String output = "";
+
+		Runtime runtime = Runtime.getRuntime();
+		Process process = null;
+		try { 
+			process = runtime.exec(command);
+		} catch (Exception exception){
+			System.exit(1);
+		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+		String line;
+		try {
+			while((line = reader.readLine()) != null) {
+				output = output + line + "\n";
+			}
+		} catch (Exception exception) {
+			System.exit(1);
+		} finally {
+			try {
+				reader.close();
+			} catch (Exception exception) {
+				System.exit(1);
+			}
+		}
+		TextView tv = new TextView(this);
+		tv.setText(output);
+		setContentView(tv);
+	}
+} 
+\end{commandline}
+
+\includegraphics[width=0.3\hsize]{image200905/android-top.png}
+
+\subsection{Androidの簡単なアプリケーションを実機で稼働させてみる}
+
+実際に使う便利なアプリケーションを作ってみましょう。
+ライトニングトークを実施する際にどのプレゼンテーションが気に入ったかを表
+明する、投票用に利用するボタンでも作成しましょうか。(未定)
+
+
+\subsection{参考文献}
+
+本記事の作成に参考にした文献です。
+
+\begin{itemize}
+ \item \url{http://www.eclipse.org/}: eclipse
+ \item \url{http://developer.android.com/}: Android のページ、開発情報が
+       まとまっている。特に\url{http://developer.android.com/sdk/1.5_r1/index.html}: Android
+       SDK 1.5のダウンロードページからたどるページが重要。
+ \item
+      \url{http://developer.android.com/guide/basics/what-is-android.html}: 
+      SDKの開発マニュアル。
+      SDK の\url{./android-sdk-linux_x86-1.5_r1/docs/}に同じものがあるの
+      でオフラインでも安心。
+      ただしオンラインのドキュメントは微妙な訂正がアップデートされ続けて
+      いるようなのでネットワーク接続が利用できるオンラインの場合はそちら
+      を参照するほうがよいかもしれません。
+\end{itemize}
 
 \clearpage
 

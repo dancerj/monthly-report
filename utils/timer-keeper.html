@@ -1,4 +1,13 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- 
+ Copyright 2009 Junichi Uekawa
+ Kitchen timer for iPod and Android web browser.
+
+ Use binfmtc upaccho2 server example to serve documents here.
+ Example command line on my system:
+   ~/DEBIAN/binfmtc/binfmtc/upaccho2/upaccho2.c 8023
+
+ -->
 <html>
   <head>
     <title>Kitchen Timer</title>
@@ -25,6 +34,8 @@ var my_onTimer = function () {
 
       if (current_time > end_time) {
         // Time is up, do something, play music etc. ?
+        document.getElementById("soundplaceholder").innerHTML = 
+          "<embed src=\"img/ended.mp3\" autostart=true hidden=true loop=false>"
       } else {
         setTimeout(my_onTimer, timer_interval);
       }
@@ -32,6 +43,10 @@ var my_onTimer = function () {
         String(spent_per_total) + "%";
       document.getElementById("timeremain").style.width = 
         String(total_width - spent_per_total) + "%";
+      document.getElementById("timestring").innerHTML = 
+        (String(Math.floor((end_time - current_time) / kMinuteMsecs)) +
+        ":"+
+        String(Math.floor((end_time - current_time) / kSecMsecs % 60))).fontsize(7);
 }
 
 // restart timer with new time values.
@@ -41,6 +56,8 @@ var restart_timer = function () {
       num_minutes = Number(document.getElementById("timeminutes").value);
       // get time 5 minutes later
       end_time = opened_time + num_minutes * kMinuteMsecs;
+      document.getElementById("soundplaceholder").innerHTML = ""
+
       my_onTimer();
 }
 
@@ -56,16 +73,18 @@ window.onload = function() {
       <img id="timedone" width="40%" height="30%" src="img/red.png">
       <img id="timeremain" width="40%" height="30%" src="img/bluebackground.png">
     </p>
+    <p id="timestring">time</>
     <form>
       minutes: <input type="text" name="minutes" id="timeminutes" value="5">
       <input type="button" value="Start" onclick="restart_timer();" />
-    </form>      
+    </form>
+    <p id="soundplaceholder"></p>
 
     <hr>
     <address><a href="mailto:dancer@debian.org">Junichi Uekawa</a></address>
 <!-- Created: Fri May  1 12:12:20 JST 2009 -->
 <!-- hhmts start -->
-Last modified: Fri May  1 17:05:45 JST 2009
+Last modified: Sat May  2 10:08:31 JST 2009
 <!-- hhmts end -->
   </body>
 </html>
