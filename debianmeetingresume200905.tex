@@ -444,6 +444,98 @@ public class TopView extends Activity {
 明する、投票用に利用するボタンでも作成しましょうか。(未定)
 
 
+\subsection{おまけ:メモリ消費の節減}
+
+手元のMacBookには1GBしかメモリを搭載していないです。
+eclipse はデフォルトの設定だと起動した瞬間に1GB近くの
+仮想メモリを消費し、即Swapを使用してしまうという問題がありました。
+
+\begin{commandline}
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND            
+17124 dancer    20   0  972m 302m  20m S    1 31.2   0:39.85 java
+\end{commandline}
+
+とりあえず、ヒントを求めてmapsあたりを眺めてみます。
+それなりにたくさんmmapしていますが、それだけでは説明できないようなメモリ
+領域を確保しています。
+\begin{commandline}
+$ cat /proc/17124/status | grep Vm
+VmPeak:	 1056748 kB
+VmSize:	 1003316 kB
+VmLck:	       0 kB
+VmHWM:	  310740 kB
+VmRSS:	  221616 kB
+VmData:	  788504 kB
+VmStk:	      84 kB
+VmExe:	      36 kB
+VmLib:	   38812 kB
+VmPTE:	    1108 kB
+$ cat /proc/17124/maps | grep rw | sort -rn -k5 
+ .
+\end{commandline}
+
+とりあえずJavaのアプリケーションのHeapの使い方がよくわからないので、
+jconsole で接続して問題を解析します。
+
+
+メモリプールがいくつかあることがわかります。
+
+\begin{itemize}
+ \item  Tenured Gen が 60MB
+ \item  Survivor 1MB
+ \item  Code Cache が 4MB
+ \item  Perm Gen が 70-90MB
+ \item  Heapは100MB(GCしたら50MB程度)
+\end{itemize}
+
+eclipse.iniが現状こうなっているのですが、これをおそるおそるチューニングしてみます。
+\begin{commandline}
+-showsplash
+org.eclipse.platform
+-framework
+plugins/org.eclipse.osgi_3.4.2.R34x_v20080826-1230.jar
+-vmargs
+-Dosgi.requiredJavaVersion=1.5
+-Xms40m
+-Xmx256m
+-XX:MaxPermSize=256m
+\end{commandline}
+
+起動時に確保したヒープメモリの領域を開放していない部分については、GCを頻
+繁に行えば起動は若干遅くなりますがうまくいけるような気がします。
+Xmx 128mに変更してみると、若干メモリの消費が下がりました。
+しかしそこまで劇的ではありませんね。
+MaxPermSizeを64MBにするとエラー
+\begin{commandline}
+ Exception in thread "RMI TCP Connection(idle)" java.lang.OutOfMemoryError: PermGen space
+\end{commandline}
+が発生しました。
+96MBだとエラーでおちないようです。
+
+\begin{commandline}
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  コメント
+17124 dancer    20   0  972m 302m  20m S    1 31.2   0:39.85 java
+19663 dancer    20   0  795m 296m  23m S    1 30.6   0:36.69 Heap 128MB版
+20266 dancer    20   0  661m 292m  22m S    1 30.1   0:41.62 MaxPermSize 96MB               
+\end{commandline}
+
+がんばってみた割にはメモリが10MB程度しか節約できませんでした。
+エミュレータも起動していると500MBくらいswapにいってしまうので、つらい。
+メモリ買いにいくかな。
+
+\begin{commandline}
+-showsplash
+org.eclipse.platform
+-framework
+plugins/org.eclipse.osgi_3.4.2.R34x_v20080826-1230.jar
+-vmargs
+-Dosgi.requiredJavaVersion=1.5
+-Xms40m
+-Xmx128m
+-XX:MaxPermSize=96m
+\end{commandline}
+
+
 \subsection{参考文献}
 
 本記事の作成に参考にした文献です。
