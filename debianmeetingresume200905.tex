@@ -336,6 +336,7 @@ Erlang (BEAM) emulator version 5.6.5 [source] [64-bit] [smp:2] [async-threads:0]
 Eshell V5.6.5  (abort with ^G)
 1> 
 \end{commandline}
+
 ``1$>$'' はプロンプトです。Eshellを終了するには、q().と入力するか、
 \begin{commandline}
 1> q().
@@ -353,6 +354,50 @@ a
 $
 \end{commandline}
 
+では、変数を書き換えれない、という件の特徴をみてみます。
+\begin{commandline}
+1> A=10.
+10
+2> A=20.
+** exception error: no match of right hand side value 20
+\end{commandline}
+見ての通り、エラーになってしまいました。Erlangでは変数の書き換えはできず、
+必要な数の変数を用意しなければなりません。もう一度代入の仕方を変えて見て
+みます。
+
+\begin{commandline}
+1> A1=1.
+1
+2> A2=2.
+2
+3> A3=A1+A2.
+3
+4> A3=3.
+3
+5> A3=A1+2. 
+3
+6> A3=A1+4.
+** exception error: no match of right hand side value 5
+7> A1=A2+A3. 
+** exception error: no match of right hand side value 5
+8> A1=A3-A2.
+1
+\end{commandline}
+1,2,3のように未定義の変数に対しては値を定義できていますが、6,7のように一
+度設定された変数に対しては違う値を定義しなおすことができないことが分かり
+ます。しかし、4,5,8のように同じ値であれば再定義できているように見えます。
+実は、4,5,8は変数を再定義しているわけではなく、定義済みの変数に対し、パ
+ターン照合を行っているのです。
+
+定義済みの変数のことを束縛状態にある、と言いますが、未束縛状態の変数に対
+しては、イコールは値の定義を行いますが、束縛状態にある変数に対してはパター
+ン照合を行う、という訳です。
+
+今までこんな仕様のプログラミング言語は見たことなかったのですが、プログラ
+ミング言語ではなく、実は数学の変数であれば同じだと言うことに気がつきます。
+
+$ y = x + 3 $という関数を考えてみます。この状態では、x, yとも未定義です。
+しかし、x = 1と設定した場合、yの取りうる値は4以外にありえません。
 
 \subsection{コンパイルしてみる}
 
