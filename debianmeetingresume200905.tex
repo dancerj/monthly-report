@@ -314,13 +314,16 @@ $ apt-cache search erlang | wc -l
 Erlangを使うために最低限必要なパッケージは次のerlang-baseパッケージです。
 対話型ではなく、ソースコードを書くのにはemacsのErlang用のモードもあるの
 で、それも一緒にインストールしておくと良いでしょう。
+
 \begin{commandline}
 $ sudo apt-get install erlang-base erlang-mode
 \end{commandline}
+
 ところで、erlang-baseパッケージではなく、erlangパッケージをインストールす
 れば、erlangソースパッケージから分割されている関連パッケージも軒並みイン
 ストールされるので便利かもしれませんが、この場合は依存関係も含めて関連す
 るパッケージが90以上導入されます。状況に応じて適宜選択してください。
+
 \begin{commandline}
 $ sudo apt-get install erlang
 \end{commandline}
@@ -361,9 +364,9 @@ $
 2> A=20.
 ** exception error: no match of right hand side value 20
 \end{commandline}
-見ての通り、エラーになってしまいました。Erlangでは変数の書き換えはできず、
-必要な数の変数を用意しなければなりません。もう一度代入の仕方を変えて見て
-みます。
+見ての通り、エラーになってしまいました。Erlangの変数の書き換えはできな
+い、単一代入変数なのです。ですので、複数の変数の処理が必要なら、必要な数
+だけの変数を用意しなければなりません。もう一度代入の仕方を変えて見てみます。
 
 \begin{commandline}
 1> A1=1.
@@ -383,23 +386,58 @@ $
 8> A1=A3-A2.
 1
 \end{commandline}
-1,2,3のように未定義の変数に対しては値を定義できていますが、6,7のように一
-度設定された変数に対しては違う値を定義しなおすことができないことが分かり
-ます。しかし、4,5,8のように同じ値であれば再定義できているように見えます。
-実は、4,5,8は変数を再定義しているわけではなく、定義済みの変数に対し、パ
+
+1,2,3のように未代入の変数に対しては値を再代入できますが、6,7のように一度
+代入された変数に対しては違う値を代入しなおすことができないことが分かりま
+す。しかし、4,5,8のように同じ値であれば再代入できるように見えます。
+実は、4,5,8は変数を再代入しているわけではなく、代入済みの変数に対し、パ
 ターン照合を行っているのです。
 
-定義済みの変数のことを束縛状態にある、と言いますが、未束縛状態の変数に対
-しては、イコールは値の定義を行いますが、束縛状態にある変数に対してはパター
+代入済みの変数のことを束縛済み変数、と言いますが、未束縛状態の変数に対
+しては、イコールは値の代入を行いますが、束縛済みの変数に対してはパター
 ン照合を行う、という訳です。
 
 今までこんな仕様のプログラミング言語は見たことなかったのですが、プログラ
-ミング言語ではなく、実は数学の変数であれば同じだと言うことに気がつきます。
-
-$ y = x + 3 $という関数を考えてみます。この状態では、x, yとも未定義です。
-しかし、x = 1と設定した場合、yの取りうる値は4以外にありえません。
+ミング言語ではなく、実は数学の代数であれば同じような考え方ができることが
+分かります。例えば、$ x + y = 6, x - y = 2$という関数を考えてみます。こ
+の状態では、x, yの代数はx=4, y=2以外の値にはなりません。単一代入変数は、
+数学の代数と同じようなものと考えれば、良いのかもしれません。
 
 \subsection{コンパイルしてみる}
+
+\begin{commandline}
+-module(geometry).
+-export([area/1]).
+
+area({rectangle, Width, Ht})->
+    Width * Ht;
+area({circle, R}) ->
+    3.14159 * R * R.
+\end{commandline}
+
+\begin{commandline}
+1> c(geometry).
+{ok,geometry}
+2> geometry:area({rectangle, 10, 5}).
+50
+3> geometry:area({circle,2.9}).
+26.420771899999995
+4> geometry:area({hoge,10}).
+** exception error: no function clause matching geometry:area({hoge,10})
+\end{commandline}
+
+
+\begin{commandline}
+$ erlc geometry.erl
+$ ls -l
+合計 12
+-rw------- 1 user user 596 2009-05-13 22:02 geometry.beam
+-rw------- 1 user user 135 2009-05-13 22:02 geometry.erl
+$ file geometry.beam
+geometry.beam: Erlang BEAM file
+
+\end{commandline}
+
 
 \subsection{debパッケージにしてみる}
 
