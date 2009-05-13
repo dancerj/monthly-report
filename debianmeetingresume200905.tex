@@ -404,40 +404,117 @@ $
 数学の代数と同じようなものと考えれば、良いのかもしれません。
 
 \subsection{コンパイルしてみる}
+次に、ソースコードからコンパイルして実行する方法について説明します。プロ
+グラムを実行する方法は、次の3種類があります。
+\begin{itemize}
+ \item Eshellからコンパイルして実行する。
+ \item シェルからコンパイルして実行する。
+ \item escriptとして実行する。
+\end{itemize}
+
+例としてはやはり、Hello Worldを書いてみます。これは引数なしのプログラム
+です。引数ありとなしではプログラム実行時に若干の違いが出てきます。
+hello.erlというファイル名で次のプログラムを用意して下さい。
 
 \begin{commandline}
--module(geometry).
--export([area/1]).
+-module(hello).
+-export([start/0]).
 
-area({rectangle, Width, Ht})->
-    Width * Ht;
-area({circle, R}) ->
-    3.14159 * R * R.
+start() ->
+    io:format("Hello world on Erlang~n").
 \end{commandline}
+
+Erlangのプログラムはモジュールを基本単位とし、どの関数もモジュールに属す
+ る構造になっています。コードを実行するには、まずモジュールをコンパイル
+ しなければなりません。コンパイルしたモジュールは、拡張子
+ beam\footnote{Bogdan's Erlang Abstract Machineの略。}という名前のファイ
+ ルが生成されます。コンパイルには２つのやり方があります。
+
+\subsubsection{Eshellからコンパイルする方法}
+先ほどのhello.erlをEshellからコンパイルし、実行するには、次の手順です。
 
 \begin{commandline}
-1> c(geometry).
-{ok,geometry}
-2> geometry:area({rectangle, 10, 5}).
-50
-3> geometry:area({circle,2.9}).
-26.420771899999995
-4> geometry:area({hoge,10}).
-** exception error: no function clause matching geometry:area({hoge,10})
+1> c(hello).
+{ok,hello}
+2> he
+heart    hello    
+2> hello:start().
+Hello world on Erlang
+ok
+3> 
 \end{commandline}
 
+c(hello).でコンパイルの実行を行います。c()の引数がmodule(hello)および、
+プログラムファイル名hello.erlと一致することに注意してください。コンパイ
+ルすると、hello.beamファイルが生成されます。これはErlang VM向けのバイナ
+リコードです。
 
 \begin{commandline}
-$ erlc geometry.erl
-$ ls -l
-合計 12
--rw------- 1 user user 596 2009-05-13 22:02 geometry.beam
--rw------- 1 user user 135 2009-05-13 22:02 geometry.erl
-$ file geometry.beam
-geometry.beam: Erlang BEAM file
-
+$ ls -lrt hello.*
+-rwx------ 1 user user   90 2009-05-14 01:35 hello.erl
+-rw------- 1 user user  552 2009-05-14 01:35 hello.beam
+$ file hello.beam 
+hello.beam: Erlang BEAM file
 \end{commandline}
 
+\subsubsection{シェルからコンパイルする}
+シェルからコンパイルする場合は、erlcコマンドを使います。
+\begin{commandline}
+$ erlc hello.erl
+$ ls -lrt hello.*
+-rwx------ 1 kohei kohei   90 2009-05-14 01:35 hello.erl
+-rw------- 1 kohei kohei  708 2009-05-14 01:53 hello.beam
+\end{commandline}
+
+実行もシェルから行ってみます。
+
+\begin{commandline}
+$ erl -noshell -s hello start -s init stop
+Hello world on Erlang
+\end{commandline}
+
+無事、実行できました。なお、各引数は次の意味があります。
+
+\begin{itemize}
+ \item -noshell \\
+       対話型シェルなしでErlangを起動する。
+ \item -hello start \\
+       関数hello:start()を実行する。
+ \item -init stop \\
+       apply(hello, start, [])が完了すると\footnote{-s ...コマンドはapply
+       文で評価される。1つのコマンドが完了すると次の-s ...コマンドが評価
+       される。}、システムは関数init:stop()を評価する。
+\end{itemize}
+
+\subsubsection{escriptで実行する}
+Erlangではescriptという仕組みもあり、これを使うとプログラムをコンパイル
+せずにスクリプトとして直接実行できます。
+
+関数hello:startをescriptとして実行するには、次のようにファイルを書き換え
+ます。ファイル名は今回、hello.escとしましたが、コンパイルするときと違い、
+任意の拡張子で問題ありません。
+\begin{commandline}
+#!/usr/bin/env escript
+
+main(_) ->
+    io:format("Hello world on Erlang~n").
+\end{commandline}
+
+これを実行権限をつけて実行してみます。
+\begin{commandline}
+$ chmod 700 hello.esc 
+$ ./hello.esc 
+Hello world on Erlang
+\end{commandline}
+
+\subsubsection{引数ありの関数をコンパイル、実行する}
+今回の例は、引数なしでしたが、シェルで実行する場合のプログラムはどうやっ
+て引数を渡せば良いのでしょうか。今度は引数ありのプログラムを試してみます。
+
+\begin{commandline}
+hoge
+
+\end{commandline}
 
 \subsection{debパッケージにしてみる}
 
