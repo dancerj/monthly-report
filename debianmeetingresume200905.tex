@@ -459,6 +459,7 @@ hello.beam: Erlang BEAM file
 
 \subsubsection{シェルからコンパイルする}
 シェルからコンパイルする場合は、erlcコマンドを使います。
+
 \begin{commandline}
 $ erlc hello.erl
 $ ls -lrt hello.*
@@ -511,9 +512,58 @@ Hello world on Erlang
 今回の例は、引数なしでしたが、シェルで実行する場合のプログラムはどうやっ
 て引数を渡せば良いのでしょうか。今度は引数ありのプログラムを試してみます。
 
+フィボナッチ数列を計算する関数を書いてみました。まず、Eshellで引数を渡す場合です。
 \begin{commandline}
-hoge
+-module(fib).
+-export([fib/1]).
 
+fib(0) -> 1;
+fib(1) -> 1;
+fib(N) ->
+    fib(N-2) + fib(N-1).
+\end{commandline}
+
+実行するとこんな感じ。
+
+\begin{commandline}
+1> c(fib)
+1> .
+{ok,fib}
+2> fib:fib(10).
+89
+3> fib:fib(20).
+10946
+4> fib:fib(30).
+1346269
+\end{commandline}
+
+シェルから実行する場合は、書き方を変える必要があります。
+
+\begin{commandline}
+-module(fib1).
+-export([main/1]).
+
+main([A]) ->
+    I = list_to_integer(atom_to_list(A)),
+    F = fib(I),
+    io:format("fibonacci ~w = ~w~n", [I, F]),
+    init:stop().
+
+fib(0) -> 1;
+fib(1) -> 1;
+fib(N) ->
+    fib(N-2) + fib(N-1).
+\end{commandline}
+
+これをシェルでコンパイル、実行してみます。
+\begin{commandline}
+$ erlc fib1.erl
+$ erl -noshell -s fib1 main 10 -s init stop
+fibonacci 10 = 89
+$ erl -noshell -s fib1 main 20 -s init stop
+fibonacci 20 = 10946
+$ erl -noshell -s fib1 main 30 -s init stop
+fibonacci 30 = 1346269
 \end{commandline}
 
 \subsection{debパッケージにしてみる}
