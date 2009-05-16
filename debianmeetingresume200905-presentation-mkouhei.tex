@@ -1,0 +1,254 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Erlang コードを \\ Debian パッケージにしてみた}
+\author{まえだ こうへい mkouhei@debian.or.jp\\IRC nick: mkouhei}
+\date{2009年5月16日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+
+%begin of commandline0
+\newenvironment{commandline0}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{0.95\hsize}\begin{fontsize}{9}{9} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{10pt}
+
+\vspace{10pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandline0
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\section{入門のきっかけ}
+\begin{frame}[containsverbatim]{入門のきっかけ}
+友人にCouchDBというデータベースを教えてもらったのがきっかけ。
+
+\begin{enumerate}
+ \item ドキュメント指向
+ \item スキーマレス
+ \item RESTful
+ \item JSON形式でデータをやりとり
+ \item ErlangとJavaScriptで実装されている
+\end{enumerate}
+機能的に面白いので、友人と目下活動中。少しずつ仲間を増やしています。
+
+\end{frame}
+
+\section{CouchDBの中身を知りたい}
+\begin{frame}[containsverbatim]{CouchDBの中身を知りたい}
+ \begin{center}
+  \begin{enumerate}
+   \item CouchDBに興味持った。
+   \item CouchDBの中身を知りたい。
+   \item でもErlang読めない。
+   \item Erlangって並行処理とか分散処理に向いているらしい。
+   \item Erlang自体も面白そうだ。
+   \item じゃ、両方やるか。まずはErlangから。
+  \end{enumerate}
+ \end{center}
+ということで、始めてみた。
+\end{frame}
+
+\section{Erlangの歴史}
+\begin{frame}{Erlangの歴史}
+
+ \begin{enumerate}
+  \item エリクソンによって設計された。
+  \item 分散環境、耐障害、ある程度のリアルタイム性、無停止可動での条件の
+	システムを構築するためのプログラミング言語。
+  \item エリクソン社内利用 → 1998年 オープンソースソフトウェアとして公
+	開。
+  \item Erlang Public License という Mozilla Public Licenseの派生ライセ
+	ンス。
+  \item 通信機器分野での実績、20年を超える歴史。
+ \end{enumerate}
+\end{frame}
+
+\section{仕様}
+\begin{frame}{仕様}
+
+気になった主な仕様。
+
+ \begin{itemize}
+  \item 評価できるものは全て式
+  \item 変数の書き換えはできない
+  \item 関数型プログラミング言語
+  \item 並行処理（並行プログラミング）
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{Erlangによる実装例}
+
+代表的なもの。Debianパッケージにもなっている。
+
+ \begin{enumerate}
+  \item CouchDB
+  \item ejabberd\\
+	Twiiterでも使われているらしい、IMサーバ
+  \item YAWS(Yet another web server)
+ \end{enumerate}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{環境を整える}
+
+  Debianではすでにパッケージになっている。
+
+  \begin{commandline}
+   $ sudo apt-get install erlang-base erlang-mode
+  \end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{対話型で使ってみる}
+erlと言うコマンドで、Erlang Shell(Eshell)を起動します。
+
+ \begin{commandline}
+  $ erl
+ \end{commandline}
+
+ \begin{itemize}
+  \item Eshellで実行できるのは、式だけです。
+  \item 式は、ピリオド``.''で終了します。
+  \item 変数は英大文字から始まります。
+  \item Eshellを終了するには、Ctl + C, aか、q().を実行します。
+ \end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{単一代入変数}
+例の書き換えられない変数、というやつです。
+ \begin{commandline}
+  1> A=10.
+  10
+  2> A=10.
+  10
+  3> A=11.
+  ** exception error: no match of right hand side value 11
+ \end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{イコール''=''の役割}
+イコール''=''は、パターン照合を意味します。\\
+未代入の変数の時だけ、値の代入を行えます。
+ \begin{commandline}
+  4> A1=20.
+  20
+  5> A2=30.
+  30
+  6> A3=A1+A2.
+  50
+  7> A3=50.
+  50
+  8> A3=100-50.
+  50
+  9> A3=A1-A2.
+  ** exception error: no match of right hand side value -10
+ \end{commandline}
+\end{frame}
+
+\begin{frame}{プログラムを実行する}
+プログラムを実行する方法は3種類あります。
+ \begin{itemize}
+  \item Eshellからソースコードをコンパイルする。
+  \item シェルからコマンドでコンパイルする。
+  \item escriptとして実行する。
+ \end{itemize}
+ コンパイル自体は、ソースコードをコンパイルして生成されるBEAMファイルを
+ Erlang VMが実行します。
+\end{frame}
+
+\begin{frame}{Hello Worldで試してみよう}
+
+ 
+\end{frame}
+
+\begin{frame}{現状のErlangパッケージ}
+ \begin{itemize}
+  \item 例えば、erlang-baseのソースパッケージには、実はBEAMしか含まれていないコードものもあり
+	ます。
+  \item BEAMファイルとErlang VMがあればどのアーキテクチャ上でも実行でき
+	るので、先月のJava ポリシーを読んでみるのネタとも共通点がありま
+	す。
+  \item Erlangにはコード自動ロード機能というものがあります。
+  \item 通常は、Erlang関係のパッケージは、
+	/usr/lib/erlang/lib/?????/ebin/ディレクトリ以下にBEAMファイルが
+	配置されることが多いです。
+  \item ただし、そこにおけば、Erlangのコード自動ロード機能が働くわけではありません。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{自分のコードをdebパッケージにするには}
+
+ \begin{itemize}
+  \item Makefileを用意します。
+  \item BEAMファイルは、実行権限は必要ありません。
+  \item debian/controlのBuild-Dependsセクションにerlang-devを、Dependsセ
+	クションに\$\{erlang-base:Depends\}を追記する。
+  \item CDBSで行った場合、rulesにDEB\_FIXPERMS\_EXCLUDEで、BEAMファイル
+	を指定するの忘れないようにする。
+ \end{itemize}
+
+\end{frame}
+
+\begin{frame}{debパッケージを作ってみる}
+
+
+\end{frame}
+
+\begin{frame}{まとめと今月のヨメHack}
+ \begin{itemize}
+  \item まだまだ、Erlang自体の勉強が必要。
+  \item Perlのようにdh-erlangパッケージとか必要？
+  \item ヨメに新型インフルで、スペインに行くなとかいわれているのが、面倒
+	くさい。会社も自粛とか海外渡航報告とかしる、とか言ってるし。みん
+	な騒ぎすぎ。
+ \end{itemize}
+
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
