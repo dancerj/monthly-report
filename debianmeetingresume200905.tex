@@ -828,11 +828,497 @@ dh-erlang$B$N$h$&$J%D!<%k$,$"$k$H!"(BDebian$B$G$b(BErlang$B$O$5$i$KJXMx$K$J
 \end{itemize}
 
 % ===============================================================
-\dancersection{MC MPI $B$r8x<0%Q%C%1!<%8$K(B}{$BF#Bt(B $BE0(B}
+\dancersection{MC-MPI/GXP $B8x<0%Q%C%1!<%8$X$NF;(B}{$BF#_7(B $BE0(B}
+\index{debhelper}
+\index{reportbug}
 \index{gxp}
-\index{ITP}
 \index{mcmpi}
 % ===============================================================
+
+\subsection{$BA02s$N$*$5$i$$(B}
+
+$BEl5~Bg3X(B $B6a;3!&ED1:8&5f<<$G3+H/$5$l$F$$$k(B
+$B%0%j%C%IMQ$N(B MPI $B%i%$%V%i%j$G$"$k(B MC-MPI,
+$B$*$h$S(B MC-MPI $B$rF0:n$5$;$k$N$KI,MW$H$J$k(B,
+$BF1$8$/6a;3!&ED1:8&5f<<$G3+H/$5$l$F$$$kJBNsJ,;6%7%'%k$N(B GXP
+$B$N(B 2 $B$D$r(B Debian $B%Q%C%1!<%8$K$7$F$_$^$7$?(B.
+
+\subsection{$B:#2s$d$k$3$H(B $B$=$N(B 1}
+
+$BA02s$D$/$C$?%Q%C%1!<%8$O3d$HE,Ev$J$N$G(B, $B8x<0$K$9$k$K$O(B
+$BLdBj$,;D$C$F$$$^$9(B. $B$^$:$O$3$l$r$A$g$/$A$g$/2r7h$7$F$*$-$?$$$H;W$$$^$9(B.
+
+$B$H$$$C$F$b(B, $B$H$j$"$($:2r7h$G$-$?$N$O(B 1 $B$D$@$1$G$9$,(B.
+
+\subsection{MC-MPI $B$G(B FORTRAN $BMQ%i%$%V%i%j$,L58z(B}
+
+$B$3$l$O(B, $B85!9$N%3!<%I$,(B g77 $BMQ$K=q$+$l$F$$$?$H$3$m$r(B
+$BA02s=P$7$?(B gFortran $B$G%3%s%Q%$%k$7$h$&$H$7$?$?$a(B,
+$BN><T$N8_49@-$NL5$$ItJ,$r%b%m$NF'$s$G$7$^$C$?;v$,860x$G$7$?(B.
+
+\subsubsection{gfortran\_getarg, gfortran\_iargc $B$,L5$$(B?}
+
+\begin{commandline}
+fortran/.libs/libfortran.a(farg.o): In function `mpigxp_getarg':
+/home/arai/projects/deb/deb_mcmpi2/mcmpi-0.21.0/src/fortran/farg.f:9: 
+ undefined reference to `_gfortran_getarg_i4'
+fortran/.libs/libfortran.a(farg.o): In function `mpigxp_iargc':
+/home/arai/projects/deb/deb_mcmpi2/mcmpi-0.21.0/src/fortran/farg.f:2: 
+ undefined reference to `_gfortran_iargc'
+\end{commandline}
+
+$BA02s$NH/I=$G$O(B gFortran $B$K(B getarg, iargc $B$,L5$$(B,
+$B$H$$$&Iw$K8@$C$F$7$^$C$?$N$G$9$,(B
+$B<B:]$K$O(B gFortran $B$KL5$$$o$1$G$O$J$/(B, gFortran $B$GC1BN$G%3%s%Q%$%k$7$?>l9g$K(B
+$B%*%V%8%'%/%H%U%!%$%k$K4^$a$i$l$J$$;v$,860x$G$7$?(B.
+
+$B$H$$$&$o$1$G%i%$%V%i%j$r:n$k;~$K(B libgfortran $B$r%j%s%/$9$k;v$G2r7h$7$^$9(B.
+
+\begin{commandline}
+LIBS = @LIBS@ -lgfortran
+\end{commandline}
+
+\subsubsection{mpigxp\_getarg, mpigxp\_iargc $B$,L5$$(B?}
+
+\begin{commandline}
+fortran/.libs/libfortran.a(initf.o): In function `mpi_init__':
+/home/arai/projects/deb/deb_mcmpi2/mcmpi-0.21.0/src/fortran/initf.c:16: 
+ undefined reference to `mpigxp_iargc__'
+/home/arai/projects/deb/deb_mcmpi2/mcmpi-0.21.0/src/fortran/initf.c:20: 
+ undefined reference to `mpigxp_getarg__'
+\end{commandline}
+
+$B$3$l$b(B g77 $B$H(B gFortran $B$N8_49@-$NLdBj$G(B,
+g77 $B$G%3%s%Q%$%k$9$k$H85$N4X?tL>$K%"%s%@!<%9%3%"$,(B 2 $B$DDI2C$5$l$k$N$KBP$7(B,
+gFortran $B$G%3%s%Q%$%k$9$k$H%"%s%@!<%9%3%"$,(B 1 $B$D$7$+DI2C$5$l$J$$;v$,860x$G$9(B.
+
+$B$H$$$&$o$1$G$3$C$A$O8F$S=P$7B&$N%3!<%I$G%"%s%@!<%9%3%"$N?t$rD4@0$7$F2r7h$7$^$9(B.
+
+\subsection{$B:#2s$d$k$3$H(B $B$=$N(B 2}
+
+$B$;$C$+$/%Q%C%1!<%8$K$7$?$N$G(B, $B$3$l$r8x<0%Q%C%1!<%8$K$7$F(B,
+$B$^$C$5$i$J(B Debian $B$K(B apt-get $B$G%$%s%9%H!<%k$G$-$k$h$&$K(B
+$B$7$F$_$^$7$g$&(B.
+
+\subsection{$B$H$3$m$GK\Ev$K$^$@8x<0%Q%C%1!<%8$K$J$C$F$J$$(B?}
+
+$B$b$7B>$N?M$N<j$K$h$C$F8x<0%Q%C%1!<%8$K$J$C$F$?$j(B, $BESCf$^$G?J$s$G$?$j$7$?$i(B
+$B$=$l$rCN$i$J$$$^$^:n6H$r?J$a$k$N$OL5BL$G$9(B.
+
+$B0J2<$N%Z!<%8$G:n6HCf$N%Q%C%1!<%8Ey$N0lMw$r8+$k;v$,$G$-$^$9(B.
+
+\begin{center}
+Work-Needing and Prospective Packages; WNPP
+
+\url{http://www.debian.org/devel/wnpp/}
+\end{center}
+
+$B$H$j$"$($:$R$H$H$*$j8!:w$7$F(B,
+$B:#$+$i:n$k%Q%C%1!<%8$,$3$3$KL5$$;v$r3NG'$7$^$7$g$&(B.
+
+\subsection{$B:n6H3+;O$r@k8@$9$k$>(B}
+
+$B$5$-$[$I$N%Z!<%8$N2<$NJ}$K?75,9`L\DI2C$N$I$&$N$3$&$N$H$$$&@a$,$"$j$^$9(B.
+
+$B:n6HCf$N$b$N$,L5$$$+$I$&$+$r$3$N%Z!<%8$G8+$F3NG'$7$?$o$1$G$9$+$i(B,
+$B$$$6:n6H$r3+;O$9$k$J$i$P$3$N%Z!<%8$GB>$N?M$,8+$i$l$k$h$&$K$7$J$1$l$P$J$j$^$;$s(B.
+
+\subsection{$B:n6HCf$N%Q%C%1!<%8$N4IM}BN@)(B}
+
+Debian $B$G$O(B, $B:n6HCf$N%Q%C%1!<%8$O(B Debian $B%P%0DI@W%7%9%F%`$N>e$G(B
+WNPP $B$H$$$&2>A[%Q%C%1!<%8$N%P%0$H$7$FEPO?$5$l(B,
+$B%Q%C%1!<%82=$,40N;$7$?;~E@$G$3$N%P%0$,JD$8$i$l$^$9(B.
+
+$B$D$^$j(B, $B$5$-$[$I$_$?%Z!<%8$O$3$N%7%9%F%`$KEPO?$5$l$F$$$k(B
+WNPP $B$N%P%0$N%j%9%H$rI=<($7$F$$$?;v$K$J$j$^$9(B.
+
+\subsection{$B%Q%C%1!<%8$NEPO?J}K!(B}
+
+WNPP $B$K%Q%C%1!<%8$rEPO?$9$k$K$O(B 2 $B<oN`$NJ}K!$,Ds6!$5$l$F$$$^$9(B.
+
+\begin{itemize}
+ \item reportbug $B$r;H$&(B
+ \item $B<+J,$G%a!<%k$r=P$9(B
+\end{itemize}
+
+\subsection{reportbug}
+
+reportbug $B$O%P%0%l%]!<%H$N:n@.$r;Y1g$9$k%D!<%k$G$9(B.
+
+$B0lHLE*$J4D6-$K$OL5$$$N$G%$%s%9%H!<%k$7$^$7$g$&(B.
+
+\begin{commandline}
+$ sudo apt-get install reportbug
+\end{commandline}
+
+\subsection{$B=i4|@_Dj(B}
+
+$B$H$j$"$($:5/F0$7$F$_$^$7$g$&(B
+
+\begin{commandline}
+$ reportbug
+
+Welcome to reportbug! Since it looks like this is the first time you have used
+reportbug, we are configuring its behavior. These settings will be saved to the
+file "/home/arai/.reportbugrc", which you will be free to edit further.
+Please choose the default operating mode for reportbug.
+
+1 novice    Offer simple prompts, bypassing technical questions.
+
+2 standard  Offer more extensive prompts, including asking about things that a
+            moderately sophisticated user would be expected to know about
+            Debian.
+
+3 advanced  Like standard, but assumes you know a bit more about Debian,
+            including "incoming".
+
+4 expert    Bypass most handholding measures and preliminary triage routines.
+            This mode should not be used by people unfamiliar with Debian's
+            policies and operating procedures.
+
+Select mode: [novice] 
+\end{commandline}
+
+$B5/F0$9$k$H=i4|@_Dj$NJ}K!$rJ9$+$l$^$9(B.
+$B@5D>$K(B novice $B$HEz$($^$7$g$&(B.
+
+\begin{commandline}
+> novice
+
+Please choose the default interface for reportbug.
+
+1 gtk2  A graphical (GTK+) user interface
+
+2 text  A text-oriented console user interface
+
+Select interface: 
+\end{commandline}
+
+$B;HMQ$9$k%$%s%?!<%U%'!<%9$OEvA3(B text $B$G$9$M(B.
+
+\begin{commandline}
+> 2
+
+Will reportbug often have direct Internet access? (You should answer yes to
+this question unless you know what you are doing and plan to check whether
+duplicate reports have been filed via some other channel.) [Y|n|q|?]? 
+
+> Y
+\end{commandline}
+
+$B2s@~$,L5$$$H@8$-$F$$$1$^$;$s(B.
+
+\begin{commandline}
+What real name should be used for sending bug reports?
+[arai]> 
+
+> Tooru Fujisawa
+
+Which of your email addresses should be used when sending bug reports? (Note
+that this address will be visible in the bug tracking system, so you may want
+to use a webmail address or another address with good spam filtering
+capabilities.)
+[arai@halko]> 
+
+> arai_a@mac.com
+\end{commandline}
+
+$BE,Ev$K8D?M>pJs$rF~NO$7$^$9(B.
+
+\begin{commandline}
+Do you have a "mail transport agent" (MTA) like Exim, Postfix or SSMTP
+configured on this computer to send mail to the Internet? [Y|n|q|?]? 
+\end{commandline}
+
+$B$3$N%^%7%s$O%a!<%k%5!<%P$8$c$J$$$N$G(B n $B$rA*Br$7$^$9(B.
+
+\begin{commandline}
+> n
+
+Traceback (most recent call last):
+  File "/usr/bin/reportbug", line 1841, in <module>
+    main()
+  File "/usr/bin/reportbug", line 861, in main
+    return iface.user_interface()
+  File "/usr/bin/reportbug", line 965, in user_interface
+    offer_configuration(self.options)
+  File "/usr/bin/reportbug", line 496, in offer_configuration
+    options=opts, empty_ok=True, force_prompt=True)
+TypeError: get_string() got an unexpected keyword argument 'empty_ok'
+\end{commandline}
+
+$BMn$A$^$9(B.
+
+\subsection{$B2?$,5/$-$?$N$@$m$&(B}
+
+...$B$H;W$C$?$i%"%C%W%G!<%H$,$"$j$^$7$?(B.
+
+\begin{commandline}
+apt-get install python-reportbug
+\end{commandline}
+
+reportbug $B$,(B 4.2 $B$J$N$K(B python-reportbug $B$,(B 4.0 $B$H$$$&$h$/J,$+$i$J$$>uBV$K(B
+$B$J$C$F$$$?$N$,860x$N$h$&$G$9(B.
+
+\subsection{$B=i4|@_Dj$U$?$?$S(B}
+
+$B$b$&$$$A$I$d$j$J$*$7$^$7$g$&(B.
+
+\begin{commandline}
+$ reportbug
+
+...
+
+Do you have a "mail transport agent" (MTA) like Exim, Postfix or SSMTP
+configured on this computer to send mail to the Internet? [Y|n|q|?]? 
+
+> n
+
+Please enter the name of your SMTP host. Usually it's called something like
+"mail.example.org" or "smtp.example.org". If you need to use a different port
+than default, use the <host>:<port> alternative format. Just press ENTER if you
+don't have one or don't know.
+\end{commandline}
+
+MTA $B$N@_Dj$OL5;vDL2a$7(B, SMTP $B%5!<%P$rJ9$+$l$^$9(B.
+reportbug $B$O<+F0$G%a!<%k$rAw?.$7$F$/$l$k$N$G$9$,(B,
+$B:#2s$O$3$l$r;H$o$:$K%a!<%kAw?.$O<+J,$G$d$k;v$K$7$^$7$g$&(B.
+
+\begin{commandline}
+> [RET]
+
+Default preferences file written. To reconfigure, re-run reportbug with the "--
+configure" option.
+\end{commandline}
+
+\subsection{$B%Q%C%1!<%8$rEPO?$9$k(B}
+
+$B$5$F(B, $B=i4|@_Dj$,$G$-$?$N$G%Q%C%1!<%8$rEPO?$9$k:n6H$K0\$j$^$9(B.
+
+\begin{commandline}
+Please enter the name of the package in which you have found a problem, or type
+'other' to report a more general problem.
+\end{commandline}
+
+$B%P%0$NBP>]$N%Q%C%1!<%8$rJ9$+$l$k$N$G(B,
+$B$5$-$[$I$NOC$K$"$C$?$H$*$j(B wnpp $B$r;XDj$7$^$9(B.
+
+\begin{commandline}
+> wnpp
+
+Are you sure you want to file a WNPP report? [y|N|q|?]?
+\end{commandline}
+
+$B3NG'$5$l$k$N$G(B Y $B$HF~NO$7$^$9(B.
+
+\begin{commandline}
+> Y
+
+*** Welcome to reportbug.  Use ? for help at prompts. ***
+Detected character set: UTF-8
+Please change your locale if this is incorrect.
+
+Using 'Tooru Fujisawa <arai_a@mac.com>' as your from address.
+Getting status for wnpp...
+Will send report to Debian (per lsb_release).
+What sort of request is this? (If none of these things mean anything to you, or
+you are trying to report a bug in an existing package, please press Enter to
+exit reportbug.)
+
+1 ITP  This is an `Intent To Package'. Please submit a package description
+       along with copyright and URL in such a report.
+2 O    The package has been `Orphaned'. It needs a new maintainer as soon as
+       possible.
+3 RFA  This is a `Request for Adoption'. Due to lack of time, resources,
+       interest or something similar, the current maintainer is asking for
+       someone else to maintain this package. They will maintain it in the
+       meantime, but perhaps not in the best possible way. In short: the
+       package needs a new maintainer.
+4 RFH  This is a `Request For Help'. The current maintainer wants to continue
+       to maintain this package, but they needs some help to do this, because
+       their time is limited or the package is quite big and needs several
+       maintainers.
+5 RFP  This is a `Request For Package'. You have found an interesting piece of
+       software and would like someone else to maintain it for Debian. Please
+       submit a package description along with copyright and URL in such a
+       report.
+
+Choose the request type: 
+\end{commandline}
+
+$B$^$:%P%0$N<oN`$rJ9$+$l$^$9(B. wnpp $B$KEPO?$9$k%P%0$K$O>e5-$N$h$&$K(B 5 $B<oN`$"$j$^$9(B.
+$B4JC1$K@bL@$9$k$H0J2<$N$H$*$j$G$9(B.
+
+\begin{description}
+ \item[ITP] $B$3$l$+$i$"$k%=%U%H%&%'%"$N%Q%C%1!<%8$r:n@.$9$k$>(B, $B$H$$$&@k8@(B
+ \item[O] $B<+J,$N%Q%C%1!<%8$r<jJ|$9$H$$$&@k8@(B
+ \item[RFA] $B<+J,$N%Q%C%1!<%8$NN$?F$K$J$C$F$/$l$H$$$&MW5a(B
+ \item[RFH] $BC/$+<jEA$C$F$/$l$H$$$&MW5a(B
+ \item[RFP] $BC/$+%Q%C%1!<%8$K$7$F$/$l$H$$$&MW5a(B
+\end{description}
+
+$B$H$$$&$o$1$G(B ITP $B$rA*$S$^$9(B
+
+\begin{commandline}
+> 1
+
+Please enter the proposed package name:
+\end{commandline}
+
+$B%Q%C%1!<%8L>$rMW5a$5$l$^$9(B
+$B$^$:$O(B mcmpi $B$N%Q%C%1!<%8$r:n$k;v$K$7$^$7$g$&(B.
+
+\begin{commandline}
+> mcmpi
+
+Checking status database...
+Please briefly describe this package; this should be an appropriate short
+description for the eventual package:
+\end{commandline}
+
+$B@bL@J8$O%Q%C%1!<%8$r:n$C$?;~$K7h$a$?$N$G$=$N$^$^$G$9(B.
+
+\begin{commandline}
+> Grid-enabled implementation of MPI
+
+Your report will be carbon-copied to debian-devel, per Debian policy.
+Querying Debian BTS for reports on wnpp (source)...
+3082 bug reports found:
+
+Outstanding bugs -- Important bugs; Unclassified (1 bug)
+     1) #502809  O: potracegui -- KDE frontend for potrace, severity it normal
+(1-1/3082) Is the bug you found listed above [y|N|m|r|q|s|f|?]?
+\end{commandline}
+
+$BEPO?:Q$_$N(B 3082 $B8D$N%P%0$K=EJ#$,L5$$$+$I$&$+%A%'%C%/$7$m$H$$$&(B
+$BBgJQAG@2$7$$MW@A$r<u$1$^$7$?(B.
+
+$B2sHr$9$k:v$rC5$7$^$7$g$&(B.
+
+\begin{commandline}
+> ?
+
+y - Problem already reported; optionally add extra information.
+N - (default) Problem not listed above; possibly check more (skip to Next
+    page).
+m - Get more information about a bug (you can also enter a number without
+    selecting "m" first).
+r - Redisplay the last bugs shown.
+q - I'm bored; quit please.
+s - Skip remaining problems; file a new report immediately.
+f - Filter bug list using a pattern.
+? - Display this help.
+(1-1/3082) Is the bug you found listed above [y|N|m|r|q|s|f|?]?
+\end{commandline}
+
+$B$[$i$"$k$8$c$J$$$G$9$+(B.
+
+\begin{commandline}
+> s
+
+Spawning emacs...
+\end{commandline}
+
+$B$[$i2sHr$G$-$?(B.
+$B$^$!$5$-$[$I%&%'%V>e$G$b%A%'%C%/$7$?$7(B, $B$H$j$"$($:$ONI$7$H$7$^$7$g$&(B.
+
+$B$5$F(B, Emacs $B$,5/F0$5$l$F%P%0%l%]!<%H$N?w7A$,I=<($5$l$^$7$?(B.
+$B%P!<%8%g%s(B, $B>eN.:n<T(B, URL, $B%i%$%;%s%9(B, $B;HMQ8@8l(B, $BD9$$@bL@$r=q$-$^$7$g$&(B.
+$B$I$l$b%Q%C%1!<%8$r:n$k;~$K$b$&=q$$$?$b$N$J$N$G%3%T%Z$G(B OK $B$G$9(B.
+
+\begin{commandline}
+Subject: ITP: mcmpi -- Grid-enabled implementation of MPI
+Package: wnpp
+Owner: Tooru Fujisawa <arai_a@mac.com>
+Severity: wishlist
+
+*** Please type your report below this line ***
+
+* Package name    : mcmpi
+  Version         : 0.21.0
+  Upstream Author : Hideo Saito <h_saito@logos.ic.i.u-tokyo.ac.jp>
+* URL             : http://www.logos.ic.i.u-tokyo.ac.jp/~h_saito/mcmpi/
+* License         : GPL
+  Programming Lang: C, FORTRAN
+  Description     : Grid-enabled implementation of MPI
+
+  MC-MPI is a Grid-enabled implementation of MPI, developed by Hideo
+  Saito at the University of Tokyo.  Its main features include the
+  following:
+  - [Firewall and NAT traversal]: MC-MPI constructs an overlay
+    network, allowing nodes behind firewalls and nodes without global
+    IP addresses to participate in computations.  There is no need to
+    perform maual configuration; MC-MPI automatically probes
+    connectivity, selects which connections to establish, and performs
+    routing.
+  - [Locality-aware connection management]: Establishing too many
+    connections, especially wide-area connections, results in many
+    problems, including but not limited to the follwing: exhaustion of
+    system resources (e.g., file descriptors, memory), high message
+    reception overhead, and congestion between clusters during
+    all-to-all communication.  Therefore, MC-MPI limits the number of
+    connections that are established.  If we assume, for simplicity,
+    that n processes are distributed equally among c clusters, then at
+    most O(log n) connections are established by each process and at
+    most O(n log c) connections are established between clusters.  As
+    MC-MPI uses a lazy connect strategy, fewer connections are
+    established for applications in which few process pairs
+    communicate.  The maximum number of connections allowed can be
+    controlled by passing the -beta option to mpirun (see Subsection 3).
+  - [Locality-aware rank assignment]: Temporarily disabled in this
+    version.
+\end{commandline}
+
+$B$3$s$J46$8$GJ]B8$7$^$7$g$&(B.
+
+\begin{commandline}
+Report will be sent to "Debian Bug Tracking System" <submit@bugs.debian.org>
+Submit this report on wnpp (e to edit) [Y|n|a|c|e|i|l|m|p|q|?]?
+\end{commandline}
+
+$B%a!<%k%5!<%P$O;}$C$F$$$J$$$N$G(B Y $B$OA*$Y$^$;$s(B.
+
+\begin{commandline}
+> ?
+
+Y - (default) Submit the bug report via email.
+n - Don't submit the bug report; instead, save it in a temporary file (exits
+    reportbug).
+a - Attach a file.
+c - Change editor and re-edit.
+e - Re-edit the bug report.
+i - Include a text file.
+l - Pipe the message through the pager.
+m - Choose a mailer to edit the report.
+p - Print message to stdout.
+q - Save it in a temporary file and quit.
+? - Display this help.
+Submit this report on wnpp (e to edit) [Y|n|a|c|e|i|l|m|p|q|?]? 
+\end{commandline}
+
+$B%U%!%$%k$KJ]B8$7$F$/$l$l$P<+J,$GAw$l$k$N$G(B, q $B$rA*$S$^$7$g$&(B.
+
+\begin{commandline}
+> q
+
+reportbug stopped; your incomplete report is stored as "/tmp/reportbug-
+wnpp-20090516-28182-HoQ43f". This file may be located in a temporary directory;
+if so, it might disappear without any further notice. To recover this file to
+use it as bug report body, please take a look at the "-i FILE, --include=FILE"
+option.
+\end{commandline}
+
+$B$H$$$&$o$1$G$5$C$-$N%P%0%l%]!<%H$r(B submit@bugs.debian.org $B$KAw$C$F40N;$G$9(B.
+
+reportbug $B$r;H$o$J$/$F$b<+J,$GA4It=q$/$H$$$&<j$b$"$j$^$9(B.
+
+$B%a!<%k$rAw$k$H%P%0$K(B ID $B$,?6$i$l(B, $B$=$N%9%l%C%I$N%H%C%W$H$7$F(B
+$B$5$C$-$N%a!<%k$,JV$C$F$-$^$9(B.
+
+$B$7$P$i$/$9$k$H%&%'%V>e$N(B WNPP $B$+$i$b;2>H2DG=$K$J$j$^$9(B.
+
+$B$5$F(B, $BI=L@$b$7$F$7$^$C$?$H$3$m$G(B, $B$3$l$+$i%Q%C%1!<%8$N<jD>$7$r4hD%$m$&$H(B
+$B7h0U$7$F:#2s$O$*$7$^$$$G$9(B.
 
 % ===============================================================
 \dancersection{Debian GNU/Linux $B>e$G(B Android SDK $B$r;H$C$F$_$?(B}{$B>e@n=c0l(B}
