@@ -19,7 +19,7 @@ public class HeButton extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        media_player = MediaPlayer.create(this, R.raw.ding);
+        media_player = MediaPlayer.create(this, R.raw.hakushu);
 
         final ImageButton button = (ImageButton) findViewById(R.id.ImageButton01);
         button.setOnClickListener(new OnClickListener() {
