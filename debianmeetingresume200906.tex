@@ -602,11 +602,14 @@ DDTSSは仕組み上レビューが大量に必要になります。
 % ===============================================================
 
 今年 4 月 5 日に正式に Debian archive に入った Debian GNU/kFreeBSD ですが、
-現時点で最新インストーラである debian-20090117-kfreebsd-amd64-install.iso 
+現時点で最新インストーラである debian-20090117-kfreebsd-i386-install.iso 
 (2009/1/17製) を使ってインストールしてみました。
 
+英文ドキュメント
+http://glibc-bsd.alioth.debian.org/doc/
+
 \begin{commandline}
-wget http://glibc-bsd.alioth.debian.org/install-cd/kfreebsd-amd64/current/debian-20090117-kfreebsd-amd64-install.iso
+wget http://glibc-bsd.alioth.debian.org/install-cd/kfreebsd-i386/current/debian-20090117-kfreebsd-i386-install.iso
 \end{commandline}
 
 このイメージにある kernel は、FreeBSD 7.1R のものですが、インストール後、
@@ -615,68 +618,98 @@ wget http://glibc-bsd.alioth.debian.org/install-cd/kfreebsd-amd64/current/debian
 今回は VMware の仮想ディスクにインストールを試みました。
 インストーラは、現在のところは、FreeBSD 用のものを一部改造したもの
 のようです。
-インストーラを CD イメージから起動します。とりあえず Standard で
+インストーラを CD イメージから起動します。とりあえず Express (または Custam)で
 インストールしてみましょう。
 
 まず最初にすることは、Linux と同様、インストールするディスクを指定します。
 fdisk が起動しますが、ここで注意しなくてはならないのは、Linux とはディスクの
 指定の仕方が違うことです。FreeBSD では、hda1 にあたるものは、ad0s1 で、
-スライスと呼びます。
+スライスと呼びます。FreeBSD では伝統的に、使用する領域全部を先にスライス (ad0s1) として確保し、
+その中にディスクラベルをつけることによって小分けして(ad0s1a、ad0s1b など)、
+それぞれのマウントポイントを作ります。
+Linux の場合のパーティションの設定に近いものはディスクラベルかもしれません。
+とりあえず "A" で、空き領域全部指定しましょう。
 
 次にブートローダの書き込みですが、デフォルトでは FreeBSD Boot Manager と言う
  FreeBSD 専用のプログラムが使用されます。もし既存の grub が使いたい場合には、
-ここでは書き込まず、インストール後に、既存の grub が使っている /boot/grub/menu.lst に
+ここでは書き込まず (None を指定)、インストール後に、既存の grub が使っている 
+/boot/grub/menu.lst に
 \begin{commandline}
-title FreeBSD
-root (hd0,1,a)
+title Debian GNU/kFreeBSD
+root (hd0,0,a)
 kernel /boot/loader
 \end{commandline}
-とか書けば良いそうです。(試してはいません)
+とか書けば良いそうです。
+仮想ディスクなどに対してのインストールでしたら、特に気にせず "BootMgr" を選びましょう。
 
 次に FreeBSD Disklabel Editer が起動し、スライスの中に、
 さらにマウントポイントとしていくつもディスクラベルをつけます。
-それぞれ ad0s1a ad0s1b …などとなります。
+それぞれ ad0s1a ad0s1b ...などとなります。
+"/" のため、少なくとも一つはディスクラベルをつける必要があります。
+もし、"/usr" とか "swap" とかを分けたいときにはここで選びます。
+"A" で、自動的に割り振ることも可能です。
 
-その後はほとんどデフォルトの選択肢で問題ありませんが、三点だけ注意があります。
+そして Distribution の選択 (Choose Distribution) ですが、
+ここでは必ず "A Minimal" を選択してください。
+ここで色々な選択肢が出てきますが、これは元の FreeBSD のインストーラだったころの名残りで、
+これは Debian のインストーラですから、FreeBSD の Distribution は全く収録されていません。
 
-まず、Standard の場合は、FreeBSD のインストーラだった頃の名残りで、doc、
-manpage、dict、perl の distribution (と言うらしい) を入れようとしますが、
-この CD イメージは Debian ですので、勿論ありません。ですからここでは「no」を
-選んでください。
+次はイントールメディアの選択 (Choose Installation Media) ですが、
+ここでは必ず "1 CD/DVD" を選択してください。
+その他の選択肢は FreeBSD のインストーラだったころの名残りです。
+自分の環境にあわせ、"cd0" (SCSI) または "acd0" (ATAPI) を選べば、
+インストールの始まりです。
+途中で、"Alt-F3" を押すよう指示がありますから、それに従うと、
+Debian GNU/Linux でお馴染みな、タイムゾーンの設定とか popularity-contest 
+の設定とかができます。
+Debian GNU/kFreeBSD 特有なものは、module-init-tools の設定で、
+これは FreeBSD カーネルのモジュール名を選ばなければなりません。
+ネットワークカードモジュールとサウンドカードモジュールとその他のモジュールが出てきますが、
+詳しくは FreeBSD 本家のドキュメントを見てください。
+私の場合は VMware ですので、サウンドカードモジュールの "snd\_es137x" のみ選びました。
 
-次に、ネットワークの設定ですが、Debian では FreeBSD と違い、
- /etc/network/interfaces を使っていますので、インストール時点では
-ネットワークには繋がりません。インストール後に編集して下さい。
-ただし、Linux における eth0 は、FreeBSD 7.0R kernel 以降では le0 です。
+最初の画面に戻ってきたらインストールは終わりです。
+タブキーで "X Exit Install" を選び、再起動して下さい。
 
-最後に、作成されるユーザですが、インストール時点では root のみです。
-そして、そのパスワードを入力する画面は、現在のところ、青い一色に最下部一行だけ
-黒い行がある、何のメッセージも無い画面です。
-そのまま何も気にせずに、自分の指を信じて、パスワードと、
-確認用にもう一回パスワードを打ち込みましょう。
-
-パスワードを打ち込んだら reboot して下さい。
-reboot して root でログインしたら、まず前述の /etc/network/interfaces の編集と接続をします。
+最初は root ユーザのみがパスワード無しで出来ています。
+root でログインしたら、まずはパスワードを変更しましょう。
 \begin{commandline}
-#/etc/network/interfaces の例
-
-auto lo0
-iface lo0 inet loopback
-
-## DHCP network
-auto le0
-iface le0 inet dhcp
-
-## Static network
-#auto le0
-#iface le0 inet static
-#    address 192.168.0.3
-#    network 192.168.0.0
-#    netmask 255.255.255.0
-#    gateway 192.168.0.1
+passwd
 \end{commandline}
 
-それと keymap の設定のため、
+次にネットワークの接続をします。
+Linux の eth0 にあたるものは le0 (VMware の場合) または ed0 (Qemu の場合) 
+のようです。
+dhcp3-client パッケージは既にインストール済みのはずですから、DHCP 環境の人は /etc/network/interfaces を編集しなくても
+\begin{commandline}
+dhclient3
+\end{commandline}
+でネットワークに繋がるはずです。
+
+固定 IP の人は、以下を参考にして、それぞれのファイルを編集して下さい。
+\begin{commandline}
+##/etc/network/interfaces の例
+auto lo0
+iface lo0 inet loopback
+## Static network
+auto le0
+iface le0 inet static
+    address 192.168.0.3
+    network 192.168.0.0
+    netmask 255.255.255.0
+    gateway 192.168.0.1
+\end{commandline}
+\begin{commandline}
+##/etc/resolv.conf の例
+nameserver 192.168.0.1
+\end{commandline}
+その後、
+\begin{commandline}
+ifup le0
+\end{commandline}
+で、ネットワークに繋いで下さい。
+
+インターネットに繋がったら、まず keymap の設定のため、
 \begin{commandline}
 apt-get update
 apt-get install kbdcontrol
@@ -684,7 +717,6 @@ apt-get install kbdcontrol
 をして、console の keymap を選んでください。(console-data は使えません)
 
 インストール後は、Debian GNU/Linux とどこが違うのか分からない程、まさに Debian です。
-
 
 \subsection{参考文献}
 
