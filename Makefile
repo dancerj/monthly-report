@@ -30,6 +30,7 @@ publish: $(RELEASEFILES)
 	# check that pre-commit hook is installed.
 	# if this fails, please do:
 	# cp git-pre-commit.sh .git/hooks/pre-commit
+	# コミットフックをインストールしていないとここでエラーになります。ここがエラーになったらエラーを放置しないで修正すること!
 	diff -u .git/hooks/pre-commit git-pre-commit.sh
 	[ -x .git/hooks/pre-commit ]
 	## end of linting stuff
