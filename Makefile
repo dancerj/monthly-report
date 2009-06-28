@@ -25,7 +25,7 @@ publish: $(RELEASEFILES)
 	## start of linting stuff
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
-	# check some obvious spelling mistakes
+	# check some obvious spelling mistakes Debian勉強会標準以外の表記を使った場合ここがエラーになります。修正してからコミットしてください。
 	./utils/spelllint.sh $<
 	# check that pre-commit hook is installed.
 	# if this fails, please do:
