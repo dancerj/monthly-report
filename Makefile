@@ -5,6 +5,8 @@ RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 
 all: $(PDFFILES)
 
+check: all
+
 publish: $(RELEASEFILES)
 	# this gives error when I am not the owner of the
 	# file, but fixes all files that I am the owner
@@ -54,7 +56,7 @@ deb:
 listtopic:
 	lgrep dancersection *-{natsu,fuyu}.tex | sed -n 's/\\dancersection{\([^}]*\)}.*/\1/p'
 
-.PHONY: deb clean all publish listtopic
+.PHONY: deb clean all publish listtopic check
 
 check-syntax:
 	$(CC) -c -O2 -Wall $(CHK_SOURCES) -o/dev/null $(shell pkg-config --cflags gtk+-2.0)
