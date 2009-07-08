@@ -1,5 +1,8 @@
 #!/bin/bash
 # git push script with basic checks.
+#
+# original found in monthly-report.git/utils/git-push.sh
+
 set -e
 
 if git status; then
