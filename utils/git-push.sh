@@ -25,7 +25,7 @@ git diff origin
 
 echo -n 'Submit this change ? [y/n]:'
 read A
-case $A in
+case "$A" in
     y|Y)
 	echo 'I: Accepting this change and pushing'
 	;;
