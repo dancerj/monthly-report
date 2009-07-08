@@ -34,5 +34,5 @@ case "$A" in
 	exit 1;;
 esac
 
-git push
+git push "$@"
 echo 'I: successful push'
