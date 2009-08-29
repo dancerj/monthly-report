@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# requires EUC-JP locale to run this shell script.
+LC_ALL=ja_JP.EUC-JP
+
 if ! which lgrep; then
     echo 'ERROR: Please install lgrep from lv package'
 fi
