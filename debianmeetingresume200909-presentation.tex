@@ -5,6 +5,7 @@
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
 
 %     This program is free software; you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -153,22 +154,47 @@
 \end{frame}
 
 \begin{frame}{なぜキーサインするのか？}
-\begin{center}
-PGP/GnuPGの公開鍵をソーシャルな情報とともに交換し、信頼の輪(web of
+\begin{itemize}
+\item PGP/GnuPGは認証局がないので、自分が相手を信頼するしかない。
+\item キーサインパーティを行って、PGP/GnuPGの公開鍵をソーシャルな情報とともに交換し、信頼の輪(web of
  trust)を広げる。
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\includegraphics[width=1\hsize]{image200909/ksp00.jpg}
+
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+
+\includegraphics[width=1\hsize]{image200909/ksp01.jpg}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\Huge 使いどころ
 \end{center}
 \end{frame}
 
 \begin{frame}{フリーソフトウェア開発者の場合}
 \begin{itemize}
-\item 自分の証明（メールにサイン／暗号化して送ったり。）に利用。
+\item アカウント作成時のチェックに使ったり。（インターネット上での存在を
+      示す。）
 \item ソフトウェアのリリース時に使ったり。
-\item Debian ではパッケージのサイン、投票などに使う。
+\item Debian ではパッケージへの署名、投票などに使う。
 \end{itemize}
 \end{frame}
 
 \begin{frame}[containsverbatim]{ユーザの場合は？}
-Debian 開発者になるための通過儀礼。
+\begin{itemize}
+\item メールへの署名／暗号化に利用。
+\item Debian 開発者になるための通過儀礼。
+\end{itemize}
 \end{frame}
 
 \begin{frame}[containsverbatim]{ユーザの場合は？}
@@ -188,6 +214,7 @@ error: could not verify the tag 'v2.6.31'
 \end{frame}
 
 \begin{frame}[containsverbatim]{ユーザの場合は？}
+身近なところでは、改竄のチェックにつかう。
 Debian の場合は secure-apt で使われている。
 \begin{commandline}
 # apt-get update
@@ -207,13 +234,40 @@ W: GPG error: http://cdn.debian.or.jp testing Release: The following
 Fetched 2B in 1s (1B/s)
 Reading package lists... Done
 \end{commandline}
-\Huge エラーがでなくなった！これで大丈夫です！(って書いてあるWebサイト多
+エラーがでなくなった！これで大丈夫です！(って書いてあるWebサイト多
  いよね。)
 \end{frame}
 
 \begin{frame}[containsverbatim]{ユーザの場合は？}
-\Huge じゃなくて、ちゃんと鍵をチェックしましょう。
+じゃなくて、ちゃんと鍵と信頼度をチェックしましょう。\\
+鍵のチェックをするには、Web Of Trust に入らないとできない。
 \end{frame}
+
+\begin{frame}[containsverbatim]{チェックする簡単な方法}
+9AA38DCD55BE302B の鍵に署名している人は以下のとおり。
+\begin{commandline}
+pub  4096R/55BE302B 2009-01-27            
+uid Debian Archive Automatic Signing Key (5.0/lenny) <ftpmaster@debian.org>
+sig  sig3  55BE302B 2009-01-27 __________ 2012-12-31 [selfsig]
+sig  sig   7E7B8AC9 2009-01-27 __________ __________ Joerg Jaspert <joerg@debian.org>
+sig  sig   D0EC0723 2009-01-27 __________ __________ Mark Hymers <mhy@debian.org>
+sig  sig   BE9BF8DA 2009-01-27 __________ __________ Mike O'Connor (stew) <stew@vireo.org>
+sig  sig   30B94B5C 2009-05-24 __________ __________ ******** (imacat) <imacat@mail.imacat.idv.tw>
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{trust path finder}
+trust path finder を使うと、信頼のパスが分かる。\\
+\url{http://pgp.cs.uu.nl/mk_path.cgi}
+\includegraphics[width=1\hsize]{image200909/trust-path.png}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Joergと岩松の trust path}
+\includegraphics[width=1\hsize]{image200909/0x40AD1FA6-0x7E7B8AC9.png}
+他の人を介して、Web of Trust がつながっていることが分かる。
+\end{frame}
+
 
 \emtext{GPG キーサインパーティを楽に済ませるためのツール caff の紹介}
 
@@ -239,22 +293,29 @@ $ iwamatsu.gpgkey を 相手にメールに 署名+暗号化して送信
 \end{frame}
 
 \begin{frame}
+\begin{center}
 \Huge 数人ならいいけど、100人とかやってられん！
+\end{center}
+
 \end{frame}
 
 \begin{frame}
+\begin{center}
 \Huge そこでcaffの登場
+\end{center}
+
 \end{frame}
 
 \begin{frame}[containsverbatim]{インストール}
 caff は signing-party パッケージで提供されている。
 \begin{commandline}
-$ apt-get install signing-party
+$ sudo apt-get install signing-party
 \end{commandline}
 \end{frame}
 
 \begin{frame}[containsverbatim]{初期化}
 caff を使うための初期化を行う。
+caff を一回実行すると、初期ファイルを作成してくれる。
 \begin{commandline} 
 $ caff
 .......
@@ -292,7 +353,8 @@ please find attached the user id{(scalar @uids >= 2 ? 's' : '')}
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{caffの設定}                                                                                                                                                                   
+\begin{frame}[containsverbatim]{caffの設定}          
+
 caff のデフォルトの設定では、cert-digest-algo が SHA1 になっているので、
  \footnote{http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=527944} SHA256に
  設定する。
@@ -309,18 +371,18 @@ EOF
 ローカル（作業するマシン）のSMTPを設定しておく必要がある。
 \end{frame}
 
-\begin{frame}[containsverbatim]{caffを使ったサイン}
-サインするID をキーサーバから取得し、指定した自分のIDでサインしてくれる。
-そして、サインした鍵を暗号化して送信してくれる。
+\begin{frame}[containsverbatim]{caffを使った署名}
+署名するID をキーサーバから取得し、指定した自分のIDで署名してくれる。
+そして、署名した鍵を暗号化して送信してくれる。
 
 \begin{commandline}
-$ caff -u 自分のID サインするID .......                                                                                                                                                            
+$ caff -u 自分のID 署名するID .......
 \end{commandline}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{サイン完了後}
-サイン後のデータは \~{}/.gnupg/pubring.gpg ではなく、{\bf \~{}/.caff/gnupghome/pubring.gpg} に格納
+\begin{frame}[containsverbatim]{署名完了後}
+署名後のデータは \~{}/.gnupg/pubring.gpg ではなく、{\bf \~{}/.caff/gnupghome/pubring.gpg} に格納
  される。この鍵束を \~{}/gnupg/pubring.gpg に 取り込む。
 \begin{commandline}
 $ gpg --import ~/.caff/gnupghome/pubring.gpg
@@ -349,7 +411,12 @@ $ gpg --keyserver pgp.mit.edu --send-keys 自分のID
 \Huge ef81 739e 6298 1b5b \\
 \Huge 004a a646 44ab 00a7 \\
 \end{center}
+\end{frame}
 
+\begin{frame}{キーサインパーティ}
+\begin{center}
+\Huge Enjoy GPG Key Signing Party!
+\end{center}
 \end{frame}
 
 \end{document}
