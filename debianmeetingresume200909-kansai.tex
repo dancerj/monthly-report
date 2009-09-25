@@ -34,8 +34,8 @@
 % 日付を定義する、毎月変わります。
 \newcommand{\debmtgyear}{2009}
 \newcommand{\debmtgdate}{27}
-\newcommand{\debmtgmonth}{12}
-\newcommand{\debmtgnumber}{31}
+\newcommand{\debmtgmonth}{09}
+\newcommand{\debmtgnumber}{27}
 
 \begin{document}
 
@@ -52,14 +52,14 @@
 \end{center}
 
 \begin{flushright}
-\hfill{}関西 Debian 勉強会担当者 山下 尊也\\
+\hfill{}関西 Debian 勉強会担当者 のがた・倉敷・佐々木\\
 \hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
 \end{flushright}
 
 \thispagestyle{empty}
 \end{titlepage}
 
-\dancersection{Introduction}{山下 尊也}
+\dancersection{Introduction}{Debian JP}
  
  関西 Debian 勉強会はDebian GNU/Linux のさまざ
  まなトピック(新しいパッケージ、Debian 特有の機能の仕組、Debian 界隈で起
@@ -90,12 +90,305 @@
 \hrule
 \end{minipage}
 
-\dancersection{最近のDebian関係のイベント報告}{山下 尊也}
+\dancersection{最近のDebian関係のイベント報告}{}
 
-\dancersection{今後の予定}{山下 尊也}
+%-------------------------------
+\dancersection{GUIがついて格好良くなったreportbugを使ってみよう}{のがたじゅん}
 
-\subsection{次回}
-次回は、2010年XX月X日に福島区民センターで行います。
+\subsection{はじめに}
+
+Debianのバグ報告支援ツールreportbugが、バージョン3.99.0からGTK2を利用した
+ユーザーインターフェースが使えるようになっていましたが、あまり知られていない
+のでreportbugの使い方も兼ねて書いてみました。
+
+\subsubsection{おわび}
+
+「使ってみよう」とタイトルに書きましたが、実際にGTK2インターフェースで使
+うとquerybtsがうまく動かず登録されたバグを表示することができなかったり、
+戻るボタンで戻ると入力ができなかったりと不具合あります。ですので「使う」
+には難しいところもありますが、とりあえずこんな感じということを知ってもら
+えれば思います。
+
+\subsection{reportbugとは}
+
+Debianを使っていて発見したバグは、決められた書式にしたがって書いたメール
+をDebianのバグ追跡システム(Bug Tracking System.通称BTS)に送ることによって
+バグを報告することができます \footnote{バグレポートから参加するDebianパッ
+ケージ開発 / 木下 達也 (あんどきゅめんてっど でびあん 2008年夏号)
+
+\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume2008-natsu.pdf}}。ですがバグ報告に慣れていないと、決められた
+書式でメールを書くことはもちろんのこと、バグ修正に必要なパッケージ情報な
+どを洩れなく集めたりすることは大変なことです。
+
+reportbugは、そういったバグ報告の負担を減らすためのツールで、バグ検索から、
+バグ報告のためのパッケージ情報の収集、バグ登録に必要なメールの書式整形、
+報告メールの送信まで行ってくれるツールです。
+
+\subsection{reportbugのインストール}
+
+Debianインストール時に「標準システム」を選択すると、reportbugはインストー
+ルされますが、GTK2や端末上でのメニューインターフェースに必要なRecommends
+やSuggestsパッケージはインストールされないので、改めてreportbugをインストー
+ルします。
+
+\begin{commandline}
+ # apt-get update
+ # apt-get remove reportbug
+ # apt-get -o APT::Install-Suggests=true --install-recommends -y install reportbug
+\end{commandline}
+
+まどろっこしいことをしていますが、すでにインストールされたパッケージの
+RecommendsやSuggestsパッケージをスマートにインストールするにはどうしたら
+いんでしょうか?
+
+\subsection{reportbugを起動}
+
+reportbugを起動します。
+デスクトップのメニュー([システム]→[reportbug])から起動すると、GTK2インター
+フェースのウィンドウが開きます。端末から起動するとメッセージが表示されま
+す。
+
+\begin{commandline}
+ $ reportbug 
+\end{commandline}
+
+\begin{figure}[h]
+ \includegraphics[scale=0.5]{image200909/reportbug-initial.png}
+ \caption[reportbugのGTK2インターフェース]{reportbugのGTK2インターフェース}
+\end{figure}
+
+\subsection{初期設定}
+reportbugを初めて起動すると、reportbugを使うための設定を尋ねられます。
+初期設定の途中、バグ報告メールを送信するためのメール環境について尋ねられ
+るので、あらかじめメールの設定を確認しておいてください。
+設定例では、Gmailを使っていることを前提に話を進めます。
+
+\begin{itemize}
+ \item 参考: その他のメール クライアントの設定 - Gmail ヘルプ:
+
+\url{http://mail.google.com/support/bin/answer.py?hl=jp&answer=13287}
+\end{itemize}
+
+\begin{commandline}
+Welcome to reportbug! Since it looks like this is the first time you have used reportbug, we are configuring its behavior.
+
+These settings will be saved to the file "/home/hoge/.reportbugrc", which you will be free to edit further.                
+Please choose the default operating mode for reportbug.                                                                   
+
+1 novice    Offer simple prompts, bypassing technical questions.
+
+2 standard  Offer more extensive prompts, including asking about things that a moderately sophisticated user would be
+            expected to know about Debian.                                                                           
+
+3 advanced  Like standard, but assumes you know a bit more about Debian, including "incoming".
+
+4 expert    Bypass most handholding measures and preliminary triage routines. This mode should not be used by people
+            unfamiliar with Debian's policies and operating procedures.                                             
+
+Select mode: [novice] 
+\end{commandline}
+
+ウェルカムメッセージと設定は~/.reportbugrcに保存されていますと二つのお知
+らせの後、reportbugで使うモードについて尋ねています。とりあえずは細かいこ
+とよりバグ報告だけに絞りたいので、noviceのままでよいでしょう。
+
+\newpage
+
+\begin{commandline}
+Please choose the default interface for reportbug.
+
+1 text   A text-oriented console user interface
+
+2 gtk2   A graphical (GTK+) user interface.
+
+3 urwid  A menu-based console user interface
+
+Select interface: 2
+\end{commandline}
+
+どのユーザーインターフェースを使うか選択します。
+今回はテーマにそってgtk2を選びました。実際に使うとなるとurwidが使いやす
+いと思います。
+
+\begin{commandline}
+Will reportbug often have direct Internet access? (You should answer yes to this question unless you know what you are doing
+and plan to check whether duplicate reports have been filed via some other channel.) [Y|n|q|?]?
+\end{commandline}
+
+インターネットに接続しているかですが、おそらくほとんどの人は接続している
+と思うので、yと答えます。
+
+\begin{commandline}
+What real name should be used for sending bug reports?
+[Hogewo HOGETA]>
+\end{commandline}
+
+バグ報告に使う名前を設定します。
+
+\begin{commandline}
+Which of your email addresses should be used when sending bug reports? (Note that this address will be visible in the bug
+tracking system, so you may want to use a webmail address or another address with good spam filtering capabilities.)
+[example@gmail.com]>
+\end{commandline}
+
+バグ報告に使うメールアドレスを設定します。
+ここで気をつけないといけないことは、ここで設定したメールアドレスはバグ報
+告をすると公開されます。あまり公開したくないメールアドレスは設定しないほ
+うがよいでしょう。
+
+\begin{commandline}
+Do you have a "mail transport agent" (MTA) like Exim, Postfix or SSMTP configured on this computer to send mail to the
+Internet? [Y|n|q|?]? n
+\end{commandline}
+
+バグ報告をするマシンでメールサーバーが動いているか尋ねています。
+GmailのSMTPサーバーを使って送信するので、ここではnと答えます。
+
+\begin{commandline}
+Please enter the name of your SMTP host.  Usually it's called something
+ like "mail.example.org" or "smtp.example.org".
+If you need to use a different port than default, use the <host>:<port> alternative format.
+
+Just press ENTER if you don't have one or don't know.
+> smtp.gmail.com:587
+\end{commandline}
+
+送信するSMTPサーバーを登録します。
+GmailのSMTPサーバーのアドレスはsmtp.gmail.com、ポート番号は587なので、
+smtp.gmail.com:587と登録します。
+
+\begin{commandline}
+If you need to use a user name to send email via "smtp.gmail.com:587" on your computer, please enter that user name. Just
+press ENTER if you don't need a user name.
+> nogajun@gmail.com
+\end{commandline}
+
+SMTPサーバーを利用するためのユーザー名を登録します。
+GmailのSMTPサーバーを使うにはドメイン名も含めたユーザー名が必要なので、<ユーザー
+名>@gmail.comと登録します。
+
+\begin{commandline}
+Does your SMTP host require TLS authentication? [y|N|q|?]? y
+\end{commandline}
+
+SMTPはTLSを使うかの問いについては、Gmailでは必要なのでyと答えます。
+
+\begin{commandline}
+Please enter the name of your proxy server. It should only use this parameter if you are behind a firewall. The PROXY
+argument should be formatted as a valid HTTP URL, including (if necessary) a port number; for example,
+http://192.168.1.1:3128/. Just press ENTER if you don't have one or don't know.
+>
+\end{commandline}
+Proxyについて尋ねています。使っていれば設定します。使っていなければ空のまま
+でEnterキーを押します。
+
+\begin{commandline}
+Default preferences file written. To reconfigure, re-run reportbug with the "--configure" option.
+\end{commandline}
+初期設定が終わりました。もう一度、設定をやり直したいときは、--configureオ
+プションをつけて起動するとやり直すことができます。
+
+\subsection{reportbugを使ってみる}
+
+ \includegraphics[scale=0.5]{image200909/reportbug-1.png}
+
+起動するとこんな感じです。ウィザード形式なのでわかりやすいと思います。
+
+ \includegraphics[scale=0.5]{image200909/reportbug-2.png}
+
+バグを見つけたパッケージ名を入力します。パッケージ名の頭を何文字か入力す
+ると、インストールされているパッケージの候補を表示してくれます。
+
+ \includegraphics[scale=0.5]{image200909/reportbug-8.png}
+
+パッケージ名の入力でotherと入力するとこの画面になります。これは擬似パッケー
+ジの一覧です。パッケージ以外に見つけたDebianに関連する問題を擬似パッケー
+ジのバグとして登録します。
+
+\begin{itemize}
+ \item Debian -- Debian バグ追跡システム - 擬似パッケージ:
+
+\url{http://www.debian.org/Bugs/pseudo-packages.ja.html}
+
+\end{itemize}
+
+\includegraphics[scale=0.5]{image200909/reportbug-3.png}
+
+本来ならばここに登録されたバグが表示されて、今から登録しようとしたバグが
+すでに登録済みかどうか確認できるのですが、GTK2インターフェースだと
+querybtsがうまく動かなくて(\#432178)、ダブルクリックをしても何も表示され
+ません。残念。
+
+\includegraphics[scale=0.5]{image200909/reportbug-4.png}
+
+バグがまだ登録されていなかったとして次に進むと、バグを登録する画面に入り
+ます。ここではバグの概要を簡潔に書きます。
+
+\includegraphics[scale=0.5]{image200909/reportbug-5.png}
+
+バグの種類を指定します。種類はCriticalやSeriousのような深刻なものから、提
+案のWhishlistまであります。通常はnormalでいいと思います。
+
+\includegraphics[scale=0.5]{image200909/reportbug-6.png}
+
+ここでは、バグの内容を書きます。
+スクリーンショットのために適当なことを書いて撮っていたのでSubjectは消して
+いますが、通常はSubjectの箇所に上で書いたバグの概要が入っています。
+
+\includegraphics[scale=0.5]{image200909/reportbug-7.png}
+
+バグの内容を書き終わって進むと、この画面になります。
+
+この時点ではまだメールは送信されてません。問題がないと思うなら、Submit
+the bug report via email.ボタンを押して送信します。いや、もう少しだけ確認
+したい、とりあえず下書きで保存して続きは後で書く、ファイルを添付したいな
+どあれば、それぞれのボタンを押して終了します。
+
+\subsection{まとめ}
+reportbugを使うと簡単にバグ報告ができるので、みんなバグを見つけたらバグ報
+告しよう。
+
+あと、のがじゅんはさっさと仕事をしよう。実例をあげて説明しようと目星をつ
+けてたパッケージを見たら、バグが修正されてて困った困った。
+
+\subsection{参考資料}
+
+\begin{itemize}
+ \item Debian JP Project - バグ報告:
+
+\url{http://www.debian.or.jp/community/bugreport.html}
+
+\item Debian -- Debian BTS - バグを報告する:
+
+\url{http://www.debian.org/Bugs/Reporting.ja.html}
+
+\item MC-MPI Debian 公式パッケージへの道 / 藤澤 徹
+
+第52回東京エリアDebian勉強会 2009年5月勉強会 配布資料
+
+\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume200905.pdf}
+
+\end{itemize}
+
+%-------------------------------
+\dancersection{今後の予定}{のがた じゅん}
+
+\subsection{次回の関西Debian勉強会}
+
+次回は、2009年10月25日に大阪福島区民センターで行う予定です。
+
+\subsection{関西オープンソース2009}
+
+2009年11月6日(金)と2009年11月7日(土)に大阪南港ATCにて開催される「関西オー
+プンソース2009」に関西Debian勉強会も出展を予定しています。
+
+\begin{itemize}
+ \item KOF2009：関西オープンソース2009:
+
+\url{http://k-of.jp/2009/index.html} 
+
+\end{itemize}
+
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
