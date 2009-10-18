@@ -100,6 +100,202 @@
 %-------------------------------
 \dancersection{デバッグのお供："gdbのススメ"}{杉本典充}
 
+\makeatletter
+   \renewcommand{\thetable}{%
+   \thesection.\arabic{table}}
+   \@addtoreset{table}{section}
+\makeatother
+
+\makeatletter
+    \renewcommand{\thefigure}{%
+    \thesection.\arabic{figure}}
+    \@addtoreset{figure}{section}
+\makeatother
+
+
+\subsection{はじめに}
+インターネットでは様々なオープンソースのプログラムが公開されています。それらのプログラムは開発者の手によるデバッグだけでなく、多くの人もデバッグ作業に参画することによって品質を高めていきます。そのデバッグ作業を終えたプログラムがいわゆる「安定したプログラム」であり、多くの人が安心して使えるレベルになるにはデバッグ作業はとても大切な作業の1つです。
+今回は、Debianを使ってプログラムをデバッグする手法についてまとめてみました。
+
+\subsection{gdbとは}
+gdbとはGNU Debugger\footnote{GNU Debugger Webサイト
+\url{http://www.gnu.org/software/gdb/}}のことで、C言語・C++向けのソースレベルデバッガです。開発者はgdbを使うことでプログラムが今どこの部分を実行しているか、プログラムの状態はどうなっているかを知ることができるため、デバッグ作業を効率的に行うことができます。
+「man gdb(1)」によると、gdbには大きく4つの機能があると書かれています。
+\begin{itemize}
+ \item プログラムの動作を詳細に指定してプログラムを実行させる。
+ \item 指定した条件でプログラムを停止させる。
+ \item プログラムが止まった時に、何が起こったか調べる。
+ \item バグによる副作用を修正し、別のバグを調べるためプログラムの状態を変更する。
+\end{itemize}
+
+gdbが使用する設定ファイルは"〜/.gdbinit"であり、gdbの初期設定値をこのファイルに定義することで変更できます。
+
+\subsection{開発環境とgdbのインストール}
+C言語のプログラムを開発するためにはコンパイラが必要です。gdbの他にプログラムを作成するために必要なソフトウェア一式もインストールします。
+\begin{commandline}
+$ sudo apt-get update
+$ sudo apt-get install gcc make
+$ sudo apt-get install gdb
+\end{commandline}
+
+環境も整ったところで、プログラムを作成します。今回は「FizzBuzz」\footnote{FizzBuzzとは、『1から100からまでの整数を標準出力に出力せよ。ただし、3で割り切れるときは「Fizz」、5で割り切れるときは「Buzz」、3と5の両方で割り切れるときは「FizzBuzz」と標準出力に出力せよ。』というプログラムの問題である。}といわれているプログラムを例にしてみます。
+
+\subsection{gdbを使ってみましょう}
+\subsubsection{まずはデバッグビルドします}
+プログラムをgdbで操作するためにはプログラムにデバッグ情報を付与してビルドする必要があります。
+gccのコンパイルオプション及びビルドオプションにデバッグシンボルを付与する"-g"オプションをつけてビルドします。（デバッグ時の最適化レベルは開発者によって指定が違うこともあります。ここでは最適化レベルは無指定(="-O0"、最適化なし)としてビルドします。）
+
+
+\subsubsection{gdb単体でプログラムを追いかけてみる}
+それではシェルからgdbを起動します。gdbを起動すると以下のような入力受付状態になります。
+
+\begin{commandline}
+$ gdb
+GNU gdb 6.8-debian
+Copyright (C) 2008 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+(gdb) 
+\end{commandline}
+
+gdbのプロンプトでコマンドを入力することによりデバッガを通してプログラムを動かすことができます。
+デバッグ作業でよく使うgdbのコマンドを表\ref{table_use_gdb}に示します。
+
+\begin{table}[h]
+\begin{center}
+\caption{gdbを操作するコマンド(一部抜粋)}\label{table_use_gdb}
+\begin{tabular}{|l|c|p{9cm}|}
+\hline
+コマンド & 省略コマンド & 説明 \\ \hline \hline
+run (引数)& r & プログラムを最初から実行します。\\
+ & & 引数を指定する場合は、runの後に引数を指定します。 \\ \hline
+break (停止位置) & b & ブレークポイントを設定します。ブレークポイントは「関数名」と「ソースコード:行番号」のいずれかで指定できます。\\ \hline
+delete (breakpoint番号)& d & ブレークポイントを削除します。単にdeleteだけを実行するとすべてのブレークポイントを削除します。\\ \hline
+list & l & 現在実行中の近くのソースコードをある行数表示します。(初期設定値は10行)\\ \hline
+step & s & ステップイン実行します。\\ \hline
+next & n & ステップオーバー実行します。\\ \hline
+finish & fin & ステップアウト実行します。\\ \hline
+continue & c & 現在停止中の位置からプログラムを再開します。\\ \hline
+print (変数名) & p & プログラム中の(変数名)の内容を表示します。ポインタ変数の場合は「print *ポインタ変数名」と指定することでポイントが指し示す値を表示できます。\\ \hline
+set var (変数名)=(設定値) & なし & プログラム中の(変数名)の値を(設定値)に変更します。\\ \hline
+quit & q & gdbを終了します。\\ \hline
+attach (プロセスID)& なし & 実行中の(プロセスID)をgdbで制御できるようにします。\\ \hline
+detach & なし & attach中のプロセスをgdbの制御下から切り離します。切り離されたプログラムはそのまま動作し続けます。\\ \hline
+shell & なし & shellを起動します。shellをexitするとgdbプロンプトに戻ります。\\ \hline
+help & h & gdbのコマンドに関するヘルプを表示します。\\ \hline
+info (コマンド) & i & 様々な情報を表示します。\\ \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{gdbのフロントエンドツール}
+gdbは単体でも十分デバッグ可能ですが、よりデバッグ作業を行いやすいようにgdbのフロントエンドツールが多くあります。
+X Window System上で動作する統合開発環境(IDE)ではKDevelop、Anjuta、Eclipse、NetBeansなど、コマンドライン上でも動作するEmacs、Vimなどもフロントエンドとして利用することができます。
+
+\subsubsection{Emacs GUDモードでgdbを使ってみる}
+EmacsにはGUD(Grand Unified Debugger)という機能があり、Emacs上で様々なデバッガと連携することができる仕組みです。GUDはgdbに限らず、perldb(perl用デバッガ)やpdb(python用デバッガ)なども起動することができます。
+
+Emacsの実行中に以下のキーを入力してgdbを起動します。
+
+\begin{commandline}
+M-x gdb
+\end{commandline}
+
+その後、ミニバッファで実行ファイルを指定してEnterキーを入力します。
+
+\begin{commandline}
+Run gdb (like this): gdb --annotate=3 ../a.out
+\end{commandline}
+
+すると図\ref{figure-emacs-gud1}、図\ref{figure-emacs-debugging1}のような画面に切り替わります。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.5]{image200910/gdb-emacs-gud1.png}
+\caption{Emacs GUDモードでgdbを起動した画面(1)}\label{figure-emacs-gud1}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.5]{image200910/gdb-emacs-gud2.png}
+\caption{Emacs GUDモードでデバッグ中の画面(2)}\label{figure-emacs-debugging1}
+\end{center}
+\end{figure}
+
+
+また、Emacsの設定ファイル"〜/.emacs.el"に「(setq gdb-many-windows t)」を指定しておくと、すると図\ref{figure-emacs-gud2}、図\ref{figure-emacs-debugging2}のような画面でgdbが起動します。
+この画面を表示するには「gud.el」というファイルが必要であり。lennyの場合はEmacsをインストールすると一緒にインストールされます。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.5]{image200910/gdb-emacs-gud3.png}
+\caption{Emacs GUDモードでgdbを起動した画面(3)}\label{figure-emacs-gud2}
+\end{center}
+\end{figure}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[scale=0.5]{image200910/gdb-emacs-gud4.png}
+\caption{Emacs GUDモードでデバッグ中の画面(4)}\label{figure-emacs-debugging2}
+\end{center}
+\end{figure}
+
+
+\subsection{いろいろなプログラムのデバッグ方法}
+私がプログラムをgdbを使ってデバッグするときの操作例を挙げてみます。
+
+\subsubsection{単発実行系プログラムのデバッグ}
+単発実行するプログラムの場合はデバッガでプログラムの起動を行い、その後にデバッグ作業を開始することになります。
+
+\begin{enumerate}
+\item gdbを起動します。
+\item breakコマンドでブレークポイントを指定します。(実際には「b main」と入力してプログラムの最初で止めることも多いです。)
+\item runコマンドでプログラムを開始します。
+\item stepコマンド、nextコマンドでプログラムを追いかけます。
+\item デバッグが完了したら、continueコマンドで残りのプログラムすべてを実行します。
+\item quitコマンドでgdbを終了します。
+\end{enumerate}
+
+\subsubsection{デーモン系プログラムのデバッグ}
+デーモンとして動作しているプログラムの場合は、動作中のプログラムをgdbで制御する必要があるためアタッチする必要があります。
+
+\begin{enumerate}
+\item デバッグするデーモンプログラムを実行します。
+\item デバッグするデーモンプロセスのプロセスIDを調べます。
+\item gdbを起動します。
+\item プロセスIDを指定してattachコマンドを実行し、デバッグするデーモンプロセスにアタッチします。
+\item breakコマンドでブレークポイントを指定します。(おそらく無限ループ処理のどこかで停止させることになると思います。)
+\item ブレークポイントを設定したところでプログラムが一時停止しますので、stepコマンドやnextコマンドを実行してプログラムを追いかけます。
+\item デバッグが終了したら、detachコマンドでプロセスからデタッチします。
+\item quitコマンドでgdbを終了します。
+\end{enumerate}
+
+\subsubsection{forkするプログラムのデバッグ}
+forkするプログラムの場合、fork()後に親プロセスと子プロセスのどちらを追いかけるのかを「set follow-fork-mode parent」などと設定しておく必要があります。
+
+\begin{enumerate}
+\item gdbを起動します。
+\item 「set follow-fork-mode」を設定し、fork()後にデバッガを追うプロセスを親プロセスにするか、子プロセスにするか設定します。
+\item breakコマンドでブレークポイントを指定します。
+\item runコマンドでプログラムを開始します。
+\item fork()した後は「set follow-fork-mode」で指定した親プロセスか子プロセスのいずれかを追従しますのでそのまま続けてデバッグします。
+\item quitコマンドでプログラムを終了します。
+\end{enumerate}
+
+\subsection{まとめ}
+今回はgdbの紹介とEmacs GUDモードにおいてプログラムをデバッグする一例を紹介しました。Emacs GUDモードを使ったデバッグ操作はX Window System上だけでなくコンソール環境でも同様の手順で実行できるため、telnet環境やssh環境でも同じスタイルでプログラムのデバッグ作業を行うことができます。
+
+みなさんもDebianを使ってたくさんデバッグしてみましょう。
+
+\subsection{参考資料}
+\begin{itemize}
+ \item man gdb(1)
+\end{itemize}
+
 %-------------------------------
 \dancersection{佐々木流 Debian パッケージの作り方。最初から最後まで}{佐々木洋平}
 
