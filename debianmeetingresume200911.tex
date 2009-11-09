@@ -219,8 +219,6 @@ Debian温泉の企画にも進展がありそうです。
 % \input{image200909/quiz.tex}
 %\end{multicols}
 
-\dancersection{xxx}{yyy}
-
 \clearpage
 
 % ===============================================================
@@ -328,6 +326,362 @@ GNU Rでは
 \subsection{まとめ。}
 
 \clearpage
+
+
+\dancersection{Debian autobuilder ネットワーク}{岩松}
+
+Debianは現時点で11個のCPUアーキテクチャと2つのカーネルをサポートしています。
+そしてユーザが知らないうちに各アーキテクチャ毎のDebianパッケージがビルドされ、
+利用できるようになっています。これはどのようになっているのでしょうか。
+もちろん、パッケージメンテナはすべてのアーキテクチャを持っているわけでは
+ないので（持っている人もいるみたいですが。）、パッケージメンテナがビルド
+しているわけではありません。
+Debianではサポートしているアーキテクチャ向けのDebianパッケージが自動的に
+ビルドするシステム {\bf Autobuilder ネットワーク}によってパッケージが自
+動的にビルドされています。Debian Project では重要なシステムの一つなので
+すが、表に出てくる事も少ないためどのような動きになっているのか知る人は少
+ないです。今回、Renesas SuperH(SH4)を移植するにあたりこれらの情報を入手
+したのでまとめてみました。
+
+\subsection{Autobuilder ネットワークのコンポーネント}
+
+Autobuilder ネットワーク は一つのソフトウェアで動いているわけではなく、
+いくつかのソフトウェアと porter
+と呼ばれる buildd のメンテナがいます。Autobuilder ネットワークの動きを説
+明する前に、各コンポーネントがど
+のような動きをするのか理解しておく必要があります。以下に主要な動作を説明
+します。
+
+\subsubsection{quinn-diff}
+パッケージメンテナによって新しくアップロードされたソフトウェアのアーキ
+テクチャ依存のパッケージ (Archi-
+tecture: any) とアーキテクチャ非依存のパッケージ (Architecture: all) を
+チェックし、前者を wanna-build のデー
+タベースに登録するツールです。これはソースパッケージだけでなく、バイナ
+リパッケージもチェックします。
+Autobuilder ネットワークの過程では アーキテクチャ非依存のパッケージはビ
+ルドされません。
+
+\subsubsection{wanna-build}
+ buildd とデータのやりとりをするためのインターフェイスです。各アーキテク
+ チャ毎にパッケージのデータベー
+スを持ちます。buildd は wanna-build のデータベースを持つサーバに ssh で
+ ログインし、wanna-build コマンドを
+使ってデータベースをコントロールします。
+
+
+\subsubsection{buildd}
+wanna-build と データをやりとりするデーモンやパッケージをアップロードす
+るツール一式を指します。ツールには以下のものがあります。
+
+\begin{itemize}
+\item buildd\\
+  buildd デーモン。wanna-buildd のデータベースを定期的にチェックし、
+  ビルドが必要なパッケージをパッケー
+  ジビルドキューとして管理します。そして、sbuild へのビルド指示を行いま
+  す。
+
+\item buildd-mail\\
+  メールキューディレクトリにあるデータを処理するプログラム。ビルドに成功
+  したパッケージ (*.deb, *.udeb)
+  とパッケージ情報 (*.dsc, *.changes, etc) をアップロードキューディレク
+  トリに移動させます。
+
+\item buildd-mail-wrapper\\
+  buildd-mail-wrapper は porter から送られたメールをメールキューディレク
+  トリに格納し、buildd-mail を呼
+  び出すプログラムです。入力データとして、メールデータそのものを要求する
+  ので、procmail など合わせて利
+  用します。
+
+\item buildd-update-chroots\\
+  パッケージのビルドを行う chroot 環境をアップデートおよびクリーンアップ
+  するプログラムです。buildd が
+  動作している場合には buildd を停止し、chroot をアップーデートします。
+  アップデート完了後、再度 buildd
+  を起動させます。クリーンアップには debfoster と呼ばれるゴミパッケージ
+  を消すプログラムが利用されてい
+  ます。
+
+\item buildd-uploader\\
+  アップロードキューディレクトリにあるパッケージをアップロードするプログ
+  ラムです。dupload を使い、
+  GPG サインされている *.changes ファイルをパーサし、パッケージをアップ
+  ロードします。cron 等で定期的
+  に呼び出して利用します。
+
+\item buildd-watcher\\
+  buildd の動きをチェ     ックするプログラム。cron 等で定期的に呼び出し
+  て利用します。
+
+\end{itemize}
+
+\subsection{sbuild}
+実際にパッケージをビルドするプログラムです。buildd から呼ばれます。パッ
+ケージのソースコードを取得し、ビ
+ルド結果を porter に送信するまでの処理を行います。pbuilder と機能がかぶ
+りますが、sbuild はアーキテクチャ依
+存部分のビルドに特化したパッケージビルドシステムになっています。schroot
+を利用することにより、lvm などディスク管理機能にも対応もされています。
+
+\subsection{schroot}
+sbuild から呼ばれる chroot 代替プログラムです。chroot の高機能版です。
+
+\subsection{porter}
+
+buildd をメンテナンスする人です。ビルド結果をメールとして受信し、その結
+果を buildd に対して返信します。
+ビルドに成功したパッケージのメールには GPG でサインして返信します。この
+返信する際には、送られてきたメー
+ルから、*.changelog の部分を抜き出して、その抜き出した部分にサインを行い
+ます。
+抜きだしの部分にはスクリプトを使って処理するのですが、現在のところ mutt のスクリプトしかないので、
+ほとんどの porter は Mutt ユーザです。
+
+\subsection{Autobuilder ネットワークの動き}
+Autobuilder ネットワークの動きとして、ソフトウェアの連携と、パッケージビ
+ルド時の状態遷移にわけることができます。
+
+\subsubsection{ソフトウェアの連携について}
+\includegraphics[scale=0.8]{image200911/buildd-image00.png}
+
+\subsubsection{パッケージビルド時の状態遷移}
+パッケージは常になにかしらの状態をステータスを持っています。ステータス
+は wanna-build で管理する DB で保持されています。
+ステータスは以下のものがあり、図\ref{fig:pkg-state}のように変化します。
+
+\begin{itemize}
+
+\item BD-Uninstallable\\
+パッケージのビルドに足りないパッケージがある状態。
+
+\item Needs-Build \\
+パッケージがビルド可能な状態。
+パッケージビルド依存関係が解消されてたり、ビルドの状態から戻された
+(given-back) 場合にこの状態になります。
+
+\item Building \\
+Builddによってパッケージがビルドされている状態。
+
+\item Uploaded\\
+PorterによってパッケージにGPGサインされ、アーカイブにアップロードされた状態。
+
+\item Installed\\
+アーカイブにインストールされた状態。
+
+\item Dep-Wait\\
+パッケージのビルド依存関係待ちの状態。
+
+\item Failed\\
+パッケージがビルドに失敗した状態。
+
+\item Not-For-Us\\
+対象のアーキテクチャではビルドできないパッケージの状態。
+porterがwanna-build経由でデータベースに登録します。
+現在、wanna-build のデータベースとは別にアーキテクチャ依存のリスト
+      \footnote{ttp://buildd.debian.org/git/packages-arch-specific.git}を
+作成中です。
+\item Failed-Removed
+Failed 状態のパッケージが一時的に削除されているという状態。
+
+\end{itemize}
+
+\begin{figure}[htbp]
+ \begin{center}
+   \includegraphics[scale=0.7]{image200911/buildd-status.png}
+ \end{center}
+ \caption{パッケージステータスの状態遷移}
+ \label{fig:pkg-state}
+\end{figure}
+
+
+\subsubsection{ビルドの優先順位}
+パッケージのビルドは基本的に Need-Build のステータスになった順かつパッケー
+ジ名ASCII 順でビルドされますが、
+それとは別にソースパッケージのプライオリティとソースパッケージのセクション毎に優先順
+位が設定されています。
+現在では、以下の優先順位になっています。
+
+\begin{table}[htbp]
+\begin{center}
+\begin{tabular}{ccc}
+
+\begin{minipage}{0.3\hsize}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+Source Priority & 値 \\ \hline
+required & -5 \\ \hline
+important & -4 \\ \hline
+standard & -3 \\ \hline
+optional & -2 \\ \hline
+extra & 1 \\ \hline
+unknown & -1 \\ \hline
+\hline
+\end{tabular}
+\caption{ソースパッケージプライオリティ毎の優先順位}
+\end{center}
+\end{minipage}
+
+\begin{minipage}{0.3\hsize}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+ libs & -200 \\ \hline
+ debian-installer & -199 \\ \hline
+ base & -198 \\ \hline
+ devel & -197 \\ \hline
+ shells & -196 \\ \hline
+ perl & -195 \\ \hline
+ python & -194 \\ \hline
+ graphics & -193 \\ \hline
+ admin & -192 \\ \hline
+ utils & -191 \\ \hline
+ x11 & -190 \\ \hline
+ editors & -189 \\ \hline
+ net & -188 \\ \hline
+ mail & -187 \\ \hline
+ news & -186 \\ \hline
+ tex & -185 \\ \hline
+ text & -184 \\ \hline
+\hline
+\end{tabular}
+\caption{ソースパッケージセクション毎の優先順位:その1}
+\end{center}
+\end{minipage}
+
+\begin{minipage}{0.3\hsize}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+ web & -183  \\ \hline
+ doc & -182 \\ \hline
+ interpreters & -181 \\ \hline
+ gnome & -180 \\ \hline
+ kde & -179 \\ \hline
+ games & -178 \\ \hline
+ misc & -177 \\ \hline
+ otherosfs & -176 \\ \hline
+ oldlibs & -175 \\ \hline
+ libdevel & -174 \\ \hline
+ sound & -173 \\ \hline
+ math & -172 \\ \hline
+ science & -171 \\ \hline
+ comm & -170 \\ \hline
+ electronics & -169 \\ \hline
+ hamradio & -168 \\ \hline
+ embedded & -166 \\ \hline
+ unknown & -165 \\ \hline
+\hline
+\end{tabular}
+\caption{ソースパッケージセクション毎の優先順位:その2}
+\end{center}
+\end{minipage}
+
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{新しいアーキテクチャをサポートするには}
+
+昔は、ポーティングしたい人が quinn-diff から buildd(buildd-node) まで全
+て構築する必要がありました。この最
+大のネックは quinn-diff と wanna-build DB で、これらは利用するパッケージ
+データは最新のものを使う必要があっ
+たのですが、DB のありかは公開されていない(参照するには権限が必要)かつ、
+最新の情報を取得するにはサー
+バーアカウントが必要だったため、構築が困難でした。しかし、今は新しいアー
+キテクチャを追加するためのサポー
+ト用サービス debian-ports.org が用意されています。このサービスでは、ポー
+ティングしたいアーキテクチャ用の
+wanna-build 用アカウント と DB, quinn-diff のサービスを提供できるように
+なっています。これにより、移植したい人は buildd-node のみを用意し、debian-ports の管理者に登録申請をするだ
+けで新しいアーキテクチャをサポートできるようになりました。
+そして現在、debian-ports.org を使っているアーキテクチャは以下のとおりです。
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+アーキテクチャ名 & 進捗 \\ \hline
+avr32 & 65.52\% \\ \hline
+hurd-i386 & 64.46\% \\ \hline
+m68k & 53.00\% \\ \hline
+sh4 & 85.43\% \\ \hline
+\hline
+\end{tabular}
+\caption{debian-ports.orgでサポート中のアーキテクチャ}
+\end{center}
+\end{table}
+
+\subsection{loop-depends の対応方法}
+
+いくつかのパッケージには loop-depends になっているものがあります。
+loop-depends とは、ビルド依存がループしているパッケージの状態を言います。
+例えば、libpang-perl パッケージは libgtk2-perlパッケージにビルド依存して
+います。しかし、libgtk2-perl は libpang-perlパッケージに依存しています。
+
+\begin{commandline}
+Source: libpango-perl
+Section: perl
+Priority: optional
+Build-Depends: debhelper (>= 7.0.50), libcairo-perl (>= 1.000),
+  libextutils-depends-perl (>= 0.300), libextutils-pkgconfig-perl,
+  libglib-perl (>= 1:1.220), perl, xvfb, libpango1.0-dev,
+  xauth, xfonts-base, quilt, libgtk2-perl (>= 1:1.220)
+\end{commandline}
+
+\begin{commandline}
+Source: libgtk2-perl
+Section: perl
+Priority: optional
+Build-Depends: debhelper (>= 7.0.50), quilt (>= 0.46-7), perl,
+ libextutils-depends-perl (>= 0.300), libextutils-pkgconfig-perl (>=
+ 1.03), libgtk2.0-dev (>= 2.6.0), libglib-perl (>= 1:1.220),
+ libcairo-perl (>= 1.00), xvfb, xauth, xfonts-base, hicolor-icon-theme,
+ libpango-perl (>= 1.220), shared-mime-info
+\end{commandline}
+
+これではいつになってもビルドできません。よって、手を加えてビルドする必要があります。
+手を加えた場合は正式なパッケージとして扱われません。
+このようなパッケージに遭遇した場合には、unreleased ディストリビューションにパッケージをアップロードし、
+そのパッケージを使って再度ビルドを行うという方法をとります。
+
+以下に例として libpang-perl をビルドする場合の手順を説明します。
+\begin{enumerate}
+
+\item builddが動作していない別マシンでの作業
+\begin{enumerate}
+ \item libpango-perl のソースパッケージをダウンロードします。
+ \item debian/control ファイルの Build-depends から libgtk2-perl を削除
+       します。
+ \item debian/changelog をアップデートします。\\
+Debian versionは既存のバージョンに+arch-name などをつける必要があります。
+       （実際のDebian packageと区別するため。）
+ディストリビューション名は unreleased に変更します。
+debian/changelog の変更者も変更する必要があります。
+\item debuild -m''Your name <your-name@example.org>'' などとしてパッケー
+      ジをビルドします。 
+\item dupload を使ってアップロードします。
+\item dak で処理されれば、unreleased ディストリビューションから libpango-perl が利用できるよ
+      うになります。
+\end{enumerate}
+\item schroot内での作業
+\begin{enumerate}
+\item schroot環境のapt-lineに unreleased を追加します。
+\item schroot内で apt-get update を実行します。
+\end{enumerate}
+\item libgtk2-perl がビルドできるようになります。
+\item libgtk2-perl ができたら、unreleased ディストリビューションから
+      libpango-perl を消してもらいます。
+\item libpango-perl が 本来のDebian Versionのものでビルドされます。
+\end{enumerate}
+
+毎回この方法がうまくいくとは限りません。
+例えば、依存するパッケージや提供されるパッケージの機能によっては configure のオ
+プションを変更する場合もあります。このあたりはパッケージメンテナか、
+debian-wb@l.d.o に直接聞いたほうがよいです。聞かないとわからないというの
+は問題なので、README.Debianあたりに書いてもらうように計画中です。
 
 %\printindex
 
