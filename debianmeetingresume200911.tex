@@ -29,6 +29,7 @@
 
 \documentclass[mingoth,a4paper]{jsarticle}
 \usepackage{monthlyreport}
+\usepackage{graphicx}
 
 % 日付を定義する、毎月変わります。
 % date --date 'third saturday'
@@ -144,7 +145,7 @@
 この課題に対して提出いただいた内容は以下です。
 
 \begin{multicols}{2}
-%\input{image200911/prework.tex}
+\input{image200911/prework.tex}
 \end{multicols}
 
 % image200911/prework.tex 内部にテキストを追加してください。
@@ -225,43 +226,64 @@ Debian温泉の企画にも進展がありそうです。
 % ===============================================================
 \dancersection{Debianでの数学ことはじめ。}{まえだこうへい}
 \index{GNU R}
-\index{Octave}
+\index{GNU Octave}
 \index{Gnuplot}
 % ===============================================================
 
 \subsection{はじめに}
 
 Debianで数値計算や統計処理、グラフ作成を行うには、様々なパッケージがあり
-ます。私のように大学が理系といっても基礎生物学専攻だった人間には、コン
+ます。私のように大学での専行が理系といっても基礎生物学だった人間には、コン
 ピュータでの専用ツールでなくても、極端な話、基本的な統計学と関数電卓があ
-れば事足りました。電卓代わりにExcel\textregistered{}やOOoのcalcのようなス
-プレッドシートを使う、というやり方でやっていました。社会人になってからも
-スプレッドシートで大抵は事足りる、という方が一般的には多いのではないかと
-思います。
+れば事足りました。スプレッドシートを使っても、関数は使わずに電卓代わりに
+使うことも多かったと記憶してます\footnote{理由は、当時のスプレッドシート
+の関数の精度が低く、自分で計算式を作った方が確実だったためです。今では改
+善されたのでしょうか？}。社会人になってからもその延長でスプレッドシート
+で大抵は事足りる、という方が一般的には多いのではないかと思います。
 
-とはいえ、結構なサンプル数の計算をしたり、グラフを描写する場合、スプレッ
-ドシートでは非力だということを実感しています。。プリセールスや企画で裏付
-け資料を作るのにサンプルデータを統計処理して、グラフを描くと、スプレッド
-シートだとマウスの操作だけで簡単にできる一方、CPUやメモリ不足でレスポン
-スが遅くなったり、ソフトウェア自体が落ちたり、酷いとOS自体のレスポンスが
-悪化するというのが最近の仕事上での悩みだったりします。
+とはいえ、数万単位のサンプル数の計算をしたり、グラフを描写する場合、スプレッ
+ドシートでは非力だという問題もあります。プリセールスや企画で裏付け資料を
+作るのにサンプルデータを統計処理したり、データをプロットしてグラフを描く
+と、スプレッドシートだとマウスの操作だけで簡単にできる一方、CPUやメモリ
+不足でレスポンスが遅くなったり、ソフトウェア自体が落ちたり、酷いとOS自体
+のレスポンスも悪化するというのが最近の仕事上での悩みだったりします。
 
-そんなことがきっかけで最近、Gnuplotを使い始めたわけですが、統計処理では
-最近はGNU Rの書籍を書店で見かけたり、数値計算ではOctaveというのがあると
-いうことをDebian勉強会のMLで知ったり\footnote{GNU RやOctaveのパッケージ
+そんなことがきっかけで今頃、Gnuplotを使い始めたわけですが、統計処理では
+最近はRの書籍を書店で見かけたり、数値計算ではOctaveというのがあると
+いうことをDebian勉強会のMLで知ったり\footnote{RやOctaveのパッケージ
 メンテナであるDirk Eddelbuettel さんが近々来日されるというのがMLで流れて
 いたそもそものきっかけです。\url{http://dirk.eddelbuettel.com/}}と、自分
 の中だけでなく、最近意外とまわりでもこの辺はホットな話題ではないかと思い
-ます。そこで、今回はOctave, GNU Rを中心に、Gnuplotとの連携方法を交えなが
-ら、Debianでの使い方、パッケージングなどについて説明しようと思います。
+ます。そこで、今回は私と同じように入門者向けに Octave、Gnuplotとの連携方
+法、Rの話に加え、Debianでの使い方、パッケージングなどについて説明しよう
+と思います。
+
+
+\subsection{概要}
+GNU Ocatave は計算処理のための高級言語で、MATLAB\textregistered()という
+数値計算の商用ソフトウェアとの互換性があるようです。行列計算、連立方程式、
+微分・積分、グラフ出力などに使えます。グラフ描画のためには、gnuplotが必要です。
+
+一方、GNU Rは統計解析のためのプログラミング言語で、文法的には、S言語や
+Schemeに影響を受けているようです。Octaveとは異なり、グラフ描画には
+gnuplotは必要ないようです。Excel\textregistered()などのデータ読み込みが
+できるといった、データの互換性にも特徴があります。
+
 
 \subsection{インストール方法}
 
-\subsubsection{Octaveのインストール方法}
-OctaveはSqueeze/Sidでは、バージョン3.0と3.2で別のパッケージになっていま
-す。今回は3.2のパッケージを導入してみます。
+Debian での各実行環境の導入方法について見てみます。今回の前提条件として、
+ディストリビューションは Sid\footnote{2009年11月10日現在。}としています
+が、Stable(Lenny)や Testing(Squeeze)でもバージョンが異なることを除けばほ
+ぼ同じです。適宜読み替えてください。
 
-FIXME 3.0と3.2の違いを簡単に記載すること。
+\subsubsection{Octaveのインストール方法}
+
+GNU OctaveはSqueeze/Sidでは、\texttt{octave}というパッケージ名ではなく、
+バージョン3.0と3.2で別のパッケージになっています。今回は3.2のパッケージ
+を導入してみます。
+
+◆ FIXME 3.0と3.2の違いを簡単に記載すること。 ◆
 
 \begin{commandline}
 $ sudo apt-get install octave3.2
@@ -270,7 +292,19 @@ $ sudo apt-get install octave3.2
 \subsubsection{GNU Rのインストール方法}
 
 GNU Rは、Debianパッケージでの名前は、gnurでも、rでもgnu-rでもありません。
-r-baseという名前になっているので、その点注意が必要です。
+\texttt{r-base}というメタパッケージで提供されています。これをインストールすると、
+最低限、\texttt{r-base-core}パッケージがGNU Rの実行には必要です。また、GNU Rには、
+機能拡張のパッケージが用意されています。CRAN(the Comprehensive R Archive
+Network)からダウンロードできます。Perlでの CPAN のような位置づけです。
+千以上ものパッケージがあるようです。Debianでは、CPANや Ruby gemsと同様に
+ここから直接ダウンロードすることもできますが、約150のRパッケージがdebパッ
+ケージとして用意されています\footnote{2009年11月9日現在。}。パッケージ名
+は''\texttt{r-cran-<name>}''というネーミングルールです。
+
+今回は\texttt{r-base}をインストールしましたが、余計なパッケージを入れな
+いようにと、\texttt{r-base-core}パッケージをインストールしたとしても最小
+構成からのパッケージの差は二つしかありません。\footnote{一つは\texttt{r-base}, も
+う一つは\texttt{r-base-dev}です。}
 
 \begin{commandline}
 $ sudo apt-get install r-base
@@ -278,8 +312,10 @@ $ sudo apt-get install r-base
 
 \subsubsection{Gnuplotのインストール}
 
-GnuplotはOctave、GNU Rのいずれも依存関係はありませんが、インストールして
-おくと便利でしょう。
+GnuplotはOctave、GNU Rのいずれもdebパッケージとしての依存関係はありませ
+んが、octaveではgnuplotを使ってグラフ描画もできるので、インストールして
+おくと便利でしょう。gnuplotのインストールには\texttt{gnuplot}パッケージ
+をインストールします。
 
 \begin{commandline}
 $ sudo apt-get install gnuplot
@@ -287,16 +323,312 @@ $ sudo apt-get install gnuplot
 
 \subsection{試してみる。}
 
+今回は、我が家の過去9年分の光熱費における各使用量の分布をサンプルデータ
+としてみます。まずは、もともと使い始めていた gnuplot での例をみて、それ
+に対し、Octave, R ではどのように処理するのかを見てみましょう。
+
+用意したサンプルデータは以下のようなものです。
+
+\begin{commandline}
+"date","days","kWh","kWh/d","yen/d","yen","days","m^3","m^3/d","yen/d","yen","days","m^3","m^3/d","yen/d","yen","yen/d","yen"
+2001/04,11,34,3.09,83.5,918,36,4.9,0.14,108.3,3900,58,9,0.16,22.8,1320,,
+2001/05,33,95,2.88,73.8,2434,29,3.5,0.12,114.1,3310,,,,,,,
+2001/06,30,129,4.3,102.7,3082,32,3,0.09,96.9,3100,61,3,0.05,15.7,960,,
+2001/07,28,155,5.54,131.3,3676,28,1.7,0.06,91.1,2550,,,,,,,
+2001/08,34,212,6.24,146.9,4995,35,2.2,0.06,78.9,2760,60,6,0.1,19,1140,,
+2001/09,29,156,5.38,127.6,3699,28,2.3,0.08,91.1,2550,,,,,,,
+2001/10,30,126,4.2,100.6,3018,31,2.3,0.07,90.6,2810,63,6,0.1,18.1,1140,,
+2001/11,32,155,4.84,115.4,3692,29,4.7,0.16,131.4,3810,,,,,,,
+2001/12,29,167,5.76,136.9,3971,32,4.3,0.13,114.1,3650,63,7,0.11,19,1200,,
+2002/01,34,217,6.38,150.8,5127,29,5.6,0.19,144.1,4180,,,,,,,
+2002/02,29,136,4.69,111.9,3246,29,4.8,0.17,133.1,3860,58,6,0.1,19.7,1140,,
+2002/03,28,139,4.96,118.4,3315,33,4.9,0.15,118.2,3900,,,,,,,
+2002/04,29,127,4.38,101.2,2935,29,4.1,0.14,122.8,3560,62,9,0.15,21.3,1320,,
+(snip)
+\end{commandline}
+
+左から、年月,電気使用日数,月の電気使用量(kWh),1日あたりの電気使用量,1日
+あたりの電気代,月の電気代,ガス使用日数,月のガス使用量(立方メートル),1日
+あたりのガス使用量,1日あたりのガス代,月のガス代,水道使用日数,水道使用量
+(立方メートル),1日あたりの水道使用量,1日あたりの水道代,月の水道代,1日あ
+たりの下水道代,月の下水道代、となっています。
+
+\subsubsection{gnuplot の場合}
+
+gnuplotでは、次のようなバッチファイルを用意します。2001年4月から 2009年8
+月までの電気、ガス、水道の各使用量をそれぞれプロットします。また、Debian
+勉強会資料用に、LaTeXで取り込めるように、図はEPS、文字列はLaTeXで出力す
+るようにします。
+
+\begin{commandline}
+reset
+set terminal epslatex input color
+set output "gnuplot.tex"
+set datafile separator ","
+set xdata time
+set timefmt "%Y/%m"
+set format x "%Y/%m"
+set xtics rotate by -90
+set mxtics 12
+set xrange ["2001/04":"2009/08"]
+set yrange [0:400]
+set xlabel "年月"
+set ylabel "電気使用量 [kWh]"
+set y2range [0:50]
+set y2label "ガス・水道使用量 [立方メートル]"
+set ytics nomirror
+set y2tics
+plot "kohnetsuhi.csv" using 1:3 axes x1y1 title "電気" with line,\
+     "" using 1:8 axes x1y2 title "ガス" with line,\
+     "" using 1:13 axes x1y2 title "水道" with line
+\end{commandline}
+
+このバッチファイルをLaTeXとEPSに変換します。バッチファイルをロードするに
+は、対話モードでloadコマンドを実行します。
+
+\begin{commandline}
+$ gnuplot
+
+	G N U P L O T
+	Version 4.2 patchlevel 6 
+	last modified Sep 2009
+	System: Linux 2.6.31.3
+
+	Copyright (C) 1986 - 1993, 1998, 2004, 2007 - 2009
+	Thomas Williams, Colin Kelley and many others
+
+	Type `help` to access the on-line reference manual.
+	The gnuplot FAQ is available from http://www.gnuplot.info/faq/
+
+	Send bug reports and suggestions to <http://sourceforge.net/projects/gnuplot>
+
+
+Terminal type set to 'wxt'
+gnuplot> load ``gnuplot.gp''
+gnuplot> quit
+\end{commandline}
+
+これで、カレントディレクトリに gnuplot.texとgnuplot.epsファイルが出力さ
+れます。gnuplot.tex は、LaTeX文書の中で以下のように記述して取り込みます。
+
+\begin{commandline}
+\begin{figure}[thbp]
+\input{image200911/gnuplot.tex}
+\end{figure}
+\end{commandline}
+
+ただし、このままでは make が通りません。gnuplot.tex を書き換える必要があ
+ります。次のように下から3行目の includegraphicsのパスを変更する必要があ
+ります。
+
+\begin{commandline}
+
+$ diff -u gnuplot.tex.bk gnuplot.tex
+--- gnuplot.tex.orig	2009-11-12 23:38:36.000000000 +0900
++++ gnuplot.tex	2009-11-12 23:39:39.000000000 +0900
+@@ -111,7 +111,7 @@
+       \put(5003,4163){\makebox(0,0)[r]{\strut{}水道}}%
+     }%
+     \gplbacktext
+-    \put(0,0){\includegraphics{gnuplot}}%
++    \put(0,0){\includegraphics{image200911/gnuplot.eps}}%
+     \gplfronttext
+   \end{picture}%
+ \endgroup
+\end{document}
+\end{commandline}
+
+これで make すると、以下のような図を表示できます。
+
+\begin{figure}[thbp]
+\input{image200911/gnuplot.tex}
+\end{figure}
+
+では、これを Octave, Rではどのようにするのかを見てみましょう。
+
 \subsubsection{Octaveの場合}
+
+octave3.2をインストールしたら、デスクトップ環境のメニューの「開発」→
+「GNU Octave」からoctaveのターミナルを起動でき、インタラクティブモードで
+実行することができます。が、若干レスポンスにもたつきを感じました。シェル
+から\texttt{octave}コマンドを実行しても同じCUIを利用できるので、それで良
+いでしょう。
+
+\begin{commandline}
+
+$ octave
+GNU Octave, version 3.2.3
+Copyright (C) 2009 John W. Eaton and others.
+This is free software; see the source code for copying conditions.
+There is ABSOLUTELY NO WARRANTY; not even for MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  For details, type `warranty'.
+
+Octave was configured for "x86_64-pc-linux-gnu".
+
+Additional information about Octave is available at http://www.octave.org.
+
+Please contribute if you find this software useful.
+For more information, visit http://www.octave.org/help-wanted.html
+
+Report bugs to <bug@octave.org> (but first, please read
+http://www.octave.org/bugs.html to learn how to write a helpful report).
+
+For information about changes from previous versions, type `news'.
+
+octave:1> 
+\end{commandline}
+
+◆ Octave まで書くのは辛いな…。削ろうかな…。◆
+
 
 \subsubsection{GNU Rの場合}
 
-\subsubsection{Gnuplotとの連携}
+GNU Rを対話形式で使うには、シェルで\texttt{R}と実行します。
+\begin{commandline}
+$ R
+\end{commandline}
+
+Rでデータを扱うには、先ほどの konetsu.csvファイルをオブジェクトに取り込
+む必要があります。取り込むには、\verb/<-/演算子を使います。
+
+\begin{commandline}
+> konetsu <- read.csv("konetsu.csv")
+\end{commandline}
+
+この konetsu オブジェクトの中身を見てみます。このオブジェクトはデータフ
+レームといい、これを指定するだけです。
+
+\begin{commandline}
+> konetsu
+    X...date days kWh kWh.day yen.day  yen days.1  m.3 m.3.day yen.day.1 yen.1
+1     2001/4   11  34    3.09    83.5  918     36  4.9    0.14     108.3  3900
+2     2001/5   33  95    2.88    73.8 2434     29  3.5    0.12     114.1  3310
+3     2001/6   30 129    4.30   102.7 3082     32  3.0    0.09      96.9  3100
+4     2001/7   28 155    5.54   131.3 3676     28  1.7    0.06      91.1  2550
+5     2001/8   34 212    6.24   146.9 4995     35  2.2    0.06      78.9  2760
+6     2001/9   29 156    5.38   127.6 3699     28  2.3    0.08      91.1  2550
+7    2001/10   30 126    4.20   100.6 3018     31  2.3    0.07      90.6  2810
+8    2001/11   32 155    4.84   115.4 3692     29  4.7    0.16     131.4  3810
+9    2001/12   29 167    5.76   136.9 3971     32  4.3    0.13     114.1  3650
+10    2002/1   34 217    6.38   150.8 5127     29  5.6    0.19     144.1
+ 4180
+(snip)
+    days.2 m.3.1 m.3.day.1 fee.d yen.2 yen.day.2 yen.3
+1       58     9      0.16  22.8  1320        NA    NA
+2       NA    NA        NA    NA    NA        NA    NA
+3       61     3      0.05  15.7   960        NA    NA
+4       NA    NA        NA    NA    NA        NA    NA
+5       60     6      0.10  19.0  1140        NA    NA
+6       NA    NA        NA    NA    NA        NA    NA
+7       63     6      0.10  18.1  1140        NA    NA
+8       NA    NA        NA    NA    NA        NA    NA
+9       63     7      0.11  19.0  1200        NA    NA
+10      NA    NA        NA    NA    NA        NA    NA
+(snip)
+\end{commandline}
+ 
+列数が増えると、この例のように分割して表示されます。``NA''と表示されてい
+るのは、値がnullだったものです。
+
+また、この取り込んだデータのサマリを表示させることも簡単です。以下のよう
+に Rでは統計処理のための関数があらかじめ用意されているので、とても便利で
+す。
+
+\begin{commandline}
+> summary(konetsu)
+    X...date       days            kWh           kWh.day          yen.day
+ 2006/9 : 2   Min.   :11.00   Min.   : 34.0   Min.   : 2.880   Min.   : 73.8
+ 2001/10: 1   1st Qu.:29.00   1st Qu.:170.2   1st Qu.: 5.753   1st Qu.:129.1
+ 2001/11: 1   Median :30.00   Median :195.0   Median : 6.410   Median :147.3
+ 2001/12: 1   Mean   :30.09   Mean   :199.1   Mean   : 6.565   Mean   :151.3
+ 2001/4 : 1   3rd Qu.:33.00   3rd Qu.:219.0   3rd Qu.: 7.225   3rd Qu.:171.0
+ 2001/5 : 1   Max.   :35.00   Max.   :363.0   Max.   :11.000   Max.   :250.1
+ (Other):95
+      yen           days.1           m.3           m.3.day
+ Min.   : 918   Min.   :11.00   Min.   : 0.00   Min.   :0.0000
+ 1st Qu.:3858   1st Qu.:29.00   1st Qu.: 4.30   1st Qu.:0.1400
+ Median :4598   Median :30.00   Median : 5.80   Median :0.1900
+ Mean   :4585   Mean   :30.15   Mean   : 9.08   Mean   :0.3008
+ 3rd Qu.:5250   3rd Qu.:32.00   3rd Qu.: 9.00   3rd Qu.:0.3175
+ Max.   :8252   Max.   :36.00   Max.   :44.00   Max.   :1.5700
+
+   yen.day.1         yen.1          days.2          m.3.1
+ Min.   : 49.4   Min.   :1231   Min.   :49.00   Min.   : 3.00
+ 1st Qu.: 93.3   1st Qu.:2822   1st Qu.:60.00   1st Qu.: 9.00
+ Median :123.0   Median :3742   Median :61.00   Median :10.00
+ Mean   :127.7   Mean   :3765   Mean   :60.47   Mean   :11.76
+ 3rd Qu.:146.2   3rd Qu.:4382   3rd Qu.:62.00   3rd Qu.:12.00
+ Max.   :543.5   Max.   :8705   Max.   :64.00   Max.   :29.00
+                                NA's   :51.00   NA's   :51.00
+   m.3.day.1           fee.d           yen.2        yen.day.2
+ Min.   : 0.0500   Min.   :15.70   Min.   : 960   Min.   :18.40
+ 1st Qu.: 0.1550   1st Qu.:22.15   1st Qu.:1320   1st Qu.:19.30
+ Median : 0.1800   Median :23.60   Median :1440   Median :20.25
+ Mean   : 0.1939   Mean   :30.57   Mean   :1848   Mean   :25.24
+ 3rd Qu.: 0.1900   3rd Qu.:40.60   3rd Qu.:2480   3rd Qu.:33.50
+ Max.   : 0.4700   Max.   :62.90   Max.   :3897   Max.   :43.20
+ NA's   :51.0000   NA's   :51.00   NA's   :  51   NA's   :84.00
+     yen.3
+ Min.   :1176
+ 1st Qu.:1176
+ Median :1176
+ Mean   :1529
+ 3rd Qu.:1926
+ Max.   :2677
+ NA's   :  84
+\end{commandline}
+
+各項目のデータを表示するには、データフレームのオブジェクト名と自動的につ
+けられた変量名を\verb/データフレーム名$変量名/で指定します。
+以下は、それぞれ、電気、ガス、水道の使用量を表示した例です。
+
+\begin{commandline}
+> konetsu$days
+  [1] 11 33 30 28 34 29 30 32 29 34 29 28 29 33 29 29 34 29 32 31 27 35 29 27 30
+ [26] 33 28 30 34 29 32 29 29 34 29 28 33 31 28 33 29 33 29 30 31 30 31 27 33 33
+ [51] 28 31 29 32 31 31 28 35 28 28 30 34 28 30 32 31 12 28 34 28 34 28 29 28 34
+ [76] 29 29 33 31 28 33 29 34 29 28 29 34 28 30 33 30 31 30 28 33 30 28 30 33 28
+[101] 33 30
+> konetsu$kWh
+  [1]  34  95 129 155 212 156 126 155 167 217 136 139 127 163 156 243 363 217
+ [19] 184 169 143 214 166 160 182 201 173 204 260 235 198 156 154 216 184 163
+ [37] 189 183 176 285 302 315 194 178 188 189 200 186 189 186 152 224 248 251
+ [55] 187 167 158 165 218 171 184 219 176 242 281 262  39 170 210 174 234 198
+ [73] 209 193 237 196 202 363 250 176 229 210 270 219 203 187 232 187 238 253
+ [91] 206 207 197 187 236 219 201 194 218 197 256 298
+>
+> konetsu$m.3
+  [1]  4.9  3.5  3.0  1.7  2.2  2.3  2.3  4.7  4.3  5.6  4.8  4.9  4.1  4.9  4.0
+ [16]  4.3  4.3  4.1  6.1  5.8  8.3  6.0  5.8  6.1  4.9  5.9  4.4  4.7  3.3  3.8
+ [31]  4.7  5.2  5.5  7.4  5.4  5.6  4.3  3.3  3.3  2.9  3.1  4.1  5.8  6.4  6.9
+ [46]  7.0  7.0  7.7  4.5  4.5  3.0  3.0  2.6  3.4  3.5  5.4  4.7 12.5  6.9  6.1
+ [61]  4.6  4.5  3.5  3.2  2.6  0.0  6.0  7.0  9.0  9.0  9.0  9.0  9.0  9.0  9.0
+ [76]  9.0 10.0  8.0  9.0 11.0 11.0 27.0 44.0 19.0 15.0 15.0 11.0  8.0  7.0  7.0
+ [91] 13.0 22.0 27.0 44.0 34.0 43.0 44.0 29.0 21.0 25.0 13.0 15.0
+> konetsu$m.3.1
+  [1]  9 NA  3 NA  6 NA  6 NA  7 NA  6 NA  9 NA 11 NA 12 NA 11 NA 10 NA  8 NA 10
+ [26] NA 12 NA 10 NA  8 NA 10 NA  9 NA  8 NA 11 NA 10 NA 11 NA 12 NA 11 NA 10 NA
+ [51] 10 NA 11 NA 10 NA  9 NA 11 NA 10 NA  9 NA  9 NA  8 NA 11 NA 10 NA 12 NA 12
+ [76] NA 13 NA 14 NA 14 NA 10 NA 14 NA 11 NA 11 NA 21 NA 29 NA 23 NA 28 NA 25 NA
+[101] 25 NA
+\end{commandline}
+
+それでは、これを gnuplot と同じようにプロットしてみます。
+
+◆ 調べ中。◆
 
 
-\subsection{debパッケージ化する。}
+\subsection{Debian の環境における注意点。}
 
-Debian ではOctaveもGNU Rも関連パッケージがかなりあります。
+Debian ではGNU RはCRANのパッケージがdebパッケージ化されていると上述しま
+したが、GNU Octaveも Octave-Forge プロジェクトという、CRAN に相当する拡
+張パッケージが、SorceForgeで公開されています
+\footnote{\url{http://octave.sourceforge.net/packages.html}}。CRAN由来の
+パッケージと違い、パッケージのネーミングルールは決まっていません。ただし、
+現状では、Octaveそのものに由来するパッケージは、\verb/octaveX.X[-*]/という形で、
+バージョンX.Xのブランチごとのパッケージ、名前になっています。一方、
+Octave-Forgeをはじめ、拡張機能のパッケージは、\verb/octave-*/というパッ
+ケージ名になっていますので、ある程度判断するための目安にはなるでしょう。
 
 \begin{commandline}
 $ apt-cache search "GNU R" | wc -l
@@ -305,26 +637,74 @@ $ apt-cache search octave | wc -l
 133
 \end{commandline}
 
-それぞれ、debパッケージにする場合の方針、考慮点を見てみましょう。
+それぞれ、debパッケージにする場合の考慮点を見てみましょう。
 
 \subsubsection{Octaveの場合}
 
+DebianにはOctave関連パッケージのメンテナンスチーム Debian Octave Group
+が存在します\footnote{\url{http://pkg-octave.alioth.debian.org}}。debパッ
+ケージに未だなっておらず、debパッケージにしたいソフトウェア、例えば、膨
+大なCRAN パッケージを debパッケージ化したい場合、あるいは野良パッケージ
+を作った場合などは、ITPする際に、Debian Octave
+Group\footnote{pkg-octave-devel@lists.alioth.debian.org}にもCCを入れてお
+くと良いでしょう。
+
+また、README.Debianにも記載されていますが、OctaveのドキュメントにはPDFが含まれ
+ているため、\texttt{octave3.0-doc, octave3.2-doc}という名前で拡張パッケー
+ジとして提供されています。
+
+Octaveパッケージのビルドには、\texttt{octave-pkg-dev}パッケージという専
+用の環境が用意されています。Octave はバージョン3.0からアドオンを作成する
+場合には、pkg.m systemという環境を使ってインストールするようになっていま
+すが、これをDebian用のパッケージング環境として用意されています。
+
+このパッケージを使ってパッケージを作るには、debian/controlの
+Build-Dependsに、octave-pkg-devを、Dependsに\verb/${octave:Depends}/を追
+記します。
+
+また、debian/rules に
+
+\begin{commandline}
+ include /usr/share/cdbs/1/class/octave-pkg.mk
+\end{commandline}
+
+を追記する必要があります\footnote{octave-pkg-devパッケージのREADMEには、
+include /usr/share/octave/debian/octave-pkg-dev.mkを追記するように記述さ
+れていますが、バージョン0.5でファイル名の変更をしており、ドキュメントの
+更新が追いついていないようです。}。
+
+また、debian/rulesで、get-orig-sourceターゲットも透過的に提供されていま
+す。これは前述のOctave-Forge プロジェクトからのパッケージの配布のみに作
+用しています。アップストリームのパッケージがこのSourceForge以外からする
+場合は、自分で get-orig-source ターゲットを定義できます。octave-pkg-dev
+パッケージ特有のルールの実行を防ぐには、\texttt{''SOURCEFORGE = NO''}を
+debian/rulesに設定する必要があります。
 
 \subsubsection{GNU Rの場合}
 
-GNU Rでは
+GNU Rパッケージのビルドには、Octaveと同様、\texttt{r-base-dev}パッケージ
+という専用のビルド環境が用意されています。ビルド時の対応として、Debian
+パッケージポリシーの考慮が必要です。Rの実行ファイルは、
+/usr/lib/R/bin/R.binary として分離されています。
 
-\subsection{実際に使ってみる。}
+私の環境では、上記のパスには以下のファイルが存在しますが、ここでは、
+/usr/lib/R/bin/Rscriptが該当します。
 
-\subsubsection{データを用意する。}
-
-\subsubsection{計算してみる。}
-
-\subsubsection{プロットしてみる。}
-
-\subsubsection{応用してみる。}
+\begin{commandline}
+$ file /usr/lib/R/bin/R*
+/usr/lib/R/bin/R:       Bourne-Again shell script text executable
+/usr/lib/R/bin/REMOVE:  ASCII text
+/usr/lib/R/bin/Rcmd:    Bourne-Again shell script text executable
+/usr/lib/R/bin/Rd2dvi:  ASCII English text
+/usr/lib/R/bin/Rdconv:  ASCII text
+/usr/lib/R/bin/Rdiff:   Bourne-Again shell script text executable
+/usr/lib/R/bin/Rprof:   a /usr/bin/perl script text executable
+/usr/lib/R/bin/Rscript: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked (uses shared libs), for GNU/Linux 2.6.18, stripped
+\end{commandline}
 
 \subsection{まとめ。}
+
+◆ まとめ書いたら終わり。◆
 
 \clearpage
 
