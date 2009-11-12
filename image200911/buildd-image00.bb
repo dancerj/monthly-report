@@ -1,5 +1,5 @@
 %%Title: ./buildd-image00.png
 %%Creator: ebb Version 0.5.2
-%%BoundingBox: 0 0 546 438
-%%CreationDate: Sun Nov  8 03:06:36 2009
+%%BoundingBox: 0 0 755 436
+%%CreationDate: Thu Nov 12 16:14:55 2009
 
