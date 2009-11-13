@@ -1,0 +1,182 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Auto-builder ネットワーク}
+\subtitle{資料}
+\author{岩松 信洋 iwamatsu@debian.org\\IRC nick: iwamatsu}
+\date{2009年11月14日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+%begin of commandline0
+\newenvironment{commandline0}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{0.95\hsize}\begin{fontsize}{9}{9} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{10pt}
+
+\vspace{10pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandline0
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\begin{frame}{autobuilder ネットワークとは}
+\begin{itemize}
+\item Debian Project の重要なシステムの一つ
+\item 各アーキテクチャ毎にパッケージを自動的にビルドする。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Autobuilder ネットワークのコンポーネント}
+\begin{itemize}
+\item dak
+\item quinn-diff
+\item wanna-build
+\item buildd
+ 
+\begin{itemize}
+\item buildd
+\item buildd-mail
+\item buildd-mail-wrapper
+\item buildd-update-chroots
+\item buildd-uploader
+\item buildd-watcher
+\end{itemize}
+
+\item sbuild
+\item schroot
+\item porter
+\item wanna-build メンテナ
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{各コンポーネントとの連携}
+\begin{center}
+\includegraphics[width=1.1\hsize]{image200911/buildd-image00.png}
+\end{center}
+\end{frame}
+
+\begin{frame}{パッケージのステータス}
+\begin{itemize}
+\item BD-Uninstallable
+\item Needs-Build 
+\item Building 
+\item Uploaded
+\item Installed
+\item Dep-Wait
+\item Failed
+\item Not-For-Us
+\item Failed-Removed
+\end{itemize}
+\end{frame}
+
+\begin{frame}{ステータスの状態遷移}
+\begin{center}
+\includegraphics[width=0.9\hsize]{image200911/buildd-status.png}
+\end{center}
+\end{frame}
+
+\begin{frame}{パッケージビルド優先順位}
+
+パッケージビルドの優先順位が決まっている。
+\begin{enumerate}
+\item ソースパッケージのプライオリティ
+\item ソースパッケージのセクション
+\item パッケージ名ASCII 順
+\item Need-Build のステータスになった順 
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}{新しいアーキテクチャを追加する}
+
+\begin{itemize}
+\item buildd.debian.ort にはすぐには追加することはできない
+\item debian-ports.org
+\item quinn-diff と wanna-build サービスを提供
+\item 現在、hurd-1386, m68k, avr32, sh4 がこのサービスを利用中。
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[containsverbatim]{loop-depends 対応}
+
+\begin{enumerate}
+\item loop-depends\\
+パッケージがループしてビルド依存している状態。\\
+
+\item 例
+\begin{commandline}
+- libgtk2-perl -> libpang-perl -> 
+        libgtk2-perl -> libpang-perl -> .....
+- cups -> avahi -> pygtk -> librsvg -> 
+        libgsf -> gnome-vfs  -> gconf -> cups
+\end{commandline}
+
+\item 修正方法は決まっていない
+\item unreleased ディストリビューションを利用する
+
+\end{enumerate}
+\end{frame}
+
+
+\begin{frame}{loop-depends 対応}
+\begin{center}
+\includegraphics[width=1.1\hsize]{image200911/loop-dep-image.png}
+\end{center}
+\end{frame}
+
+\begin{frame}{質問}
+\begin{center}
+\Huge{何か質問はありますか？}
+\end{center}
+\end{frame}
+
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
