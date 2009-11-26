@@ -50,7 +50,7 @@ xaxis = axis.X(tic_interval = 12, label="Year Month",
                "%i-%i" % ((x-1)/12+2005, (x-1)%12+1))
 yaxis = axis.Y(tic_interval = 10, label="Attendees")
 chart_object.set_defaults(area.T, size = (480, 300))
-ar = area.T(x_axis=xaxis, y_axis=yaxis, x_range=(1,48), y_range=(0,None))
+ar = area.T(x_axis=xaxis, y_axis=yaxis, x_range=(1,12*5), y_range=(0,None))
 plot = line_plot.T(label="n. of attendees", data=data, ycol=1)
 plot2 = line_plot.T(label="n. of attendees(1 yr avg)", data=data, ycol=2)
 plot3 = line_plot.T(label="pre-work", data=data, ycol=3)
