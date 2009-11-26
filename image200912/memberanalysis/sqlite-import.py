@@ -6,7 +6,7 @@ Requires python-pysqlite2 package.
 
 Example operation against this table:
 
-sqlite3 /tmp/debmtg.db
+sqlite3 debmtg.db
 
 # see attendance for each month
  select year, month, count(name) from attend where type='attendance' group by year,month 
@@ -25,15 +25,17 @@ select name,  sum(type = 'attendance'), sum(type = 'prework'),  sum(type = 'post
 from pysqlite2 import dbapi2
 import csv
 
-con = dbapi2.connect('/tmp/debmtg.db')
+con = dbapi2.connect('debmtg.db')
 cur = con.cursor()
 
 # read members
 
+# drop table before trying to recreate
 try:
     cur.execute('drop table attend')
 except dbapi2.Error, e:
     print "An error occurred:", e.args[0]
+    print "You can ignore 'no such table' error on first try"
 
 cur.execute('create table attend(year number, month number, name text, type text)')
 
