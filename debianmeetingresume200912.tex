@@ -503,6 +503,68 @@ Nintendo DSi
 \index{ARM} 
 \index{qemu}
 
+\subsection{qemubuilderの基本コンセプト}
+
+qemubuilder はDebianパッケージをビルドするためのツールです。debootstrapの
+クロスブートストラップ機能を利用してベースイメージを作成した後、qemu を利
+用して各アーキテクチャ用の仮想マシンを実行し、その中でパッケージをビルド
+します。ネイティブビルドと変わらない使用感でパッケージのビルドができるの
+で面倒なクロスビルドの設定が必要ありません。特にDebianパッケージはbuildd
+でネイティブビルドされ、クロスビルドされない前提なので、builddでビルドで
+きるようなパッケージの作成・デバッグに便利です。
+
+\subsection{qemubuilderの使い方}
+
+利用したいアーキテクチャ向けのカーネルと設定ファイルを用意します。
+手元の設定では次のような設定になっています。
+\begin{commandline}
+KERNEL_IMAGE=vmlinuz-2.6.24-1-versatile-armel
+ARCH=armel
+BASEPATH=/home/dancer/tmp/base-armel.qemu
+INITRD=
+\end{commandline}
+
+イメージをまず作成します。これで、BASEPATHに指定したファイル名にqemuの
+RAWディスクイメージが作成されます。
+
+\begin{commandline}
+# qemubuilder --configfile arm.config --create 
+\end{commandline}
+
+ディスクイメージをアップデートします。
+
+\begin{commandline}
+# qemubuilder --configfile arm.config --update
+\end{commandline}
+
+パッケージをビルドするのには dsc ファイルを指定します。
+
+\begin{commandline}
+# qemubuilder --configfile arm.config --build xxx.dsc
+\end{commandline}
+
+\subsection{qemubuilderの課題}
+
+カーネルと設定ファイルの取得が今一番面倒なところです。Debianの標準のカー
+ネルと initrd でできた時期もあったのですが、現在そういうようにはなってい
+ません。
+
+アーキテクチャの組み合わせがあまりにも多いため、動く組み合わせを同定する
+ことや、デバッグが困難です。スクリプトで自動化すること、またテストの自動
+化が必要ではないかと考えています。
+
+また、qemu の-appendコマンドでカーネルにブートパラメータを指定できること
+を装丁していますが、実際にはそれができないアーキテクチャ(ppcなど)があり、
+そのままでは動きません。\footnote{いまでもそうかはわかりません}
+
+最近はkFreeBSDアーキテクチャなども登場してきていますが、このままの設計で
+はそこまで手が回らなさそうです。
+
+\subsection{qemubuilderの今後の進め方}
+
+どうしましょうね。
+
+
 %\printindex
 
 \cleartooddpage
