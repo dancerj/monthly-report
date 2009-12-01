@@ -584,8 +584,7 @@ Containers と言い、コンテナ自体が稼働するためのカーネルの機能と、コンテ
 できます。
 
 lxc は、IBM が始めたプロジェクトで GPL2 の元、公開されています。
-開発の中心は、フランスの IBMer の Daniel Lezcano 氏と Michel Normand 氏
-の二人です。
+開発およびメンテナンスは、Daniel Lezcano 氏が一人で行っています。
 
 Debian では、Squeeze/Sid から一つ前の最新版\footnote{2009年11月27日現在、
 0.6.3。}がパッケージとなっています。
@@ -762,10 +761,11 @@ br0		8000.00wwwwyyyyxxno		eth0
 ちなみに``veth0\_''の後ろの数字は、コンテナで起動した init プロセスのプロセスID
 です。
 
-\subsubsection{コンテナイメージの作成}
-では、コンテナイメージを作成してみます。lxc のパッケージに含まれる、
+\subsubsection{システムコンテナの作成}
+
+では、システムコンテナのイメージを作成してみます。lxc のパッケージに含まれる、
 /usr/share/doc/lxc/examples/lxc-debian.gz を使って、Debian のシステムコ
-ンテナを作成しましょう。
+ンテナを作成します。
 
 まず、このファイルをホームディレクトリなどで伸張します。
 \begin{commandline}
@@ -854,10 +854,10 @@ rootfs が作成されます。配置したいディレクトリが無ければ作成し、そのディ
 $ sudo mkdir /var/cache/lxc
 $ cd /var/cache/lxc
 $ sudo bash /home/kohei/lxc-debian create
-What is the name for the container ? [debian] hoge <-- コンテナの名前
-What hostname do you wish for this container ? [hoge] <-- コンテナのホスト名
-What IP address do you wish for this container ? [192.168.xxx.xxx] <-- コンテナの IPアドレス
-What is the gateway IP address ? [192.168.xxx.xxy] <-- コンテナから見たデフォルトゲートウェイのアドレス
+What is the name for the container ? [debian] hoge                 <- コンテナの名前
+What hostname do you wish for this container ? [hoge]              <- コンテナのホスト名
+What IP address do you wish for this container ? [192.168.xxx.xxx] <- コンテナの IPアドレス
+What is the gateway IP address ? [192.168.xxx.xxy]                 <- コンテナから見たデフォルトゲートウェイのアドレス
 What is the MTU size ? [1500]
 Specify the location of the rootfs [./rootfs.hoge]
 Specify the location for an extra fstab file [(none)]
@@ -865,7 +865,7 @@ Specify the location for an extra fstab file [(none)]
 Choose your architecture
 1) amd64
 2) i386
-#? 1 <-- Core 2 Duo のマシンなのでアーキテクチャは amd64 を選択。
+#? 1                                                               <- Core 2 Duo のマシンなのでアーキテクチャは amd64 を選択。
 Architecture amd64 selected
 Checking cache download ...Found.
 Copying rootfs ...Done.
@@ -884,10 +884,56 @@ debootstrap でダウンロードされるキャッシュイメージが、
 amd64 を選択しているので、/var/cache/lxc/debian/rootfs-amd64 となります。}
 
 コンテナ自体のメタ情報は、/var/lib/lxc ディレクトリのコンテナ名のディレ
-クトリ以下にあります。ツリー表示するとこのようになっています。
+クトリ以下にあります。ツリー表示すると以下のようになっています。
 
+\begin{commandline}
+追記すること。
+\end{commandline}
 
-\subsubsection{コンテナの起動}
+\subsubsection{システムコンテナの起動}
+
+システムコンテナの起動の前に、やることがあります。コンテナイメージに、ロ
+グイン可能なユーザアカウントを作成することと、/etc/hosts を書き換えるこ
+とです。前者は、コンテナ作成後にそのまま起動させたのでは、ログインするこ
+とができません。ホストOS 側と同じユーザアカウントで問題なければ、
+/var/cache/lxc/debian/rootfs.hoge/etc/ディレクトリの下の、passwd,
+shadow, group をホストのそれで上書きしておくと良いでしょう\footnote{今後
+作成するコンテナ全てに共通して言えることなので、キャッシュイメージである、
+/var/cache/lxc/debian/rootfs-amd64/etc/ディレクトリ以下を上書きしておい
+た方が良いかもしれません。}。後者はコンテナ自身の名前解決の設定が目的で
+す。現状では、コンテナの/etc/hosts は、一律、
+
+\begin{commandline}
+127.0.0.1	localhost
+127.0.1.1	debian
+\end{commandline}
+
+となっており、上記の2行目が、/etc/hostname と異なるため、ユーザアカウン
+トを作っても、ログイン時に名前解決で時間が掛かってしまいます。
+ですので、予め、``debian''の部分をコンテナのホスト名に書き換えておく必要
+があるわけです。\footnote{これは、lxc-debian スクリプト自体でコンテナの
+ホスト名を書き換えるようにしておけば済む話ですので、}
+
+上記の設定を終えたら、システムコンテナを起動します。
+システムコンテナの起動は、\texttt{lxc-start} コマンドを使います。一つの
+環境で複数のコンテナを起動できるので、コンテナ名の指定が必ず必要です。コ
+ンテナ名の指定には、オプション\texttt{-n} を使います。
+
+\begin{commandline}
+$ sudo lxc-start -n hoge
+\end{commandline}
+
+このまま起動させると、現在のシェルでそのままコンテナのコンソールが表示さ
+れます。ログインするにはそのままコンソールログインすれば良いでしょう。
+バックグラウンドで起動させるには、\texttt{-d} オプションをつけます。
+
+\begin{commandline}
+$ sudo lxc-start -n hoge -d
+\end{commandline}
+
+KVM や Xen などのようにカーネルから起動させる訳ではなく、init プロセスか
+ら起動させるので、起動完了までに要する時間はわずかです。
+
 
 \subsection{もう一歩踏み込んだ利用方法}
 \subsubsection{コンテナ同士で通信する}
