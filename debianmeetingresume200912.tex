@@ -583,11 +583,11 @@ Containers $B$H8@$$!"%3%s%F%J<+BN$,2TF/$9$k$?$a$N%+!<%M%k$N5!G=$H!"%3%s%F(B
 $B$jA0$N%+!<%M%k$G$O!"(Bkernel 2.6.27 $B0J9_$G$"$l$P%Q%C%A$rEv$F$l$P;H$&$3$H$,(B
 $B$G$-$^$9!#(B
 
-lxc $B$O!"(BIBM $B$,;O$a$?%W%m%8%'%/%H$G(B GPL2 $B$N85!"8x3+$5$l$F$$$^$9!#(B
-$B3+H/$*$h$S%a%s%F%J%s%9$O!"(BDaniel Lezcano $B;a$,0l?M$G9T$C$F$$$^$9!#(B
+lxc $B$O(B GPL2 $B$N85!"8x3+$5$l$F$$$F!"3+H/$*$h$S%a%s%F%J%s%9$O!"(BDaniel
+Lezcano $B;a$,<B<A0l?M$G9T$C$F$$$^$9!#(B
 
-Debian $B$G$O!"(BSqueeze/Sid $B$+$i0l$DA0$N:G?7HG(B\footnote{2009$BG/(B11$B7n(B27$BF|8=:_!"(B
-0.6.3$B!#(B}$B$,%Q%C%1!<%8$H$J$C$F$$$^$9!#(B
+Debian $B$G$O!"(BSqueeze/Sid $B$+$i%Q%C%1!<%82=$5$l$F$*$j!"0l$DA0$N:G?7HG(B
+\footnote{2009$BG/(B11$B7n(B27$BF|8=:_!"(B0.6.3$B!#(B}$B$,%Q%C%1!<%8$H$J$C$F$$$^$9!#(B
 
 \subsubsection{$BB>$N%3%s%F%J7?2>A[2=5;=Q$H$NHf3S(B}
 
@@ -712,10 +712,10 @@ $ sudo apt-get install lxc
 
 brctl addbr br0                             <- $B%V%j%C%8%G%P%$%9$NDI2C(B
 brctl setfd br0                             <- $B%V%j%C%8%G%P%$%9(B br0 $B$N@_Dj(B
-ifconfig br0 192.168.xxx.xxx promisc up
+ifconfig br0 192.168.0.1 promisc up
 brctl addif br0 eth0
 ifconfig eth0 0.0.0.0 up
-route add -net default gw 192.168.xxx.1 br0
+route add -net default gw 192.168.0.254 br0 <- $B%[%9%H(B OS $B$N%2!<%H%&%'%$(B
 \end{commandline}
 \caption{$B%V%j%C%8@_DjMQ$N%7%'%k%9%/%j%W%H(B}
 \end{figure}
@@ -734,18 +734,11 @@ iface lo inet loopback
 auto eth0
 allow-hotplug eth0
 iface eth0 inet static
-	address 192.168.xxx.xxx
+	address 192.168.0.101
 	netmask 255.255.255.0
-	broadcast 192.168.xxx.255
+	broadcast 192.168.0.255
 	pre-up  /etc/init.d/iptables start
 	post-up /etc/network/if-up.d/brctl.sh
-
-auto eth1
-allow-hotplug eth1
-iface eth1 inet static
-	address 192.168.zzz.zzz
-	netmask 255.255.255.0
-	broadcast 192.168.zzz.255
 \end{commandline}
 
 $B0J>e$N$"$H!"%V%j%C%8$N@_Dj$,$-$A$s$H$5$l$F$$$k$+3NG'$7$F$_$k$H!"0J2<$N$h(B
@@ -809,8 +802,8 @@ $ diff -u  a/lxc-debian b/lxc-debian
  UTSNAME=
 -IPV4="172.20.0.21"
 -GATEWAY="172.20.0.1"
-+IPV4="192.168.xxx.xxx"
-+GATEWAY="192.168.xxx.yyy"
++IPV4="192.168.0.101"
++GATEWAY="192.168.0.1"
  MTU="1500"
  
  # These paths are within the container so do not need to obey configure prefixes
@@ -856,8 +849,8 @@ $ cd /var/cache/lxc
 $ sudo bash /home/kohei/lxc-debian create
 What is the name for the container ? [debian] hoge                 <- $B%3%s%F%J$NL>A0(B
 What hostname do you wish for this container ? [hoge]              <- $B%3%s%F%J$N%[%9%HL>(B
-What IP address do you wish for this container ? [192.168.xxx.xxx] <- $B%3%s%F%J$N(B IP$B%"%I%l%9(B
-What is the gateway IP address ? [192.168.xxx.xxy]                 <- $B%3%s%F%J$+$i8+$?%G%U%)%k%H%2!<%H%&%'%$$N%"%I%l%9(B
+What IP address do you wish for this container ? [192.168.0.101] <- $B%3%s%F%J$N(B IP$B%"%I%l%9(B
+What is the gateway IP address ? [192.168.0.1]                 <- $B%3%s%F%J$+$i8+$?%G%U%)%k%H%2!<%H%&%'%$$N%"%I%l%9(B
 What is the MTU size ? [1500]
 Specify the location of the rootfs [./rootfs.hoge]
 Specify the location for an extra fstab file [(none)]
@@ -887,7 +880,28 @@ amd64 $B$rA*Br$7$F$$$k$N$G!"(B/var/cache/lxc/debian/rootfs-amd64 $B$H$J$j$^$9
 $B%/%H%j0J2<$K$"$j$^$9!#%D%j!<I=<($9$k$H0J2<$N$h$&$K$J$C$F$$$^$9!#(B
 
 \begin{commandline}
-$BDI5-$9$k$3$H!#(B
+$ tree hoge/
+couchdb/
+|-- cgroup
+|-- config
+|-- fstab
+|-- init
+|-- network
+|   `-- veth0
+|       |-- ifindex
+|       |-- link
+|       |-- mtu
+|       |-- name
+|       `-- up
+|-- nsgroup -> /var/local/cgroup/hoge
+|-- pts
+|-- rootfs
+|   `-- rootfs -> /var/cache/lxc/debian/rootfs.hoge
+|-- state
+|-- tty
+`-- utsname
+
+5 directories, 13 files
 \end{commandline}
 
 \subsubsection{$B%7%9%F%`%3%s%F%J$N5/F0(B}
@@ -905,14 +919,14 @@ shadow, group $B$r%[%9%H$N$=$l$G>e=q$-$7$F$*$/$HNI$$$G$7$g$&(B\footnote{$B:#8
 
 \begin{commandline}
 127.0.0.1	localhost
-127.0.1.1	debian
+127.0.1.1	$B%[%9%H(BOS$B$N%[%9%HL>(B
 \end{commandline}
 
 $B$H$J$C$F$*$j!">e5-$N(B2$B9TL\$,!"(B/etc/hostname $B$H0[$J$k$?$a!"%f!<%6%"%+%&%s(B
 $B%H$r:n$C$F$b!"%m%0%$%s;~$KL>A02r7h$G;~4V$,3]$+$C$F$7$^$$$^$9!#(B
-$B$G$9$N$G!"M=$a!"(B``debian''$B$NItJ,$r%3%s%F%J$N%[%9%HL>$K=q$-49$($F$*$/I,MW(B
+$B$G$9$N$G!"M=$a!"%[%9%H(BOS$B$N%[%9%HL>$K$J$C$F$$$kItJ,$r%3%s%F%J$N%[%9%HL>$K=q$-49$($F$*$/I,MW(B
 $B$,$"$k$o$1$G$9!#(B\footnote{$B$3$l$O!"(Blxc-debian $B%9%/%j%W%H<+BN$G%3%s%F%J$N(B
-$B%[%9%HL>$r=q$-49$($k$h$&$K$7$F$*$1$P:Q$`OC$G$9$N$G!"(B}
+$B%[%9%HL>$r=q$-49$($k$h$&$K$7$F$*$1$P:Q$`OC$@$H;W$&$s$G$9$1$I$M!#(B}
 
 $B>e5-$N@_Dj$r=*$($?$i!"%7%9%F%`%3%s%F%J$r5/F0$7$^$9!#(B
 $B%7%9%F%`%3%s%F%J$N5/F0$O!"(B\texttt{lxc-start} $B%3%^%s%I$r;H$$$^$9!#0l$D$N(B
@@ -934,19 +948,62 @@ $ sudo lxc-start -n hoge -d
 KVM $B$d(B Xen $B$J$I$N$h$&$K%+!<%M%k$+$i5/F0$5$;$kLu$G$O$J$/!"(Binit $B%W%m%;%9$+(B
 $B$i5/F0$5$;$k$N$G!"5/F040N;$^$G$KMW$9$k;~4V$O$o$:$+$G$9!#(B
 
+\subsubsection{$B%3%s%F%J$H$NDL?.(B}
 
-\subsection{$B$b$&0lJbF'$_9~$s$@MxMQJ}K!(B}
-\subsubsection{$B%3%s%F%JF1;N$GDL?.$9$k(B}
-\subsubsection{libvirt$B$G@)8f$9$k(B}
+$B%3%s%F%J5/F08e!"%[%9%H(B OS $B$+$i(B ssh $B$G%m%0%$%s$9$k$K$O!"(BIP $B%U%)%o!<%I$r5v(B
+$B2D$9$kI,MW$,$"$j$^$9!#(B
+
+\begin{commandline}
+$ sudo bash -c ``echo 1 > /proc/sys/net/ipv4/ip_forward''
+\end{commandline}
+
+$B$3$l$K$h$C$F!"%[%9%H(B OS $B$N30It$N%M%C%H%o!<%/$X$NDL?.$b9T$($k$h$&$K$O$J$j(B
+$B$^$9!#(B
+
+$B0lJ}!"%[%9%H(B OS $B$N30It%M%C%H%o!<%/$+$i$O$3$N$^$^$G$O%"%/%;%9$G$-$^$;$s!#(B
+$B%"%/%;%9$r5v2D$9$k$K$O!"%[%9%H(B OS $B$G%]!<%H%U%)%o!<%G%#%s%0$d!"08@h(B NAT$B$J(B
+$B$I$r9T$&I,MW$,$"$j$^$9!#%]!<%H%U%)%o!<%G%#%s%0$r9T$&$N$G$"$l$P!"0J2<$N$h(B
+$B$&$J%k!<%k$r@_Dj$7$^$9!#(B
+
+\begin{commandline}
+$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 80 -i br0 -j DNAT --to 192.168.0.101
+$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 5984 -i br0 -j DNAT --to 192.168.0.102
+\end{commandline}
+
+$B$3$3$G$N@_Dj$O!"%G%U%)%k%H%]%j%7!<$,A4$F(B ACCEPT$B$G$"$k$3$H$rA0Ds$K$7$F$$(B
+$B$^$9$,!"<B:]$K$OEvA3(B DROP $B$K$9$k$H;W$$$^$9$N$G!"(BFORWARD $B$N%k!<%k$J$I$bDj(B
+$B5A$9$kI,MW$,$"$j$^$9!#(BNetfilter $B$N%k!<%k$H(BIP$B%U%)%o!<%G%#%s%0$N5v2D$O%9%/(B
+$B%j%W%H$K$7$F!"(B/etc/network/interface $B$G(B pre-up $B$H$7$F@_Dj$7$F$*$/$HNI$$(B
+$B$G$7$g$&!#(B
+
+$B$J$*!"(BFORWARD $B%A%'%$%s$N%G%U%)%k%H%]%j%7!<$,(B ACCEPT $B$G$"$k>l9g$OLdBj$"$j(B
+$B$^$;$s$,!"(BDROP $B$d(B REJECT $B$K@_Dj$7$F$"$k>l9g$O!"%3%s%F%JF1;N$G$NDL?.$O$G(B
+$B$-$^$;$s!#(BFORWARD $B$G$NDL?.5v2DMQ$N%k!<%k$,I,MW$K$J$j$^$9!#(B
 
 \subsection{lxc $B$N;EAH$_$r8+$F$_$k(B}
-\subsubsection{namespaces}
-\subsubsection{cgroup}
-\subsubsection{$B$=$NB>(B}
+\subsubsection{$B%j%=!<%9$r@)8f$9$k(B}
+
+lxc $B$G$O!"%3%s%F%J$N%j%=!<%9$r@)8f$9$k$?$a$K!"(Bcgroup $B$H$$$&%+!<%M%k$N5!(B
+$BG=$r;H$C$F$$$^$9!#(Bcgroup $B$H$O!"(BControl group $B$NN,$G$9!#(BLinux Kernel $B$G$O(B
+$B$3$l$,=P$F$/$k$^$G$O!"%W%m%;%9C10L$G$N%j%=!<%9@)8f$r9T$C$F$$$^$7$?!#(B
+cgroup $B$r;H$&$H!"!A!A!A!#(Blxc $B$G$O!"(B\texttt{lxc-cgroup} $B%3%^%s%I$rMQ$$!"(B
+$B%3%s%F%J$N%j%=!<%9$N@_Dj$rI=<($7$?$j!"CM$r%;%C%H$9$k$3$H$,$G$-$^$9!#(B
+
+\subsection{libvirt$B$G@)8f$9$k(B}
+
 
 \subsection{$B$^$H$a(B}
 \subsection{$B;29MJ88%(B}
 
+\begin{itemize}
+\item LXC\\
+      \url{http://lxc.sourceforge.net/lxc.html}
+
+\item LXC: Linux $B%3%s%F%J%D!<%k(B ; IBM developer Works Japan\\
+      \url{http://www.ibm.com/developerworks/jp/linux/library/l-lxc-containers/}\footnote{
+      $B:#G/$N(B2$B7n$N5-;v$G$9$,FbMF$,<c438E$/!"8=:_B8:_$7$J$$%3%^%s%I$b$"$k(B
+      $B$N$GMWCm0U!#(B}
+\end{itemize}
 
 %\printindex
 
