@@ -566,7 +566,7 @@ ruby 2.0 $B%j%j!<%9(B?
 
 \clearpage
 
-\dancersection{lxc}{$B$^$($@$3$&$X$$(B}
+\dancersection{lxc }{$B$^$($@$3$&$X$$(B}
 \label{sec:lxc}
 \index{$B2>A[2=(B} 
 
@@ -700,7 +700,8 @@ $ sudo apt-get install lxc
  \item debootstrap : $B%3%s%F%J$N%$%a!<%8$r:n@.$9$k$?$a!#(B
 \end{itemize}
 
-\subsubsection{$B%M%C%H%o!<%/@_Dj(B}
+\subsubsection{$B%M%C%H%o!<%/$N@_Dj(B}
+\subsubsubsection{\textbf{$B%V%j%C%8$N@_Dj(B}}
 
 $BI,MW$J%Q%C%1!<%8$r%$%s%9%H!<%k$7$?$i!"$^$:$O%V%j%C%8$N@_Dj$r9T$&I,MW$,$"$j$^$9!#(B
 /etc/network/interfaces $B$GD>@\%V%j%C%8$N@_Dj$r$9$l$PNI$$$H;W$$$^$9$,!#%7%'(B
@@ -753,6 +754,42 @@ br0		8000.00wwwwyyyyxxno		eth0
 \end{commandline}
 $B$A$J$_$K(B``veth0\_''$B$N8e$m$N?t;z$O!"%3%s%F%J$G5/F0$7$?(B init $B%W%m%;%9$N%W%m%;%9(BID
 $B$G$9!#(B
+
+
+\subsubsubsection{\textbf{IP $B%U%)%o!<%I$H(B NAT $B$N@_Dj(B}}
+
+$B%[%9%H(B OS $B$H%3%s%F%J!"%3%s%F%J$H%[%9%H(B OS $B$N30It$N%M%C%H%o!<%/!"%3%s%F%J(B
+$B4V$G$NDL?.$O!">e5-$N@_Dj$@$1$G$J$/!"(BIP $B%U%)%o!<%I$d(B NAT $B$N@_Dj$r$9$kI,MW(B
+$B$,$"$j$^$9!#Nc$($P!"%3%s%F%J5/F08e!"%[%9%H(B OS $B$+$i(B ssh $B$G%m%0%$%s$9$k$N(B
+$B$K$b!"(BIP $B%U%)%o!<%I$,I,MW$H$J$j$^$9!#(B
+
+\begin{commandline}
+$ sudo bash -c ``echo 1 > /proc/sys/net/ipv4/ip_forward''
+\end{commandline}
+
+IP $B%U%)%o!<%I$r@_Dj$9$k$H$H$G!"%[%9%H(B OS $B$N30It$N%M%C%H%o!<%/$X$NDL?.$d!"(B
+$B%3%s%F%JF1;N$NDL?.$b9T$($k$h$&$K$O$J$j$^$9!#(B\footnote{$BF1$8%V%m!<%I%-%c%9(B
+$B%H%I%a%$%s$N>l9g!#(B}
+
+$B0lJ}!"%[%9%H(B OS $B$N30It%M%C%H%o!<%/$+$i$O$3$N$^$^$G$O%"%/%;%9$G$-$^$;$s!#(B
+$B%"%/%;%9$r5v2D$9$k$K$O!"%[%9%H(B OS $B$G%]!<%H%U%)%o!<%G%#%s%0$d!"08@h(B NAT$B$J(B
+$B$I$r9T$&I,MW$,$"$j$^$9!#%]!<%H%U%)%o!<%G%#%s%0$r9T$&$N$G$"$l$P!"0J2<$N$h(B
+$B$&$J%k!<%k$r@_Dj$7$^$9!#(B
+
+\begin{commandline}
+$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 80 -i br0 -j DNAT --to 192.168.0.101
+$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 5984 -i br0 -j DNAT --to 192.168.0.102
+\end{commandline}
+
+$B$3$3$G$N@_Dj$O!"%G%U%)%k%H%]%j%7!<$,A4$F(B ACCEPT$B$G$"$k$3$H$rA0Ds$K$7$F$$(B
+$B$^$9$,!"<B:]$K$OEvA3(B DROP $B$K$9$k$H;W$$$^$9$N$G!"(BFORWARD $B$N%k!<%k$J$I$bDj(B
+$B5A$9$kI,MW$,$"$j$^$9!#(BNetfilter $B$N%k!<%k$H(BIP$B%U%)%o!<%G%#%s%0$N5v2D$O%9%/(B
+$B%j%W%H$K$7$F!"(B/etc/network/interface $B$G(B pre-up $B$H$7$F@_Dj$7$F$*$/$HNI$$(B
+$B$G$7$g$&!#(B
+
+$B$J$*!"(BFORWARD $B%A%'%$%s$N%G%U%)%k%H%]%j%7!<$,(B ACCEPT $B$G$"$k>l9g$OLdBj$"$j(B
+$B$^$;$s$,!"(BDROP $B$d(B REJECT $B$K@_Dj$7$F$"$k>l9g$O!"%3%s%F%JF1;N$G$NDL?.$O$G(B
+$B$-$^$;$s!#(BFORWARD $B%A%'%$%s$G$N(B ACCEPT $B%k!<%k$,I,MW$K$J$j$^$9!#(B
 
 \subsubsection{$B%7%9%F%`%3%s%F%J$N:n@.(B}
 
@@ -948,37 +985,28 @@ $ sudo lxc-start -n hoge -d
 KVM $B$d(B Xen $B$J$I$N$h$&$K%+!<%M%k$+$i5/F0$5$;$kLu$G$O$J$/!"(Binit $B%W%m%;%9$+(B
 $B$i5/F0$5$;$k$N$G!"5/F040N;$^$G$KMW$9$k;~4V$O$o$:$+$G$9!#(B
 
-\subsubsection{$B%3%s%F%J$H$NDL?.(B}
+\subsection{$B%3%s%F%J$N%i%$%U%5%$%/%k(B}
 
-$B%3%s%F%J5/F08e!"%[%9%H(B OS $B$+$i(B ssh $B$G%m%0%$%s$9$k$K$O!"(BIP $B%U%)%o!<%I$r5v(B
-$B2D$9$kI,MW$,$"$j$^$9!#(B
+Linux $B%3%s%F%J$N%i%$%U%5%$%/%k$OB>$N2>A[2=5;=Q$HBg$-$/0[$J$k$H$3$m$O$J$/!"(B
+$B<!$N?^$NMM$K$J$j$^$9!#(B
 
-\begin{commandline}
-$ sudo bash -c ``echo 1 > /proc/sys/net/ipv4/ip_forward''
-\end{commandline}
+\includegraphics[width=0.8\hsize]{image200912/lxc/lxc-lifecycle.eps}
 
-$B$3$l$K$h$C$F!"%[%9%H(B OS $B$N30It$N%M%C%H%o!<%/$X$NDL?.$b9T$($k$h$&$K$O$J$j(B
-$B$^$9!#(B
+$B$3$N?^$G$N>uBV$rA+0\$5$;$k$?$a$N%3%^%s%I!"$D$^$j%3%s%F%J$r4IM}$9$k$?$a$N(B
+$B%3%^%s%I$O0J2<$NDL$j$G$9!#(B
 
-$B0lJ}!"%[%9%H(B OS $B$N30It%M%C%H%o!<%/$+$i$O$3$N$^$^$G$O%"%/%;%9$G$-$^$;$s!#(B
-$B%"%/%;%9$r5v2D$9$k$K$O!"%[%9%H(B OS $B$G%]!<%H%U%)%o!<%G%#%s%0$d!"08@h(B NAT$B$J(B
-$B$I$r9T$&I,MW$,$"$j$^$9!#%]!<%H%U%)%o!<%G%#%s%0$r9T$&$N$G$"$l$P!"0J2<$N$h(B
-$B$&$J%k!<%k$r@_Dj$7$^$9!#(B
-
-\begin{commandline}
-$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 80 -i br0 -j DNAT --to 192.168.0.101
-$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 5984 -i br0 -j DNAT --to 192.168.0.102
-\end{commandline}
-
-$B$3$3$G$N@_Dj$O!"%G%U%)%k%H%]%j%7!<$,A4$F(B ACCEPT$B$G$"$k$3$H$rA0Ds$K$7$F$$(B
-$B$^$9$,!"<B:]$K$OEvA3(B DROP $B$K$9$k$H;W$$$^$9$N$G!"(BFORWARD $B$N%k!<%k$J$I$bDj(B
-$B5A$9$kI,MW$,$"$j$^$9!#(BNetfilter $B$N%k!<%k$H(BIP$B%U%)%o!<%G%#%s%0$N5v2D$O%9%/(B
-$B%j%W%H$K$7$F!"(B/etc/network/interface $B$G(B pre-up $B$H$7$F@_Dj$7$F$*$/$HNI$$(B
-$B$G$7$g$&!#(B
-
-$B$J$*!"(BFORWARD $B%A%'%$%s$N%G%U%)%k%H%]%j%7!<$,(B ACCEPT $B$G$"$k>l9g$OLdBj$"$j(B
-$B$^$;$s$,!"(BDROP $B$d(B REJECT $B$K@_Dj$7$F$"$k>l9g$O!"%3%s%F%JF1;N$G$NDL?.$O$G(B
-$B$-$^$;$s!#(BFORWARD $B$G$NDL?.5v2DMQ$N%k!<%k$,I,MW$K$J$j$^$9!#(B
+\begin{enumerate}
+ \item $B%3%s%F%J$N5/F0(B
+       \begin{itemize}
+	\item lxc-start($B%7%9%F%`%3%s%F%J(B)
+	\item lxc-execute($B%"%W%j%1!<%7%g%s%3%s%F%J(B)
+       \end{itemize}
+ \item $B%3%s%F%J$N0l;~Dd;_(B(lxc-freeze)
+ \item $B%3%s%F%J$N:F3+(B(lxc-unfreeze)
+ \item $B%3%s%F%J$NDd;_(B(lxc-stop)
+ \item $B%3%s%F%J$NGQ4~(B(lxc-destroy)
+ \item $B%3%s%F%J$N:F5/F0(B(lxc-restart)
+\end{enumerate}
 
 \subsection{lxc $B$N;EAH$_$r8+$F$_$k(B}
 \subsubsection{$B%j%=!<%9$r@)8f$9$k(B}
@@ -990,7 +1018,19 @@ cgroup $B$r;H$&$H!"!A!A!A!#(Blxc $B$G$O!"(B\texttt{lxc-cgroup} $B%3%^%s%I$r
 $B%3%s%F%J$N%j%=!<%9$N@_Dj$rI=<($7$?$j!"CM$r%;%C%H$9$k$3$H$,$G$-$^$9!#(B
 
 \subsection{libvirt$B$G@)8f$9$k(B}
+lxc $B$O!"(Blibvirt $B$G4{$K%5%]!<%H$5$l$F$$$^$9!#(Blibvirt $B$O(B C $B8@8l$G=q$+$l$?!"(B
+$BMM!9$J2>A[2=5;=Q$rCj>]2=$7$F4IM}$9$k$?$a$N%i%$%V%i%j$G!"(Blxc $B0J30$K$O!"(B
+QEMU, KVM, Xen, OpenVZ, VirtualBox$B$,%5%]!<%H$5$l$F$$$^$9!#(Blibvirt $B$O$^$?(B
+$B$$$m$$$m$J%W%m%0%i%`8@8l$KBP$9$k%P%$%s%G%#%s%0$rDs6!$7$F$$$^$9!#(BC $B8@8l0J(B
+$B30$K!"(BPerl, Ruby, Python, OCaml $B$+$iMxMQ$G$-$^$9!#(Blibvirt $B<+BN$G$b!"BPOC(B
+$B7A<0$G$b;H$($k(B $B%2%9%H(B OS $B$d%3%s%F%J$N4IM}%D!<%k(B virsh $B$,$"$j$^$9!#$3$3$G$O(B
+virsh $B$r;H$C$F!"(Blxc $B$N%3%s%F%J$N:n@.$+$i5/F0!"Dd;_(B $B$K$D$$$F8+$F$_$^$9!#(B
 
+$B$^$:!"%Q%C%1!<%8$H$7$F$O!"(Blibvirt-bin, hal$B$r%$%s%9%H!<%k$7$^$9!#(B
+\footnote{$BK\;qNA$r:n@.$7$F$$$kESCf$NCJ3,$G$O!"(Blibvirt-bin $B$N%P!<%8%g%s$O(B
+0.7.2-3$B$G!"$3$N%P!<%8%g%s$G$O!"(Bhal $B$,(B Depends $B$K;XDj$5$l$F$$$J$+$C(B
+$B$?$?$a!"(Blibvirtd $B$,5/F0$7$J$$%P%0$,$"$j$^$7$?$,!"(B0.7.2-4 $B$G=$@5$5$l$F$$(B
+$B$^$9!#(B}
 
 \subsection{$B$^$H$a(B}
 \subsection{$B;29MJ88%(B}
