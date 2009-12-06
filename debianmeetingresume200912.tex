@@ -637,11 +637,6 @@ Nintendo DSi
 
 \clearpage
 
-\dancersection{lxc}{まえだこうへい}
-\label{sec:lxc}
-\index{仮想化} 
-
-
 \dancersection{qemubuilder 2009年アップデート}{上川純一}
 \label{sec:qemubuilder-update2009}
 \index{仮想化} 
@@ -709,6 +704,592 @@ RAWディスクイメージが作成されます。
 
 どうしましょうね。
 
+
+\dancersection{lxc コンテナを使ってみる }{まえだこうへい}
+\label{sec:lxc}
+\index{仮想化} 
+
+Debian 勉強会に参加されている面々は、そろそろ Xen や KVM 以外に何かない
+のか、新たなネタを求めている向きが多いかと思います。そこで、最近、Linux
+Kernel に新たにマージされた機能を使って実現している、lxc という仮想化技
+術について紹介します。
+
+\subsection{はじめに}
+\subsubsection{lxc の概要}
+lxc\footnote{\url{http://lxc.sourceforge.net/}} は、正式名称を Linux
+Containers と言い、コンテナ自体が稼働するためのカーネルの機能と、コンテ
+ナを管理するためのとユーザツールから構成されます。lxc で使用している
+Kernel の機能は、kernel 2.6.29 で完全にマージされ、カーネルにパッチを当
+ててビルドする必要がなくなってなっています。kernel 2.6.29 より前のカーネ
+ルでは、kernel 2.6.27 以降であればパッチを当てれば使うことが
+できます。
+
+lxc は GPL2 の元、公開されていて、開発およびメンテナンスは、Daniel
+Lezcano 氏が実質一人で行っています。
+
+Debian では、Squeeze/Sid からパッケージ化されており、一つ前の最新版
+\footnote{2009年11月27日現在、0.6.3。}がパッケージとなっています。
+
+\subsubsection{他のコンテナ型仮想化技術との比較}
+
+コンテナ型の仮想化技術というと有名なのは、Solaris Containers や FreeBSD
+jailがありますが、Linux では Linux-VServer, OpenVZ\footnote{Parallels
+Virtuozzo ContainersのOSS版。}などがあります。いずれも既に使ったことがあ
+る方が多いのではないのでしょうか。
+
+lxc では、大きく分類してシステムコンテナと、アプリケーションコンテナの2
+つがあります。前者は、いわゆるOSの仮想化です。init から起動して、仮想OS
+の空間を提供します。後者は、chroot によるアプリケーションの分離に近いで
+す。通常は、単一アプリケーションを分離するだけなので、とても軽くシンプル
+なのが特徴です。
+
+現状、一人で開発、メンテナンスされていることもあり、今後プロジェクト自体
+がどうなるのかは先行き見えないところではありますが、メーリングリストを見
+ている限りでは、現在も開発は続いているようです。
+
+\subsection{導入してみる}
+\subsubsection{ソースコードを取得する}
+ユーザスペースのツールは、SourceForge から取得することができます。
+開発は git で行われており、git リポジトリから取得します。
+
+\begin{commandline}
+$ git-clone git://lxc.git.sourceforge.net/gitroot/lxc/lxc
+\end{commandline}
+
+Debian では前述のとおり、Squeeze/Sid でパッケージになっている
+\footnote{\url{http://packages.debian.org/search?keywords=lxc&searchon=names&exact=1&suite=all&section=all}}
+ので、最新版である必要がなければ、この手順は飛ばしても良いでしょう。
+
+\subsubsection{カーネルオプションを有効にする}
+lxc の機能をフルに活用するには以下のカーネルオプションが有効になっている
+必要があります。
+
+\begin{commandline}
+* General
+  * Control Group support
+    -> namespace cgroup subsystem
+    -> cpuset support
+    -> Group CPU scheduler
+    -> control group freeze subsystem
+    -> Basis for grouping tasks (Control Groups)
+    -> Simple CPU accounting
+    -> Resource counters
+    -> Memory resource controllers for Control Groups
+    -> Namespace support
+    -> UTS namespace
+    -> IPC namespace
+    -> User namespace
+    -> Pid namespace
+  * Network support
+    -> Networking options
+      -> Network namespace support
+\end{commandline}
+
+これらが有効になっているかを確認するには、lxcのソースツリーに含まれている、
+src/lxc/lxc-checkconfig.in というシェルスクリプトを実行すれば、現在起動
+中のカーネルでどのカーネルオプションが無効になっているかをチェックできま
+す。
+
+また、Debian パッケージでは、/usr/bin/lxc-checkconfig としてインストール
+されています。Squeeze/Sid で Debian のカーネルパッケージ\footnote{2009年
+11月27日現在、linux-image-2.6.30-2-amd64}を使っている環境で確認すると以
+下の結果になります。Cgroup memory controller のみが無効になっているよう
+です。
+
+\begin{commandline}
+$ lxc-checkconfig 
+Kernel config /proc/config.gz not found, looking in other places...
+Found kernel config file /boot/config-2.6.30-2-amd64
+--- Namespaces ---
+Namespaces: enabled
+Utsname namespace: enabled
+Ipc namespace: enabled
+Pid namespace: enabled
+User namespace: enabled
+Network namespace: enabled
+Multiple /dev/pts instances: enabled
+
+--- Control groups ---
+Cgroup: enabled
+Cgroup namespace: enabled
+Cgroup device: enabled
+Cgroup sched: enabled
+Cgroup cpu account: enabled
+Cgroup memory controller: disabled
+Cgroup cpuset: enabled
+
+--- Misc ---
+Veth pair device: enabled
+Macvlan: enabled
+File capabilities: enabled
+\end{commandline}
+
+\subsubsection{Debian でのインストール}
+
+ここから先は、Squeeze/Sid でパッケージを使うことを前提として話を進めます
+が、このままでは、cgroup でのメモリ管理は無効になっていますので、カーネ
+ルオプション\texttt{??}を有効にしてリビルドしてください。
+それ以外で実際に Debian で lxc を使うために必要なパッケージは何かというと
+lxc だけです。
+
+\begin{commandline}
+$ sudo apt-get install lxc
+\end{commandline}
+
+これでアプリケーションコンテナを試すことはできます。README にも載ってい
+る手順ですが、次のコマンドを実行すると、即席のコンテナを起動できます。
+
+\begin{commandline}
+$ uname -a
+Linux silicon 2.6.32 #1 SMP Sun Dec 6 02:30:30 JST 2009 x86_64 GNU/Linu
+$ sudo lxc-execute -n hoge -f ./lxc-macvlan.conf /bin/bash
+# uname -a
+Linux alpha 2.6.32 #1 SMP Sun Dec 6 02:30:30 JST 2009 x86_64 GNU/Linux
+\end{commandline}
+
+他のコンソールからコンテナが起動しているか確認してみます。
+
+\begin{commandline}
+$ sudo lxc-info -n hoge
+'hoge' is RUNNING
+$ lxc-ps -n hoge 
+CONTAINER    PID TTY          TIME CMD
+            4747 pts/3    00:00:00 bash
+            5692 pts/3    00:00:00 lxc-ps
+            5693 pts/3    00:00:00 ps
+\end{commandline}
+
+ちゃんと確認できましたね。今回は、これで以上です、と言いたいところですが、
+この環境はコンテナを起動させただけでしかなく、はっきり言って役に立ちませ
+ん。bash を sudo で起動しているだけで、ホスト OS のファイルシステムにも
+アクセスできてしまいます。
+
+コンテナだけを起動させて満足、はい、終了とするのであれば良いかもしれませ
+んが、実際に lxc を活用しようと考えているなら次に挙げる他のパッケージを
+インストールし、さらにコンテナ用のクローズ環境を作る必要があります。
+
+\begin{itemize}
+ \item iproute : コンテナのネットワーク設定を行うため。
+ \item debootstrap : コンテナのイメージを作成するため。
+\end{itemize}
+
+今回は、クローズな Debian 環境を簡単に作るための方法を紹介します。
+\footnote{厳密に言うと、コンテナからホスト OS で稼働しているプロセスや、
+カーネルメッセージが見えてしまうのでクローズにはまだなっているとは言えま
+せんが、まだ開発中でもあるのでそのうち改善されるでしょう。}
+
+\subsubsection{ネットワークの設定}
+\subsubsubsection{\textbf{ブリッジの設定}}
+
+必要なパッケージをインストールしたら、まずはブリッジの設定を行う必要があります。
+/etc/network/interfaces で直接ブリッジの設定をすれば良いと思いますが。シェ
+ルスクリプトを用意して、それをpost-up で実行させれば良いでしょう。
+
+\begin{commandline}
+#!/bin/sh
+
+brctl addbr br0                             <- ブリッジデバイスの追加
+brctl setfd br0                             <- ブリッジデバイス br0 の設定
+ifconfig br0 192.168.0.1 promisc up
+brctl addif br0 eth0
+ifconfig eth0 0.0.0.0 up
+route add -net default gw 192.168.0.254 br0 <- ホスト OS のゲートウェイ
+\end{commandline}
+
+interfaces は以下のように設定します。
+\begin{commandline}
+$ cat /etc/network/interfaces 
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+allow-hotplug eth0
+iface eth0 inet static
+	address 192.168.0.101
+	netmask 255.255.255.0
+	broadcast 192.168.0.255
+	pre-up  /etc/init.d/iptables start
+	post-up /etc/network/if-up.d/brctl.sh
+\end{commandline}
+
+以上のあと、ブリッジの設定がきちんとされているか確認してみると、以下のよ
+うになります。
+\begin{commandline}
+$ /usr/sbin/brctl show
+bridge name	bridge id		STP enabled	interfaces
+br0		8000.00wwwwyyyyxxno		eth0
+							veth0_14820
+							veth0_15932
+							veth0_17164
+\end{commandline}
+ちなみに``veth0\_''の後ろの数字は、コンテナで起動した init プロセスのプロセスID
+です。
+
+
+\subsubsubsection{\textbf{IP フォワードと NAT の設定}}
+
+ホスト OS とコンテナ、コンテナとホスト OS の外部のネットワーク、コンテナ
+間での通信は、上記の設定だけでなく、IP フォワードや NAT の設定をする必要
+があります。例えば、コンテナ起動後、ホスト OS から ssh でログインするの
+にも、IP フォワードが必要となります。
+
+\begin{commandline}
+$ sudo bash -c ``echo 1 > /proc/sys/net/ipv4/ip_forward''
+\end{commandline}
+
+IP フォワードを設定するととで、ホスト OS の外部のネットワークへの通信や、
+コンテナ同士の通信も行えるようにはなります。\footnote{同じブロードキャス
+トドメインの場合。}
+
+一方、ホスト OS の外部ネットワークからはこのままではアクセスできません。
+アクセスを許可するには、ホスト OS でポートフォワーディングや、宛先 NATな
+どを行う必要があります。ポートフォワーディングを行うのであれば、以下のよ
+うなルールを設定します。
+
+\begin{commandline}
+$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 80 -i br0 -j DNAT --to 192.168.0.101
+$IPTABLES -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 5984 -i br0 -j DNAT --to 192.168.0.102
+\end{commandline}
+
+ここでの設定は、デフォルトポリシーが全て ACCEPTであることを前提にしてい
+ますが、実際には当然 DROP にすると思いますので、FORWARD のルールなども定
+義する必要があります。Netfilter のルールとIPフォワーディングの許可はスク
+リプトにして、/etc/network/interface で pre-up として設定しておくと良い
+でしょう。
+
+なお、FORWARD チェインのデフォルトポリシーが ACCEPT である場合は問題あり
+ませんが、DROP や REJECT に設定してある場合は、コンテナ同士での通信はで
+きません。FORWARD チェインでの ACCEPT ルールが必要になります。
+
+\subsubsection{システムコンテナの作成}
+\label{sec:make_container}
+
+では、システムコンテナのイメージを作成してみます。lxc のパッケージに含まれる、
+/usr/share/doc/lxc/examples/lxc-debian.gz を使って、Debian のシステムコ
+ンテナを作成します。
+
+まず、このファイルをホームディレクトリなどで伸張します。
+\begin{commandline}
+$ gzip -dc /usr/share/doc/lxc/examples/lxc-debian.gz > ~/lxc-debian
+\end{commandline}
+
+次に、cgroup ファイルシステムをマウントします。/etc/fstab に下記一行を追
+記します。マウントポイントは任意の場所で構いません。
+
+\begin{commandline}
+cgroup  /var/local/cgroup  cgroup  defaults  0  0
+\end{commandline}
+
+追記したら、マウントポイントのディレクトリを作成し、マウントします。
+
+\begin{commandline}
+$ sudo mkdir /var/local/cgroup
+$ sudo mount cgroup
+\end{commandline}
+
+それでは、先ほどの lxc-debian スクリプトを使ってコンテナイメージを作成し
+ます。このスクリプトでは debootstrap を使ってイメージが作成されますが、
+ディストリビューションは lenny になっています。前述した通り本環境は
+Squeeze/Sid ですので、コンテナも Squeeze/Sid の方が良ければ、コンテナイ
+メージを作成する前に予めスクリプトを書き換えておく必要があります。
+また、パッケージも、デフォルトで apache2 がインストールされたり、一方、
+sudo や vi, dig コマンドが無かったりするので、そのままインストールすると
+不便であったりするので、予めインストールするパッケージの指定を変更してお
+く必要があります。lxc-debian スクリプト内の debootstrap コマンドの
+\verb/--include/オプションでパッケージの指定は変更できます。
+また、sshd の設定や、ネットワークの設定も予め設定しておくと便利です。以
+下、変更済みファイルとの diff の結果を掲載しておきます。
+
+\begin{commandline}
+$ diff -u  a/lxc-debian b/lxc-debian 
+--- a/lxc-debian	2009-11-30 21:22:59.000000000 +0900
++++ b/lxc-debian	2009-10-30 17:58:20.000000000 +0900
+@@ -8,8 +8,8 @@
+ MNTFILE=
+ TMPMNTFILE=
+ UTSNAME=
+-IPV4="172.20.0.21"
+-GATEWAY="172.20.0.1"
++IPV4="192.168.0.101"
++GATEWAY="192.168.0.1"
+ MTU="1500"
+ 
+ # These paths are within the container so do not need to obey configure prefixes
+@@ -99,14 +99,14 @@
+ SyslogFacility AUTH
+ LogLevel INFO
+ LoginGraceTime 120
+-PermitRootLogin yes
++PermitRootLogin no
+ StrictModes yes
+ RSAAuthentication yes
+ PubkeyAuthentication yes
+ IgnoreRhosts yes
+ RhostsRSAAuthentication no
+ HostbasedAuthentication no
+-PermitEmptyPasswords yes
++PermitEmptyPasswords no
+ ChallengeResponseAuthentication no
+ EOF
+ }
+@@ -259,8 +259,8 @@
+ 	        # download a mini debian into a cache
+ 		echo "Downloading debian minimal ..."
+ 		debootstrap --verbose --variant=minbase --arch=$ARCH \
+-		    --include ifupdown,locales,libui-dialog-perl,dialog,apache2,netbase,net-tools,iproute,openssh-server \
+-		    lenny $CACHE/partial-$ARCH http://ftp.debian.org/debian
++		    --include ifupdown,locales,libui-dialog-perl,dialog,sudo,vim-tiny,dnsutils,netbase,net-tools,iproute,openssh-server \
++		    sid $CACHE/partial-$ARCH http://cdn.debian.or.jp/debian
+ 		
+ 		RESULT=$?
+ 		if [ "$RESULT" != "0" ]; then
+\end{commandline}
+
+それでは、コンテナを作成します。コンテナを作成する場所は任意の場所にでき
+ます。通常、lxc-debian スクリプトを実行を実行したディレクトリの下に
+debianディレクトリを自動的に作成し、その下にコンテナイメージである
+rootfs が作成されます。配置したいディレクトリが無ければ作成し、そのディ
+レクトリへ移動し、\texttt{sudo lxc-debian create}を実行します。
+
+\begin{commandline}
+$ sudo mkdir /var/cache/lxc
+$ cd /var/cache/lxc
+$ sudo bash /home/kohei/lxc-debian create
+What is the name for the container ? [debian] hoge                 <- コンテナの名前
+What hostname do you wish for this container ? [hoge]              <- コンテナのホスト名
+What IP address do you wish for this container ? [192.168.0.101]   <- コンテナの IPアドレス
+What is the gateway IP address ? [192.168.0.1]                     <- コンテナから見たデフォルトゲートウェイのアドレス
+What is the MTU size ? [1500]
+Specify the location of the rootfs [./rootfs.hoge]
+Specify the location for an extra fstab file [(none)]
+(snip)
+Choose your architecture
+1) amd64
+2) i386
+#? 1                                                               <- Core 2 Duo のマシンなのでアーキテクチャは amd64 を選択。
+Architecture amd64 selected
+Checking cache download ...Found.
+Copying rootfs ...Done.
+(snip)
+update-rc.d: using dependency based boot sequencing
+Done.
+
+You can run your container with the 'lxc-start -n hoge'
+\end{commandline}
+
+これで、/var/cache/lxc/debian/rootfs.hoge という名前でコンテナイメージの
+ディレクトリが作成され、ここに、debootstrap による Debian イメージのコピー
+が作成されます。初めて \texttt{lxc-debian create} を実行すると、
+debootstrap でダウンロードされるキャッシュイメージが、
+/var/cache/lxc/debian/rootfs-architecture として作成されます。\footnote{今回は
+amd64 を選択しているので、/var/cache/lxc/debian/rootfs-amd64 となります。}
+
+コンテナ自体のメタ情報は、/var/lib/lxc ディレクトリのコンテナ名のディレ
+クトリ以下にあります。ツリー表示すると以下のようになっています。
+
+\begin{commandline}
+$ tree hoge/
+couchdb/
+|-- cgroup
+|-- config
+|-- fstab
+|-- init
+|-- network
+|   `-- veth0
+|       |-- ifindex
+|       |-- link
+|       |-- mtu
+|       |-- name
+|       `-- up
+|-- nsgroup -> /var/local/cgroup/hoge
+|-- pts
+|-- rootfs
+|   `-- rootfs -> /var/cache/lxc/debian/rootfs.hoge
+|-- state
+|-- tty
+`-- utsname
+
+5 directories, 13 files
+\end{commandline}
+
+\subsubsection{システムコンテナの起動}
+
+システムコンテナの起動の前に、やることがあります。コンテナイメージに、ロ
+グイン可能なユーザアカウントを作成することと、/etc/hosts を書き換えるこ
+とです。前者は、コンテナ作成後にそのまま起動させたのでは、ログインするこ
+とができません。ホストOS 側と同じユーザアカウントで問題なければ、
+/var/cache/lxc/debian/rootfs.hoge/etc/ディレクトリの下の、passwd,
+shadow, group をホストのそれで上書きしておくと良いでしょう\footnote{今後
+作成するコンテナ全てに共通して言えることなので、キャッシュイメージである、
+/var/cache/lxc/debian/rootfs-amd64/etc/ディレクトリ以下を上書きしておい
+た方が良いかもしれません。}。後者はコンテナ自身の名前解決の設定が目的で
+す。現状では、コンテナの/etc/hosts は、一律、
+
+\begin{commandline}
+127.0.0.1	localhost
+127.0.1.1	ホストOSのホスト名
+\end{commandline}
+
+となっており、上記の2行目が、/etc/hostname と異なるため、ユーザアカウン
+トを作っても、ログイン時に名前解決で時間が掛かってしまいます。
+ですので、予め、ホストOSのホスト名になっている部分をコンテナのホスト名に書き換えておく必要
+があるわけです。\footnote{これは、lxc-debian スクリプト自体でコンテナの
+ホスト名を書き換えるようにしておけば済む話だと思うんですけどね。}
+
+上記の設定を終えたら、システムコンテナを起動します。
+システムコンテナの起動は、\texttt{lxc-start} コマンドを使います。一つの
+環境で複数のコンテナを起動できるので、コンテナ名の指定が必ず必要です。コ
+ンテナ名の指定には、オプション\texttt{-n} を使います。
+
+\begin{commandline}
+$ sudo lxc-start -n hoge
+\end{commandline}
+
+このまま起動させると、現在のシェルでそのままコンテナのコンソールが表示さ
+れます。ログインするにはそのままコンソールログインすれば良いでしょう。
+バックグラウンドで起動させるには、\texttt{-d} オプションをつけます。
+
+\begin{commandline}
+$ sudo lxc-start -n hoge -d
+\end{commandline}
+
+KVM や Xen などのようにカーネルから起動させる訳ではなく、init プロセスか
+ら起動させるので、起動完了までに要する時間はわずかです。
+
+\subsection{lxc の仕組みを見てみる}
+\subsubsection{コンテナのライフサイクル}
+
+Linux コンテナのライフサイクルは他の仮想化技術と大きく異なるところはなく、
+次の図の様になります。
+
+\includegraphics[width=0.8\hsize]{image200912/lxc/lxc-lifecycle.eps}
+
+この図での状態を遷移させるためのコマンド、つまりコンテナを管理するための
+コマンドは以下の通りです。
+
+{\footnotesize
+\begin{tabular}[t]{|p{8em}|p{6em}|p{16em}|p{18em}|}
+\hline
+status &コマンド &実行後の状態 &備考 \\
+\hline
+\hline
+コンテナの起動 &lxc-start &STARTING, RUNNING &システムコンテナ \\
+&lxc-execute & &アプリケーションコンテナ\\
+\hline
+コンテナの一時停止 &lxc-freeze &FROZEN & \\
+\hline
+コンテナの再開 &lxc-unfreeze &RUNNING & \\
+\hline
+コンテナの停止 &lxc-stop &STOPPING, STOPPED & \\
+\hline
+コンテナの再起動 &lxc-restart &STOPPING, STOPPED & \\
+& &STARTING, RUNNING & \\
+\hline
+コンテナの作成 &lxc-create &STOPPED &lxc-debian は内部でlxc-create を実
+	     行。 \\
+& & &lxc-fedora, lxc-sshdなども同様。 \\
+\hline
+コンテナの破棄 &lxc-destroy & & \\
+\hline
+\end{tabular}}
+
+\subsubsection{リソースを制御する}
+
+lxc では、コンテナのリソースを制御するために、cgroup というカーネルの機
+能を使っています。cgroup とは、Control group の略です。
+これが出てくるまでは、プロセス単位でのリソース制御を行っていました。
+cgroup を使うと、これで管理されている、プロセス間でのリソースの共有がで
+きます。lxc では、\texttt{lxc-cgroup} コマンドを用い、
+コンテナのリソースの設定を表示したり、値をセットすることができます。
+
+\subsubsubsection{設定を変更する。}
+cgroup の変数を表示する場合は、``\texttt{lxc-cgroup -n コンテナ名 変数
+名}''で、変数の値を変更するには、``\texttt{sudo lxc-cgroup -n コンテナ名
+変数名 設定する値}''とします。
+
+例えば、CPU リソースの割り当てには、cpu.shares というパラメータを用いま
+すが、あるコンテナに割り当てられている比率を算出するには、\texttt{任意の
+コンテナの cpu.shares / 各コンテナの cpu.share の総和}を計算する必要があ
+ります。具体的には、現在の各コンテナの cpu リソースの割り当て設定を確認
+すると、
+
+\begin{commandline}
+$ lxc-ls
+couchdb  git  hoge  octave  w3m  web
+$ for i in `lxc-ls`; do echo -ne $i"\t"; lxc-cgroup -n $i cpu.shares; done
+couchdb	2048
+git	1024
+hoge	1024
+octave	1024
+w3m	1024
+web	1024
+\end{commandline}
+
+総和は7168で、各コンテナは、couchdb は約28.6\%、他のコンテナは約14.3\%ご
+との比率で CPU リソースをシェアするということ分かります。
+
+\subsubsubsection{コンテナ全体のリソースは？}
+上記の通り、\texttt{lxc-cgroup} コマンドは、コンテナを明示的に指定する必要
+があるので、cgroup 管理下全体での使用率などを把握するには不便です。
+cgroup で制御されるリソースは\ref{sec:make_container}節でマウントした、
+cgroup ファイルシステムからアクセスすることもできます。今回はマウントポ
+イントを/var/local/cgroup にしているのでこのディレクトリの下を見てみると
+以下の様になっています。\footnote{lxc-cgroup コマンド自体は、各コンテナ
+の値を/var/lib/lxc/コンテナ名/nsgroup/以下から取得しますが、これは、
+/var/local/cgroup/コンテナ名 へのsymlinkになっています。}
+
+\begin{commandline}
+$ cd /var/local/cgroup
+$ ls -F
+couchdb/               cpuset.memory_pressure           git/
+cpu.shares             cpuset.memory_pressure_enabled   hoge/
+cpuacct.stat           cpuset.memory_spread_page        net_cls.classid
+cpuacct.usage          cpuset.memory_spread_slab        notify_on_release
+cpuacct.usage_percpu   cpuset.mems                      octave/
+cpuset.cpu_exclusive   cpuset.sched_load_balance        release_agent
+cpuset.cpus            cpuset.sched_relax_domain_level  tasks
+cpuset.mem_exclusive   devices.allow                    w3m/
+cpuset.mem_hardwall    devices.deny                     web/
+cpuset.memory_migrate  devices.list
+\end{commandline}
+
+/var/local/cgroup ディレクトリ以下にある、``xxx.yyyy''の形式をとっている
+のが、cgroupで管理するリソース項目で、このディレクトリ直下はシステム全体
+のリソースです。一方、hoge/などのディレクトリがありますが、これは各コン
+テナに割り当てられているリソース項目です。ですので、このディレクトリを使っ
+て、lxc 全体と各コンテナのリソースの管理を行うことができます。
+
+\subsection{まとめ}
+
+Linux Kernel の標準機能だけを使ったコンテナである、Linux Containers につ
+いて説明しました。まだまだ機能的には不十分なところもあり、開発体制も不安
+なところはありますが、特別なカーネルパッチを適用せずに試せる点では非常に
+気軽に使えるのではないかと思います。
+
+また、lxc は libvirt のサポート対象にもなっています。本資料を作成前に
+libvirt で扱えるか検証してみたところ、定義ファイルを作るところまではでき
+たものの、virsh でコネクトするとうまくリソースにアクセスできないといった
+問題もありますが、やることが多いのでハックするには良いネタになるのではな
+いでしょうか。
+
+\subsection{参考文献}
+
+\begin{itemize}
+\item LXC\\
+      \url{http://lxc.sourceforge.net/lxc.html}
+
+\item LXC: Linux コンテナツール ; IBM developer Works Japan\\
+      \url{http://www.ibm.com/developerworks/jp/linux/library/l-lxc-containers/}\footnote{
+      今年の2月の記事ですが内容が若干古く、現在存在しないコマンドもある
+      ので要注意。}
+\item Cgroup And Memory Resource Controller\\
+      \url{http://www.linux-foundation.jp/uploads/seminar20081119/CgroupMemcgMaster.pdf}
+\end{itemize}
 
 %\printindex
 
