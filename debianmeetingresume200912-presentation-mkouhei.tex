@@ -1,0 +1,311 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{lxc を使ってみる。}
+\subtitle{今年最後のネタです。}
+\author{まえだこうへい mkouhei@debian.or.jp \\IRC nick: mkouhei}
+\date{2009年12月12日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+%begin of commandline0
+\newenvironment{commandline0}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{0.9\hsize}\begin{fontsize}{5}{5} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{10pt}
+
+\vspace{10pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandline0
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\begin{frame}{lxc とは何ぞや？}
+\begin{itemize}
+ \item 正式名称 Linux Containers
+ \item lxc の構成
+       \begin{itemize}
+	\item コンテナ自体が稼働するカーネルの機能
+	\item lxc を管理するための lxc-* コマンドラインツール
+       \end{itemize}
+ \item Daniel Lezcano 氏が開発、メンテナンス。GPL2で配布。
+ \item Linux Kernel 2.6.29 で lxc に必要なパッチが mainline にマージされ
+       た。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{他との比較}
+\begin{itemize}
+ \item OpenVZ, Linux-VServer
+ \item Solaris Containers
+ \item FreeBSD jail
+ \item lxc で提供するサービス
+       \begin{itemize}
+	\item システムコンテナ：いわゆるOSの仮想化
+	\item アプリケーションコンテナ：chroot でのプロセスの分離
+       \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{lxc を使ってみた動機。}
+\begin{itemize}
+ \item 連載も終わったし、KVM 以外も見てみるか。
+ \item あまり使われてないマイナーなのもの。
+ \item lguest だと 64bit 環境で使えない。
+ \item たまたま dW で見つけた。
+ \item でもある程度まとまったのはまだ dW の記事しかない。
+ \item 何より手軽！
+\end{itemize}
+\end{frame}
+
+\emtext{導入する}
+\begin{frame}[containsverbatim]{パッケージインストール}
+\begin{commandline}
+$ sudo apt-get install lxc iproute debootstrap
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{確認する}
+
+\begin{commandline}
+$ lxc-checkconfig
+--- Namespaces ---
+Namespaces: enabled
+Utsname namespace: enabled
+Ipc namespace: enabled
+Pid namespace: enabled
+User namespace: enabled
+Network namespace: enabled
+Multiple /dev/pts instances: enabled
+
+--- Control groups ---
+Cgroup: enabled
+Cgroup namespace: enabled
+Cgroup device: enabled
+Cgroup sched: enabled
+Cgroup cpu account: enabled
+Cgroup memory controller: enabled
+Cgroup cpuset: enabled
+
+--- Misc ---
+Veth pair device: enabled
+Macvlan: enabled
+File capabilities: enabled
+\end{commandline}
+
+なんか足りなければ、カーネルリビルドしとけ。
+\end{frame}
+
+\begin{frame}[containsverbatim]{３分もいらないぜ。}
+即席コンテナで稼働確認する。
+
+\begin{commandline}
+$ sudo lxc-execute -n hoge -f \
+ /usr/share/doc/lxc/examples/lxc/lxc-macvlan.conf /bin/bash
+$ sudo lxc-info -n hoge
+'hoge' is RUNNING
+$ sudo lxc-stop -n hoge <-別のシェルで実行。
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{システムコンテナを使う。}
+簡単に Debian 環境を増やせて、簡単に起動できるのが良い。
+
+やること。
+\begin{itemize}
+ \item ネットワークの設定
+ \item cgroupファイルシステムのマウント
+ \item コンテナの作成
+ \item コンテナのファイルの微調整
+ \item コンテナの起動
+\end{itemize}
+\end{frame}
+
+\emtext{lxc の仕組みの話}
+\begin{frame}{lxc のライフサイクル}
+
+他の仮想マシンのライフサイクルと大差ない。
+
+\includegraphics[width=1.0\hsize]{image200912/lxc/lxc-lifecycle.eps}
+
+\end{frame}
+
+\begin{frame}{lxc のライフサイクル}
+
+{\footnotesize
+\begin{tabular}[t]{|p{5em}|p{5em}|p{6em}|p{11em}|}
+\hline
+status &コマンド &実行後の状態 &備考 \\
+\hline
+\hline
+コンテナの起動 &lxc-start &STARTING, RUNNING &システムコンテナ \\
+&lxc-execute & &アプリケーションコンテナ\\
+\hline
+コンテナの一時停止 &lxc-freeze &FROZEN & \\
+\hline
+コンテナの再開 &lxc-unfreeze &RUNNING & \\
+\hline
+コンテナの停止 &lxc-stop &STOPPING, STOPPED & \\
+\hline
+コンテナの再起動 &lxc-restart &STOPPING, STOPPED & \\
+& &STARTING, RUNNING & \\
+\hline
+コンテナの作成 &lxc-create &STOPPED &lxc-debian は内部でlxc-create を実
+             行。 \\
+\hline
+コンテナの破棄 &lxc-destroy & & \\
+\hline
+\end{tabular}}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{リソースの管理}
+\begin{itemize}
+\item cgroup(Control Group)で行う。
+\item インタフェースはlxc-cgroup コマンド
+\item マウントした cgroup ファイルシステムからアクセスできる。
+\begin{commandline}
+cgroup  /var/local/cgroup  cgroup  defaults  0  0
+\end{commandline}
+\item システムコンテナの rootfs を置くのはどこでも良い。
+\item Read, Write の権限は この/var/local/cgroup 以下のファイルのアクセ
+      ス権で決まる。
+\end{itemize}
+\end{frame}
+
+\emtext{おまけ}
+\begin{frame}{libvirt の話}
+\begin{itemize}
+\item lxc は libvirt のサポート対象に既になっている。\\
+      んだが、うまくいかない。
+\item システムコンテナを定義するとこまではできた。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{libvirt の話}
+\begin{commandline}
+(test.xml)
+<domain type='lxc'>
+  <name>test</name>
+  <memory>500000</memory>
+  <os>
+     <type>exe</type>
+     <init>/sbin/init</init>
+  </os>
+  <vcpu>1</vcpu>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+     <emulator>/usr/lib/libvirt/libvirt_lxc</emulator>
+     <filesystem type='mount'>
+       <source dir='/var/cache/lxc/debian/rootfs.test'/>
+       <target dir='/'/>
+     </filesystem>
+     <interface type='bridge'>
+       <source bridge='br0'/>
+       <target dev='veth_99999'/>
+       <mac address='00:11:22:33:44:55'/>
+     </interface>
+     <console type='pty' />
+  </devices>
+</domain>
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{libvirt の話}
+\begin{commandline}
+$ sudo virsh --connect lxc:/// define text.xml
+$ sudo virsh --connect lxc:/// start lxc
+$ sudo virsh --connect lxc:/// list
+ Id Name                 State
+----------------------------------
+  3 test                 no state
+\end{commandline}
+なんでやねん。
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-*コマンドでの運用を考える。}
+\begin{itemize}
+\item lxc-* のコマンドは、1コンテナに対するアクセスしかできない。
+\item 全体を把握するには不便。
+\item lxc-ls コマンドあたりを活用すると便利。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-*コマンドでの運用を考える。}
+\begin{commandline}
+#!/bin/sh
+
+for i in `lxc-ls`
+do
+if (lxc-info -n $i | grep -q "STOPPED" ) then
+   echo -en $i"\t:" 
+   lxc-start -n $i -d
+   test $? -eq 0 && echo starting ok. 
+   sleep 3
+fi
+done
+
+exit 0
+\end{commandline}
+\end{frame}
+
+\begin{frame}{まとめ}
+\begin{itemize}
+ \item lxc とは コンテナ。
+ \item lxc を導入してみる。
+ \item lxc の仕組み。
+ \item libvirt はもうちょい先かな。
+\end{itemize}
+
+\end{frame}
+
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
