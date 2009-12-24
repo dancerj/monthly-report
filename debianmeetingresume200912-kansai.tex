@@ -92,10 +92,312 @@
 
 \dancersection{最近のDebian関係のイベント報告}{Debian JP}
 
-\dancersection{タイトル未定}{甲斐さん}
+\subsection{オープンフォース Debian(非公式) 勉強会 徳島 200912}
+12月19日に徳島県にある四国大学交流プラザで開催された、オープンフォース
+Debian(非公式) 勉強会 徳島 200912に、のがたが呼ばれたので行ってきました。
+
+後で書く
+
+\dancersection{ハンドメイドGPSロガーの構築}{まさ}
+
+\subsection{はじめに}
+
+これまでDebianのインストール、環境整備、ウェブアプリケーションのシステム
+構築をするなどシステムを触ることはある程度経験したものの、お小遣い帳サー
+バや、GPSロガーなど、何らかの実用になるものはなかなかつくれませんでした。
+
+そこでプログラムのスキルを得るための教材として、GPSロガーを作成したので、
+報告します。
+
+これからDebianを目指す人の興味を引き、手がかりとなって少しでもお役に立て
+れば幸いです。
+
+\subsection{GPSとは}
+”Global Positioning System”は数十個の衛星からの電波を受信して現在位置を割り出すシステムです。
+
+原理等はいろんな書籍やインターネットに掲載されているようですので、ここでは説明を割愛します。
+
+\subsection{GPSロガーのハード構成}
+必要なハード構成は以下の通りです。
+
+今回実際に使用したハードの概略仕様はAppendixを参照してください。
+
+\begin{description}
+ \item[GPSレシーバ]
+            GPSアンテナ、受信回路、信号送出回路から成り、 PS2コネクタからシリアルにキャラクタ文字でGPS情報が送出されます。
+ \item[PS2-USB変換]
+            GPSレシーバから信号送出用のシリアルインタフェースをUSBインタフェースに変換するためのものです。変換ケーブルになっています。
+ \item[ネットブック]
+            USBインタフェースで受信したGPS情報を受け取り、ファイルに溜め込みます。また、GPS情報をいろいろ加工して楽しめます。
+\end{description}
+
+\subsection{ネットブックセットアップ概要}
+　ネットブック購入直後からGPSロガーを構築する場合について概要を説明します。
+
+\begin{description}
+ \item[(1) Debian Base systemのインストール] 
+Debian-netinst-isoを使ってBase systemをインストールします。
+ \item[(2) X Window Systemのインストール] 
+ \item[(3) Gnomeのインストール] 
+ \item[(4) 日本語入力システムのインストール] 
+プログラム作成時必要です。今回は、”uim-anthy”をインストールしました。
+ \item[(5) NTPのインストール] 
+システム時刻自動調整用のプログラムです。
+今回はGPSを扱うため、特にシステム時刻が大切になると思われます。
+ \item[(6) プログラム言語のインストール] 
+GPSロガーアプリケーション作成に必要です。
+今回は、とっつきやすく、GUIができ、ライブラリが豊富と言われる”Python”（バイトンor パイソン？）を選択しました。
+私にとって、確かにとっつきやすいですが、それなりに苦労しました。
+pythonのせいではなく、プログラミングというもの自体、思ったものがそう簡単にできるわけではないということだと思われます。
+ \item[(7) Python libraryのインストール] 
+
+\end{description} 
+
+\begin{description}
+ \item[PySerial] シリアルポート入出力用のプログラムです。
+ \item[Python Tkinter] GUIプログラミング用のひとつです。
+ \item[datetime] 時刻を扱うとき使います。
+ \item[os, os.path] ファイルの開閉、読み書きするとき使います。
+ \item[sys(場合によって使用)] コマンドパラメータを取得するとき使います。
+\end{description}
+
+\subsection{GPSデータ出力形式}
+今回使用したGPSレシーバはNMEA0183というプロトコルです。
+NMEA0183では以下のような形式などでデータが出力されますが、
+
+\begin{description}
+ \item[GLL] Geographic Position, Latitude and Longitude
+ \item[GSA] GNSS DOP and Active Satellites
+ \item[RMC] Recommended Minimum Specific GNSS Data
+\end{description}
+
+今回は
+
+\begin{description}
+ \item[GGA] Global Positioning System Fix Data
+\end{description}
+
+という形式のみ利用しました。
+GGA形式の仕様は次の通りです。
+
+\begin{commandline}
+GGA,123519.00,4807.038247,N,01131.324523,E,1,08,0.9,545.42,M,46.93,M,5.0,1012*42
+123519.00 	＝　測位時刻（UTC）　12:35:19.00
+4807.038247,N 	＝　緯度　48度07.038247分（北緯）
+01131.324523,E 	＝　経度　11度31.324523分（東経）
+1 	＝　GPSのクオリティ； 0 = 受信不能， 1 = 単独測位，2 = DGPS
+08 	＝　受信衛星数
+0.9 	＝　HDOP
+545.42, M 	＝　平均海水面からのアンテナ高度（m）
+46.93, M 	＝　WGS-84楕円体から平均海水面の高度差（m）
+5.0 	＝　DGPSデータのエイジ（秒）
+1012 	＝　DGPS基準局のID
+*42 	＝　チェックサム
+\end{commandline}
+
+ここから、時刻、緯度、経度などのデータを利用しました。
+
+\subsection{アプリケーション作成}
+いよいよアプリケーションの作成です。
+上のGPS GGAデータを加工して、表示したり、ログをとります。
 
 
-\dancersection{タイトル未定}{としさん}
+\subsection{実行}
+アプリケーションを走らせます。
+
+\subsection{今後の抱負}
+今回のアプリケーションを基にいろんな展開が考えられます。
+Sunday programmerとして今後も少しづつであっても、根気よく前進します。
+
+　(１) Open Street Mapへの貢献
+　(２) Open Street Mapの利用
+
+地図上への現在位置の表示や、ログデータからトレース表示したりと地図情報は重要です。
+この場合、種々の縮尺の地図が必要ですが、Open Street Mapはベクトルデータであることからこの点が有利です。
+また、ナビのように指定した位置の地図を得る場合、これが可能なインタフェースがOSMにあれば（あるのかも知れませんが）、より柔軟に利用できるのではないかと期待しています。
+
+\subsection{Appendix}
+
+\subsubsection{仕様}
+
+\begin{commandline}
+[ A ] ネットブック概略仕様 
+PC:       Asus EeePC 901 
+CPU:      Intel Atom (1.6GHz) 
+Memory:   1GB 
+HDD(SSD): 4GB + 8GB 
+Monitor:  8.9型、1024 x 600 
+I/F:      USB 2.0 
+\end{commandline}
+
+\begin{commandline}
+[ B ] ネットブックシステム仕様 
+OS:      Debian Lenny 
+Kernel:  2.6.26-2-686 
+言語:    Python 2.5.2 
+Library: pySerial, tkinter等 
+\end{commandline}
+
+\begin{commandline}
+[ C ] GPSレシーバ仕様 
+型式:       GPS-S103(Wonde proud社製)
+位置 精度:  5 - 25m CEP without SA
+時刻精度:   1μs synchronized to GPS time 
+プロトコル: NMEA0183
+動作温度:   -40 °C ~ +85 °C 
+動作湿度:   5% to 90% （結露なき事） 
+電源:       DC 3.7 ~ 6V, typical 5V（今回はUSBより供給）
+I/F:        TTL serial(PS2コネクタ).　USB option 
+\end{commandline}
+
+\begin{commandline}
+[ D ] GPSロガー実行例
+
+1. ログファイル
+$GPVTG,113.96,T,,,0.00,N,0.00,K,A*7C 
+$GPGGA,054832.084,3450.2455,N,13615.2118,E,1,09,01.0,253.6,M,37.3,M,,*6B 
+$GPRMC,054832.084,A,3450.2455,N,13615.2118,E,0.00,113.96,260909,,,A*6C 
+$GPVTG,113.96,T,,,0.00,N,0.00,K,A*7C 
+$GPGGA,054833.083,3450.2455,N,13615.2118,E,1,08,01.1,253.5,M,37.3,M,,*6E 
+$GPRMC,054833.083,A,3450.2455,N,13615.2118,E,0.00,113.96,260909,,,A*6A 
+$GPVTG,113.96,T,,,0.00,N,0.00,K,A*7C 
+$GPGGA,054834.083,3450.2455,N,13615.2118,E,1,09,01.0,253.4,M,37.3,M,,*68 
+$GPGSA,A,3,03,06,07,08,11,16,19,22,25,,,,2.2,1.0,1.9*39 
+$GPGSV,3,1,09,3,44,055,37,6,33,060,33,7,50,266,39,8,28,311,37*7A
+\end{commandline}
+
+\subsubsection{現在位置データ表示例}
+
+\includegraphics[scale=1]{image200912/handmadegpsloger1.jpg}
+
+\subsubsection{現在位置地図表示例}
+
+\includegraphics[scale=1]{image200912/handmadegpsloger2.png}
+
+\subsubsection{プログラム例（抜粋ですのでこのままでは動作しません）}
+
+\begin{commandline}
+#!	/usr/bin/python2.5 
+# -*- coding: utf8 -*- 
+
+#******************************************** 
+#	 
+#	コード例 for KDM 2009.12.27	 
+#	 
+#	Now edited on .... 2009-02-07 ... 
+#	Reviced on    .... 2009-12-23 
+#	 
+#******************************************** 
+
+import os.path 
+
+import Tkinter as Tk 
+import time, datetime 
+import	serial 
+import	string 
+	. 
+	. 
+	. 
+root = Tk.Tk() 
+
+buff_date = Tk.StringVar() 
+buff_date.set(honjitsu) 
+
+buff_hT = Tk.StringVar() 
+buff_mT = Tk.StringVar() 
+buff_sT = Tk.StringVar() 
+buff_hT.set('') 
+buff_mT.set('') 
+buff_sT.set('') 
+	. 
+	. 
+	. 
+# display date &  pgstime 
+f0 = Tk.Frame(master=None, relief= 'ridge', bd=3) 
+bd0 = Tk.Label(f0, text="きょうは", font=dfont12, relief = 'ridge') 
+bd1 = Tk.Label(f0, textvariable = buff_date, font=dfont18, relief = 'ridge') 
+bd2 = Tk.Label(f0, text="    ", font=dfont12, relief = 'flat') 
+b00 = Tk.Label(f0, text="時刻", relief = 'ridge') 
+b01 = Tk.Label(f0, textvariable = buff_hT, font=dfont18, relief = 'ridge') 
+b02 = Tk.Label(f0, text="時", relief = 'ridge') 
+b03 = Tk.Label(f0, textvariable = buff_mT, font=dfont18, relief = 'ridge') 
+b04 = Tk.Label(f0, text="分", relief = 'ridge') 
+b05 = Tk.Label(f0, textvariable = buff_sT, font=dfont18, relief = 'ridge') 
+b06 = Tk.Label(f0, text="秒", relief = 'ridge') 
+
+for e in [ bd0, bd1, bd2, b00, b01, b02, b03, b04, b05, b06 ]: 
+	e.pack(side='left', padx=5) 
+
+# display latitude 
+f1 = Tk.Frame(master=None, relief= 'ridge', bd=3) 
+b10 = Tk.Label(f1, text="北緯", font=dfont24, relief = 'ridge') 
+b11 = Tk.Label(f1, textvariable = buff_dLa, font=dfont48, relief = 'ridge') 
+b12 = Tk.Label(f1, text="度", relief = 'ridge') 
+b13 = Tk.Label(f1, textvariable = buff_mLa, font=dfont48, relief = 'ridge') 
+b14 = Tk.Label(f1, text="分", relief = 'ridge') 
+b15 = Tk.Label(f1, textvariable = buff_sLa, font=dfont48, relief = 'ridge') 
+b16 = Tk.Label(f1, text="秒", relief = 'ridge') 
+
+for e in [b10, b11, b12, b13, b14, b15, b16 ]: 
+	e.pack(side='left', padx=5) 
+	. 
+	. 
+	. 
+def showtime(): 
+	# open log file for write gps data 
+	f = open( fname, 'a') 
+	gpstime = '' 
+	# get 'GPGGA' sentence from gps receiver. 
+	ser = serial.Serial('/dev/ttyUSB0', 4800, timeout = 3) 
+	print ser.portstr 
+	line = ser.readline() 
+	words = line.split(',') 
+	while( not words[0] == '$GPGGA'): 
+		line = ser.readline() 
+		words = line.split(',') 
+	print line 
+	ser.close() 
+
+	# time 
+	time = words[1] 
+	hT_utc = time[:2] 
+	hT_jst = str( ( int(hT_utc) + 9 ) % 24 ).zfill(2) 
+	mT = time[2:4] 
+	sT = str( int( float(time[4:]) ) ).zfill(2) 
+	gpstime = 'gpstime  = ' + hT_jst + ':' + mT + ':' + sT + ' JST' 
+	. 
+	. 
+	. 
+	# latitude 
+	lati = words[2] 
+	deg_lati = " " + lati[:2] 
+	min_lati = lati[2:4] 
+	sec_lati = str( int(float(lati[4:]) * 60 ) ).zfill(2) 
+	gpslati = 'latitude = ' + deg_lati + ':' + min_lati + ':' + sec_lati + ' ' + words[3] + '  ' 
+	# longitude 
+	long = words[4] 
+	deg_long = long[:3] 
+	min_long = long[3:5] 
+	sec_long = str( int(float(long[5:]) * 60 ) ).zfill(2) 
+	gpslong  = 'longitude=' + deg_long + ':' + min_long + ':' + sec_long + ' ' + words[5] + '  ' 
+	# koudo 
+	kodo = words[9] 
+	gpskodo  = 'koudo= ' + kodo + ' m' 
+	. 
+	. 
+	. 
+	# write new data to data file 
+	f.write(line) 
+
+	f.close 
+
+	root.after(1, showtime) 
+
+showtime() 
+root.mainloop() 
+\end{commandline}
+
+\dancersection{Debian を使って愉しむ Open Street Map 入門}{たなかとしひさ}
 
 
 \dancersection{関西 Debian 勉強会\newline2009年度各種イベント開催実績と総括}{倉敷・佐々木・野方}
@@ -245,10 +547,18 @@ Debian Liveやノウハウの紹介などを行いました。
 \end{minipage}
 \end{table}
 
+\clearpage
+
 \dancersection{今後の予定}{Debian JP}
 
-\subsection{次回}
-次回は、2010年1月24日に福島区民センターで行います。
+\subsection{次回の関西Debian勉強会}
+次回は、2010年1月の関西Debian勉強会は2010年1月24日に大阪港区民センターで
+おこないいます。いつもの福島区民センターではないのでご注意ください。
+
+\subsection{オープンソースカンファレンス Kansai @ Kobe 2010}
+2010年3月13日土曜日にJR神戸駅すぐそばの神戸市産業振興センターにて、オー
+プンソースカンファレンス Kansai @ Kobe 2010が開催されます。
+関西Debian勉強会では、現在参加を検討しています。
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
