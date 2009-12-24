@@ -62,8 +62,10 @@ class WebAppGenericProcessor(webapp.RequestHandler):
 
 def generate_eventid(event_title, username, time):
     """Create a sha1 hash hex string to use as event ID."""
-    return hashlib.sha1(event_title + username + time).hexdigest()
-
+    sourcestring = event_title + username + time
+    h = hashlib.sha1()
+    h.update(sourcestring.encode('utf-8'))
+    return h.hexdigest()
 
 
 class TopPage(webapp.RequestHandler):
