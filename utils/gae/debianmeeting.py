@@ -58,7 +58,11 @@ class WebAppGenericProcessor(webapp.RequestHandler):
             return True
         # TODO: check for other owners too...
         return False
-        
+
+    def template_render_output(self, template_values, template_filename):
+        """Convenience function to send out template results"""
+        path = os.path.join(os.path.dirname(__file__), template_filename)
+        self.response.out.write(template.render(path, template_values))
 
 def generate_eventid(event_title, username, time):
     """Create a sha1 hash hex string to use as event ID."""
@@ -68,27 +72,31 @@ def generate_eventid(event_title, username, time):
     return h.hexdigest()
 
 
-class TopPage(webapp.RequestHandler):
+class TopPage(WebAppGenericProcessor):
     """The top page for the site. 
     Has a form to create a new event."""
-    def get(self):
+    def process_input(self):
+        user = users.get_current_user()
+        
+        events = Event.gql('WHERE owner = :1 ORDER BY timestamp DESC', 
+                           user)
+        attendances = Attendance.gql('WHERE user = :1 ORDER BY timestamp DESC',
+                                     user)
         template_values = {
-            'nickname': users.get_current_user().nickname(),
+            'nickname': user.nickname(),
+            'events': events,
+            'attendances': attendances
             }
+        self.template_render_output(template_values, 'index.html')
 
-        path = os.path.join(os.path.dirname(__file__), 'index.html')
-        self.response.out.write(template.render(path, template_values))
-
-class NewEvent(webapp.RequestHandler):
+class NewEvent(WebAppGenericProcessor):
     """Form to create a new event."""
-    def get(self):
+    def process_input(self):
         template_values = {
             'nickname': users.get_current_user().nickname(),
             'eventid': "na" # set it to N/A to later set it to something else...?
             }
-
-        path = os.path.join(os.path.dirname(__file__), 'event.html')
-        self.response.out.write(template.render(path, template_values))
+        self.template_render_output(template_values, 'event.html')
 
 class EditEvent(WebAppGenericProcessor):
     """Load from the existing data and edit the event"""
@@ -110,9 +118,7 @@ class EditEvent(WebAppGenericProcessor):
             'prework': event.prework,
             'event_date': event.event_date
             }
-
-        path = os.path.join(os.path.dirname(__file__), 'event.html')
-        self.response.out.write(template.render(path, template_values))
+        self.template_render_output(template_values, 'event.html')
 
 class RegisterEvent(WebAppGenericProcessor):
     """Load from the existing database and edit the event content"""
@@ -165,11 +171,10 @@ class UserEventRegistrationPage(WebAppGenericProcessor):
             'user_prework': "",
             'user_attend': True,
             }
-
-        path = os.path.join(os.path.dirname(__file__), 'userreg.html')
-        self.response.out.write(template.render(path, template_values))
+        self.template_render_output(template_values, 'userreg.html')
 
 class UserCommitEventRegistration(WebAppGenericProcessor):
+    """The page to show after user commits to a registration."""
     def process_input(self):
         attendance = Attendance()
         attendance.eventid = self.request.get('eventid')
@@ -184,6 +189,7 @@ registered
 
 
 class ViewEventSummary(WebAppGenericProcessor):
+    """View summary of registered users for a given event."""
     def process_input(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
