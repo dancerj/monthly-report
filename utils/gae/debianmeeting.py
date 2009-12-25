@@ -52,6 +52,15 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         event = events[0]
         return event
 
+    def load_attendance_with_eventid_and_user(self, eventid, user):
+        """Load an attendance with the eventid and user."""
+        attendances = Attendance.gql('WHERE eventid = :1 and user = :2 ORDER BY timestamp DESC LIMIT 1', 
+                                      eventid, user)
+        if attendances.count() == 0:
+            return
+        attendance = attendances[0]
+        return attendance
+
     def check_auth_owner(self, event):
         """Check if this user is an owner of this event"""
         if event.owner == users.get_current_user():
@@ -123,7 +132,7 @@ class EditEvent(WebAppGenericProcessor):
 class RegisterEvent(WebAppGenericProcessor):
     """Load from the existing database and edit the event content"""
     def process_input(self):
-        eventid = self.request.get('eventid') # TODO: this is not a trusted data, from user.
+        eventid = self.request.get('eventid')
         title = self.request.get('title')
         owner = users.get_current_user()
 
@@ -150,9 +159,9 @@ class RegisterEvent(WebAppGenericProcessor):
 
 
 class UserEventRegistrationPage(WebAppGenericProcessor):
-    """Form where user signs up for an event"""
+    """Form where user signs up for an event, and edits old sign-up entries."""
     def process_input(self):
-        eventid = self.request.get('eventid') # TODO: this is not a trusted data, from user.
+        eventid = self.request.get('eventid')
         user = users.get_current_user()
 
         # try loading the item with same eventid from datastore
@@ -160,6 +169,7 @@ class UserEventRegistrationPage(WebAppGenericProcessor):
         if event == None:
             return
 
+        attendance = self.load_attendance_with_eventid_and_user(eventid, user)
         template_values = {
             'nickname': event.owner.nickname(),
             'eventid': event.eventid,
@@ -168,31 +178,46 @@ class UserEventRegistrationPage(WebAppGenericProcessor):
             'content': event.content,
             'prework': event.prework,
             'event_date': event.event_date,
-            'user_prework': "",
-            'user_attend': True,
             }
+
+        if attendance == None:
+            # this is a new registration
+            template_values['user_prework'] = ""
+            template_values['user_attend'] = True
+        else:
+            # Editing an old registration entry
+            template_values['user_prework'] = attendance.prework
+            template_values['user_attend'] = attendance.attend
+
         self.template_render_output(template_values, 'userreg.html')
+
 
 class UserCommitEventRegistration(WebAppGenericProcessor):
     """The page to show after user commits to a registration."""
     def process_input(self):
-        attendance = Attendance()
-        attendance.eventid = self.request.get('eventid')
-        attendance.user = users.get_current_user()
+        eventid = self.request.get('eventid')
+        if self.load_event_with_eventid(eventid) == None:
+            return
+        user = users.get_current_user()
+        attendance = self.load_attendance_with_eventid_and_user(eventid, user)
+        if attendance == None:
+            # create new entry if it's not available yet, otherwise reuse an old entry.
+            attendance = Attendance()
+        attendance.eventid = eventid
+        attendance.user = user
         attendance.prework = self.request.get('user_prework')
         attendance.attend = (self.request.get('user_attend') == 'attend')
 
         attendance.put()
-        self.response.out.write("""
-registered
-""")
-
+        self.redirect('/event?eventid=%s' % (eventid))
 
 class ViewEventSummary(WebAppGenericProcessor):
     """View summary of registered users for a given event."""
     def process_input(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
+        if not event:
+            return
         if not self.check_auth_owner(event):
             self.response.out.write("""
 You are not allowed to see a summary""")
