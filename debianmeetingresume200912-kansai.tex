@@ -91,11 +91,47 @@
 
 \dancersection{最近のDebian関係のイベント報告}{Debian JP}
 
-\subsection{オープンフォース Debian(非公式) 勉強会 徳島 200912}
-12月19日に徳島県にある四国大学交流プラザで開催された、オープンフォース
-Debian(非公式) 勉強会 徳島 200912に、のがたが呼ばれたので行ってきました。
+\subsection{オープンフォース Debian(非公式) 勉強会 徳島 200912 / のがたじゅ
+ん}
 
-後で書く
+\begin{wrapfigure}{l}{16zw}
+ \includegraphics[width=16zw]{image200912/tokushima1.png}
+\end{wrapfigure}
+
+12月19日に徳島県の四国大学交流プラザで開催された、オープンフォース
+Debian(非公式)勉強会 徳島 200912にお呼ばれしていってきました。
+
+当日は寒波襲来、他のIT系勉強会とのバッティング、その他季節のイベントなど
+があって、人が集まってくれるのだろうかと思いながら行ったのですが、10人以
+上の人が集まってかなり盛り上がりました。
+
+のがたは、「Debianと関西Debian勉強会の紹介」「あなたの知らないDebian
+Live(改)」という二つの発表をしてきました。
+
+「Debianと関西Debian勉強会の紹介」は、Debianユーザー向けに、Debianがユニ
+バーサルなオペレーティングシステムを作るゆるやかな個人の集団であること、
+Debian社会契約とDebianフリーソフトウェアガイドライン(DFSG)、Debianと
+Debian JP、関西Debian勉強会について、バグ報告や翻訳からお手軽にDebianに参
+加できるというお話をしました。
+
+参加された人の多くは、すでにDebianを使っている方が多く、とても興味深く聞
+いていただけたように思いました。
+
+もう一つの発表「あなたの知らないDebian Live(改)」は、以前岡山で発表した
+Debian Liveの周辺についての発表を、live-helper 2.0など最近の動きに合わせ
+て変更した改訂版を発表しました。
+
+改訂版の発表だけでは申し訳ないので、デモとしてDebian Liveが起動するとフル
+スクリーンでqemuが起動し実機を動かしているように仮想マシンが使える
+qlive\footnote{\url{http://github.com/nogajun/qlive}}で、Windows98が使え
+るデモをしました。
+
+こちらはデモ直前にクラッシュするという出来事がありましたが、なんとか復旧
+させてお見せすることができウケたので、よかったなと思いました
+
+徳島は夏と今回の冬に行って、徳島大学や四国大学の学生のDebianユーザーが多
+いことが改めて実感できたので、また機会を見て訪れようかと思います。
+
 
 \dancersection{ハンドメイドGPSロガーの構築}{まさ}
 
@@ -419,6 +455,577 @@ root.mainloop() # 無限ループ
 
 \clearpage
 \dancersection{Debian を使って愉しむ Open Street Map 入門}{たなかとしひさ}
+
+\subsection{Open Street Map をご存知ですか?}
+
+\begin{figure*}[h!]
+    \centering
+    \includegraphics[scale=0.4]{image200912/debianosm1.png}
+\end{figure*}
+
+2009年度12月のDebian 勉強会のお知らせで、
+\url{http://www.openstreetmap.org/} にアクセスして、お住まい近辺の地図を
+見て頂けたらと案内しました。
+
+ご覧になられた皆さん、感想はいかがでしょうか。
+
+「すげぇ、素晴らしい！」
+
+「Google Map の廉価版？」
+
+「Debian と何の関係があるのさ？」
+
+　等など、色々な感想があると思います。
+
+今回の勉強会では、Debian System の応用として、Debian を使って、この
+OpenStreetMap(以降、OSM と表記)について、一緒に勉強していきましょう。
+
+\subsection{免責}
+\begin{itemize}
+ \item このテキストは、たなかとしひさ(tosihisa@netfort.gr.jp)が書いたものです。 
+ \item このテキストには、間違いがあるかもしれません。
+ \item 記載内容は、できるだけ最新(2009年12月)の事情にあわせて記載したつもりですが、時間の経過で内容が変化する場合があります。
+\end{itemize}
+
+\subsection{OpenStreetMap(OSM) って何ですか？}
+\url{http://wiki.openstreetmap.org/wiki/Ja:Main_Page} からの引用です。
+
+\begin{quotation}
+OpenStreetMapは道路地図などの地理情報データを誰でも利用できるよう、フリー
+の地理情報データを作成することを目的としたプロジェクトです。自由に使える
+と思っている地図の多くが実は法的・技術的に問題があり、人々がクリエイティ
+ブに、生産的に、あるいは今まで予期しなかった方法でそれを 利用する事を妨げ
+ているため、このプロジェクトは開始されました。
+\end{quotation}
+
+\subsection{Debian System と OSM}
+
+今回の関西 Debian 勉強会は、従来のテーマとは異なり、異色でもあります。
+
+「OSM って、Debian と何か関係あるの？」と言われると、確かに強い関係…
+はありません。
+
+しかし、Debian System と OSM を組み合わせる事で、
+
+\begin{center}
+ \textbf{{\large「自由度の高い」地図ソフト環境} }
+\end{center}
+
+が実現できます。これは、画期的な事だと筆者は考えています。
+
+Debian Systemで、どれだけ素晴らしい地図ソフトが .deb になって apt で得ら
+れるとしても、地図データが無ければ魅力を欠きます。
+
+Debian System を始めたとした Linux ディストリビューションは、「自由に使う
+事が出来るコンピュータソフトウェア環境」を実現できるものですが、それと
+OSM とを組み合わせる事で、自由に使う事が出来るコンピュータソフトウェア環
+境の中に、「地図の閲覧」を含める事が出来ます。
+
+Debian System もそうであるように、OSM もまた、「一部の特権階級」のもので
+はありません。望めば、誰でもが自由に使う事が出来ます。
+
+OSM は、使うには一苦労かかる事もしばしばありますし、地図自身、日本国内で
+は十分に揃っているとは言えない状況です。
+
+しかし、誰でもが、自由に使える地図データを提供できる事は、Debian が目指す
+ゴールと重なります。
+
+また、「単に Debian を使う」だけでなく、Debian の応用事例を増やす事は、
+Debian コミュニティに取っても有益と考えています。
+
+Debian System は、サーバ、医療、組込みなど、様々な分野で使われています。
+その中に「自由に使える地図環境」を加える事が出来ます。
+
+\subsection{OSM のライセンス}
+
+OSM の地図データは、Creative Commons Attribution-ShareAlike 2.0、簡略系
+で書くと CC BY-SA (表示-継承)です。
+\footnote{\url{http://wiki.openstreetmap.org/wiki/Ja:OpenStreetMap_License}}
+
+なお、OSM の地図データのライセンスは、2009年12月現在 Open Database License (ODbL) への移行が検討されています。
+\footnote{\url{http://wiki.openstreetmap.org/wiki/Ja:Open_Database_License}}
+
+12月の関西 Debian 勉強会実施頃には、もしかするとライセンスが変更されているかも知れません。
+
+\textbf{{\large ＊急募＊} }
+
+日本の OSM コミュニティは、ODbL に関する情報を必要としています。
+
+ODbL に詳しい(出来れば)日本語の情報がありましたら、筆者までお知らせ下さいますと助かります。
+
+ODbL は、日本ではまだ認知が低いためか、日本語の情報が少なく、どの様な情報
+でも構いませんので、筆者までお知らせ下さいますと助かります。
+
+
+\subsection{OSM の特徴}
+
+\subsubsection{OSM の地図データは、ビットマップではなくベクトルデータ}
+
+OSM の地図データはベクトルデータです。
+\url{http://www.openstreetmap.org/} や、\url{http://osm.jp/} から参照でき
+る地図画像は、そのベクトルデータをビットマップデータへレンダリングしたも
+のです。
+
+地図データがベクトルデータなので、地図の表現能力自身は、ビットマップに比
+べると劣りますが、ベクトルデータの場合、拡大・縮小が自由に行える事と、ルー
+ト探索が可能になります。
+
+OpenStreetMap の地図データを用いたルート探索サービスを提供しているサイト
+の一つに、CloudMade があります。
+
+CloudMade の地図サイト (\url{http://maps.cloudmade.com/}) にアクセスして、
+大阪(梅田)から、関西 Debian 勉強会までのルート探索結果を下記に示します。
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.5]{image200912/debianosm2.png}
+ \caption{CloudMade による関西 Debian 勉強会へのルート探索図}
+\end{figure}
+
+
+OSM の地図データ自身がまだまだ不足している事と、地図データの精度が足りな
+いので、期待したルート探索結果にはまだならないかも知れませんが、この様な
+ルート探索が行える可能性を OpenStreetMap は持っています。
+
+\subsubsection{地図データの作成は、アカウント登録さえすれば誰にでも可能}
+
+OSM の地図データの作成は、OSM へのアカウントを登録すれば誰にでも作成、編
+集が可能です。
+
+2009年5月に、OSM ユーザ数は 100,000 を越えました。下記に、その登録者数と
+作図データの推移グラフを示します。
+(出典：\url{http://www.opengeodata.org/2009/03/17/osm-passes-100000-users/})
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.7]{image200912/debianosm3.png}
+ \caption{OSM登録者数と作図データの推移グラフ}
+\end{figure}
+
+\subsubsection{Wiki の考え方をベースにしている}
+
+地図データの作成は、Wiki の考え方が根本にあります。A さんが作図したデータ
+を B さんが修正する事が可能です。
+
+Wiki の悪い面 いわゆる「荒らし」的な事も、やろうと思えば出来てしまいます
+し、地域によっては「編集合戦」があるのも事実です。
+
+しかしながら、Wiki ベースであるので、「より良い方向に向かって修正する」事
+が可能であり、例えば一方通行の方向が逆である事を見つけた場合、アカウント
+を持っていれば修正する事が出来ます。
+
+\subsubsection{地図データはオフラインでも利用できる}
+
+GoogleMap は実に便利ですが、基本はオンライン、要するにインターネットに繋
+がっている環境下である事が前提にあります。
+
+また、GoogleMap が提供する地図は、事前に Google の書面に同意を得る事無し
+に独自の技術によるアクセスや地図の複製は出来ません。
+
+出典：
+\begin{itemize}
+ \item \url{http://www.google.co.jp/intl/ja_jp/help/terms_maps.html}
+ \item \url{http://www.google.com/intl/ja_ALL/help/terms_local.html}
+\end{itemize}
+
+これは、オフライン対応地図閲覧ソフトは、Google Map の地図データを書面によ
+る同意無しに使えない事を意味します。
+
+オフラインでも地図を閲覧できるソフトに Mobile GMaps
+(\url{http://www.mgmaps.com/}) があります。これはオンラインでもオフラインでも使
+用できる PDA や SmartPhone 向け地図ソフトですが、上記の理由から、このソフ
+トは Google Map の地図に対応していません。
+
+誤解の無い様に付け加えると、筆者は GoogleMap のあり方は問題視していません。
+
+GoogleMap が提供するサービスは、これらを補うに十分と考えています。
+
+大事な事は、インターネットがどこでも安価に使える様になったとは言え、それ
+は「全世界から見ればごく一部」でしか無いと言う事です。
+
+日本でも、山間の地域に行くと、携帯も圏外になる場合があります。
+
+この様な場合でも、地図データをオフラインで持っておけば、圏外でも地図を閲
+覧できますし、圏内でもパケット課金を気にする必要はありません。
+
+OSM の地図データをオフラインで見られるソフトの一つに、navit
+(\url{http://wiki.navit-project.org/index.php/OpenStreetMaps}) があります。
+navit は後の章で紹介します。
+
+\subsection{(今だけの愉しみですが)走行ログになります}
+
+筆者はバイクに乗り、アチコチに移動するのが趣味で、GPS を持って出かけてロ
+グを取って後で眺めたりします。その時、「単にログを見る」だけではなく、
+「そのログを元に地図を作図する」事が出来れば、さらにより良いと考えていま
+す。
+
+筆者が OSM に地図データをコミットし始めた頃は、大阪は殆ど何もありませんで
+した。記憶ですが、名神か阪神高速の一部があった程度です。どなたか、大阪を
+通過された方が作図されたのだと思います。
+
+筆者はまず、大阪のシンボル御堂筋を作図しました。続けて、四ツ橋筋を作図し
+ました。当時は「広大な白地図」でしたので、どこを走っても作図できましたが、
+最近の大阪の OSM 地図の発展は目覚しく、少し考えてログを取らないと、誰かが
+既に作図済みの所を走っているだけになります。
+
+近畿地方で最も OSM の作図が進んでいるのは、滋賀県長浜市の OSM 地図と考え
+ています。
+
+滋賀県長浜市の OSM 地図発展は目覚しいもので、「よくぞここまで作図したもの
+だなぁ・・・」と感嘆する事しきりです。
+
+筆者は、「自由に使える地図を【使いたい】」と言う理由で OSM に注目し始めま
+した。が、ミイラ取りがミイラと言う訳ではありませんが、目的が「自由に使え
+る地図を【作ること】」に変ってきているのも事実です。
+
+\subsection{OSM へのコミットは、地域社会への貢献にもなりえます。}
+
+筆者は常々、事 OpenSource の成果は、地元社会にもつながればと考えています。
+
+プログラミング言語 Ruby は、島根県の IT ならびに OpenSource 促進に良い影
+響を与えたと考えています。OSM は、それと同じ効果を持ちえると考えています。
+
+「地図」と言うのは、OpenSource コミュニティに限らず、誰にでも一応の興味が
+あります。私の母はコンピュータ環境と無縁な生活を送りつづけていますが、母
+は山歩きが趣味なので地図帳は持っています。
+
+また、日本は地震が多いので、避難場所への地図を載せた看板を目にすると思い
+ます。
+
+筆者は、OSM が地震等の災害発生時に役に立つ日が来ればと考えています。
+
+地震等の災害で、道路が分断された場合、どこからどこまでが通行不可なのかど
+うかを、迅速に反映できる仕組みを、OSM は持っていると考えます。
+
+また、視力が弱く、地図を見る事が出来ない場合にも、OSM の地図をベースに
+「触地図」を作ってみたケースがあります。
+
+現在の OSM の地図データは、日本国内で見れば、まだまだ足りないのが現状です
+が、「地図」は殆どの人には、少なからず関係があるものですので、
+
+この様に、様々な形での応用を OSM は持っています。
+
+\subsection{OSMへの参加}
+
+OSMへの参加は、
+\url{http://wiki.openstreetmap.org/wiki/Ja:Beginners_Guide}を参考にすると
+良いでしょう。基本的には下記の事をしていきます。
+
+\subsubsection{OSMアカウントの作成(初めの1回だけ)}
+
+\url{http://www.openstreetmap.org/create-account.html}にアクセスして、
+OSMアカウントを作成します。同時に、
+\url{http://wiki.openstreetmap.org/index.php?title=Special:UserLogin&type=signup&uselang=ja}
+にアクセスして、OSM の Wiki アカウントを作成しておくと良いでしょう。
+
+OSMは、地図データのアップロードは「OSMアカウント」を用いますが、それ以外
+にも OSM の Wiki ページ(\url{http://wiki.openstreetmap.org/})がありますの
+で、OSMに関する情報公開に用いると良いでしょう。
+
+アカウントの作成は初めの1回だけですが、後々のGPSログのアップロードや作図ではOSMアカウント情報が必要です。
+
+OSM作図の流れ図を下記に示します。
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.8]{image200912/debianosm4.png}
+\end{figure}
+
+
+\subsubsection{GPSロガーでログ取り}
+
+GPSロガーを持って、まだ地図データの無い白地図の所に行き、GPS データをログ
+していきます。
+
+「マッピングパーティ」と言う催しがあります。これは、OSM同好の集まりでGPS
+等を持ってログを取る催しです。この「マッピングパーティー」に参加するのも
+良いでしょう。
+
+\subsubsection{GPSログデータをアップロードする}
+
+GPSロガーのデータをGPX形式にして、OSMサーバにアップロードします。
+
+技術的には、GPSログデータをアップロードしなくても作図そのものは可能ですが、「GPSを元にした道である事」への根拠として、GPSログデータはアップロードしておいた方が良いでしょう。
+
+\subsubsection{地図データを作成、編集する}
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.7]{image200912/debianosm5.png}
+\end{figure}
+
+GPSログデータを元に、OSM作画エディタを使って、実際に作図していきます。
+
+GPSログデータは、点データの集合ですので、それをOSM作図エディタで繋いで行き、線にしていきます。
+
+次に、その線データが国道なのか、県道なのか、一方通行かどうかの情報を付加していきます。これを、「タグ付け」と言います。
+作図のイメージを下記に示します。
+
+\subsubsection{マップを描画する！ }
+出来上がった地図を見てみましょう！
+地図のレンダリングには少し時間がかかりますが、早ければ1時間位でレンダリングされます。
+
+\subsection{OSM へ参加するには、GPSロガーは不可欠なの？}
+
+GPSロガーが無いからと言って、OSMに参加できない事はありません。GPSロガーが無くても、下記の形でOSMへコミットできます。
+
+\begin{itemize}
+ \item 使ってみる。\\
+OSMは地図データですので、実際にそれが現実とあっているかが重要です。とにもかくにも、OSMを使ってみて下さい。Debian System と同様に、「それを使う」だけでも、貢献として充分なのです。
+ \item 間違いを修正する。\\
+OSMの作図は、できるだけ正しくなるように作図が進んでいますが、例えば一方通行の方向が逆だったり、国道／県道の番号が間違っている場合もあります。
+この様な場合、作画エディタでOSMデータをダウンロードできますので、間違いのある部分をダウンロードして修正してアップロードすれば、間違いが修正できます。
+\end{itemize}
+
+\subsection{Debian System 上で使える OSM (GIS) 関連ソフト}
+　Debian Systemは、メンテナの尽力により豊富なバイナリパッケージを使う事ができますが、
+　OSM 関連で利用できるソフトウェアを下記に示します。もちろん、これだけではありません。
+　私見ですが、GPS を扱うソフトは、Windows よりも Debianの方が多岐に渡っていると感じています。
+
+\subsubsection{gpsd}
+
+\begin{commandline}
+# apt-get install gpsd
+\end{commandline}
+
+gpsd は、OSMでは必須では無いのですが、Debian や Linux でGPSデータを受信する際にほぼ標準として使われているので紹介します。
+
+このソフトは、GPS 受信機と PC を接続し、NMEA-0183 センテンスまたは GPS の独自プロトコルと通信し、現在の緯度経度、UTC 時間を処理します。
+
+Debian System 上で動作する地図関連のソフトは、GPS 受信機と直接通信せず、gpsd を経由して緯度経度の情報を得るものが多いです。
+
+gpsd を経由させる事で、GPS 受信機一つに対し、複数の(GPS を必要とする)ソフトが使えるようになります。
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.9]{image200912/debianosm6.png}
+\end{figure}
+
+また、gpsd は、NTP サーバ向けの時刻源としても機能します。NTP(ntpd) とは、共有メモリドライバを介して行います。ただし、gpsd を NTP サーバ向けの時刻源にしても、NTP 階層の Stratum 1 の精度になるわけではありません。これは、gpsd が時刻情報を受信する時、共有メモリに書き込むときに「ゆらぎ」が生じるからです。
+
+Debian System と OSM からは少し外れますが、もし、GPS を時刻源として Stratum 1 相当の NTP サーバを作るならば、"1PPS (one pulse per second)" 出力つき GPS が必要になります。
+
+1PPS とは、「正確に１秒のパルス」を発生するもので、このパルスを Linux カーネルで捕まえる事で、時刻のゆらぎを少なくします。
+
+\subsubsection{gpsbabel}
+
+\begin{commandline}
+# apt-get install gpsbabel
+\end{commandline}
+
+gpsbabel は、様々な GPS データの形式を変換するソフトです。
+
+GPS データの「基本的な仕様」としては、NMEA-0183 センテンスがその基本なの
+ですが、GPS 受信機ベンダーは、独自フォーマットでデータを保存する場合があ
+ります。それは様々なGPSベンダーから、様々なデータ形式があります。Google
+Earth の “.kml”形式も、そのGPSログの保存形式の一つです。
+
+gpsbabel は、その GPS データ形式を変換するソフトです。
+
+OSMが採用しているGPSログ形式は、<time>タグ付きGPX形式のみですので、もし
+GPS受信機、あるいは付属ソフトが<time>タグ付きGPX形式に対応していない場合、
+gpsbabelで変換しなければならない場合があります。
+
+参考に、NMEA-0183 センテンスのGPSログデータを GPX に変換するには、下記の
+様に実行します。
+
+\begin{commandline}
+$ gpsbabel -w -r -t -i nmea -f {nmea-log-file} -o gpx -F {GPX_DATA}.gpx
+\end{commandline}
+
+\subsubsection{Merkaartor (発音は"メルカトル"です)}
+
+「deb \url{http://www.backports.org/debian} lenny-backports main contrib non-free」を、/etc/apt/sources.listに追加します。
+
+\begin{commandline}
+# apt-get update
+# apt-get -t lenny-backports install merkaartor
+\end{commandline}
+
+　Merkaartor は、OSM の作図ソフトです。
+　OSM 向けの作図ソフトは、大きく３つあります。
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.5]{image200912/debianosm7.png}
+\end{figure}
+
+\begin{enumerate}
+ \item Potlatch \\
+Potlatch は、フラッシュベースの作図ソフトで、Web ブラウザがあれば使う事が
+出来ます。
+ \item JOSM \\
+JOSM は、Java で書かれた作図ソフトで多機能です。Java 版なので、Debian で
+も Windows でも動きます。
+ \item Merkaartor
+Merkaartor は、Qt ライブラリを使って書かれた作図ソフトです。
+クロスプラットフォームで、JOSM と同じく Debian でも Windows でも動きます。
+\end{enumerate}
+
+どれがお奨めか、これは３つとも自由に使えるソフトですので、３つ試して一番
+自分に合うものを選んで下さい。一概にどれが良い・悪いと言うのはありません。
+ただ、私見ですが、Merkaartor は多機能で無い分、初心者にとってはかえって分
+かりやすいと考えています。
+
+Debian lenny に入っている Merkaartor は少しバージョンが古く、Debian
+Backportsサイト(\url{http://www.backports.org/}) から、出来るだけ新しい
+Merkaartor をインストールすると良いでしょう。
+
+\subsubsection{navit}
+
+「deb \url{http://navit.latouche.info/debian} lenny main」を、/etc/apt/sources.listに追加します。
+
+\begin{commandline}
+# gpg --recv-keys CB229096
+# gpg --export -a CB229096 | apt-key add -
+# apt-get update
+# apt-get install navit
+\end{commandline}
+
+\begin{figure}[h]
+ \centering
+ \includegraphics[scale=0.7]{image200912/debianosm8.png}
+\end{figure}
+
+navit は、OSM 地図データに対応した地図表示ソフトです。gpsd が必要で、
+gpsd から現在の緯度経度を取得し、OSM 地図データと重ね合わせ表示する事が出
+来ます。
+
+navit は OSM 地図データを事前に取り込む方法ですので、ネットが使えないオフ
+ライン環境下でも地図を見る事が出来ます。
+
+筆者は Debian Lenny をインストールした EeePC に、gpsd と navit をインストー
+ルし、大阪から新潟まで使ってみたことがあります。
+
+実際の走行は、殆どが高速道路ですので、ナビと言うほどのものはありませんで
+したが、私が念願としていた、「自由な OS で、自由なソフトで、自由な地図デー
+タでナビをする」と言う事が達成できた瞬間でした。
+
+筆者はまだまだ、Debian System は初心者の域を出ません。もし Debian System
+にあるパッケージで、良いものがありましたら紹介下さい。
+
+\subsection{筆者の GPS ログ機器}
+
+筆者は、主に2台の GPS 受信機を使ってログを取っています。
+
+\subsubsection{GT-31}
+
+GT-31 は、小型防水の GPS ロガーで、バイクに取り付けることが出来ます。
+
+GT-31 の良い所は、GPS ログを SD カードに保存する事が出来るので、記録容量
+が SD カードの容量次第で大きく出来る点です。また、IPX7相当の防水性能があ
+ります。IPX7 相当の防水機能とは、1m の水中に、30分間沈んでいても内部に水
+が入らない構造を指します。
+
+筆者は GT-31 の SDカードに、NMEA-0183 の形式で保存しています。
+
+\subsubsection{HI-406BT}
+
+GT-31 と併用して、HI-406BT も使っています。
+
+HI-406BT は、純粋な GPS 受信機であり、この機器自身にログ機能はありません。
+
+HI-406BT は Bluetooth インターフェースなので、筆者は Bluetooth 付きの
+PDA や PC に、これも NMEA-0183 の形式で保存するようにしています。
+
+\subsubsection{HOLUX m-241}
+HOLUX m-241 は、単3乾電池一つで動作する小型 GPS ロガーです。
+
+小型でありながら、ロガーとしての記録容量が大きく、130,000点のログが可能で
+す。加えて Bluetooth に対応しています。筆者が OSM に作図し始めた頃は、こ
+の m-241 でログを取っていました。
+
+残念な事に、筆者の m-241 は壊れてしまい、今は GT-31 と HI-406BT を併用し
+ています。
+
+GPS は、余裕があれば2台欲しいです。白地図を作図するときは、やはりGPSログ
+から作図しますので、ログ取り忘れはかなり寂しい事になります。
+
+GT-31 は、GPS ログしない。と言う選択肢が無く、常にログします。m-241 は、
+ボタンのトグルでログする・しないを選択できますが、ついうっかり忘れてしま
+う事がありますので、GPS ログを取る・取らないが選択できる GPS 受信機を使う
+場合、GPS ログ状態がすぐに確認できるものを選ぶと良いでしょう。
+
+\subsection{GPSロガー選び方ノウハウ}
+
+\subsubsection{DOP (Dilution of Precision - 精度低下率) が分かるものを選ぼう}
+
+GPS レシーバは、「GPS 衛星から現在位置をもらう」のではなく、GPS 衛星から
+正確な時刻と GPS 衛星の移動情報を元に、「GPS レシーバが自力で現在地を計算
+する」仕組みです。
+
+そのため、計算結果から、精度がどれくらい低下しているかを判断する事が出来ます。
+
+これは GPS 衛星一つから現在地を知るのではなく、最低３つの GPS 衛星から現
+在地を計算するためです。
+
+DOP は、小さければ小さいほど精度が良い事を示します。この DOP は、受信した
+(計算に選択した)GPS 衛星のばらけ具合によります。DOP には、水平方向の
+HDOP、垂直方向の VDOP 、位置を示す PDOP があります。
+
+下記のページに記載がありますが、OSM は、PDOP の値は 4 より下、2 より下な
+らかなり良く固定されているとあります。
+
+\url{http://wiki.openstreetmap.org/wiki/Ja:Recording_GPS_tracks}
+
+筆者自身、作図のために GPS ログを取る時は、DOP 値には相当気を使っています。
+
+GPS ロガー "GT-31" は、DOP 値を表示することが出来ますので、筆者が GPS ロ
+グを取る時は、現在の緯度経度よりも、DOP 値を表示させるようにしています。
+
+DOP をログする GPS ロガーを使用した場合、GPX ログにも DOP を残す事が出来
+ますので、JOSM や Merkaartor でも視覚的に確認できます。
+
+NMEA-0183 センテンスの場合、GSA センテンスがこれにあたります。
+
+\subsubsection{外部アンテナが付けられるのと付けられないのでは大違い}
+
+GPS 受信機には、外部アンテナを取り付ける事が出来るものがあります。
+
+筆者は "HI-406BT" と言う Bluetooth GPS レシーバも使うのですが、これには外
+部アンテナを取り付けることが出来ます。
+
+外部アンテナを取り付けることで、GPS 信号の感度が上がり、精度が向上します。
+
+また、外部アンテナは概ね防水型ですので、外部アンテナを車の屋根に取り付け、
+天候に左右されずにログを取る事が出来ます。
+
+\subsubsection{測位精度の誤差}
+
+最近の GPS 受信機は精度が向上し、概ね「10m 2drms」の範囲です。
+
+「2drms」と言うのは、これを半径とする円内に、およそ 95\% の測位点が入る事
+を表します。
+
+10m 2drms ならば、半径10m の円内に 95\% の測位点が入る事を示します。
+
+半径10m だと、地図として使うのに誤差としては大きいかも知れませんが、DGPS
+だと 5m 2drms にまで誤差が少なくなるものもあります。
+
+GPS 受信機を購入する時は、この 2drms の値は確認しておくと良いでしょう。
+
+\subsubsection{バッテリーの持ちと形状}
+
+１時間程度のログであればあまり問題はありませんが、バイクツーリング等でほ
+ぼ１日乗りっぱなしで GPS ログを取る場合、GPS 受信機のバッテリーも気になり
+ます。
+
+GPS 受信機のバッテリーの持ちもそうですが、バッテリーの形式、例えば乾電池
+か専用電池かも、利用形態に応じて考える必要があります。
+
+最近の個人用 GPS 受信機は、USB で充電できるものがあります。これと携帯の充
+電器にあるような、乾電池の電力を USB に変換して出す充電器を併用する事で、
+専用電池でもバッテリーを気にせずに使う事が出来ます。
+
+せっかくの GPS 受信機も、バッテリーが干上がると、mapper にしてみるととて
+も寂しい事になりますので、バッテリーの持ちや、形状は確認しておくと良いで
+しょう。
+
+\subsection{おわりに}
+OpenStreetMapは、日本ではまだまだ認知の低いプロジェクトですが、Debian
+System とも十分親和性の高いプロジェクトですので、興味を持って頂けたならう
+れしいです。
+
 
 
 \dancersection{関西 Debian 勉強会\newline2009年度各種イベント開催実績と総括}{倉敷・佐々木・野方}
