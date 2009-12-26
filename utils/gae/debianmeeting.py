@@ -96,7 +96,7 @@ class TopPage(WebAppGenericProcessor):
             'events': events,
             'attendances': attendances
             }
-        self.template_render_output(template_values, 'index.html')
+        self.template_render_output(template_values, 'TopPage.html')
 
 class NewEvent(WebAppGenericProcessor):
     """Form to create a new event."""
@@ -105,7 +105,7 @@ class NewEvent(WebAppGenericProcessor):
             'nickname': users.get_current_user().nickname(),
             'eventid': "na" # set it to N/A to later set it to something else...?
             }
-        self.template_render_output(template_values, 'event.html')
+        self.template_render_output(template_values, 'EditEvent.html')
 
 class EditEvent(WebAppGenericProcessor):
     """Load from the existing data and edit the event"""
@@ -127,7 +127,7 @@ class EditEvent(WebAppGenericProcessor):
             'prework': event.prework,
             'event_date': event.event_date
             }
-        self.template_render_output(template_values, 'event.html')
+        self.template_render_output(template_values, 'EditEvent.html')
 
 class RegisterEvent(WebAppGenericProcessor):
     """Load from the existing database and edit the event content"""
@@ -189,7 +189,7 @@ class UserEventRegistrationPage(WebAppGenericProcessor):
             template_values['user_prework'] = attendance.prework
             template_values['user_attend'] = attendance.attend
 
-        self.template_render_output(template_values, 'userreg.html')
+        self.template_render_output(template_values, 'UserEventRegistrationPage.html')
 
 
 class UserCommitEventRegistration(WebAppGenericProcessor):
