@@ -32,7 +32,10 @@ class Attendance(db.Model):
 
 
 class WebAppGenericProcessor(webapp.RequestHandler):
-    """Merge get and post requests so that both is handled by the same handler.
+    """Convenience class to collect all methods that seem generally useful.
+
+    Merge get and post requests so that both is handled by the same
+    handler, process_input.
     """
     def process_input(self):
         """do something here"""
@@ -44,7 +47,8 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         self.process_input()
 
     def load_event_with_eventid(self, eventid):
-        """Load an event with the eventid."""
+        """Load an event with the eventid.
+        """
         events = Event.gql('WHERE eventid = :1 ORDER BY timestamp DESC LIMIT 1', eventid)
         if events.count() == 0:
             self.response.out.write('Event id %s not found' % (eventid))
@@ -62,10 +66,14 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         return attendance
 
     def check_auth_owner(self, event):
-        """Check if this user is an owner of this event"""
-        if event.owner == users.get_current_user():
+        """Check if this user is an owner of this event, 
+        or the email is listed in owner_email list."""
+        user = users.get_current_user()
+        if event.owner == user:
             return True
-        # TODO: check for other owners too...
+        for owner_email in event.owners_email:
+            if owner_email == user.email():
+                return True
         return False
 
     def template_render_output(self, template_values, template_filename):
@@ -119,7 +127,8 @@ class EditEvent(WebAppGenericProcessor):
             return
 
         template_values = {
-            'nickname': users.get_current_user().nickname(),
+            'nickname': event.owner.nickname(), # the owner might be not me.
+            'owners_email': (','.join(event.owners_email)),
             'eventid': event.eventid,
             'title': event.title,
             'location': event.location,
@@ -134,20 +143,21 @@ class RegisterEvent(WebAppGenericProcessor):
     def process_input(self):
         eventid = self.request.get('eventid')
         title = self.request.get('title')
-        owner = users.get_current_user()
 
         if eventid == 'na':
             # if it's new, create a new item
             event = Event()
+            owner = users.get_current_user()
             eventid = generate_eventid(title, owner.email(), event.timestamp.isoformat(' '))
             event.eventid = eventid
+            event.owner = owner
         else:
             event = self.load_event_with_eventid(eventid)
             if event == None:
                 return
 
         event.eventid = eventid
-        event.owner = owner
+        event.owners_email = self.request.get('owners_email').split(',')
         event.title = title
         event.location = self.request.get('location')
         event.content = self.request.get('content')
