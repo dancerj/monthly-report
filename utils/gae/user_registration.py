@@ -69,8 +69,8 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
 
 イベントの詳細
 
-%s %s
-""" % (event, attendance))
+タイトル: %s 
+""" % (event.title.encode('utf-8')))
 
         self.redirect('/event?eventid=%s' % (eventid))
 

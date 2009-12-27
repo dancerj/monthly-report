@@ -79,8 +79,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
 イベントの詳細
 
 %s
-""" % event)
-
+""" % event.title.encode('utf-8'))
 
         self.redirect('/eventadmin/edit?eventid=%s' % (eventid))
 
