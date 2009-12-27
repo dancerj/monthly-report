@@ -50,20 +50,21 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         """Load an event with the eventid.
         """
         events = Event.gql('WHERE eventid = :1 ORDER BY timestamp DESC LIMIT 1', eventid)
-        if events.count() == 0:
-            self.response.out.write('Event id %s not found' % (eventid))
-            return 
-        event = events[0]
+        event = events.get()
         return event
 
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""
         attendances = Attendance.gql('WHERE eventid = :1 and user = :2 ORDER BY timestamp DESC LIMIT 1', 
                                       eventid, user)
-        if attendances.count() == 0:
-            return
-        attendance = attendances[0]
+        attendance = attendances.get()
         return attendance
+
+    def load_event_title_with_eventid(self, eventid):
+        """Load an event title with the eventid.
+        """
+        event = self.load_event_title_with_eventid(eventid)
+        return event.title
 
     def check_auth_owner(self, event):
         """Check if this user is an owner of this event, 
@@ -123,6 +124,7 @@ class EditEvent(WebAppGenericProcessor):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if event == None:
+            self.response.out.write('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
             self.response.out.write('Not your event')
@@ -156,6 +158,7 @@ class RegisterEvent(WebAppGenericProcessor):
         else:
             event = self.load_event_with_eventid(eventid)
             if event == None:
+                self.response.out.write('Event id %s not found' % (eventid))
                 return
 
         event.eventid = eventid
@@ -179,6 +182,7 @@ class UserEventRegistrationPage(WebAppGenericProcessor):
         # try loading the item with same eventid from datastore
         event = self.load_event_with_eventid(eventid)
         if event == None:
+            self.response.out.write('Event id %s not found' % (eventid))
             return
 
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
@@ -209,6 +213,7 @@ class UserCommitEventRegistration(WebAppGenericProcessor):
     def process_input(self):
         eventid = self.request.get('eventid')
         if self.load_event_with_eventid(eventid) == None:
+            self.response.out.write('Event id %s not found' % (eventid))
             return
         user = users.get_current_user()
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
@@ -229,6 +234,7 @@ class ViewEventSummary(WebAppGenericProcessor):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if not event:
+            self.response.out.write('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
             self.response.out.write("""
