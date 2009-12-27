@@ -1,7 +1,9 @@
 # User event registration pages.
+# coding=utf-8
 from google.appengine.api import users
 
 import schema
+import send_notification
 import webapp_generic
 
 class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
@@ -43,7 +45,8 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
     """The page to show after user commits to a registration."""
     def process_input(self):
         eventid = self.request.get('eventid')
-        if self.load_event_with_eventid(eventid) == None:
+        event = self.load_event_with_eventid(eventid)
+        if event == None:
             self.response.out.write('Event id %s not found' % (eventid))
             return
         user = users.get_current_user()
@@ -57,5 +60,17 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
         attendance.attend = (self.request.get('user_attend') == 'attend')
 
         attendance.put()
+        send_notification.send_notification_to_user_and_owner(user.email(), 
+                                                              event.owner.email(), 
+                                                              event.owners_email,
+                                                              "[Debian登録システム] %s が %s に登録しました" % 
+                                                              (user.nickname(), event.title.encode('utf-8')) , """
+このメールは自動送信です。
+
+イベントの詳細
+
+%s %s
+""" % (event, attendance))
+
         self.redirect('/event?eventid=%s' % (eventid))
 

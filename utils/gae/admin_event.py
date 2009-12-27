@@ -1,7 +1,9 @@
 # Event Administration pages.
+# coding=utf-8
 from google.appengine.api import users
 
 import schema
+import send_notification
 import webapp_generic
 
 class NewEvent(webapp_generic.WebAppGenericProcessor):
@@ -44,14 +46,14 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
     def process_input(self):
         eventid = self.request.get('eventid')
         title = self.request.get('title')
+        user = users.get_current_user()
 
         if eventid == 'na':
             # if it's new, create a new item
             event = schema.Event()
-            owner = users.get_current_user()
-            eventid = generate_eventid(title, owner.email(), datetime.datetime.now().isoformat(' '))
+            eventid = generate_eventid(title, user.email(), datetime.datetime.now().isoformat(' '))
             event.eventid = eventid
-            event.owner = owner
+            event.owner = user
         else:
             event = self.load_event_with_eventid(eventid)
             if event == None:
@@ -66,6 +68,19 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.prework = self.request.get('prework')
         event.event_date = self.request.get('event_date')
         event.put()
+
+        send_notification.send_notification_to_user_and_owner(user.email(), 
+                                                              event.owner.email(),
+                                                              event.owners_email,
+                                                              "[Debian登録システム] イベント %s が更新されました" % 
+                                                              event.title.encode('utf-8'), """
+このメールは自動送信です。
+
+イベントの詳細
+
+%s
+""" % event)
+
 
         self.redirect('/eventadmin/edit?eventid=%s' % (eventid))
 
