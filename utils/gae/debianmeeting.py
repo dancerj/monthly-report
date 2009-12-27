@@ -3,10 +3,8 @@
 # main dispatcher.
 
 import cgi
-import datetime
 import wsgiref.handlers
 import os
-import hashlib
 
 from google.appengine.api import users
 from google.appengine.ext import webapp
@@ -15,14 +13,6 @@ import admin_event
 import schema
 import user_registration
 import webapp_generic
-
-def generate_eventid(event_title, username, time):
-    """Create a sha1 hash hex string to use as event ID."""
-    sourcestring = event_title + username + time
-    h = hashlib.sha1()
-    h.update(sourcestring.encode('utf-8'))
-    return h.hexdigest()
-
 
 class TopPage(webapp_generic.WebAppGenericProcessor):
     """The top page for the site. 

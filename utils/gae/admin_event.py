@@ -1,5 +1,8 @@
 # Event Administration pages.
 # coding=utf-8
+import datetime
+import hashlib
+
 from google.appengine.api import users
 
 import schema
@@ -40,6 +43,15 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
             'new_entry': False
             }
         self.template_render_output(template_values, 'EditEvent.html')
+
+
+def generate_eventid(event_title, username, time):
+    """Create a sha1 hash hex string to use as event ID."""
+    sourcestring = event_title + username + time
+    h = hashlib.sha1()
+    h.update(sourcestring.encode('utf-8'))
+    return h.hexdigest()
+
 
 class RegisterEvent(webapp_generic.WebAppGenericProcessor):
     """Load from the existing database and edit the event content"""
