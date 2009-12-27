@@ -63,7 +63,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def load_event_title_with_eventid(self, eventid):
         """Load an event title with the eventid.
         """
-        event = self.load_event_title_with_eventid(eventid)
+        event = self.load_event_with_eventid(eventid)
         return event.title
 
     def check_auth_owner(self, event):
@@ -100,11 +100,18 @@ class TopPage(WebAppGenericProcessor):
                            user).fetch(1000) + Event.gql('WHERE owners_email = :1 ORDER BY timestamp DESC', 
                            user.email()).fetch(1000)
         attendances = Attendance.gql('WHERE user = :1 ORDER BY timestamp DESC',
-                                     user)
+                                     user).fetch(1000)
+        # look up the titles of events.
+        attendance_titles = []
+        for attendance in attendances:
+            title = self.load_event_title_with_eventid(attendance.eventid)
+            attendance_titles.append({ 'title': title,
+                                       'eventid': attendance.eventid,
+                                       })
         template_values = {
             'nickname': user.nickname(),
             'events': events,
-            'attendances': attendances,
+            'attendance_titles': attendance_titles,
             'logout_url': users.create_logout_url(self.request.uri)
             }
         self.template_render_output(template_values, 'TopPage.html')
