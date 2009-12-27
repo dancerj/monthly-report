@@ -114,7 +114,8 @@ class NewEvent(WebAppGenericProcessor):
     def process_input(self):
         template_values = {
             'nickname': users.get_current_user().nickname(),
-            'eventid': "na" # set it to N/A to later set it to something else...?
+            'eventid': "na", # set it to N/A to later set it to something else...?
+            'new_entry': True
             }
         self.template_render_output(template_values, 'EditEvent.html')
 
@@ -138,7 +139,8 @@ class EditEvent(WebAppGenericProcessor):
             'location': event.location,
             'content': event.content,
             'prework': event.prework,
-            'event_date': event.event_date
+            'event_date': event.event_date,
+            'new_entry': False
             }
         self.template_render_output(template_values, 'EditEvent.html')
 
@@ -152,7 +154,7 @@ class RegisterEvent(WebAppGenericProcessor):
             # if it's new, create a new item
             event = Event()
             owner = users.get_current_user()
-            eventid = generate_eventid(title, owner.email(), event.timestamp.isoformat(' '))
+            eventid = generate_eventid(title, owner.email(), datetime.datetime.now().isoformat(' '))
             event.eventid = eventid
             event.owner = owner
         else:
