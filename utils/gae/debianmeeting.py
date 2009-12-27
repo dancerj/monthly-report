@@ -96,13 +96,15 @@ class TopPage(WebAppGenericProcessor):
         user = users.get_current_user()
         
         events = Event.gql('WHERE owner = :1 ORDER BY timestamp DESC', 
-                           user)
+                           user).fetch(1000) + Event.gql('WHERE owners_email = :1 ORDER BY timestamp DESC', 
+                           user.email()).fetch(1000)
         attendances = Attendance.gql('WHERE user = :1 ORDER BY timestamp DESC',
                                      user)
         template_values = {
             'nickname': user.nickname(),
             'events': events,
-            'attendances': attendances
+            'attendances': attendances,
+            'logout_url': users.create_logout_url(self.request.uri)
             }
         self.template_render_output(template_values, 'TopPage.html')
 
