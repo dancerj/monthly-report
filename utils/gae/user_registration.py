@@ -72,5 +72,5 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
 タイトル: %s 
 """ % (event.title.encode('utf-8')))
 
-        self.redirect('/event?eventid=%s' % (eventid))
+        self.redirect('/thanks?eventid=%s' % (eventid))
 

@@ -41,6 +41,15 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
         self.template_render_output(template_values, 'TopPage.html')
 
 
+class Thanks(webapp_generic.WebAppGenericProcessor):
+    """Show a thanks page"""
+    def process_input(self):
+        self.response.out.write("""
+Registered, Thanks!
+<a href='/'>go back to main page</a>
+<!-- eventid:%s -->
+""" % self.request.get('eventid'))
+
 application = webapp.WSGIApplication([
     ('/', TopPage),
     ('/newevent', admin_event.NewEvent),
@@ -49,6 +58,7 @@ application = webapp.WSGIApplication([
     ('/eventadmin/edit', admin_event.EditEvent),
     ('/eventadmin/register', admin_event.RegisterEvent),
     ('/eventadmin/summary', admin_event.ViewEventSummary),
+    ('/thanks', Thanks),
 ], debug=True)
 
 

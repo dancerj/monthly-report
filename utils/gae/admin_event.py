@@ -93,7 +93,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
 %s
 """ % event.title.encode('utf-8'))
 
-        self.redirect('/eventadmin/edit?eventid=%s' % (eventid))
+        self.redirect('/thanks?eventid=%s' % eventid)
 
 
 class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
