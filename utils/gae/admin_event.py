@@ -25,10 +25,10 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if event == None:
-            self.response.out.write('Event id %s not found' % (eventid))
+            self.http_error_message('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
-            self.response.out.write('Not your event')
+            self.http_error_message('Not your event')
             return
 
         template_values = {
@@ -71,7 +71,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         else:
             event = self.load_event_with_eventid(eventid)
             if event == None:
-                self.response.out.write('Event id %s not found' % (eventid))
+                self.http_error_message('Event id %s not found' % (eventid))
                 return
 
         event.eventid = eventid
@@ -104,10 +104,10 @@ class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if not event:
-            self.response.out.write('Event id %s not found' % (eventid))
+            self.http_error_message('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
-            self.response.out.write("""
+            self.http_error_message("""
 You are not allowed to see a summary""")
             return
 

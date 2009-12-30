@@ -47,7 +47,7 @@ class Thanks(webapp_generic.WebAppGenericProcessor):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if event == None:
-            self.response.out.write('Event id %s not found' % (eventid))
+            self.http_error_message('Event id %s not found' % (eventid))
             return
         template_values = {
             'eventid': eventid,

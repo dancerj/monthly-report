@@ -63,3 +63,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         rendered_output = self.template_render(template_values, template_filename)
         self.response.out.write(rendered_output)
 
+    def http_error_message(self, message):
+        """output error message and return http error message."""
+        self.response.set_status(404)
+        self.response.out.write(message)

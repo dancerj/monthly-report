@@ -2,6 +2,7 @@
 # system test code. To run:
 # PYTHONPATH=$(PATH_TO_GAE):$(PATH_TO_GAE)/lib/django/ python testSystem.py
 import unittest
+import urlparse
 import os
 
 from webtest import TestApp
@@ -101,6 +102,20 @@ class SystemTest(unittest.TestCase):
         self.assertEqual('200 OK', response.status)
         self.assertTrue(TITLE in response)
 
+    def verifyThanksPage(self, app, eventid):
+        """verify that the Thanks Page content is okay."""
+        response = app.get('/thanks?eventid=%s' % eventid)
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue(eventid in response)
+
+    def testThanksPageFailCase(self):
+        """test that Thanks page will fail when wrong eventid is requested."""
+        app = TestApp(application)
+        # try to get some incorrect eventid
+        eventid = 'zzz'
+        response = app.get('/thanks?eventid=%s' % eventid, status=404)
+        self.assertTrue(eventid in response)
+
     def userEventEntry(self, app, eventid):
         """Register to event."""
         response = app.post('/eventregister', 
@@ -113,6 +128,7 @@ class SystemTest(unittest.TestCase):
         self.assertEqual('302 Moved Temporarily', response.status)
         self.assertTrue('/thanks?eventid=%s' % eventid
                         in response.location)
+        self.verifyThanksPage(app, eventid)
 
     def testUserRegisterEvent(self):
         """Test user registration workflow.

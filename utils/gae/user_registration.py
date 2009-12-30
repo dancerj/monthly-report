@@ -15,7 +15,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
         # try loading the item with same eventid from datastore
         event = self.load_event_with_eventid(eventid)
         if event == None:
-            self.response.out.write('Event id %s not found' % (eventid))
+            self.http_error_message('Event id %s not found' % (eventid))
             return
 
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
@@ -49,7 +49,7 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if event == None:
-            self.response.out.write('Event id %s not found' % (eventid))
+            self.http_error_message('Event id %s not found' % (eventid))
             return
         user = users.get_current_user()
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
