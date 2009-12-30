@@ -113,8 +113,19 @@ You are not allowed to see a summary""")
 
         attendances = schema.Attendance.gql('WHERE eventid = :1 ORDER BY timestamp DESC', 
                                      eventid)
+
+        num_attend = 0
+        num_enkai_attend = 0
         for attendance in attendances:
-            self.response.out.write("""
-<li>%s: %s</li>
-""" % (attendance.user.nickname(), 
-       attendance.prework))
+            if attendance.attend:
+                num_attend += 1
+            if attendance.enkai_attend:
+                num_enkai_attend += 1
+
+        template_values = {
+            'attendances': attendances,
+            'num_attend': num_attend,
+            'num_enkai_attend': num_enkai_attend,
+            }
+
+        self.template_render_output(template_values, 'ViewEventSummary.html')
