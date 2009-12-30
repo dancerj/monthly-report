@@ -54,7 +54,9 @@ def generate_eventid(event_title, username, time):
 
 
 class RegisterEvent(webapp_generic.WebAppGenericProcessor):
-    """Load from the existing database and edit the event content"""
+    """Load from the existing database and edit the event content.
+    Handler for /eventadmin/register
+    """
     def process_input(self):
         eventid = self.request.get('eventid')
         title = self.request.get('title')
@@ -81,17 +83,17 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.event_date = self.request.get('event_date')
         event.put()
 
+        mail_title = "[Debian登録システム] イベント %s が更新されました" % event.title.encode('utf-8')
+        mail_template = {
+            'event': event,
+            'event_url': 'http://%s/eventadmin/edit?eventid=%s' % (self.request.host, eventid),
+            }
+        mail_message = self.template_render(mail_template, 'RegisterEvent.txt')
+
         send_notification.send_notification_to_user_and_owner(user.email(), 
                                                               event.owner.email(),
                                                               event.owners_email,
-                                                              "[Debian登録システム] イベント %s が更新されました" % 
-                                                              event.title.encode('utf-8'), """
-このメールは自動送信です。
-
-イベントの詳細
-
-%s
-""" % event.title.encode('utf-8'))
+                                                              mail_title, mail_message)
 
         self.redirect('/thanks?eventid=%s' % eventid)
 

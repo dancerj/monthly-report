@@ -60,17 +60,18 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
         attendance.attend = (self.request.get('user_attend') == 'attend')
 
         attendance.put()
+
+        mail_title = "[Debian登録システム] %s が %s に登録しました" % (user.nickname(), event.title.encode('utf-8')) 
+        
+        mail_template = {
+            'attendance': attendance,
+            'event': event,
+            'event_url': 'http://%s/event?eventid=%s' % (self.request.host, eventid),
+            }
+        mail_message = self.template_render(mail_template, 'UserCommitEventRegistration.txt')
         send_notification.send_notification_to_user_and_owner(user.email(), 
                                                               event.owner.email(), 
                                                               event.owners_email,
-                                                              "[Debian登録システム] %s が %s に登録しました" % 
-                                                              (user.nickname(), event.title.encode('utf-8')) , """
-このメールは自動送信です。
-
-イベントの詳細
-
-タイトル: %s 
-""" % (event.title.encode('utf-8')))
-
+                                                              mail_title, mail_message)
         self.redirect('/thanks?eventid=%s' % (eventid))
 

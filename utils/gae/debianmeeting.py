@@ -44,11 +44,14 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
 class Thanks(webapp_generic.WebAppGenericProcessor):
     """Show a thanks page"""
     def process_input(self):
-        self.response.out.write("""
-Registered, Thanks!
-<a href='/'>go back to main page</a>
-<!-- eventid:%s -->
-""" % self.request.get('eventid'))
+        event = self.load_event_with_eventid(eventid)
+        if event == None:
+            self.response.out.write('Event id %s not found' % (eventid))
+            return
+        template_values = {
+            'eventid': self.request.get('eventid'),
+            }
+        self.template_render_output(template_values, 'Thanks.html')
 
 application = webapp.WSGIApplication([
     ('/', TopPage),

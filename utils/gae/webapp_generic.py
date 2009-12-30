@@ -53,7 +53,13 @@ class WebAppGenericProcessor(webapp.RequestHandler):
                 return True
         return False
 
+    def template_render(self, template_values, template_filename):
+        """render using template."""
+        path = os.path.join(os.path.dirname(__file__), template_filename)
+        return template.render(path, template_values)
+
     def template_render_output(self, template_values, template_filename):
         """Convenience function to send out template results"""
-        path = os.path.join(os.path.dirname(__file__), template_filename)
-        self.response.out.write(template.render(path, template_values))
+        rendered_output = self.template_render(template_values, template_filename)
+        self.response.out.write(rendered_output)
+

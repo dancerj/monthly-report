@@ -19,6 +19,7 @@ LOGGED_IN_ADMIN = 'test2@example.com'
 LOGGED_IN_USER = 'test3@example.com'
 TITLE = 'test1'
 PREWORK = 'test4'
+USER_PREWORK = 'test4'
 
 class SystemTest(unittest.TestCase):
     def setUp(self):
@@ -59,7 +60,7 @@ class SystemTest(unittest.TestCase):
         app = TestApp(application)
         response = app.get('/')
         self.assertEqual('200 OK', response.status)
-        self.assertTrue(u'Debian勉強会予約管理システム' in response)
+        self.assertTrue('Debian勉強会予約管理システム' in response)
 
     def testCreatePage(self):
         app = TestApp(application)
@@ -72,6 +73,7 @@ class SystemTest(unittest.TestCase):
                             {
                 'eventid': 'na',
                 'title': TITLE,
+                'prework': PREWORK,
                 })
         self.assertEqual('302 Moved Temporarily', response.status)
         self.assertTrue('/thanks?eventid=' in response.location)
@@ -103,7 +105,7 @@ class SystemTest(unittest.TestCase):
         response = app.post('/eventregister', 
                             {
                 'eventid': eventid,
-                'user_prework': PREWORK,
+                'user_prework': USER_PREWORK,
                 'user_attend': 'attend',
                 })
         self.assertEqual('302 Moved Temporarily', response.status)
@@ -144,10 +146,9 @@ class SystemTest(unittest.TestCase):
                 'eventid': eventid,
                 })
 
-        print response
         self.assertEqual('200 OK', response.status)
         self.assertTrue(LOGGED_IN_USER in response)
-        self.assertTrue(PREWORK in response)
+        self.assertTrue(USER_PREWORK in response)
 
 
 if __name__ == '__main__':
