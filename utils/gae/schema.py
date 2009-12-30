@@ -17,4 +17,5 @@ class Attendance(db.Model):
     user = db.UserProperty()
     prework = db.StringProperty(multiline=True)
     attend = db.BooleanProperty()
+    enkai_attend = db.BooleanProperty()
     timestamp = db.DateTimeProperty(auto_now_add=True)

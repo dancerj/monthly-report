@@ -68,6 +68,7 @@ class SystemTest(unittest.TestCase):
         self.assertEqual('200 OK', response.status)
         self.assertTrue('幹事用イベント管理ページ' in response)
 
+
     def createPageCommitHelper(self, app):
         response = app.post('/eventadmin/register', 
                             {
@@ -107,6 +108,7 @@ class SystemTest(unittest.TestCase):
                 'eventid': eventid,
                 'user_prework': USER_PREWORK,
                 'user_attend': 'attend',
+                'user_enkai_attend': 'enkai_attend',
                 })
         self.assertEqual('302 Moved Temporarily', response.status)
         self.assertTrue('/thanks?eventid=%s' % eventid

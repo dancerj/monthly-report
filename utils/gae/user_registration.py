@@ -33,10 +33,12 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             # this is a new registration
             template_values['user_prework'] = ""
             template_values['user_attend'] = True
+            template_values['user_enkai_attend'] = True
         else:
             # Editing an old registration entry
             template_values['user_prework'] = attendance.prework
             template_values['user_attend'] = attendance.attend
+            template_values['user_enkai_attend'] = attendance.enkai_attend
 
         self.template_render_output(template_values, 'UserEventRegistrationPage.html')
 
@@ -58,6 +60,7 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
         attendance.user = user
         attendance.prework = self.request.get('user_prework')
         attendance.attend = (self.request.get('user_attend') == 'attend')
+        attendance.enkai_attend = (self.request.get('user_enkai_attend') == 'enkai_attend')
 
         attendance.put()
 
