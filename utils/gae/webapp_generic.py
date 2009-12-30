@@ -32,7 +32,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""
         attendances = schema.Attendance.gql('WHERE eventid = :1 and user = :2 ORDER BY timestamp DESC LIMIT 1', 
-                                      eventid, user)
+                                            eventid, user)
         attendance = attendances.get()
         return attendance
 
@@ -41,6 +41,14 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         """
         event = self.load_event_with_eventid(eventid)
         return event.title
+
+    def load_user_realname_with_userid(self, user):
+        """Load corresponding user_realname object with matching user
+        """
+        user_realnames = schema.UserRealname.gql('WHERE user = :1 ORDER BY timestamp DESC LIMIT 1', 
+                                                 user)
+        user_realname = user_realnames.get()
+        return user_realname
 
     def check_auth_owner(self, event):
         """Check if this user is an owner of this event, 

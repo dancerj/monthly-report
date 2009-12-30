@@ -21,6 +21,7 @@ LOGGED_IN_USER = 'test3@example.com'
 TITLE = 'test1'
 PREWORK = 'test4'
 USER_PREWORK = 'test4'
+USER_REALNAME = 'Mr Test9'
 
 class SystemTest(unittest.TestCase):
     def setUp(self):
@@ -124,6 +125,7 @@ class SystemTest(unittest.TestCase):
                 'user_prework': USER_PREWORK,
                 'user_attend': 'attend',
                 'user_enkai_attend': 'enkai_attend',
+                'user_realname': USER_REALNAME,
                 })
         self.assertEqual('302 Moved Temporarily', response.status)
         self.assertTrue('/thanks?eventid=%s' % eventid

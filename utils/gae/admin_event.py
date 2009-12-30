@@ -38,6 +38,7 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
             'title': event.title,
             'location': event.location,
             'content': event.content,
+            'content_url': event.content_url,
             'prework': event.prework,
             'event_date': event.event_date,
             'new_entry': False
@@ -79,6 +80,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.title = title
         event.location = self.request.get('location')
         event.content = self.request.get('content')
+        event.content_url = self.request.get('content_url')
         event.prework = self.request.get('prework')
         event.event_date = self.request.get('event_date')
         event.put()

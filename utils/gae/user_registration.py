@@ -18,6 +18,13 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('Event id %s not found' % (eventid))
             return
 
+        user_realname = self.load_user_realname_with_userid(user)
+        if user_realname == None:
+            # if empty, create a new instance
+            user_realname = schema.UserRealname()
+            user_realname.user = user
+            user_realname.realname = user.nickname()
+
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
         template_values = {
             'nickname': event.owner.nickname(),
@@ -25,6 +32,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             'title': event.title,
             'location': event.location,
             'content': event.content,
+            'content_url': event.content_url,
             'prework': event.prework,
             'event_date': event.event_date,
             }
@@ -34,14 +42,15 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             template_values['user_prework'] = ""
             template_values['user_attend'] = True
             template_values['user_enkai_attend'] = True
+            template_values['user_realname'] = user_realname.realname
         else:
             # Editing an old registration entry
             template_values['user_prework'] = attendance.prework
             template_values['user_attend'] = attendance.attend
             template_values['user_enkai_attend'] = attendance.enkai_attend
+            template_values['user_realname'] = attendance.user_realname
 
         self.template_render_output(template_values, 'UserEventRegistrationPage.html')
-
 
 class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
     """The page to show after user commits to a registration."""
@@ -52,12 +61,23 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('Event id %s not found' % (eventid))
             return
         user = users.get_current_user()
+
+        # update user_realname cache.
+        user_realname = self.load_user_realname_with_userid(user)
+        if user_realname == None:
+            # if empty, create a new instance
+            user_realname = schema.UserRealname()
+            user_realname.user = user
+        user_realname.realname = self.request.get('user_realname')
+        user_realname.put()
+
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
         if attendance == None:
             # create new entry if it's not available yet, otherwise reuse an old entry.
             attendance = schema.Attendance()
         attendance.eventid = eventid
         attendance.user = user
+        attendance.user_realname = user_realname.realname
         attendance.prework = self.request.get('user_prework')
         attendance.attend = (self.request.get('user_attend') == 'attend')
         attendance.enkai_attend = (self.request.get('user_enkai_attend') == 'enkai_attend')
