@@ -6,9 +6,6 @@ import schema
 import send_notification
 import webapp_generic
 
-
-NO_SHOW_REMAINING_SEATS = -1 # return a fake value so that UI won't show the limit.
-
 class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
     """Form where user signs up for an event, and edits old sign-up entries."""
     def process_input(self):

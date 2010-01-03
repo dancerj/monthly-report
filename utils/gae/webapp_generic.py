@@ -7,6 +7,8 @@ from google.appengine.ext.webapp import template
 
 import schema
 
+NO_SHOW_REMAINING_SEATS = -1 # return a fake value so that UI won't show the limit.
+
 class WebAppGenericProcessor(webapp.RequestHandler):
     """Convenience class to collect all methods that seem generally useful.
 
