@@ -50,7 +50,12 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             template_values['user_enkai_attend'] = attendance.enkai_attend
             template_values['user_realname'] = attendance.user_realname
 
-        self.template_render_output(template_values, 'UserEventRegistrationPage.html')
+        if self.request.get('ui') == 'simple':
+            template_filename = 'UserEventRegistrationPage_Simple.html'
+        else:
+            template_filename = 'UserEventRegistrationPage.html'
+
+        self.template_render_output(template_values, template_filename)
 
 class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
     """The page to show after user commits to a registration."""
