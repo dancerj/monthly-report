@@ -1,6 +1,7 @@
 # Wrappers for webapp.RequestHandler.
 import os
 
+from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
@@ -8,6 +9,7 @@ from google.appengine.ext.webapp import template
 import schema
 
 NO_SHOW_REMAINING_SEATS = -1 # return a fake value so that UI won't show the limit.
+MEMCACHE_EXPIRE_TIME = 15 * 60 # Make it so that cache expires after 15 minutes.
 
 class WebAppGenericProcessor(webapp.RequestHandler):
     """Convenience class to collect all methods that seem generally useful.
@@ -31,6 +33,18 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         event = events.get()
         return event
 
+    def load_event_with_eventid_cached(self, eventid):
+        """Load an event with the eventid, with memcache.
+        """
+        key = 'load_event_with_eventid %s' % eventid
+        data = memcache.get(key)
+        if data is not None:
+            return data
+        else:
+            data = self.load_event_with_eventid(eventid)
+            memcache.add(key, data, MEMCACHE_EXPIRE_TIME)
+            return data
+
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""
         attendances = schema.Attendance.gql('WHERE eventid = :1 and user = :2 ORDER BY timestamp DESC LIMIT 1', 
@@ -38,10 +52,10 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         attendance = attendances.get()
         return attendance
 
-    def load_event_title_with_eventid(self, eventid):
+    def load_event_title_with_eventid_cached(self, eventid):
         """Load an event title with the eventid.
         """
-        event = self.load_event_with_eventid(eventid)
+        event = self.load_event_with_eventid_cached(eventid)
         return event.title
 
     def load_user_realname_with_userid(self, user):

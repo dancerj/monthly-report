@@ -10,6 +10,7 @@ from google.appengine.api import apiproxy_stub_map
 from google.appengine.api import user_service_stub
 from google.appengine.api import datastore_file_stub
 from google.appengine.api import mail_stub
+from google.appengine.api.memcache import memcache_stub
 from google.appengine.api.xmpp import xmpp_service_stub
 
 from debianmeeting import application
@@ -52,6 +53,10 @@ class SystemTest(unittest.TestCase):
         # xmpp
         apiproxy_stub_map.apiproxy.RegisterStub(
             'xmpp', xmpp_service_stub.XmppServiceStub())
+
+        # memcache
+        apiproxy_stub_map.apiproxy.RegisterStub(
+            'memcache', memcache_stub.MemcacheServiceStub())
 
 
     def login(self, username):
