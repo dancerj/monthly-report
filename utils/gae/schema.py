@@ -12,6 +12,7 @@ class Event(db.Model):
     prework = db.StringProperty(multiline=True)
     event_date = db.StringProperty()
     timestamp = db.DateTimeProperty(auto_now_add=True)
+    capacity = db.IntegerProperty() # the number of possible people attending the meeting
 
 class Attendance(db.Model):
     eventid = db.StringProperty()

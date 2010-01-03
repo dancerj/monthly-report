@@ -6,6 +6,9 @@ import schema
 import send_notification
 import webapp_generic
 
+
+NO_SHOW_REMAINING_SEATS = -1 # return a fake value so that UI won't show the limit.
+
 class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
     """Form where user signs up for an event, and edits old sign-up entries."""
     def process_input(self):
@@ -25,6 +28,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             user_realname.user = user
             user_realname.realname = user.nickname()
 
+        remaining_seats = self.count_remaining_seats(eventid, event.capacity)
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
         template_values = {
             'nickname': event.owner.nickname(),
@@ -35,6 +39,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             'content_url': event.content_url,
             'prework': event.prework,
             'event_date': event.event_date,
+            'remaining_seats' :remaining_seats,
             }
 
         if attendance == None:
@@ -80,6 +85,16 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
         if attendance == None:
             # create new entry if it's not available yet, otherwise reuse an old entry.
             attendance = schema.Attendance()
+
+            # check that the event has remaining seats, this part of code
+            # should really be atomic, but it's not. I'm sloppy.
+            remaining_seats = self.count_remaining_seats(eventid, event.capacity)
+            if remaining_seats == 0:
+                # the number of remaining seats is zero, so the party is full.
+                self.http_error_message(u'イベントは満席です Event id %s is full, you cannot reserve a place' % (eventid))
+                return
+            # TODO: I should also check when someone unchecked attend -> checked attend again.
+
         attendance.eventid = eventid
         attendance.user = user
         attendance.user_realname = user_realname.realname

@@ -22,6 +22,7 @@ TITLE = 'test1'
 PREWORK = 'test4'
 USER_PREWORK = 'test4'
 USER_REALNAME = 'Mr Test9'
+CAPACITY = 123456789
 
 class SystemTest(unittest.TestCase):
     def setUp(self):
@@ -71,12 +72,13 @@ class SystemTest(unittest.TestCase):
         self.assertTrue('幹事用イベント管理ページ' in response)
 
 
-    def createPageCommitHelper(self, app):
+    def createPageCommitHelper(self, app, capacity=CAPACITY):
         response = app.post('/eventadmin/register', 
                             {
                 'eventid': 'na',
                 'title': TITLE,
                 'prework': PREWORK,
+                'capacity': capacity,
                 })
         self.assertEqual('302 Moved Temporarily', response.status)
         self.assertTrue('/thanks?eventid=' in response.location)
@@ -117,8 +119,40 @@ class SystemTest(unittest.TestCase):
         response = app.get('/thanks?eventid=%s' % eventid, status=404)
         self.assertTrue(eventid in response)
 
-    def userEventEntry(self, app, eventid):
+    def userEventEntryFormSimple(self, app, eventid):
+        response = app.post('/event',
+                            {
+                'eventid': eventid,
+                'ui': 'simple',
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue('<!-- simple_ui -->' in response)
+        return response
+
+    def userEventEntryForm(self, app, eventid):
+        """Show the page user is prompted with before registration.
+        Test the two variances.
+        """
+        response = app.post('/event',
+                            {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue('<!-- non_simple_ui -->' in response)
+        return response
+        
+    def checkUserEventEntryFormReturnValue(self, app, eventid, remaining_seats, response):
+        """Check remaining seats value for event entry form."""
+        self.assertTrue(str(remaining_seats) in response)
+
+    def userEventEntry(self, app, eventid, capacity=CAPACITY):
         """Register to event."""
+        # check entry page has right number of remaining seats
+        self.checkUserEventEntryFormReturnValue(app, eventid, capacity, 
+                                                self.userEventEntryFormSimple(app, eventid))
+        self.checkUserEventEntryFormReturnValue(app, eventid, capacity, 
+                                                self.userEventEntryForm(app, eventid))
+
         response = app.post('/eventregister', 
                             {
                 'eventid': eventid,
@@ -131,6 +165,13 @@ class SystemTest(unittest.TestCase):
         self.assertTrue('/thanks?eventid=%s' % eventid
                         in response.location)
         self.verifyThanksPage(app, eventid)
+
+        # check entry page has right number of remaining seats
+        self.checkUserEventEntryFormReturnValue(app, eventid, capacity - 1, 
+                                                self.userEventEntryFormSimple(app, eventid))
+        self.checkUserEventEntryFormReturnValue(app, eventid, capacity - 1, 
+                                                self.userEventEntryForm(app, eventid))
+
 
     def testUserRegisterEvent(self):
         """Test user registration workflow.
@@ -151,6 +192,40 @@ class SystemTest(unittest.TestCase):
         response = app.post('/')
         self.assertEqual('200 OK', response.status)
         self.assertTrue(TITLE in response)
+
+
+    def testUserRegisterEventFull(self):
+        """Test user registration failure workflow.
+        """
+        # generate event data first
+        app = TestApp(application)
+
+        # generate a event with capacity of 1
+        eventid = self.createPageCommitHelper(app, capacity=1)
+
+        # check user does not see the event yet
+        self.login(LOGGED_IN_USER)
+        response = app.get('/')
+        self.assertEqual('200 OK', response.status)
+        self.assertFalse(TITLE in response)
+
+        # check user sees the event after registering
+        self.userEventEntry(app, eventid, capacity=1)
+        response = app.post('/')
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue(TITLE in response)
+
+        # check adding a different user to the event
+        self.login(LOGGED_IN_ADMIN)
+        response = app.post('/eventregister', 
+                            {
+                'eventid': eventid,
+                'user_prework': USER_PREWORK,
+                'user_attend': 'attend',
+                'user_enkai_attend': 'enkai_attend',
+                'user_realname': USER_REALNAME,
+                }, status=404)
+        self.assertTrue('you cannot reserve a place' in response)
 
     def testAdminReviewEvent(self):
         app = TestApp(application)

@@ -50,6 +50,19 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         user_realname = user_realnames.get()
         return user_realname
 
+    def load_users_with_eventid(self, eventid):
+        """Load list of users, and number of attendances from eventid."""
+        attendances = schema.Attendance.gql('WHERE eventid = :1 ORDER BY timestamp DESC', 
+                                            eventid)
+        num_attend = 0
+        num_enkai_attend = 0
+        for attendance in attendances:
+            if attendance.attend:
+                num_attend += 1
+            if attendance.enkai_attend:
+                num_enkai_attend += 1
+        return (attendances, num_attend, num_enkai_attend)
+
     def check_auth_owner(self, event):
         """Check if this user is an owner of this event, 
         or the email is listed in owner_email list."""
@@ -75,3 +88,12 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         """output error message and return http error message."""
         self.response.set_status(404)
         self.response.out.write(message)
+
+    def count_remaining_seats(self, eventid, capacity):
+        """count the remaining seats
+        """
+        if capacity > 0:
+            attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
+            return max(capacity - num_attend, 0)
+        else:
+            return NO_SHOW_REMAINING_SEATS

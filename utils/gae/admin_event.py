@@ -9,13 +9,16 @@ import schema
 import send_notification
 import webapp_generic
 
+DEFAULT_CAPACITY = 30
+
 class NewEvent(webapp_generic.WebAppGenericProcessor):
     """Form to create a new event."""
     def process_input(self):
         template_values = {
             'nickname': users.get_current_user().nickname(),
             'eventid': "na", # set it to N/A to later set it to something else...?
-            'new_entry': True
+            'new_entry': True,
+            'capacity': DEFAULT_CAPACITY,
             }
         self.template_render_output(template_values, 'EditEvent.html')
 
@@ -31,6 +34,11 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('Not your event')
             return
 
+        if event.capacity:
+            capacity = event.capacity
+        else:
+            capacity = 0 # rather than None.
+
         template_values = {
             'nickname': event.owner.nickname(), # the owner might be not me.
             'owners_email': (','.join(event.owners_email)),
@@ -41,6 +49,7 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
             'content_url': event.content_url,
             'prework': event.prework,
             'event_date': event.event_date,
+            'capacity': capacity,
             'new_entry': False
             }
         self.template_render_output(template_values, 'EditEvent.html')
@@ -83,6 +92,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.content_url = self.request.get('content_url')
         event.prework = self.request.get('prework')
         event.event_date = self.request.get('event_date')
+        event.capacity = int(self.request.get('capacity'))
         event.put()
 
         mail_title = "[Debian登録システム] イベント %s が更新されました" % event.title.encode('utf-8')
@@ -113,16 +123,7 @@ class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
 You are not allowed to see a summary""")
             return
 
-        attendances = schema.Attendance.gql('WHERE eventid = :1 ORDER BY timestamp DESC', 
-                                     eventid)
-
-        num_attend = 0
-        num_enkai_attend = 0
-        for attendance in attendances:
-            if attendance.attend:
-                num_attend += 1
-            if attendance.enkai_attend:
-                num_enkai_attend += 1
+        attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
 
         template_values = {
             'attendances': attendances,
