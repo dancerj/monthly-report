@@ -36,7 +36,8 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             'content_url': event.content_url,
             'prework': event.prework,
             'event_date': event.event_date,
-            'remaining_seats' :remaining_seats,
+            'remaining_seats': remaining_seats,
+            'user_realname': user_realname.realname,
             }
 
         if attendance == None:
@@ -44,13 +45,11 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             template_values['user_prework'] = ""
             template_values['user_attend'] = True
             template_values['user_enkai_attend'] = True
-            template_values['user_realname'] = user_realname.realname
         else:
             # Editing an old registration entry
             template_values['user_prework'] = attendance.prework
             template_values['user_attend'] = attendance.attend
             template_values['user_enkai_attend'] = attendance.enkai_attend
-            template_values['user_realname'] = attendance.user_realname
 
         if self.request.get('ui') == 'simple':
             template_filename = 'UserEventRegistrationPage_Simple.html'
