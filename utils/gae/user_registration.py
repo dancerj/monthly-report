@@ -13,7 +13,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
         user = users.get_current_user()
 
         # try loading the item with same eventid from datastore
-        event = self.load_event_with_eventid(eventid)
+        event = self.load_event_with_eventid_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
@@ -62,7 +62,7 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
     """The page to show after user commits to a registration."""
     def process_input(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid(eventid)
+        event = self.load_event_with_eventid_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return

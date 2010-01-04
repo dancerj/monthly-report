@@ -94,6 +94,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.event_date = self.request.get('event_date')
         event.capacity = int(self.request.get('capacity'))
         event.put()
+        self.invalidate_event_with_eventid(eventid)
 
         mail_title = "[Debian登録システム] イベント %s が更新されました" % event.title.encode('utf-8')
         mail_template = {

@@ -9,7 +9,7 @@ from google.appengine.ext.webapp import template
 import schema
 
 NO_SHOW_REMAINING_SEATS = -1 # return a fake value so that UI won't show the limit.
-MEMCACHE_EXPIRE_TIME = 15 * 60 # Make it so that cache expires after 15 minutes.
+MEMCACHE_EXPIRE_TIME = 24 * 60 * 60 # Make it so that cache expires after 24 hours. Should be good enough?
 
 class WebAppGenericProcessor(webapp.RequestHandler):
     """Convenience class to collect all methods that seem generally useful.
@@ -26,6 +26,11 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def post(self):
         self.process_input()
 
+    def event_memcache_key(self, eventid):
+        """obtain memcached key for event."""
+        key = 'load_event_with_eventid %s' % eventid
+        return key
+
     def load_event_with_eventid(self, eventid):
         """Load an event with the eventid.
         """
@@ -36,7 +41,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def load_event_with_eventid_cached(self, eventid):
         """Load an event with the eventid, with memcache.
         """
-        key = 'load_event_with_eventid %s' % eventid
+        key = self.event_memcache_key(eventid)
         data = memcache.get(key)
         if data is not None:
             return data
@@ -44,6 +49,11 @@ class WebAppGenericProcessor(webapp.RequestHandler):
             data = self.load_event_with_eventid(eventid)
             memcache.add(key, data, MEMCACHE_EXPIRE_TIME)
             return data
+
+    def invalidate_event_with_eventid(self, eventid):
+        """Invalidate an event memcache for eventid, should be called when data is updated."""
+        key = self.event_memcache_key(eventid)
+        memcache.delete(key)
 
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""
