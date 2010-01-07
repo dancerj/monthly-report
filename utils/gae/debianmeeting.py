@@ -62,6 +62,7 @@ application = webapp.WSGIApplication([
     ('/eventadmin/edit', admin_event.EditEvent),
     ('/eventadmin/register', admin_event.RegisterEvent),
     ('/eventadmin/summary', admin_event.ViewEventSummary),
+    ('/eventadmin/preworklatex', admin_event.PreworkLatex),
     ('/thanks', Thanks),
 ], debug=True)
 

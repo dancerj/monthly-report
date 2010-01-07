@@ -133,3 +133,28 @@ You are not allowed to see a summary""")
             }
 
         self.template_render_output(template_values, 'ViewEventSummary.html')
+
+
+class PreworkLatex(webapp_generic.WebAppGenericProcessor):
+    """View prework from registered users in LaTeX format."""
+    def process_input(self):
+        eventid = self.request.get('eventid')
+        event = self.load_event_with_eventid(eventid)
+        if not event:
+            self.http_error_message('Event id %s not found' % (eventid))
+            return
+        if not self.check_auth_owner(event):
+            self.http_error_message("""
+You are not allowed to see a summary""")
+            return
+
+        attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
+
+        template_values = {
+            'attendances': attendances,
+            'num_attend': num_attend,
+            'num_enkai_attend': num_enkai_attend,
+            }
+
+        self.response.headers['Content-type'] = 'text/plain'
+        self.template_render_output(template_values, 'PreworkLatex.txt')
