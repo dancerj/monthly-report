@@ -115,7 +115,7 @@ class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
     """View summary of registered users for a given event."""
     def process_input(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid(eventid)
+        event = self.load_event_with_eventid_cached(eventid)
         if not event:
             self.http_error_message('Event id %s not found' % (eventid))
             return
@@ -139,7 +139,7 @@ class PreworkLatex(webapp_generic.WebAppGenericProcessor):
     """View prework from registered users in LaTeX format."""
     def process_input(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid(eventid)
+        event = self.load_event_with_eventid_cached(eventid)
         if not event:
             self.http_error_message('Event id %s not found' % (eventid))
             return
