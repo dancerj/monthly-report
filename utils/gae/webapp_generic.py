@@ -89,7 +89,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def load_users_with_eventid(self, eventid):
         """Load list of users, and number of attendances from eventid."""
         attendances = schema.Attendance.gql('WHERE eventid = :1 ORDER BY timestamp DESC', 
-                                            eventid)
+                                            eventid).fetch(1000)
         num_attend = 0
         num_enkai_attend = 0
         for attendance in attendances:
