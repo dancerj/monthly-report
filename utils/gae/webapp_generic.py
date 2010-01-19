@@ -55,11 +55,21 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         key = self.event_memcache_key(eventid)
         memcache.delete(key)
 
+    def fixup_attendance(self, attendance):
+        """Fixup attendance after loading.
+
+        Try to cover migration where attendance.prework -> attendance.prework_text
+        """
+        if attendance.prework_text is None:
+            attendance.prework_text = attendance.prework
+
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""
         attendances = schema.Attendance.gql('WHERE eventid = :1 and user = :2 ORDER BY timestamp DESC LIMIT 1', 
                                             eventid, user)
         attendance = attendances.get()
+        if attendance:
+            self.fixup_attendance(attendance)
         return attendance
 
     def load_event_title_with_eventid_cached(self, eventid):
@@ -83,6 +93,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         num_attend = 0
         num_enkai_attend = 0
         for attendance in attendances:
+            self.fixup_attendance(attendance)
             if attendance.attend:
                 num_attend += 1
             if attendance.enkai_attend:

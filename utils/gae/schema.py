@@ -18,7 +18,8 @@ class Attendance(db.Model):
     eventid = db.StringProperty()
     user = db.UserProperty()
     user_realname = db.StringProperty() # keep a cache of last realname entry.
-    prework = db.StringProperty(multiline=True)
+    prework = db.StringProperty(multiline=True) # obsolete, but used in initial version
+    prework_text = db.TextProperty() # Used everywhere, populate from prework if available.
     attend = db.BooleanProperty()
     enkai_attend = db.BooleanProperty()
     timestamp = db.DateTimeProperty(auto_now_add=True)
