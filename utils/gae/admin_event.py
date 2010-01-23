@@ -45,9 +45,9 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
             'eventid': event.eventid,
             'title': event.title,
             'location': event.location,
-            'content': event.content,
+            'content_text': event.content_text,
             'content_url': event.content_url,
-            'prework': event.prework,
+            'prework_text': event.prework_text,
             'event_date': event.event_date,
             'capacity': capacity,
             'new_entry': False
@@ -88,9 +88,9 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.owners_email = self.request.get('owners_email').split(',')
         event.title = title
         event.location = self.request.get('location')
-        event.content = self.request.get('content')
+        event.content_text = self.request.get('content')
         event.content_url = self.request.get('content_url')
-        event.prework = self.request.get('prework')
+        event.prework_text = self.request.get('prework')
         event.event_date = self.request.get('event_date')
         event.capacity = int(self.request.get('capacity'))
         event.put()
