@@ -20,9 +20,7 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
     def process_input(self):
         user = users.get_current_user()
         
-        events = schema.Event.gql('WHERE owner = :1 ORDER BY timestamp DESC', 
-                                  user).fetch(1000) + schema.Event.gql('WHERE owners_email = :1 ORDER BY timestamp DESC', 
-                                                                       user.email()).fetch(1000)
+        events = self.load_event_with_owners(user)
         attendances = schema.Attendance.gql('WHERE user = :1 ORDER BY timestamp DESC',
                                      user).fetch(1000)
         # look up the titles of events.
