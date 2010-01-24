@@ -26,16 +26,46 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def post(self):
         self.process_input()
 
+    def fixup_attendance(self, attendance):
+        """Fixup attendance after loading.
+
+        Try to cover migration where attendance.prework -> attendance.prework_text
+        """
+        if attendance.prework_text is None:
+            attendance.prework_text = attendance.prework
+
+    def fixup_event(self, event):
+        """Fixup event after loading.
+
+        Try to cover migration where event.prework -> prework_text, and content -> content_text
+        """
+        if event.content_text is None:
+            event.content_text = event.content
+        if event.prework_text is None:
+            event.prework_text = event.prework
+
     def event_memcache_key(self, eventid):
         """obtain memcached key for event."""
-        key = 'load_event_with_eventid %s' % eventid
+        key = 'load_event_with_eventid_v2 %s' % eventid
         return key
+
+    def load_event_with_owners(self, user):
+        """Look into owner and owners field and load event which match
+        the owner information."""
+        events = schema.Event.gql('WHERE owner = :1 ORDER BY timestamp DESC', 
+                                  user).fetch(1000) + schema.Event.gql('WHERE owners_email = :1 ORDER BY timestamp DESC', 
+                                                                       user.email()).fetch(1000)
+        for event in events:
+            self.fixup_event(event)
+        return events
 
     def load_event_with_eventid(self, eventid):
         """Load an event with the eventid.
         """
         events = schema.Event.gql('WHERE eventid = :1 ORDER BY timestamp DESC LIMIT 1', eventid)
         event = events.get()
+        if event is not None:
+            self.fixup_event(event)
         return event
 
     def load_event_with_eventid_cached(self, eventid):
@@ -54,14 +84,6 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         """Invalidate an event memcache for eventid, should be called when data is updated."""
         key = self.event_memcache_key(eventid)
         memcache.delete(key)
-
-    def fixup_attendance(self, attendance):
-        """Fixup attendance after loading.
-
-        Try to cover migration where attendance.prework -> attendance.prework_text
-        """
-        if attendance.prework_text is None:
-            attendance.prework_text = attendance.prework
 
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""

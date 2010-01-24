@@ -7,9 +7,11 @@ class Event(db.Model):
     owners_email = db.StringListProperty() # allow owner emails to be added if possible
     title = db.StringProperty()
     location = db.StringProperty(multiline=True)
-    content = db.StringProperty(multiline=True)
+    content = db.StringProperty(multiline=True) # obsolete, use content_text
+    content_text = db.TextProperty()
     content_url = db.StringProperty()
-    prework = db.StringProperty(multiline=True)
+    prework = db.StringProperty(multiline=True) # obsolete, use prework_text
+    prework_text = db.TextProperty()
     event_date = db.StringProperty()
     timestamp = db.DateTimeProperty(auto_now_add=True)
     capacity = db.IntegerProperty() # the number of possible people attending the meeting
