@@ -45,6 +45,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             template_values['user_prework'] = ""
             template_values['user_attend'] = True
             template_values['user_enkai_attend'] = True
+            template_values['new_entry'] = True
         else:
             # Editing an old registration entry
             template_values['user_prework'] = attendance.prework_text
