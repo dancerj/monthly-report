@@ -124,7 +124,7 @@ class SystemTest(unittest.TestCase):
         response = app.get('/thanks?eventid=%s' % eventid, status=404)
         self.assertTrue(eventid in response)
 
-    def userEventEntryFormSimple(self, app, eventid):
+    def userEventEntryFormSimple(self, app, eventid, new_entry):
         response = app.post('/event',
                             {
                 'eventid': eventid,
@@ -132,9 +132,10 @@ class SystemTest(unittest.TestCase):
                 })
         self.assertEqual('200 OK', response.status)
         self.assertTrue('<!-- simple_ui -->' in response)
+        self.assertEqual(not new_entry, '<!-- not new entry -->' in response)
         return response
 
-    def userEventEntryForm(self, app, eventid):
+    def userEventEntryForm(self, app, eventid, new_entry):
         """Show the page user is prompted with before registration.
         Test the two variances.
         """
@@ -144,19 +145,22 @@ class SystemTest(unittest.TestCase):
                 })
         self.assertEqual('200 OK', response.status)
         self.assertTrue('<!-- non_simple_ui -->' in response)
+        self.assertEqual(not new_entry, '<!-- not new entry -->' in response)
         return response
-        
+
     def checkUserEventEntryFormReturnValue(self, app, eventid, remaining_seats, response):
         """Check remaining seats value for event entry form."""
         self.assertTrue(str(remaining_seats) in response)
 
     def userEventEntry(self, app, eventid, capacity=CAPACITY):
-        """Register to event."""
+        """Register to event.
+        Check that state changes before and after the event
+        """
         # check entry page has right number of remaining seats
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity, 
-                                                self.userEventEntryFormSimple(app, eventid))
+                                                self.userEventEntryFormSimple(app, eventid, True))
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity, 
-                                                self.userEventEntryForm(app, eventid))
+                                                self.userEventEntryForm(app, eventid, True))
 
         response = app.post('/eventregister', 
                             {
@@ -173,9 +177,9 @@ class SystemTest(unittest.TestCase):
 
         # check entry page has right number of remaining seats
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity - 1, 
-                                                self.userEventEntryFormSimple(app, eventid))
+                                                self.userEventEntryFormSimple(app, eventid, False))
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity - 1, 
-                                                self.userEventEntryForm(app, eventid))
+                                                self.userEventEntryForm(app, eventid, False))
 
 
     def testUserRegisterEvent(self):
