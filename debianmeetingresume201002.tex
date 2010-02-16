@@ -360,12 +360,66 @@ Debian勉強会の予約システムでは何が必要でしょうか。
 
 そして、DFSG Free であることが望ましいです。
 
-\subsection{実装}
-\subsubsection{利用するフレームワーク}
+\subsection{開発環境の準備}
 
-今回はGoogle App Engine を利用しました。ユーザ認証はGoogleの認証を流用し
-ています。パスワードの管理やユーザのメールアドレスの管理などをGoogleに一
-任することで管理を簡単にしています。
+\subsubsection{App Engine Python SDK の準備}
+
+今回はウェブアプリケーションのフレームワークとして、Python 版の Google
+App Engine を利用しました。
+開発環境をDebian GNU/Linux sid 上で準備する方法を紹介します。
+
+まず、Debian GNU/Linux sid の環境を用意します。
+
+次に、Google App EngineのPython版の開発環境をダウンロードします。Google
+App Engine のサイト
+\footnote{\url{http://code.google.com/intl/ja/appengine/}}にいって最新の
+SDKをダウンロードしてきます。
+
+「Linux/その他のプラットフォーム」向けの
+\url{google_appengine_1.3.1.zip}をダウンロードしてきました。
+
+\begin{commandline}
+# apt-get install unzip python　python-webtest python-yaml
+$ wget http://googleappengine.googlecode.com/files/google_appengine_1.3.1.zip
+$ unzip google_appengine_1.3.1.zip 
+\end{commandline}
+% $ -- for emacs
+
+これでインストールは完了です。
+Google App Engine のインストールディレクトリを \url{./google_appengine}, 
+App Engine アプリケーションのソースコードのおいている場所を\url{./utils/gae}とします。
+utils/gae ディレクトリにから \url{dev_appserver.py}を実行すれば、開発用
+のウェブサーバが起動します。
+
+\begin{commandline}
+hoge@core2duo:appengine/utils/gae$ ../../google_appengine/dev_appserver.py .
+INFO     2010-02-16 15:28:08,816 appengine_rpc.py:159] Server: appengine.google.com
+Allow dev_appserver to check for updates on startup? (Y/n): n
+dev_appserver will not check for updates on startup.  To change this setting, edit /home/hoge/.appcfg_nag
+WARNING  2010-02-16 15:28:13,792 datastore_file_stub.py:623] Could not read datastore data from /tmp/dev_appserver.datastore
+WARNING  2010-02-16 15:28:13,906 dev_appserver.py:3581] Could not initialize images API; you are likely missing the Python "PIL" module. ImportError: No module named _imaging
+INFO     2010-02-16 15:28:13,914 dev_appserver_main.py:399] Running application debianmeeting on port 8080: http://localhost:8080
+\end{commandline}
+
+
+\subsubsection{テストの実行方法}
+
+Django の通常のアプリケーションはテスト用の仕組みがあるようなのですが、
+appengine にはないようです。ここでは、WebTest モジュールを利用して自動テ
+ストコードを実装しています。
+
+\begin{commandline}
+$ PYTHONPATH=../../google_appengine:../../google_appengine/lib/django/ \
+ python testSystem.py
+\end{commandline}
+
+\subsection{実装}
+\subsubsection{認証の仕組み}
+
+このアプリケーションでは Google App Engine を利用しています。ユーザ認証は
+Google App Engine で標準で提供されるGoogleの認証を流用しています。パスワー
+ドの管理やユーザのメールアドレスの管理などをフレームワークに一任することで管理を
+簡単にしています。
 
 
 \subsubsection{データベースの構造}
@@ -452,11 +506,13 @@ class UserRealname(db.Model):
 
 \includegraphics[width=1\hsize]{image201001/debian-reservation-flow.eps}
 
+
 \subsection{今後の展望}
 
 
 とりあえずは動いています。今後、何が変わるべきか。今後どういう点が実装さ
 れるべきか。パッチウェルカム。
+
 
 
 %\printindex
