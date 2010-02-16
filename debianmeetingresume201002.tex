@@ -140,14 +140,618 @@
 % =======================================================================
 
 \subsection{Squeeze からブート方法が変わる}
+Debian のブートの仕組みには、System-V 系 Unix では伝統的な init
+(sysvinit) が使われています。Debian の次期安定版6.0 (コードネーム
+Squeeze) から、これが upstart に変わる予定です。今年の 3 月にフリーズ予
+定、8月にリリース予定のSqueeze での予習の意味を込めて、今回はこの
+upstart に変わることになった背景、init との比較を含めた upstart の仕組み、
+実際に切り替え方法について説明します。
 
-\subsubsection{Upstart とは}
+\subsubsection{背景}
 
-\subsubsection{init 系との比較}
+upstart は、Debian をベースとしたディストリビューションである、Ubuntu 独
+自に sysvinit の後継の仕組みとして開発されました。元々 sysvinit は伝統的
+で安定した仕組みではありますが、現在使われているハードウェアで使うには機
+能面、性能面から問題が出てきています。そこで、sysvinit の後継の仕組みと
+して、upstart 以外にも複数のブートプロセスの仕組みが開発されています。し
+かし、Ubuntu 以外にも Fedora や ???, ??? といった主要なディストリビュー
+ションでは upstart が採用され、Debian でも Squeeze から採用される(予定)
+ということもあり、sysvinit の後継は upstart に落ち着くだろうと見られてい
+ます。
+
+\subsubsection{そもそも init って何よ？}
+
+upstart の話をする前に、init って何？という人向けにまず説明しましょう。
+init は今更説明しなくても知っとるがな、という読者は、先に読み進めてくだ
+さい。
+
+init は Unix/Linux システムにおいて、カーネルがブートした後、ユーザプロ
+グラムが起動するための仕組みです。例えば、あなたの使っているノート PC や
+サーバに入っている Debian システムでもこの仕組みが必ず入っています。マシ
+ンに電源を入れてから、ログイン画面が表示されるまでの流れは大まかには次の
+ようになります。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[height=0.8\hsize]{image201002/sysvinit.eps}
+\end{center}
+\end{figure}
+
+init プロセスが起動すると、init は /etc/inittab の内容に従って、プロセス
+のを生成や停止を行います。inittab の書式は次のようになります。
+
+\begin{commandline}
+id:runlevels:action:process
+\end{commandline}
+
+
+プロセスの生成に関わる部分には以下のようなものがあります。
+
+\begin{commandline}
+si::sysinit:/etc/init.d/rcS
+
+l1:1:wait:/etc/init.d/rc 1
+l2:2:wait:/etc/init.d/rc 2
+l3:3:wait:/etc/init.d/rc 3
+l4:4:wait:/etc/init.d/rc 4
+l5:5:wait:/etc/init.d/rc 5
+\end{commandline}
+
+一行目にランレベルの指定が無いのは、action に sysinit が指定されているた
+めです。これはステムブート中に実行され、他のブート用の action よりも優先
+して実行されます。/etc/init.d/rcS では
+
+\begin{commandline}
+exec /etc/init.d/rc S
+\end{commandline}
+
+だけが実行されます。これは /etc/init.d/rc でのブート用の変数を設定します。
+この後、上記の rc スクリプトに対し、起動時に指定するランレベルを 引数と
+して実行されますが、Debian でのデフォルトは、ランレベル 2で起動されます。
+
+\begin{commandline}
+id:2:initdefault:
+\end{commandline}
+
+なので、実際には下記が実行されます。
+
+\begin{commandline}
+l2:2:wait:/etc/init.d/rc 2
+\end{commandline}
+
+これにより /etc/rc2.d 以下のファイル名が \textbf{S??} で始まるスクリプト
+が ``??''の二桁の数字の部分が''\textbf{昇順であるように一つずつ実行}''さ
+れます。同じレベルのスクリプトは並行して実行されますが、これが起動が遅く
+なる原因の一つになっています。
+
+\begin{commandline}
+# Now run the START scripts for this runlevel.
+# Run all scripts with the same level in parallel
+CURLEVEL=""
+for s in /etc/rc$runlevel.d/S*
+do
+        # Extract order value from symlink
+        level=${s#/etc/rc$runlevel.d/S}
+        level=${level%%[a-zA-Z]*}
+        if [ "$level" = "$CURLEVEL" ]
+        then
+                continue
+        fi
+        CURLEVEL=$level
+        SCRIPTS=""
+        for i in /etc/rc$runlevel.d/S$level*
+        do
+                [ ! -f $i ] && continue
+
+                suffix=${i#/etc/rc$runlevel.d/S[0-9][0-9]}
+                if [ "$previous" != N ]
+                then
+                        #
+                        # Find start script in previous runlevel and
+                        # stop script in this runlevel.
+                        #
+                        stop=/etc/rc$runlevel.d/K[0-9][0-9]$suffix
+                        previous_start=/etc/rc$previous.d/S[0-9][0-9]$suffix
+                        #
+                        # If there is a start script in the previous level
+                        # and _no_ stop script in this level, we don't
+                        # have to re-start the service.
+                        #
+                        if [ start = "$ACTION" ] ; then
+                                [ -f $previous_start ] && [ ! -f $stop ] && continue
+                        else
+                                # Workaround for the special
+                                # handling of runlevels 0 and 6.
+                                previous_stop=/etc/rc$previous.d/K[0-9][0-9]$suffix
+                                #
+                                # If there is a stop script in the previous level
+                                # and _no_ start script there, we don't
+                                # have to re-stop the service.
+                                #
+                                [ -f $previous_stop ] && [ ! -f $previous_start ] && continue
+                        fi
+
+                fi
+                SCRIPTS="$SCRIPTS $i"
+                if is_splash_stop_scripts "$suffix" ; then
+                        $debug splash_stop || true
+                fi
+        done
+        startup $ACTION $SCRIPTS
+done
+\end{commandline}
+
+なお、前述のとおり、Debian ではデフォルトのランレベルは 2 です。Debian
+では 2から5 のランレベルは基本的には同じで、ランレベル 2 しか使いません。
+他のディストリビューションのように、ランレベル 3 はテキストモード、ラン
+レベル 5 は X Window System が立ち上がる、という切り替えはしません。これ
+は Debian では、インストールされているパッケージというのは、ユーザが必要
+だからインストールしているのである、という考えに基づき、インストールした
+パッケージは全て最初から使えるようになっており、サービスであれば常時稼動
+するようになっています。ただし、最近では インストールしてあってもシステ
+ムブート時には起動せず、ユーザ\footnote{ここでいうユーザとは、システム管
+理者に対するエンドユーザ、ではなく Debian システムを利用する Debian ユー
+ザのことを指しています。}が任意の時に起動出来るように /etc/default/ 以下
+の設定ファイルで制御できるようになっているものもあります。
+
+
+起動スクリプトの起動以外には、ランレベル 2 から 5 または、2 か 3 の時に
+はコンソールから getty が実行されます。action が \texttt{respawn} となっ
+ていますが、これは getty プログラムが終了したら、init が再起動させるため
+の指示です。あるユーザがコンソールからログインしたセッションを、ログアウ
+トすると getty は終了しますが、init により再び ログイン画面で待ち受ける
+ことができる、というわけです。
+
+\begin{commandline}
+1:2345:respawn:/sbin/getty 38400 tty1
+2:23:respawn:/sbin/getty 38400 tty2
+3:23:respawn:/sbin/getty 38400 tty3
+4:23:respawn:/sbin/getty 38400 tty4
+5:23:respawn:/sbin/getty 38400 tty5
+6:23:respawn:/sbin/getty 38400 tty6
+\end{commandline}
+
+他の init の役割としては、システム停止時のプロセスの停止にも関わっていま
+す。
+
+\subsection{upstart とは}
+
+\begin{commandline}
+
+upstart
+=======
+
+Upstart is a replacement for the traditional sysvinit package, and
+runs as process #1.  While it is eventually intended to be used to
+create a completely event-driven boot process, we are currently
+only using it to emulate the original sysvinit behaviour.
+
+This gives us the maximum amount of testing of the code and concepts
+behind it, while retaining the ability to fallback to sysvinit should
+things not work out.
+
+This file documents how to do a few common operations with the new
+system.
+
+
+Where are initscripts installed?
+--------------------------------
+
+This has not changed, they are installed in /etc/init.d.  See
+/etc/init.d/README.
+
+
+How are initscripts started and stopped?
+----------------------------------------
+
+This has not changed, symlinks are made from the initscript in the
+/etc/init.d directory to the /etc/rc?.d directories.  See
+/etc/init.d/README and /etc/rc?.d/README.
+
+
+What order are initscripts started and stopped in?
+--------------------------------------------------
+
+This has not changed, the symlinks are named SNNname or KNNname, where
+NN is a number from 00 to 99.  The K scripts are run first in
+numerical order, followed by the S scripts in numerical order.
+
+
+How do I find the current/previous runlevel?
+--------------------------------------------
+
+This has not changed, use the "runlevel" command.  See runlevel(8).
+
+
+How do I change the runlevel?
+-----------------------------
+
+This has not changed, use the "telinit" command or just invoke "init"
+directly.  See telinit(8).
+
+
+How do I change the default runlevel?
+-------------------------------------
+
+Edit the /etc/inittab file.  Locate, or write, the following line:
+
+    id:N:initdefault:
+
+Where N is the default runlevel, change this to match.
+
+
+How do I shutdown the machine?
+------------------------------
+
+This has not changed, use the "shutdown" command provided by the
+upstart package; you may also use the "reboot"/"halt"/"poweroff"
+commands as a short-cut.  See shutdown(8) and reboot(8).
+
+You can also press Control-Alt-Delete on a console to reboot the
+machine.
+
+
+How do I change the behaviour of Control-Alt-Delete?
+----------------------------------------------------
+
+Edit the /etc/init/control-alt-delete.conf file, the line beginning
+"exec" is what upstart will run when this key combination is pressed.
+
+To not do anything, you can simply delete this file.
+
+
+How do I enter single-user mode?
+--------------------------------
+
+This hasn't changed, choose the "(recovery mode)" option from GRUB;
+add "-s", "S" or "single" to the kernel command-line; or from a
+running machine, run "telinit 1" or "shutdown now".
+
+
+How do I reduce the number of gettys?
+-------------------------------------
+
+Also see "How do I change which runlevels gettys are run in?"
+
+In /etc/init there is a file named ttyN.conf for each getty that will be
+started, where N is numbered 1 to 6.  Remove any that you do not
+want.
+
+This will not take immediate effect, however you can run "stop ttyN"
+to stop one that is running.
+
+
+How do I change getty parameters?
+---------------------------------
+
+In /etc/init there is a file named ttyN.conf for each getty that will be
+started, where N is numbered 1 to 6.  Edit these files, the line
+beginning "respawn" is what upstart will run.
+
+This will not take immediate effect, run "stop ttyN" followed by
+"start ttyN" or just kill the running getty to respawn with the new
+parameters.
+
+
+How do I change which runlevels gettys are run in?
+--------------------------------------------------
+
+In /etc/init there is a file named ttyN.conf for each getty that will be
+started, where N is numbered 1 to 6.  Edit these files, there are two
+lines:
+
+   start on runlevel [2345]
+   stop on runlevel [!2345]
+
+Change the set of runlevels to match your taste.
+
+This will not take immediate effect, however you can run "stop ttyN"
+to stop one that is running or "start ttyN" to start one that isn't.
+
+
+How do I increase the number of gettys?
+---------------------------------------
+
+In /etc/init there is a file named ttyN.conf for each getty that will be
+started, where N is numbered 1 to 6.
+
+Copy one of these files to a new name, we suggest you simply name it
+after the tty, e.g. "ttyS0".
+
+Edit that file, change the "respawn" line to match your requirements;
+in particular you'll need to change the tty the getty should be run
+on.
+
+This will not take immediate effect, however you can run "start ttyN"
+to start the getty.
+
+
+How do I add a serial console?
+------------------------------
+
+See "How do I increase the number of gettys?"
+
+
+Upstart isn't working, how do I debug it?
+-----------------------------------------
+
+Add "--debug" to the kernel command-line, and be sure to remove "quiet"
+and "splash" if existent.  You'll now see debugging messages as upstart
+works.
+
+If you are using an initramfs generator other than initramfs-tools you
+should use this option very carefully. There are for example known
+problems with yaird, which doesn't correctly pass the --debug option to
+init and as a consequence leads to a kernel panic. For more details
+please see bug #416927.
+
+
+Upstart isn't working, how can I rescue my system?
+--------------------------------------------------
+
+Here's a quick guide to rescuing your system:
+ 1. Edit the kernel command-line, remove "quiet" and "splash" if
+    existent, add "init=/bin/bash".
+
+    The machine will boot into a root shell.
+
+ 2. Run "/etc/init.d/rcS"
+
+    The machine will set up the basic necessities such as hardware
+    and networking.
+
+ 3. Ensure that upstart is properly installed
+
+    Check if all files are installed in /etc/init. If not, reinstall the
+    upstart package.
+
+ 5. Check that there are now files in /etc/init
+
+ 6. Run "sync" and "reboot -f"
+
+    The machine will now reboot.
+Hopefully your machine should now boot normally.
+
+
+Can I query upstart for a list of jobs?
+---------------------------------------
+
+Yes, "initctl list" will list the known jobs and their status.
+
+
+How do I manually start or stop a job?
+--------------------------------------
+
+Use "start JOB" or "stop JOB".
+
+
+How do I find the status of a job?
+----------------------------------
+
+Use "status JOB".
+
+
+Can I emit an event by hand?
+
+Yes, "initctl emit EVENT" will emit the named event and cause any
+jobs waiting for it to be started or stopped as appropriate.
+\end{commandline}
+
+
+
+\subsubsection{System V init 系との比較}
 
 \subsection{Upstart への切り替え}
 
 \subsubsection{Sid での場合}
+
+\begin{commandline}
+$ sudo apt-get install upstart
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています                
+状態情報を読み取っています... 完了
+以下の特別パッケージがインストールされます:
+  dbus libdbus-1-3 libexpat1
+提案パッケージ:
+  dbus-x11
+以下のパッケージは「削除」されます:
+  sysvinit
+以下のパッケージが新たにインストールされます:
+  dbus libdbus-1-3 libexpat1 upstart
+警告: 以下の不可欠パッケージが削除されます。
+何をしようとしているか本当にわかっていない場合は、実行してはいけません!
+  sysvinit
+アップグレード: 0 個、新規インストール: 4 個、削除: 1 個、保留: 9 個。
+1,005kB のアーカイブを取得する必要があります。
+この操作後に追加で 2,105kB のディスク容量が消費されます。
+重大な問題を引き起こす可能性のあることをしようとしています。
+続行するには、'Yes, do as I say!' というフレーズをタイプしてください。
+ ?] Yes, do as I say!
+取得:1 http://cdn.debian.or.jp sid/main libdbus-1-3 1.2.20-2 [144kB]
+取得:2 http://cdn.debian.or.jp sid/main libexpat1 2.0.1-7 [137kB]
+取得:3 http://cdn.debian.or.jp sid/main dbus 1.2.20-2 [231kB]
+取得:4 http://cdn.debian.or.jp sid/main upstart 0.6.3-1 [493kB]
+1,005kB を 6s で取得しました (165kB/s)                                         
+debconf: apt-utilsがインストールされていないため、パッケージの設定を遅らせます。
+dpkg: warning: overriding problem because --force enabled:
+ これは不可欠 (essential) パッケージです - 削除すべきではありません。
+(データベースを読み込んでいます ... 現在 8736 個のファイルとディレクトリがインストールされています。)
+sysvinit を削除しています ...
+未選択パッケージ libdbus-1-3 を選択しています。
+(データベースを読み込んでいます ... 現在 8710 個のファイルとディレクトリがインストールされています。)
+(.../libdbus-1-3_1.2.20-2_amd64.deb から) libdbus-1-3 を展開しています...
+未選択パッケージ libexpat1 を選択しています。
+(.../libexpat1_2.0.1-7_amd64.deb から) libexpat1 を展開しています...
+未選択パッケージ dbus を選択しています。
+(.../dbus_1.2.20-2_amd64.deb から) dbus を展開しています...
+未選択パッケージ upstart を選択しています。
+(.../upstart_0.6.3-1_amd64.deb から) upstart を展開しています...
+libdbus-1-3 (1.2.20-2) を設定しています ...
+libexpat1 (2.0.1-7) を設定しています ...
+dbus (1.2.20-2) を設定しています ...
+Starting system message bus: dbus.
+upstart (0.6.3-1) を設定しています ...
+$
+\end{commandline}
+
+2010年2月9日現在、upstart に切り替えてまだうまく動かないようです。
+
+\begin{commandline}
+$ sudo lxc-start -n bootsid
+cat: /proc/cmdline: No such file or directory
+Setting the system clock.
+Cannot access the Hardware Clock via any known method.
+Use the --debug option to see the details of our search for an access method.
+Unable to set System Clock to: Tue Feb 9 14:16:26 UTC 2010 ... (warning).
+Activating swap...done.
+mount: you must specify the filesystem type
+Cannot check root file system because it is not mounted read-only. ... failed!
+Setting the system clock.
+Cannot access the Hardware Clock via any known method.
+Use the --debug option to see the details of our search for an access method.
+Unable to set System Clock to: Tue Feb 9 14:16:27 UTC 2010 ... (warning).
+Cleaning up ifupdown....
+Checking file systems...fsck from util-linux-ng 2.16.2
+done.
+Setting up networking....
+Mounting local filesystems...done.
+Activating swapfile swap...done.
+Cleaning up temporary files....
+Configuring network interfaces...done.
+Setting kernel variables ...done.
+Cleaning up temporary files....
+Starting system message bus: dbus.
+Starting OpenBSD Secure Shell server: sshd.
+init: tty4 main process (239) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (241) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (242) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (244) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (245) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (306) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (307) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (308) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (309) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (310) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (311) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (312) terminated with status 1
+init: tty1 main process ended, respawning
+
+init: tty4 main process (313) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (314) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (315) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (316) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (317) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (318) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (319) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (320) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (321) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (322) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (323) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (324) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (325) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (326) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (327) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (328) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (329) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (330) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (331) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (332) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (333) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (334) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (335) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (336) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (337) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (338) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (339) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (340) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (341) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (342) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (343) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (344) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (345) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (346) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (347) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (348) terminated with status 1
+init: tty1 main process ended, respawning
+init: tty4 main process (349) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (350) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (351) terminated with status 1
+init: tty2 main process ended, respawning
+init: tty3 main process (352) terminated with status 1
+init: tty3 main process ended, respawning
+init: tty6 main process (353) terminated with status 1
+init: tty6 main process ended, respawning
+init: tty1 main process (354) terminated with status 1
+init: tty1 main process ended, respawning
+\end{commandline}
+
+コンソールは tty がうまく動かないのか、login プロンプトが返ってこず、コ
+ンソールログインはできませんが、ssh 経由のターミナルログインは問題なくで
+きました。
+
+\begin{commandline}
+$ ssh bootsid
+Enter passphrase for key '/home/kohei/.ssh/id_rsa': 
+Linux bootsid 2.6.32 #1 SMP Mon Dec 7 05:27:50 UTC 2009 x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Tue Feb  9 14:18:38 2010 from 192.168.189.114
+kohei@bootsid:~$ 
+\end{commandline}
+
 
 \subsubsection{Lenny での場合}
 
