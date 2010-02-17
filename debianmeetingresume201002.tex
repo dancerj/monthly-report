@@ -271,9 +271,162 @@ Debian フリーソフトウェアガイドライン全文(\url{http://www.debian.org/socia
 
  参考資料: \verb|http://www.sato.kuis.kyoto-u.ac.jp/~igarashi/class/isle4-05w/text/eopl003.html|
 
-\subsection{HaskellのLexing}
+\subsection{OCamlでのlexingとparsing - ocamllexとocamlyacc}
+
+
 
 \subsubsection{ocamllex}
+
+
+ocamllexはOCamlに付属しているlexer generatorで、
+OCamlから呼び出せるlexer関数を生成してくれます。
+以下のようにC言語でもおなじみの lex, flex と似たような使用感になっています。
+
+\begin{commandline}
+
+{
+  (* header *)
+  (* Lexingのルール部分で参照したい内容をOCamlで書く *)
+}
+
+/* lexingのルール記述 */
+
+{
+  (* trailer *)
+  (* ルール部分で生成された関数を参照する内容をOCamlで書く *)
+}
+
+\end{commandline}
+
+\subsubsection{ocamlyacc}
+
+同様に、ocamlyaccはOCamlに付属しているparser generatorで、
+OCamlから呼び出せるparser関数を生成してくれます。
+こちらもやはり、以下のように yacc, bison と似たような使用感になっています。
+
+\begin{commandline}
+
+%{
+  (* header *)
+  (* 構文木生成処理で参照したい内容をOCamlで書く *)
+%}
+  /* declarations */
+  /* 終端記号の型や開始状態の宣言 */
+%%
+  /* rules */
+  /* 文脈自由文法と構文木生成処理を記述 */
+%%
+  (* trailer *)
+  (* 生成されたparserの関数を参照する内容をOCamlで書く *)
+
+\end{commandline}
+
+\subsubsection{ocamllexとocamlyaccの使用例}
+
+ocamllexとocamlyaccを併用する場合には、
+ocamlyaccで生成させたparserの終端記号の定義を
+lexerから参照させるようにするのがもっとも単純な使い方です。
+
+以下、S式parserを生成させる例です。
+sParser.mlyをocamlyaccで処理するとsParser.mlが生成され、
+sLexer.mllをocamllexで処理するとsLexer.mlが生成されます。
+
+\begin{commandline}
+
+%{
+  (* sParser.mly *)
+
+  module C = SCons
+
+%}
+
+/* File sparser.mly */
+%token LPAREN RPAREN DOT_SYMBOL EOL BOOL_TRUE BOOL_FALSE
+%token <SCons.s_int> INT
+%token <float> FLOAT
+%token <string> SYMBOL
+%token <string> STRING
+%start expr
+%type <SCons.s_expr> expr
+%%
+
+expr_list:
+  { C.Null }
+| expr DOT_SYMBOL expr { C.Cons($1, $3) }
+| expr expr_list { C.Cons($1, $2) }
+
+expr:
+| BOOL_TRUE               { C.Bool(true) }
+| BOOL_FALSE              { C.Bool(false) }
+| INT                     { C.Int($1) }
+| FLOAT                   { C.Float($1) }
+| SYMBOL                  { C.Symbol($1) }
+| STRING                  { C.String($1) }
+| LPAREN expr_list RPAREN { $2 }
+
+\end{commandline}
+
+% $ dummy comment
+
+\begin{commandline}
+{
+  (* sLexer.mll*)
+
+  module LX = Lexing
+  module P = SParser
+  ...
+}
+
+let str_esc = '\\'
+let double_quote = '"'
+let str_escaped_char = str_esc _
+let str_char = [^ '\\' '"']
+let str = double_quote (str_char | str_escaped_char)* double_quote
+
+let left_paren = '('
+let right_paren = ')'
+let space = [' ' '\t' '\n' '\r']+
+let dot_symbol = '.'
+let bool_true  = '#' 't'
+let bool_false = '#' 'f'
+
+let int = '-'? ['0' - '9']+
+let float = '-'? ['0' - '9']+ '.' ['0' - '9']* | '-'? ['0' - '9']* '.' ['0' - '9']+
+let symbol = [^ '"' '(' ')' ' ' '\t' '\n' '\r']+
+
+rule token = parse
+  | left_paren
+      { P.LPAREN }
+  | right_paren
+      { P.RPAREN }
+  | space
+      { fix_position lexbuf; token lexbuf }
+  | dot_symbol
+      { P.DOT_SYMBOL }
+  | bool_true
+      { P.BOOL_TRUE }
+  | bool_false
+      { P.BOOL_FALSE }
+  | int
+      { expr_integer (LX.lexeme lexbuf) }
+  | float 
+      { P.FLOAT(Pervasives.float_of_string(LX.lexeme lexbuf)) }
+  | symbol
+      { P.SYMBOL(LX.lexeme lexbuf) }
+  | str
+      { fix_position lexbuf; P.STRING(expr_string(LX.lexeme lexbuf)) }
+  | eof
+      { raise Eof }
+
+\end{commandline}
+
+
+\subsection{HaskellのLexing}
+
+\subsubsection{Haskellのlayout rule}
+
+\verb|parse_error(t)|
+    
 
 \subsection{HaskellのParsing}
 
