@@ -13,7 +13,9 @@ publish: $(RELEASEFILES)
 	-ssh alioth.debian.org chmod 664 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/*.pdf
 
 %.release-stamp: %.pdf
-	scp $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/
+	# copy PDF file to a temporal location, and fixup permissions, and move to final destination.
+	scp $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<.tmp
+	ssh alioth.debian.org "chmod 664 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<.tmp && mv /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<.tmp /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<"
 	touch $@
 
 %.pdf: %.dvi
