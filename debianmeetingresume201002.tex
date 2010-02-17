@@ -253,7 +253,8 @@ Debian フリーソフトウェアガイドライン全文(\url{http://www.debian.org/socia
 % =======================================================================
 \dancersection{DebianのOCaml環境で開発する関数型言語インタプリタ}{日比野啓}
 \index{functional programming}
-\index{ocaml}
+\index{OCaml}
+\index{Haskell}
 % =======================================================================
 
 \subsection{OCaml はどんな言語}
@@ -271,13 +272,1193 @@ Debian フリーソフトウェアガイドライン全文(\url{http://www.debian.org/socia
 
  参考資料: \verb|http://www.sato.kuis.kyoto-u.ac.jp/~igarashi/class/isle4-05w/text/eopl003.html|
 
-\subsection{HaskellのLexing}
+\subsection{OCamlでのlexingとparsing - ocamllexとocamlyacc}
+
+
 
 \subsubsection{ocamllex}
 
-\subsection{HaskellのParsing}
+ocamllexはOCamlに付属している字句解析関数生成器(lexer generator)で、
+OCamlから呼び出せるlexerを生成してくれます。
+以下のようにC言語でもおなじみの lex, flex と似たような使用感になっています。
+
+\begin{commandline}
+
+{
+  (* header *)
+  (* Lexingのルール部分で参照したい内容をOCamlで書く *)
+}
+
+(* 文字列パターンの定義 *)
+
+(* 字句解析(lexing)のルール記述 *)
+
+{
+  (* trailer *)
+  (* ルール部分で生成された関数を参照する内容をOCamlで書く *)
+}
+
+\end{commandline}
 
 \subsubsection{ocamlyacc}
+
+同様に、ocamlyaccはOCamlに付属している構文解析関数生成器(parser generator)で、
+OCamlから呼び出せるparserを生成してくれます。
+こちらもやはり、以下のように yacc, bison と似たような使用感になっています。
+
+\begin{commandline}
+
+%{
+  (* header *)
+  (* 構文木生成処理で参照したい内容をOCamlで書く *)
+%}
+  /* declarations */
+  /* 終端記号の型や構文木のrootの宣言 */
+%%
+  /* rules */
+  /* 文脈自由文法と構文木生成処理を記述 */
+%%
+  (* trailer *)
+  (* 生成されたparserの関数を参照する内容をOCamlで書く *)
+
+\end{commandline}
+
+\subsubsection{ocamllexとocamlyaccの使用例}
+
+ocamllexとocamlyaccを併用する場合には、
+ocamlyaccで生成させたparserの終端記号の定義を
+lexerから参照させるようにするのがもっとも単純な使い方です。
+
+以下がS式parserを生成させる例です。
+sParser.mlyをocamlyaccで処理するとsParser.mlが生成され、
+sLexer.mllをocamllexで処理するとsLexer.mlが生成されます。
+
+\par
+\paragraph{sParser.mly}
+型ごとに終端記号を\%tokenで宣言し、
+\%startと\%typeで構文木のrootとその型を指定します。
+rootの名前が構文解析関数の名前になります。
+
+yaccと同じ要領で文脈自由文法を記述していきます。
+exprは真偽値、数値、文字列であるか、
+あるいは、exprドット対またはexprを並べたもの を括弧で括ったものという定義になっています。
+
+\begin{commandline}
+
+%{
+  (* sParser.mly *)
+
+  module C = SCons
+
+%}
+
+/* File sparser.mly */
+%token LPAREN RPAREN DOT_SYMBOL EOL BOOL_TRUE BOOL_FALSE
+%token <SCons.s_int> INT
+%token <float> FLOAT
+%token <string> SYMBOL
+%token <string> STRING
+%start expr
+%type <SCons.s_expr> expr
+%%
+
+expr_list:
+  { C.Null }
+| expr DOT_SYMBOL expr { C.Cons($1, $3) }
+| expr expr_list { C.Cons($1, $2) }
+
+expr:
+| BOOL_TRUE               { C.Bool(true) }
+| BOOL_FALSE              { C.Bool(false) }
+| INT                     { C.Int($1) }
+| FLOAT                   { C.Float($1) }
+| SYMBOL                  { C.Symbol($1) }
+| STRING                  { C.String($1) }
+| LPAREN expr_list RPAREN { $2 }
+
+\end{commandline}
+
+% $ dummy comment
+
+\par
+\paragraph{sLexer.mll}
+文字列パターンの定義では、正規表現の要領で文字集合や繰り返しの表現を利用して
+定義を作り、letで名前を付けていきます。文字を '' でくくる以外は正規表現と同様です。
+定義した文字列パターンをさらに別の文字列パターンに再利用することができます。
+
+ルール記述の部分では、tokenの文字列パターンとtoken生成式をlexの要領で記述していきます。
+キーワードruleの後の文字列がlexerの関数名になります。なのでここではその関数の名前はtokenです。
+
+字句解析(Lexing)の過程における入力ファイル内の位置は、
+lexbufのlex\_start\_pに記号(token)の開始位置が、
+lex\_curr\_pにtokenの終了の次の位置が保持されています。
+ocamllexデフォルトの動作ではpos\_cnum フィールドが更新されるのみなので、
+ファイル先頭からのバイト数しかわかりません。
+陽に行数の認識やタブによるカラム数の補正を行なう場合には、
+lex\_start\_pとtokenをもとにlex\_curr\_pを修正してやる必要があります。
+\footnote{次のlex\_start\_pは現在のlex\_curr\_pから引き継がれるので、
+lex\_curr\_pを修正すれば十分です。}
+
+
+
+\begin{commandline}
+{
+  (* sLexer.mll*)
+
+  module LX = Lexing
+  module P = SParser
+  ... (* 中略 *)
+  let fix_position lexbuf =
+    let newline pos = {
+      pos with
+	LX.pos_lnum = pos.LX.pos_lnum + 1;
+	LX.pos_cnum = pos.LX.pos_cnum + 1;
+	LX.pos_bol = pos.LX.pos_cnum + 1;
+    } in
+
+    let tab pos = {
+      pos with
+	LX.pos_cnum = pos.LX.pos_cnum + 8 - (pos.LX.pos_cnum - pos.LX.pos_bol) mod 8
+    } in
+
+    let other pos = {
+      pos with
+	LX.pos_cnum = pos.LX.pos_cnum + 1
+    } in
+
+    let rec fix_pos_rec pos str =
+      let len = (String.length str) in
+	match (if len > 0 then (Some (str.[0]), String.sub str 1 (len - 1))
+	       else (None, "")) with
+	    (None, _) -> pos
+	  | (Some '\n', rest) -> fix_pos_rec (newline pos) rest
+	  | (Some '\t', rest) -> fix_pos_rec (tab pos) rest
+	  | (Some _, rest) -> fix_pos_rec (other pos) rest
+    in
+    let _ = lexbuf.LX.lex_curr_p <- fix_pos_rec (LX.lexeme_start_p lexbuf) (LX.lexeme lexbuf) in
+      ()
+}
+
+/* 文字列パターンの定義 */
+let str_esc = '\\'
+let double_quote = '"'
+let str_escaped_char = str_esc _
+let str_char = [^ '\\' '"']
+let str = double_quote (str_char | str_escaped_char)* double_quote
+
+let left_paren = '('
+let right_paren = ')'
+let space = [' ' '\t' '\n' '\r']+
+let dot_symbol = '.'
+let bool_true  = '#' 't'
+let bool_false = '#' 'f'
+
+let int = '-'? ['0' - '9']+
+let float = '-'? ['0' - '9']+ '.' ['0' - '9']* | '-'? ['0' - '9']* '.' ['0' - '9']+
+let symbol = [^ '"' '(' ')' ' ' '\t' '\n' '\r']+
+
+/* lexingのルール記述 */
+rule token = parse
+  | left_paren      { P.LPAREN }
+  | right_paren     { P.RPAREN }
+  | space      { fix_position lexbuf; token lexbuf }
+  | dot_symbol      { P.DOT_SYMBOL }
+  | bool_true       { P.BOOL_TRUE }
+  | bool_false      { P.BOOL_FALSE }
+  | int      { expr_integer (LX.lexeme lexbuf) }
+  | float    { P.FLOAT(Pervasives.float_of_string(LX.lexeme lexbuf)) }
+  | symbol   { P.SYMBOL(LX.lexeme lexbuf) }
+  | str      { fix_position lexbuf; P.STRING(expr_string(LX.lexeme lexbuf)) }
+  | eof      { raise Eof }
+
+\end{commandline}
+
+%\pagebreak
+
+\subsection{HaskellのLexing}
+
+Haskellには
+ブロックの開始や終了のtokenや式の区切りのtokenを省略することができる
+layout ruleという機能があります。
+そのため省略されたtokenをlexingの過程で補ってやる必要があります。
+
+まず、通常と同様にlexingを行なってtoken列を生成し、
+そのtoken列に規則に従ってtokenを補うというように、2段階の工程を行ないます。
+
+\subsubsection{layoutなしのLexing}
+
+\paragraph{lexer0.mll header部分}
+
+まずは.mllのheader部分です。
+
+後からlayout ruleにおいて必要となるカラム数を数えあげるための処理を行なう関数(fix\_position)や、
+Haskellの文字および文字列リテラルはリテラル内のルールが複雑度の高い仕様なので、
+別のlexer(後述)を呼び出しつつ実際の文字列表現を構成する関数(decode\_char, decode\_string)を準備しています。
+
+\begin{commandline}
+{
+  (* lexer0.mll header部分 *)
+  module LX = Lexing
+  module P = Parser
+  ... (* 中略 *)
+  let fix_position lexbuf =
+    let newline pos =
+      { pos with
+          LX.pos_lnum = pos.LX.pos_lnum + 1;
+          LX.pos_cnum = pos.LX.pos_cnum + 1;
+          LX.pos_bol = pos.LX.pos_cnum + 1;
+      } in
+
+    let tab pos =
+      { pos with
+          LX.pos_cnum = pos.LX.pos_cnum + 8 - (pos.LX.pos_cnum - pos.LX.pos_bol) mod 8
+      } in
+
+    let other pos =
+      { pos with
+          LX.pos_cnum = pos.LX.pos_cnum + 1
+      } in
+
+    let rec fix_pos_rec pos str =
+      let len = (String.length str) in
+        match (if len > 0 then (Some (str.[0]), String.sub str 1 (len - 1))
+               else (None, "")) with
+            (None, _) -> pos
+          | (Some '\n', rest) -> fix_pos_rec (newline pos) rest
+          | (Some '\t', rest) -> fix_pos_rec (tab pos) rest
+          | (Some _, rest) -> fix_pos_rec (other pos) rest
+    in
+    let _ = lexbuf.LX.lex_curr_p <- fix_pos_rec (LX.lexeme_start_p lexbuf) (LX.lexeme lexbuf) in
+      ()
+  ... (* 中略 *)
+  let decode_cexpr cexpr =
+    let fchar = String.get cexpr 0 in
+    let escexp = String.sub cexpr 1 ((String.length cexpr) - 1) in
+    let fmatch exp str = Str.string_match (Str.regexp exp) str 0 in
+      if fchar = '\\' then
+        match escexp with
+            "NUL"   -> Some '\x00'
+          | "SOH" | "^A"   -> Some '\x01'
+          | "STX" | "^B"   -> Some '\x02'
+        ... (* 中略 *)
+          | "RS"  | "^^"   -> Some '\x1e'
+          | "US"  | "^_"   -> Some '\x1f'
+          | "SP"           -> Some ' '
+
+          | "\\"           -> Some '\\'
+          | "\""           -> Some '"'
+          | "'"            -> Some '\''
+
+          | "DEL"          -> Some '\x7f'
+
+          | _ when fmatch "^[0-9]+$" escexp
+              -> Some (Char.chr (int_of_string escexp))
+          | _ when fmatch "^[xX][0-9a-zA-Z]+$" escexp 
+              -> Some (Char.chr (int_of_string ("0" ^ escexp)))
+          | _ when fmatch "^[oO][0-7]+$" escexp
+              -> Some (Char.chr (int_of_string ("0" ^ escexp)))
+
+          | _ -> None
+
+      else Some fchar
+
+  let decode_char lexbuf =
+    let cstr = LX.lexeme lexbuf in
+    let len = String.length cstr in
+      match decode_cexpr (String.sub cstr 1 (len - 2)) with
+          Some c -> c
+        | None   -> failwith (F.sprintf "Unkown char expression %s" cstr)
+
+  let decode_string lexbuf =
+    let sexpr = LX.lexeme lexbuf in
+    let len = String.length sexpr in
+    let strlbuf = Lexing.from_string (String.sub sexpr 1 (len - 2)) in
+    let rec decode result =
+      match HsStr.char strlbuf with
+          HsStr.Eos -> result
+        | HsStr.Char cstr ->
+            if cstr = "\\&" then decode (result ^ "&")
+            else decode (result ^ 
+                           match (decode_cexpr cstr) with
+                               None -> failwith (F.sprintf "Unkown char expression '%s' in literal string" cstr)
+                             | Some c -> (String.make 1 c))
+        | HsStr.Gap g -> decode result
+    in decode ""
+}
+\end{commandline}
+
+% $ dummy comment
+
+\paragraph{lexer0.mll 文字列パターン定義部分}
+
+次に文字列パターンの定義です。
+
+行数はちょっと多いですが、特に難しいところはありません。
+問題のリテラル文字列ですが、リテラル文字列部分の文字列パターン自体は問題なく表現できています。
+しかし、リテラルで表現される文字列自体を復元するのが複雑なので前記および後述のような準備が必要になります。
+
+\begin{commandline}
+/* lexer0.mll 文字列パターン定義部分 */
+let special = ['(' ')' ',' ';' '[' ']' '`' '{' '}']
+
+let space = ' '
+let newline = ("\r\n"|['\n' '\r'])
+let tab = '\t'
+
+let dashes = '-' '-' '-'*
+
+let ascSmall = ['a'-'z']
+let small = ascSmall | '_'
+let ascLarge = ['A'-'Z']
+let large = ascLarge
+
+let plus = '+'
+let minus = '-'
+let exclamation = '!'
+let ascSymbol_nbs = [ '!' '#' '$' '%' '&' '*' '+' '.' '/' '<' '=' '>' '?' '@' '^' '|' '-' '~' ]
+let ascSymbol = ascSymbol_nbs | '\\'
+let symbol = ascSymbol
+
+let ascDigit = ['0'-'9']
+let digit = ascDigit
+
+let octit = ['0'-'7']
+let hexit = ascDigit | ['a'-'z' 'A'-'Z']
+
+let decimal = (digit)+
+let octal = (octit)+
+let hexadecimal = (hexit)+
+
+let exponent = ['e' 'E'] ['+' '-']? decimal
+let float = decimal '.' decimal exponent? | decimal exponent
+
+let graphic = small | large | symbol | digit | special | [':' '"' '\'']
+let any = graphic | space | tab
+
+let comment = dashes ((space | tab | small | large | symbol | digit | special | [':' '"' '\'']) (any)*)? newline
+
+let whitechar = newline | space | tab
+let whitestuff = whitechar | comment 
+let whitespace = (whitestuff)+
+
+(*
+let lwhitechar = space | tab
+let lwhitestuff = lwhitechar | comment 
+let lwhitespace = (lwhitestuff)+
+*)
+
+let char_gr = small | large | ascSymbol_nbs | digit | special | [':' '"']
+let str_gr  = small | large | ascSymbol_nbs | digit | special | [':' '\'']
+
+let charesc = ['a' 'b' 'f' 'n' 'r' 't' 'v' '\\' '"' '\'']
+let str_charesc = charesc | '&'
+let cntrl = ascLarge | ['@' '[' '\\' ']' '^' '_']
+let gap = '\\' (whitechar)+ '\\'
+(* let gap = '\\' (lwhitechar | newline)+ '\\' *)
+
+let ascii = ('^' cntrl) | "NUL" | "SOH" | "STX" | "ETX" | "EOT" | "ENQ" | "ACK"
+  | "BEL" | "BS" | "HT" | "LF" | "VT" | "FF" | "CR" | "SO" | "SI" | "DLE"
+  | "DC1" | "DC2" | "DC3" | "DC4" | "NAK" | "SYN" | "ETB" | "CAN"
+  | "EM" | "SUB" | "ESC" | "FS" | "GS" | "RS" | "US" | "SP" | "DEL"
+
+let escape = '\\' ( charesc | ascii | decimal | 'o' octal | 'x' hexadecimal )
+let str_escape = '\\' ( str_charesc | ascii | decimal | 'o' octal | 'x' hexadecimal )
+
+let char = '\'' (char_gr | space | escape) '\''
+let string = '"' (str_gr | space | str_escape | gap)* '"'
+
+let varid = small (small | large | digit | '\'')*
+let conid = large (small | large | digit | '\'')*
+
+let varsym = symbol (symbol | ':')*
+let consym = ':' (symbol | ':')*
+
+let modid = conid
+\end{commandline}
+
+% $ dummy comment
+
+\paragraph{lexer0.mll ルール記述部分}
+
+最後にルール記述です。
+
+スペース、タブ、改行などを含んでいるwhitespaceやstringのところで
+fix\_positionを呼んで位置情報を補正しています。
+またcharやstringのリテラルから文字や文字列を構成するために
+decode\_char, decode\_string を呼び出しています。
+
+\begin{commandline}
+(* lexer0.mll ルール記述部分 *)
+rule token = parse
+  | '('  { P.SP_LEFT_PAREN(loc lexbuf) }
+  | ')'  { P.SP_RIGHT_PAREN(loc lexbuf) }
+  | ','  { P.SP_COMMA(loc lexbuf) }
+  | ';'  { P.SP_SEMI(loc lexbuf) }
+  | '['  { P.SP_LEFT_BRACKET(loc lexbuf) }
+  | ']'  { P.SP_RIGHT_BRACKET(loc lexbuf) }
+  | '`'  { P.SP_B_QUOTE(loc lexbuf) }
+  | '{'  { P.SP_LEFT_BRACE(loc lexbuf) }
+  | '}'  { P.SP_RIGHT_BRACE(loc lexbuf) }
+      (** special tokens *)
+
+  | "case"     { P.K_CASE(loc lexbuf) }
+  | "class"    { P.K_CLASS(loc lexbuf) }
+  | "data"     { P.K_DATA(loc lexbuf) }
+  | "default"  { P.K_DEFAULT(loc lexbuf) }
+  | "deriving" { P.K_DERIVING(loc lexbuf) }
+  | "do"       { P.K_DO(loc lexbuf) }
+  | "else"     { P.K_ELSE(loc lexbuf) }
+  | "if"       { P.K_IF(loc lexbuf) }
+  | "import"   { P.K_IMPORT(loc lexbuf) }
+  | "in"       { P.K_IN(loc lexbuf) }
+  | "infix"    { P.K_INFIX(loc lexbuf) }
+  | "infixl"   { P.K_INFIXL(loc lexbuf) }
+  | "infixr"   { P.K_INFIXR(loc lexbuf) }
+  | "instance" { P.K_INSTANCE(loc lexbuf) }
+  | "let"      { P.K_LET(loc lexbuf) }
+  | "module"   { P.K_MODULE(loc lexbuf) }
+  | "newtype"  { P.K_NEWTYPE(loc lexbuf) }
+  | "of"       { P.K_OF(loc lexbuf) }
+  | "then"     { P.K_THEN(loc lexbuf) }
+  | "type"     { P.K_TYPE(loc lexbuf) }
+  | "where"    { P.K_WHERE(loc lexbuf) }
+  | "_"        { P.K_WILDCARD(loc lexbuf) }
+      (** reservedid *)
+
+  | ".."       { P.KS_DOTDOT(loc lexbuf) }
+  | ":"        { P.KS_COLON(loc lexbuf) }
+  | "::"       { P.KS_2_COLON(loc lexbuf) }
+  | "="        { P.KS_EQ(loc lexbuf) }
+  | "\\"       { P.KS_B_SLASH(loc lexbuf) }
+  | "|"        { P.KS_BAR(loc lexbuf) }
+  | "<-"       { P.KS_L_ARROW(loc lexbuf) }
+  | "->"       { P.KS_R_ARROW(loc lexbuf) }
+  | "@"        { P.KS_AT(loc lexbuf) }
+  | "~"        { P.KS_TILDE(loc lexbuf) }
+  | "=>"       { P.KS_R_W_ARROW(loc lexbuf) }
+      (** reservedop *)
+
+  | "as"              { P.K_AS(loc lexbuf) }  (** maybe varid *)
+  | "qualified"       { P.K_QUALIFIED(loc lexbuf) }  (** maybe varid *)
+  | "hiding"          { P.K_HIDING(loc lexbuf) }  (** maybe varid *)
+  | varid      { P.T_VARID(LX.lexeme lexbuf, loc lexbuf) }
+  | conid      { P.T_CONID(LX.lexeme lexbuf, loc lexbuf) }
+      (** identifiers or may be qualified ones *)
+
+  | whitespace  { fix_position lexbuf; P.WS_WHITE(loc lexbuf) }  (** comment begining with dashes is not varsym *)
+      (** white spaces *)
+
+  | plus       { P.KS_PLUS(loc lexbuf) }  (** maybe varsym *)
+  | minus      { P.KS_MINUS(loc lexbuf) } (** maybe varsym *)
+  | exclamation  { P.KS_EXCLAM(loc lexbuf) } (** maybe varsym *)
+  | varsym     { P.T_VARSYM(LX.lexeme lexbuf, loc lexbuf) }
+  | consym     { P.T_CONSYM(LX.lexeme lexbuf, loc lexbuf) }
+      (** symbols or may be qualified ones *)
+
+  | modid '.' varid   { P.T_MOD_VARID(decode_with_mod lexbuf, loc lexbuf) }
+  | modid '.' conid   { P.T_MOD_CONID(decode_with_mod lexbuf, loc lexbuf) }
+  | modid '.' varsym  { P.T_MOD_VARSYM(decode_with_mod lexbuf, loc lexbuf) }
+  | modid '.' consym  { P.T_MOD_CONSYM(decode_with_mod lexbuf, loc lexbuf) }
+      (** qualified xx *)
+
+  | char      { P.L_CHAR(decode_char lexbuf, loc lexbuf) }
+  | string    { fix_position lexbuf; P.L_STRING(decode_string lexbuf, loc lexbuf) }
+
+  | decimal | ('0' ['o' 'O'] octal) | ('0' ['x' 'X'] hexadecimal)
+        { P.L_INTEGER(Int64.of_string(LX.lexeme lexbuf), loc lexbuf) }
+
+  | float      { P.L_FLOAT(float_of_string(LX.lexeme lexbuf), loc lexbuf) }
+
+  | eof        { P.EOF(loc lexbuf) }
+  ... /* 以下略 */
+\end{commandline}
+
+
+\paragraph{hsStr.mll}
+
+文字列のlexerです。
+
+ここでのtokenは文字列リテラル内の1文字の表現あるいはギャップ(gap)です。
+Haskellでは1つの文字列リテラルを中断して、
+間に空白や改行やコメントを記述した後に、再開することができます。
+この空白や改行やコメントの部分がgapです。
+
+ここで定義されたchar関数を利用してdecode\_string関数は文字列を構成していくようになっています。
+
+\begin{commandline}
+{
+  (* hsStr.mll *)
+  module LX = Lexing
+
+  type ct =
+      Char of string
+    | Gap of string
+    | Eos
+}
+
+let special = ['(' ')' ',' ';' '[' ']' '`' '{' '}']
+
+let space = ' '
+let newline = ("\r\n"|['\n' '\r'])
+let tab = '\t'
+
+let ascSmall = ['a'-'z']
+let small = ascSmall
+let ascLarge = ['A'-'Z']
+let large = ascLarge
+
+let ascSymbol_nbs = [ '!' '#' '$' '%' '&' '*' '+' '.' '/' '<' '=' '>' '?' '@' '^' '|' '-' '~' ]
+
+let ascDigit = ['0'-'9']
+let digit = ascDigit
+
+let octit = ['0'-'7']
+let hexit = ascDigit | ['a'-'z' 'A'-'Z']
+
+let decimal = (digit)+
+let octal = (octit)+
+let hexadecimal = (hexit)+
+
+let lwhitechar = space | tab
+
+let str_gr  = small | large | ascSymbol_nbs | digit | special | [':' '\'']
+
+let charesc = ['a' 'b' 'f' 'n' 'r' 't' 'v' '\\' '"' '\'']
+let str_charesc = charesc | '&'
+let cntrl = ascLarge | ['@' '[' '\\' ']' '^' '_']
+let gap = '\\' (lwhitechar | newline)+ '\\'
+
+let ascii = ('^' cntrl) | "NUL" | "SOH" | "STX" | "ETX" | "EOT" | "ENQ" | "ACK"
+  | "BEL" | "BS" | "HT" | "LF" | "VT" | "FF" | "CR" | "SO" | "SI" | "DLE"
+  | "DC1" | "DC2" | "DC3" | "DC4" | "NAK" | "SYN" | "ETB" | "CAN"
+  | "EM" | "SUB" | "ESC" | "FS" | "GS" | "RS" | "US" | "SP" | "DEL"
+
+let str_escape = '\\' ( str_charesc | ascii | decimal | 'o' octal | 'x' hexadecimal )
+
+rule char = parse
+  | str_gr | space | str_escape  { Char(LX.lexeme lexbuf) }
+  | gap                          { Gap(LX.lexeme lexbuf) }
+  | eof                          { Eos }
+\end{commandline}
+
+% $ dummy comment
+
+参考資料: \verb|http://www.sampou.org/haskell/report-revised-j/lexemes.html|
+
+\subsubsection{Haskellのlayout rule}
+
+この節の始めにも書いたようにlayout ruleは、
+token列にさらにtokenを補ってやる処理です。
+まずは補うルールを確認してみましょう。
+以下に、Haskell 98 Language Reportの改訂版の和訳
+\footnote{http://www.sampou.org/haskell/report-revised-j/syntax-iso.html\#layout}から引用してみます。
+
+%%\paragraph{--- 引用ここから ---} \ 
+
+\dotfill 引用ここから\dotfill
+
+%% \par
+%% \begin{tabular}{c|c|c}
+%% \cline{1} & 引用ここから & \cline{3} \\
+%% \end{tabular}
+
+ レイアウトの影響は、この節では、レイアウトを用いているプログラムに、どのようにして、ブレースとセミコロンを追加するかを記述することによって指定する。この仕様は、変換を行う関数 L の形をとる。L  への入力は
+
+\begin{itemize}
+
+    \item この Haskell レポートの字句構文で指定されたような字句の並びで、以下のような追加トークンがついているもの。
+
+    \begin{itemize}
+          \item キーワード let、where、do あるいは of のあとに字句 \{ が続かない場合、トークン $\{n\}$ をキーワードの後に挿入する。ここで n は、もし次の字句があればそれのインデント、または、ファイルの終端に到達していれば 0 である。
+          \item モジュールの最初の字句が \{ あるいは module では ないとき、その字句の前に $\{n\}$ を置く。ここで、n はその字句のインデントである。
+          \item 同一行で、字句の開始の前には白空白しかないとき、この字句の前に $<n>$ を置く。ここで n はこの字句のインデントで、 前の二つの規則の結果、その前には $\{n\}$ が置かれていない。 (注意: 文字列リテラルは複数行にまたがることがある -- 2.6 節。したがって、
+\begin{commandline}
+              f = ("Hello \
+                      \Bill", "Jake")
+\end{commandline}
+            では、\verb|\Bill| の前に $<n>$ は挿入されることはない。なぜなら、完全な字句の開始場所ではないからだ。また、, の前にも $<n>$ は置かれることはない。なぜなら、その前に 白空白以外のものがあるからだ。)
+    \end{itemize}
+
+    \item「レイアウト文脈」のスタックのそれぞれの要素は以下のどれかである。
+
+    \begin{itemize}
+          \item ゼロ、これは文脈を明示的に囲うこと(たとえばプログラマが開ブレース を用意した場合)を示す。もし最も内側の文脈が 0 なら、囲まれた文脈が 終了するか、新しい文脈がプッシュされるまで、レイアウトトークンは挿 入されない。
+          \item 正の整数、これは囲まれたレイアウト文脈のインデントカラム数
+    \end{itemize}
+
+\end{itemize}
+
+字句の「インデント」は字句の最初の文字のカラム数である。
+ひとつの行のインデントとは最も左にある字句のインデントを表す。
+このカラム数を決定するために以下のような規約をもつ固定幅のフォントを仮定する。
+
+\begin{itemize}
+    \item 改行、リターン、ラインフィードおよびフォームフィード文字はすべて新しい行を開始する
+    \item 最初のコラムは 0 ではなく 1 である
+    \item タブストップは8文字文ずつの位置にある
+    \item タブ文字は現在位置から次のタブストップ位置までそろえるのに必要なだけの空白を挿入する。
+\end{itemize}
+
+レイアウトルールにあわせるために、ソースプログラム中の Unicode 文字は ASCII 文字と同じ幅の固定幅であると看倣す。しかしながら、見た目との混 乱を避けるためプログラマは暗黙のレイアウトの意味が非空白文字の幅に依 存するようなプログラムを書かないようにすべきである。
+
+\paragraph{適用} \ 
+
+L tokens [ ] は、tokens のレイアウトに関知しない変換をもたらす。
+ここで、tokens はモジュールの字句解析および上述のようにカラム数表示子を追加した結果である。
+L の定義は以下のとおり、ここでは 「:」をストリーム構築操作子として使い、「[ ]」は空のストリームである。
+
+\begin{commandline}
+L (<n>:ts) (m:ms)   = ; : (L ts (m:ms))  if m = n
+                    = } : (L (<n>:ts) ms) if n < m
+L (<n>:ts) ms       = L ts ms
+L ({n}:ts) (m:ms)   = { : (L ts (n:m:ms)) if n > m   (Note 1)
+L ({n}:ts) []       = { : (L ts [n]) if n > 0        (Note 1)
+L ({n}:ts) ms       = { : } : (L (<n>:ts) ms)        (Note 2)
+L (}:ts) (0:ms)     = } : (L ts ms)                  (Note 3)
+L (}:ts) ms         = parse-error                    (Note 3)
+L ({:ts) ms         = { : (L ts (0:ms))              (Note 4)
+L (t:ts) (m:ms)     = } : (L (t:ts) ms) if m /= 0 and parse-error(t)  (Note 5)
+L (t:ts) ms         = t : (L ts ms)
+L [] []             = []
+L [] (m:ms)         = } : L [] ms if m /=0           (Note 6)
+\end{commandline}
+
+
+%% \paragraph{Note 1.}
+
+%% 入れ子になった文脈は、囲まれた文脈 ($n>m$) よりも深くインデ ントされていなければならない。
+%% さもなければ、L は失敗し、また、コンパイラはレイアウトエラーを表示しなければならない。たとえば、
+
+%% \begin{commandline}
+%%   f x = let
+%%            h y = let
+%%     p z = z
+%%                  in p
+%%         in h
+%% \end{commandline}
+
+%% ここで、p の定義は囲まれた文脈のインデントよりも浅いインデントである。
+%% この場合、h の定義によって設定される。
+
+%% \paragraph{Note 2.}
+
+%% where の後の最初のトークンが、たとえば、囲まれた文脈よりもインデントされているのでなければ、
+%% そのブロックは空でなければならない。 
+%% だから、空のブレースが挿入される。
+%% トークン $\{n\}$ は $<n>$ に置き換 えられ、空のブレースが明示的になっていた場合の状況を模倣する。
+
+%% \paragraph{Note 3.}
+
+%% 現在のレイアウト文脈について 0 に対して照合することで、
+%% 明示的な閉ブレースが明示的な開ブレースにのみ対応することを確かめる。
+%% もし、明示的 な閉ブレースが暗黙の開ブレースに対応している場合には構文解析エラーとなる。
+
+%% \paragraph{Note 4.}
+
+%% これは、すべてのブレースの対は明示的なレイアウト文脈として扱われることを意味し、
+%% ラベル付のデータ構築および更新 (3.15 節)を含む。ここにこの形式化と Haskell 1.4 での違いがある。
+
+%% \paragraph{Note 5.}
+
+%% 副次的な条件 parse-error(t) は次のように解釈される。
+%% もし、次の トークンが t であるような L によって生成されたトークンが Haskell の文法の不正な接頭辞を表わしている場合、
+%% および、 「\}」トークンが続く L によって生成さたトークンの Haskell 文法の正しい接頭辞である場合、parse-error(t) は真とな る。
+
+%% $m /= 0$ のチェックは、暗黙に追加された閉ブレースが、暗黙の開ブレースに 対応することをたしかめる。
+
+%% \paragraph{Note 6.}
+
+%% 入力の終端において、保留された閉ブレースがすべて挿入される。
+%% この時点 でレイアウト文脈のなかにある(すなわち、$m = 0$ である)とエラーとなる。
+
+
+\dotfill 引用ここまで 以下略 \dotfill
+
+だいぶ長くなってしまったので Note は省略です。
+
+わかりにくいですが、ここでも内部的には2段階になっています。
+
+まず元のtoken列のひとつめの操作を適用します。以下のような規則だと考えるとわかりやすいかもしれません。
+
+\begin{itemize}
+ \item let, where, do, of の後に \{ が無い場合には代わりにブロックの開始をあらわす token $\{n\}$ を挿入。
+ \item ファイルの先頭もモジュール宣言が省略されていて \{ が無い場合には token $\{n\}$ でブロック開始。
+ \item インデントのレベルで後からブロックを認識するために token $<n>$ を挿入しておく。
+\end{itemize}
+
+つぎにふたつめの操作である関数 L を適用します。
+
+L はもとのtoken列とインデントレベルのスタックを引数にとり、
+もとのtoken列にtokenを挿入したものを返す関数です。
+やはり以下のような規則だと考えるとわかりやすいかもしれません。
+
+\begin{itemize}
+ \item インデントレベル$<n>$ が同じレベルのブロック内であれば(スタック参照) ; を挿入して式を終了、ブロックを継続
+ \item インデントレベル$<n>$の方が浅ければ \} を挿入してブロックを終了
+ \item インデントレベル$<n>$があって上のどちらでもなければ式を継続
+
+ \item あるブロック内で(スタック参照)よりインデントレベルの深いブロック開始$\{n\}$があったら \{ を挿入しブロックを開始。
+ブロック開始をあらわすインデントレベルnをスタックに積む
+ \item ブロック開始 $\{n\}$ が最も外側でも同様にブロック開始。 \{ を挿入し、nをスタックに積む
+ \item ブロック開始 $\{n\}$ があって上のどちらでもなければ \{ および \} を挿入し空のブロックを作る。
+実はブロック開始ではなかったということがここでわかるので代わりに $<n>$ を挿入する。
+
+ \item \} があったらスタックから 0 を取り出す
+ \item \} があって 0 を降ろせなかったら parse error
+
+ \item \{ があったらスタックに 0 を積む
+
+ \item 上のどれでもなく、またブロック内であり、ブロックを継続すると parse error になるときは \} を挿入してブロックを閉じる。
+ \item 上のどれでもなく、またブロック内であるときは parse error にならない限りブロックを継続。
+ \item トークンもスタックも空ならおわり
+ \item トークンが空でスタックに 0 でない値が残っているなら \} を挿入してスタックから取り出す。( 0があったらエラー )
+\end{itemize}
+
+参考資料: \verb|http://www.sampou.org/haskell/report-revised-j/syntax-iso.html#layout|
+
+
+\paragraph{OCamlでの実装} \ 
+
+OCamlで上layout ruleを実装した関数が以下のような感じです。
+P.BLK\_OPEN が $\{n\}$ で P.BLK\_LEVEL が $<n>$ にあたるものです。
+
+「parse error にならない限りブロックを継続」のルールはかなり実装がやっかいでした。%%これはparserのところで後述します。
+今回利用したocamlyaccはyaccやbisonと同じようにLALR(1)のparser generatorとなっており、
+基本的にはtoken列を途中まで読み込んだ位置とそのtokenおよび一つ先のtokenによって構文解析中の次の動作を決定しています。
+HaskellのLexingに出てきたような parse error になるまでブロックが閉じるかわからないような仕様とはあまり相性が良くありません。
+backtrackを行なえるようなparserならこのような仕様に対してもより簡単に対応できると考えられます。
+
+
+\begin{commandline}
+let all_token_rev_list lexbuf =
+  let unget_s = S.create () in
+  let get_token () = L0.token lexbuf in
+  let blk_level_pair tk =
+    let loc = L0.get_location tk in (loc.T.start_p.T.col + 1, loc) in
+  let eof_token_p = (function P.EOF(_) -> true | _ -> false) in
+
+  let rec scan_start () =
+    match get_token () with
+        (P.SP_LEFT_BRACE _ | P.K_MODULE _) as start -> start
+(*       | P.WS_NEWLINE _ -> scan_start () *)
+      | P.WS_WHITE _ -> scan_start ()
+      | other ->
+          let _ = S.push other unget_s in
+            P.BLK_OPEN (blk_level_pair other)
+  in
+
+  let scan_next prev = 
+    let rec scan_next_rec () =
+      let cur =
+        if (S.is_empty unget_s) then (get_token ())
+        else (S.pop unget_s) in
+
+        match (prev, cur) with
+            (_, (P.EOF(_) as eoft)) -> eoft
+          | (_, P.WS_WHITE(_)) -> (scan_next_rec ())
+(*        | (_, P.WS_NEWLINE(_)) -> (scan_next_rec ()) *)
+          | ((P.K_LET(_) | P.K_WHERE(_) | P.K_DO(_) | P.K_OF(_)), (P.SP_LEFT_BRACE(_) as lbr)) -> lbr
+          | ((P.K_LET(_) | P.K_WHERE(_) | P.K_DO(_) | P.K_OF(_)), tk) ->
+              let (_, (level, loc)) = (S.push tk unget_s, blk_level_pair tk) in
+                P.BLK_OPEN((if (eof_token_p tk) then 0 else level), loc)
+          | (_, tk) ->
+              let (_, loc) as p = blk_level_pair tk in
+                if (loc.T.start_p.T.line
+                    - (L0.get_location prev).T.end_p.T.line) > 0 then
+                  let _ = S.push tk unget_s in P.BLK_LEVEL p
+                else tk
+    in (scan_next_rec ())
+  in
+    (* LST.create_stream (scan_start ()) scan_next eof_token_p *)
+    (LST.fold_left
+       (fun r a -> ((a, new_err_flag ()) :: r))
+       []
+       (LST.create_stream (scan_start ()) scan_next eof_token_p))
+... (* 中略 *)
+let rec layout istream levels =
+  let push_new_token tok lform =
+    LST.Cons ((tok, new_err_flag ()), lform)
+  in
+
+  let (tok, err) =
+    match LST.peek istream with
+        None -> raise Parsing.Parse_error
+      | Some x -> x
+  in
+    match (tok, levels) with
+        ((P.BLK_LEVEL (n, loc)), (m :: mstl as ms)) when m = n ->
+          let addtk = P.SP_SEMI(loc) in
+            push_new_token addtk (lazy (layout (LST.tl istream) ms))
+      | ((P.BLK_LEVEL (n, loc)), m :: ms) when n < m  ->
+          push_new_token (P.SP_RIGHT_BRACE(loc)) (lazy (layout istream ms))
+      | ((P.BLK_LEVEL (n, _)), ms)                         -> layout (LST.tl istream) ms
+      | ((P.BLK_OPEN (n, loc)), (m :: ms as levels)) when n > m  ->
+          push_new_token (P.SP_LEFT_BRACE(loc)) (lazy (layout (LST.tl istream) (n :: levels))) (* Note 1 *)
+      | ((P.BLK_OPEN (n, loc)), []) when n > 0             ->
+          push_new_token (P.SP_LEFT_BRACE(loc)) (lazy (layout (LST.tl istream) [n])) (* Note 1 *)
+      | ((P.BLK_OPEN (n, loc)), ms)                        ->
+          push_new_token
+            (P.SP_LEFT_BRACE(loc))
+            (lazy (push_new_token
+                     (P.SP_RIGHT_BRACE(loc))
+                     (lazy (layout (push_new_token
+                                      (P.BLK_LEVEL(n, loc))
+                                      (lazy (LST.tl istream))) ms)))) (* Note 2 *)
+      | ((P.SP_RIGHT_BRACE _ as rbr), 0 :: ms)        ->
+          LST.Cons ((rbr, err), lazy (layout (LST.tl istream) ms)) (* Note 3 *)
+      | ((P.SP_RIGHT_BRACE _), ms)                   -> raise Parsing.Parse_error (* Note 3 *)
+      | ((P.SP_LEFT_BRACE _ as lbr), ms)             -> 
+          LST.Cons ((lbr, err), lazy (layout (LST.tl istream) (0 :: ms))) (* Note 4 *)
+
+      | ((P.EOF loc as eoft), [])                    -> LST.Cons ((eoft, err), lazy (LST.Nil))
+      | ((P.EOF loc), m :: ms) when m <> 0           -> 
+          push_new_token (P.SP_RIGHT_BRACE(loc)) (lazy (layout istream ms)) (* Note 6 *)
+
+      | (t, (m :: mstl)) when m <> 0 && (!err)       ->
+          err := false;
+          push_new_token (P.SP_RIGHT_BRACE(L0.get_location t)) (lazy (layout istream mstl))
+          (* parse-error(t) Note 5 case *)
+      | (t, ((m :: mstl) as ms))                   ->
+          LST.Cons ((t, err),
+                   lazy (layout (LST.tl istream) ms))
+      | (t, ms)                                    ->
+          LST.Cons ((t, err),
+                   lazy (layout (LST.tl istream) ms))
+\end{commandline}
+
+\subsection{HaskellのParsing}
+
+\subsubsection{ocamlyaccによるParsing}
+
+%% \begin{commandline}
+%% /* parser.mly 宣言部 */
+%% %token  <Token.loc>  SP_LEFT_PAREN SP_RIGHT_PAREN SP_COMMA SP_SEMI \
+%%  SP_LEFT_BRACKET SP_RIGHT_BRACKET SP_B_QUOTE SP_LEFT_BRACE SP_RIGHT_BRACE
+
+%% %token  <Token.loc>  K_CASE K_CLASS K_DATA K_DEFAULT  K_DERIVING K_DO K_ELSE
+
+%% %token  <Token.loc>  K_IF K_IMPORT K_IN K_INFIX K_INFIXL K_INFIXR K_INSTANCE
+
+%% %token  <Token.loc>  K_LET K_MODULE K_NEWTYPE K_OF K_THEN K_TYPE K_WHERE K_WILDCARD
+
+%% %token  <Token.loc>  KS_DOTDOT KS_COLON KS_2_COLON KS_EQ KS_B_SLASH KS_BAR \
+%%  KS_L_ARROW KS_R_ARROW KS_AT KS_TILDE KS_R_W_ARROW
+
+%% %token  <Token.loc>  K_AS K_QUALIFIED K_HIDING
+
+%% %token  <Token.loc>  KS_PLUS KS_MINUS KS_EXCLAM
+
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_CONSYM
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_CONID T_MOD_CLSID
+%% %token  <(string * Token.loc)>  T_CONSYM
+%% %token  <(string * Token.loc)>  T_CONID T_CLSID
+
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_VARSYM
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_VARID
+%% %token  <(string * Token.loc)>  T_VARSYM
+%% %token  <(string * Token.loc)>  T_VARID
+
+%% %token  <(char * Token.loc)>  L_CHAR
+%% %token  <(string * Token.loc)>  L_STRING
+
+%% %token  <(int64 * Token.loc)>  L_INTEGER
+%% %token  <(float * Token.loc)>  L_FLOAT
+
+%% %token  <Token.loc>  WS_WHITE WS_NEWLINE
+
+%% %token  <(int * Token.loc)>  BLK_OPEN BLK_LEVEL
+
+%% %token  <Token.loc>  EOF
+
+%% %start  e_module
+%% %type <((Symbol.t * Token.loc) * Syntax.Module.export list \
+%%  * (Syntax.Module.impdecl list * Syntax.Expression.t Syntax.Decl.top list))> e_module
+%% /*  type e_module_type = (T.loc I.id * M.export list * (M.impdecl list * E.t D.top list)) */
+
+%% %start  module_prefix
+%% /*(*  %type <(Symbol.t * Token.loc) * Syntax.Module.export list> module_prefix  *)*/
+%% /*(*  %type <Syntax.ParseBuffer.t> module_prefix  *)*/
+%% %type <Symbol.t> module_prefix
+
+%% %start  exp
+%% %type <Syntax.Expression.t> exp
+
+%% \end{commandline}
+
+
+
+%% \begin{commandline}
+%% /* parser.mly 文脈自由文法および構文木生成処理 */
+
+%% e_module:
+%%   module_top EOF { $1 }
+%% ;
+
+%% module_top:
+%%   K_MODULE modid export_list K_WHERE body { ($2, $3, $5) }
+%% | K_MODULE modid K_WHERE body         { ($2, [], $4) }
+%% | body { (I.idwul S.the_main_symbol,
+%%           [M.EVar (I.idwul (I.qualid S.the_main_symbol S.the_entry_main_symbol))],
+%%           $1) }
+
+%% \end{commandline}
+
+% $ ;
+
+%% ocamlyaccはyaccやbisonと同じようにLALR(1)のparser generatorとなっており、
+%% 基本的にはtoken列を途中まで読み込んだ位置とそのtokenおよび一つ先のtokenによって構文解析中の次の動作を決定しています。
+%% HaskellのLexingに出てきたような parse error になるまでブロックが閉じるかわからないような仕様とはあまり相性が良くありません。
+%% backtrackを行なえるようなparserならこのような仕様に対してもより簡単に対応できると考えられます。
+
+ocamlyacc用の定義を全部載せてしまうと長すぎて大変なので、
+ここでは expression の部分と、二項演算および二項演算パターンの定義を載せてみます。
+
+\begin{commandline}
+/* parser.mly 単項 expression */
+/*
+ aexp    ->      qvar    (variable)
+        |       gcon    (general constructor)
+        |       literal
+        |       ( exp )         (parenthesized expression)
+        |       ( exp1 , ... , expk )   (tuple, k>=2)
+        |       [ exp1 , ... , expk ]   (list, k>=1)
+        |       [ exp1 [, exp2] .. [exp3] ]     (arithmetic sequence)
+        |       [ exp | qual1 , ... , qualn ]   (list comprehension, n>=1)
+        |       ( expi+1 qop(a,i) )     (left section)
+        |       ( lexpi qop(l,i) )      (left section)
+        |       ( qop(a,i)<-> expi+1 )  (right section)
+        |       ( qop(r,i)<-> rexpi )   (right section)
+        |       qcon { fbind1 , ... , fbindn }  (labeled construction, n>=0)
+        |       aexp<qcon> { fbind1 , ... , fbindn }    (labeled update, n >= 1)
+*/
+
+aexp:
+  qvar  { E.VarE $1 }   /*(variable)*/
+| gcon  { E.ConsE $1 }  /*(general constructor)*/
+| literal  { E.LiteralE $1 }
+| SP_LEFT_PAREN exp SP_RIGHT_PAREN  { E.ParenE $2 }     /*(parenthesized expression)*/
+| SP_LEFT_PAREN exp SP_COMMA exp_list SP_RIGHT_PAREN  { E.TupleE ($2 :: $4) }   /*(tuple, k>=2)*/
+| SP_LEFT_BRACKET exp_list SP_RIGHT_BRACKET  { E.ListE ($2) }   /*(list, k>=1)*/
+| SP_LEFT_BRACKET exp KS_DOTDOT SP_RIGHT_BRACKET  { E.ASeqE($2, None, None) }   /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp SP_COMMA exp KS_DOTDOT SP_RIGHT_BRACKET  { E.ASeqE($2, Some $4, None) }   /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp KS_DOTDOT exp SP_RIGHT_BRACKET  { E.ASeqE($2, None, Some $4) }    /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp SP_COMMA exp KS_DOTDOT exp SP_RIGHT_BRACKET  { E.ASeqE($2, Some $4, Some $6) }    /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp KS_BAR qual_list SP_RIGHT_BRACKET  { E.LCompE ($2, $4) }  /*(list comprehension, n>=1)*/
+
+| SP_LEFT_PAREN op2_left_section SP_RIGHT_PAREN  { E.MayLeftSecE ($2) }         /*(left section)*/
+| SP_LEFT_PAREN op2_right_section SP_RIGHT_PAREN  { E.MayRightSecE ($2) }       /*(right section)*/
+
+| qcon SP_LEFT_BRACE fbind_list SP_RIGHT_BRACE  { E.LabelConsE ($1, OH.of_list $3) }    /*(labeled construction, n>=1)*/
+| qcon SP_LEFT_BRACE SP_RIGHT_BRACE  { E.LabelConsE ($1, OH.create 0) }         /*(labeled construction, n=0)*/
+| aexp SP_LEFT_BRACE fbind_list SP_RIGHT_BRACE  { E.LabelUpdE ($1, OH.of_list $3) }     /*(labeled update, n >= 1)*/
+;
+
+exp_list:
+  exp SP_COMMA exp_list  { $1 :: $3 }
+| exp  { [$1] }
+;
+
+qual_list:
+  qual SP_COMMA qual_list  { $1 :: $3 }
+| qual  { [$1] }
+;
+
+fbind_list:
+  fbind SP_COMMA fbind_list  { $1 :: $3 }
+| fbind  { [$1] }
+;
+
+qual:
+  pat KS_L_ARROW exp  { LC.Gen($1, $3) }        /*(generator)*/
+| K_LET decl_list  { LC.Let $2 }        /*(local declaration)*/
+| exp  { LC.Guard $1 }  /*(guard)*/
+;
+
+\end{commandline}
+
+% $ dummy comment
+
+\begin{commandline}
+/* parser.mly 二項演算 expression */
+... /* 略 */
+/* expression */
+exp:
+  exp0  { E.Top ($1, None) }
+| exp0 KS_2_COLON context KS_R_W_ARROW typ  { E.Top ($1, Some ($5, Some $3)) }  /*(expression type signature)*/
+| exp0 KS_2_COLON typ  { E.Top ($1, Some ($3, None)) }  /*(expression type signature)*/
+
+/*
+lexp6:
+  - exp7
+;
+*/
+
+/*
+expi    ->      expi+1 [qop(n,i) expi+1]
+        |       lexpi
+        |       rexpi
+lexpi   ->      (lexpi | expi+1) qop(l,i) expi+1
+rexpi   ->      expi+1 qop(r,i) (rexpi | expi+1)
+*/
+
+/*
+exp0:   ->      [-] exp10 {qop [-] exp10}
+*/
+
+exp0:
+  op2_expn_list  { E.Exp0 $1 }
+
+op2_expn_list:
+  ks_minus exp10 op2_right_section  { E.ExpF (E.Minus $2, $3) }
+| exp10 op2_right_section  { E.ExpF ($1, $2) }
+| ks_minus exp10  { E.ExpF (E.Minus $2, E.Op2End) }
+| exp10  { E.ExpF ($1, E.Op2End) }
+
+op2_right_section:
+  qop op2_expn_list { E.Op2F ($1, $2) }
+
+op2_left_section:
+  ks_minus exp10 qop op2_left_section  { E.ExpF (E.Minus $2, E.Op2F ($3, $4)) }
+| exp10 qop op2_left_section  { E.ExpF ($1, E.Op2F($2, $3)) }
+| ks_minus exp10 qop  { E.ExpF (E.Minus $2, E.Op2F ($3, E.Op2NoArg)) }
+| exp10 qop  { E.ExpF ($1, E.Op2F ($2, E.Op2NoArg)) }
+
+exp10:
+  KS_B_SLASH apat_list KS_R_ARROW exp  { E.LambdaE ($2, $4) }   /*(lambda abstraction, n>=1)*/
+| K_LET decl_list K_IN exp  { E.LetE ($2, $4) }         /*(let expression)*/
+| K_IF exp K_THEN exp K_ELSE exp  { E.IfE ($2, $4, $6) }        /*(conditional)*/
+| K_CASE exp K_OF SP_LEFT_BRACE alt_list SP_RIGHT_BRACE  { E.CaseE ($2, $5) }   /*(case expression)*/
+| K_DO SP_LEFT_BRACE stmt_list_exp SP_RIGHT_BRACE  { E.DoE $3 }         /*(do expression)*/
+| fexp  { E.FexpE $1 }
+
+/*
+ fexp    ->      [fexp] aexp     (function application)
+*/
+
+fexp:
+  aexp_list  { E.make_fexp $1 }
+;
+
+aexp_list:
+  aexp aexp_list  { fun fexp -> $2 (E.FappE (fexp, $1)) }
+| aexp  { fun fexp -> E.FappE (fexp, $1) }
+;
+/* fexp -- FfunE (fexp) */
+/* fexp ae1 -- FappE (FfunE (fexp), ae1) */
+/* fexp ae1 ae2 -- FappE (FappE (FfunE (fexp), ae1), ae2) */
+
+\end{commandline}
+
+\begin{commandline}
+/* parser.mly パターンおよび 二項演算パターン */
+.../* 略 */
+pat:
+  var ks_plus integer   /*(successor pattern)*/
+      { match $3 with (S.Int (i), loc) -> P.PlusP($1, i, loc) | _ -> failwith "plus integer pattern syntax error." }
+| pat0  { $1 }
+
+/*
+pati     ->      pati+1 [qconop(n,i) pati+1]
+        |       lpati
+        |       rpati
+*/
+
+/*
+lpati   ->      (lpati | pati+1) qconop(l,i) pati+1
+*/
+
+/*
+lpat6:
+  ks_minus integer      (negative literal)
+      { match $2 with 
+          (S.Int (v), l) -> S.P.MIntP (v, l)
+         | _ -> failwith "negative integer literal pattern syntax error." }
+| ks_minus float        (negative literal)
+      { match $2 with 
+          (S.Float (v), l) -> S.P.MFloatP (v, l)
+        | _ -> failwith "negative integer literal pattern syntax error." }
+;
+*/
+
+/*
+rpati   ->      pati+1 qconop(r,i) (rpati | pati+1)
+*/
+
+pat0:
+  op2_patn_list  { P.Pat0 $1 }
+
+op2_patn_list:
+  ks_minus integer op2_patn_right
+    { let p = match $2 with 
+        (S.Int (x), loc) -> P.MIntP (x, loc)
+      | _ -> failwith "negative integer literal pattern syntax error."
+      in P.PatF (p, $3)
+    }
+| ks_minus float op2_patn_right
+    { let p = match $2 with
+        (S.Float (x), loc) -> P.MFloatP (x, loc)
+      | _ -> failwith "negative integer literal pattern syntax error."
+      in P.PatF (p, $3)
+    }
+| pat10 op2_patn_right  { P.PatF ($1, $2) }
+
+op2_patn_right:
+  qconop op2_patn_list  { P.Op2F ($1, $2) }
+|   { P.Op2End }
+
+pat10:
+  apat  { $1 }
+| gcon apat_list        /*(arity gcon = k, k>=1)*/
+      { P.ConP($1, $2) }
+
+apat_list:
+  apat apat_list { $1::$2 }
+| apat           { [$1] }
+
+apat:
+  var
+      { P.VarP $1 }
+| var KS_AT apat        /*(as pattern)*/
+      { P.AsP($1, $3) }
+| gcon  /*(arity gcon = 0)*/
+      { P.ConP($1, []) }
+| qcon SP_LEFT_BRACE fpat_list SP_RIGHT_BRACE   /*(labeled pattern, k>=0)*/ /* may be error pattern */
+      { P.LabelP($1, $3) }
+| literal
+      { P.LiteralP($1) }
+| K_WILDCARD    /*(wildcard)*/
+      { P.WCardP }
+| SP_LEFT_PAREN pat SP_RIGHT_PAREN      /*(parenthesized pattern)*/
+      { $2 }
+| SP_LEFT_PAREN tuple_pat SP_RIGHT_PAREN        /*(tuple pattern, k>=2)*/
+      { P.TupleP $2 }
+| SP_LEFT_BRACKET list_pat SP_RIGHT_BRACKET     /*(list pattern, k>=1)*/
+      { P.ListP $2 }
+| KS_TILDE apat         /*(irrefutable pattern)*/
+      { P.Irref $2 }
+\end{commandline}
+
+%% \begin{commandline}
+
+%% fpat_list:
+%%   fpat SP_COMMA fpat_list  { $1::$3 }
+%% | fpat   { [$1] }
+%% |        { [] }
+
+%% tuple_pat:
+%%   pat SP_COMMA tuple_pat  { $1::$3 }
+%% | pat SP_COMMA pat       { [$1; $3] }
+
+%% list_pat:
+%%   pat SP_COMMA list_pat  { $1 :: $3 }
+%% | pat                    { [$1] }
+
+%% fpat:
+%%   qvar KS_EQ pat { ($1, $3) }
+%% ... /* 以下略 */
+%% \end{commandline}
+
+% $ dummy comment
 
 \subsubsection{二項演算子の優先順位}
 
