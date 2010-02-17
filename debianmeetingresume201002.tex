@@ -974,6 +974,8 @@ L [] (m:ms)         = } : L [] ms if m /=0           (Note 6)
 
 \dotfill 引用ここまで 以下略 \dotfill
 
+だいぶ長くなってしまったので Note は省略です。
+
 わかりにくいですが、ここでも内部的には2段階になっています。
 
 まず元のtoken列のひとつめの操作を適用します。以下のような規則だと考えるとわかりやすいかもしれません。
@@ -1012,13 +1014,20 @@ L はもとのtoken列とインデントレベルのスタックを引数にとり、
  \item トークンが空でスタックに 0 でない値が残っているなら \} を挿入してスタックから取り出す。( 0があったらエラー )
 \end{itemize}
 
+参考資料: \verb|http://www.sampou.org/haskell/report-revised-j/syntax-iso.html#layout|
+
+
 \paragraph{OCamlでの実装} \ 
 
 OCamlで上layout ruleを実装した関数が以下のような感じです。
 P.BLK\_OPEN が $\{n\}$ で P.BLK\_LEVEL が $<n>$ にあたるものです。
 
-「parse error にならない限りブロックを継続」のルールはかなり実装がやっかいでした。
-これはparserのところで後述します。
+「parse error にならない限りブロックを継続」のルールはかなり実装がやっかいでした。%%これはparserのところで後述します。
+今回利用したocamlyaccはyaccやbisonと同じようにLALR(1)のparser generatorとなっており、
+基本的にはtoken列を途中まで読み込んだ位置とそのtokenおよび一つ先のtokenによって構文解析中の次の動作を決定しています。
+HaskellのLexingに出てきたような parse error になるまでブロックが閉じるかわからないような仕様とはあまり相性が良くありません。
+backtrackを行なえるようなparserならこのような仕様に対してもより簡単に対応できると考えられます。
+
 
 \begin{commandline}
 let all_token_rev_list lexbuf =
@@ -1098,14 +1107,17 @@ let rec layout istream levels =
       | ((P.SP_RIGHT_BRACE _ as rbr), 0 :: ms)        ->
           LST.Cons ((rbr, err), lazy (layout (LST.tl istream) ms)) (* Note 3 *)
       | ((P.SP_RIGHT_BRACE _), ms)                   -> raise Parsing.Parse_error (* Note 3 *)
-      | ((P.SP_LEFT_BRACE _ as lbr), ms)             -> LST.Cons ((lbr, err), lazy (layout (LST.tl istream) (0 :: ms))) (* Note 4 *)
+      | ((P.SP_LEFT_BRACE _ as lbr), ms)             -> 
+          LST.Cons ((lbr, err), lazy (layout (LST.tl istream) (0 :: ms))) (* Note 4 *)
 
       | ((P.EOF loc as eoft), [])                    -> LST.Cons ((eoft, err), lazy (LST.Nil))
-      | ((P.EOF loc), m :: ms) when m <> 0       -> push_new_token (P.SP_RIGHT_BRACE(loc)) (lazy (layout istream ms)) (* Note 6 *)
+      | ((P.EOF loc), m :: ms) when m <> 0           -> 
+          push_new_token (P.SP_RIGHT_BRACE(loc)) (lazy (layout istream ms)) (* Note 6 *)
 
       | (t, (m :: mstl)) when m <> 0 && (!err)       ->
           err := false;
-          push_new_token (P.SP_RIGHT_BRACE(L0.get_location t)) (lazy (layout istream mstl))  (* parse-error(t) Note 5 case *)
+          push_new_token (P.SP_RIGHT_BRACE(L0.get_location t)) (lazy (layout istream mstl))
+          (* parse-error(t) Note 5 case *)
       | (t, ((m :: mstl) as ms))                   ->
           LST.Cons ((t, err),
                    lazy (layout (LST.tl istream) ms))
@@ -1114,15 +1126,339 @@ let rec layout istream levels =
                    lazy (layout (LST.tl istream) ms))
 \end{commandline}
 
-参考資料: \verb|http://www.sampou.org/haskell/report-revised-j/syntax-iso.html#layout|
-    
-
 \subsection{HaskellのParsing}
 
 \subsubsection{ocamlyaccによるParsing}
 
+%% \begin{commandline}
+%% /* parser.mly 宣言部 */
+%% %token  <Token.loc>  SP_LEFT_PAREN SP_RIGHT_PAREN SP_COMMA SP_SEMI \
+%%  SP_LEFT_BRACKET SP_RIGHT_BRACKET SP_B_QUOTE SP_LEFT_BRACE SP_RIGHT_BRACE
+
+%% %token  <Token.loc>  K_CASE K_CLASS K_DATA K_DEFAULT  K_DERIVING K_DO K_ELSE
+
+%% %token  <Token.loc>  K_IF K_IMPORT K_IN K_INFIX K_INFIXL K_INFIXR K_INSTANCE
+
+%% %token  <Token.loc>  K_LET K_MODULE K_NEWTYPE K_OF K_THEN K_TYPE K_WHERE K_WILDCARD
+
+%% %token  <Token.loc>  KS_DOTDOT KS_COLON KS_2_COLON KS_EQ KS_B_SLASH KS_BAR \
+%%  KS_L_ARROW KS_R_ARROW KS_AT KS_TILDE KS_R_W_ARROW
+
+%% %token  <Token.loc>  K_AS K_QUALIFIED K_HIDING
+
+%% %token  <Token.loc>  KS_PLUS KS_MINUS KS_EXCLAM
+
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_CONSYM
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_CONID T_MOD_CLSID
+%% %token  <(string * Token.loc)>  T_CONSYM
+%% %token  <(string * Token.loc)>  T_CONID T_CLSID
+
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_VARSYM
+%% %token  <(Token.id_with_mod * Token.loc)>  T_MOD_VARID
+%% %token  <(string * Token.loc)>  T_VARSYM
+%% %token  <(string * Token.loc)>  T_VARID
+
+%% %token  <(char * Token.loc)>  L_CHAR
+%% %token  <(string * Token.loc)>  L_STRING
+
+%% %token  <(int64 * Token.loc)>  L_INTEGER
+%% %token  <(float * Token.loc)>  L_FLOAT
+
+%% %token  <Token.loc>  WS_WHITE WS_NEWLINE
+
+%% %token  <(int * Token.loc)>  BLK_OPEN BLK_LEVEL
+
+%% %token  <Token.loc>  EOF
+
+%% %start  e_module
+%% %type <((Symbol.t * Token.loc) * Syntax.Module.export list \
+%%  * (Syntax.Module.impdecl list * Syntax.Expression.t Syntax.Decl.top list))> e_module
+%% /*  type e_module_type = (T.loc I.id * M.export list * (M.impdecl list * E.t D.top list)) */
+
+%% %start  module_prefix
+%% /*(*  %type <(Symbol.t * Token.loc) * Syntax.Module.export list> module_prefix  *)*/
+%% /*(*  %type <Syntax.ParseBuffer.t> module_prefix  *)*/
+%% %type <Symbol.t> module_prefix
+
+%% %start  exp
+%% %type <Syntax.Expression.t> exp
+
+%% \end{commandline}
+
+
+
+%% \begin{commandline}
+%% /* parser.mly 文脈自由文法および構文木生成処理 */
+
+%% e_module:
+%%   module_top EOF { $1 }
+%% ;
+
+%% module_top:
+%%   K_MODULE modid export_list K_WHERE body { ($2, $3, $5) }
+%% | K_MODULE modid K_WHERE body         { ($2, [], $4) }
+%% | body { (I.idwul S.the_main_symbol,
+%%           [M.EVar (I.idwul (I.qualid S.the_main_symbol S.the_entry_main_symbol))],
+%%           $1) }
+
+%% \end{commandline}
+
+% $ ;
+
+%% ocamlyaccはyaccやbisonと同じようにLALR(1)のparser generatorとなっており、
+%% 基本的にはtoken列を途中まで読み込んだ位置とそのtokenおよび一つ先のtokenによって構文解析中の次の動作を決定しています。
+%% HaskellのLexingに出てきたような parse error になるまでブロックが閉じるかわからないような仕様とはあまり相性が良くありません。
+%% backtrackを行なえるようなparserならこのような仕様に対してもより簡単に対応できると考えられます。
+
+ocamlyacc用の定義を全部載せてしまうと長すぎて大変なので、
+ここでは expression の部分と、二項演算および二項演算パターンの定義を載せてみます。
+
 \begin{commandline}
+/* parser.mly 単項 expression */
+/*
+ aexp    ->      qvar    (variable)
+        |       gcon    (general constructor)
+        |       literal
+        |       ( exp )         (parenthesized expression)
+        |       ( exp1 , ... , expk )   (tuple, k>=2)
+        |       [ exp1 , ... , expk ]   (list, k>=1)
+        |       [ exp1 [, exp2] .. [exp3] ]     (arithmetic sequence)
+        |       [ exp | qual1 , ... , qualn ]   (list comprehension, n>=1)
+        |       ( expi+1 qop(a,i) )     (left section)
+        |       ( lexpi qop(l,i) )      (left section)
+        |       ( qop(a,i)<-> expi+1 )  (right section)
+        |       ( qop(r,i)<-> rexpi )   (right section)
+        |       qcon { fbind1 , ... , fbindn }  (labeled construction, n>=0)
+        |       aexp<qcon> { fbind1 , ... , fbindn }    (labeled update, n >= 1)
+*/
+
+aexp:
+  qvar  { E.VarE $1 }   /*(variable)*/
+| gcon  { E.ConsE $1 }  /*(general constructor)*/
+| literal  { E.LiteralE $1 }
+| SP_LEFT_PAREN exp SP_RIGHT_PAREN  { E.ParenE $2 }     /*(parenthesized expression)*/
+| SP_LEFT_PAREN exp SP_COMMA exp_list SP_RIGHT_PAREN  { E.TupleE ($2 :: $4) }   /*(tuple, k>=2)*/
+| SP_LEFT_BRACKET exp_list SP_RIGHT_BRACKET  { E.ListE ($2) }   /*(list, k>=1)*/
+| SP_LEFT_BRACKET exp KS_DOTDOT SP_RIGHT_BRACKET  { E.ASeqE($2, None, None) }   /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp SP_COMMA exp KS_DOTDOT SP_RIGHT_BRACKET  { E.ASeqE($2, Some $4, None) }   /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp KS_DOTDOT exp SP_RIGHT_BRACKET  { E.ASeqE($2, None, Some $4) }    /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp SP_COMMA exp KS_DOTDOT exp SP_RIGHT_BRACKET  { E.ASeqE($2, Some $4, Some $6) }    /*(arithmetic sequence)*/
+| SP_LEFT_BRACKET exp KS_BAR qual_list SP_RIGHT_BRACKET  { E.LCompE ($2, $4) }  /*(list comprehension, n>=1)*/
+
+| SP_LEFT_PAREN op2_left_section SP_RIGHT_PAREN  { E.MayLeftSecE ($2) }         /*(left section)*/
+| SP_LEFT_PAREN op2_right_section SP_RIGHT_PAREN  { E.MayRightSecE ($2) }       /*(right section)*/
+
+| qcon SP_LEFT_BRACE fbind_list SP_RIGHT_BRACE  { E.LabelConsE ($1, OH.of_list $3) }    /*(labeled construction, n>=1)*/
+| qcon SP_LEFT_BRACE SP_RIGHT_BRACE  { E.LabelConsE ($1, OH.create 0) }         /*(labeled construction, n=0)*/
+| aexp SP_LEFT_BRACE fbind_list SP_RIGHT_BRACE  { E.LabelUpdE ($1, OH.of_list $3) }     /*(labeled update, n >= 1)*/
+;
+
+exp_list:
+  exp SP_COMMA exp_list  { $1 :: $3 }
+| exp  { [$1] }
+;
+
+qual_list:
+  qual SP_COMMA qual_list  { $1 :: $3 }
+| qual  { [$1] }
+;
+
+fbind_list:
+  fbind SP_COMMA fbind_list  { $1 :: $3 }
+| fbind  { [$1] }
+;
+
+qual:
+  pat KS_L_ARROW exp  { LC.Gen($1, $3) }        /*(generator)*/
+| K_LET decl_list  { LC.Let $2 }        /*(local declaration)*/
+| exp  { LC.Guard $1 }  /*(guard)*/
+;
+
 \end{commandline}
+
+% $ dummy comment
+
+\begin{commandline}
+/* parser.mly 二項演算 expression */
+... /* 略 */
+/* expression */
+exp:
+  exp0  { E.Top ($1, None) }
+| exp0 KS_2_COLON context KS_R_W_ARROW typ  { E.Top ($1, Some ($5, Some $3)) }  /*(expression type signature)*/
+| exp0 KS_2_COLON typ  { E.Top ($1, Some ($3, None)) }  /*(expression type signature)*/
+
+/*
+lexp6:
+  - exp7
+;
+*/
+
+/*
+expi    ->      expi+1 [qop(n,i) expi+1]
+        |       lexpi
+        |       rexpi
+lexpi   ->      (lexpi | expi+1) qop(l,i) expi+1
+rexpi   ->      expi+1 qop(r,i) (rexpi | expi+1)
+*/
+
+/*
+exp0:   ->      [-] exp10 {qop [-] exp10}
+*/
+
+exp0:
+  op2_expn_list  { E.Exp0 $1 }
+
+op2_expn_list:
+  ks_minus exp10 op2_right_section  { E.ExpF (E.Minus $2, $3) }
+| exp10 op2_right_section  { E.ExpF ($1, $2) }
+| ks_minus exp10  { E.ExpF (E.Minus $2, E.Op2End) }
+| exp10  { E.ExpF ($1, E.Op2End) }
+
+op2_right_section:
+  qop op2_expn_list { E.Op2F ($1, $2) }
+
+op2_left_section:
+  ks_minus exp10 qop op2_left_section  { E.ExpF (E.Minus $2, E.Op2F ($3, $4)) }
+| exp10 qop op2_left_section  { E.ExpF ($1, E.Op2F($2, $3)) }
+| ks_minus exp10 qop  { E.ExpF (E.Minus $2, E.Op2F ($3, E.Op2NoArg)) }
+| exp10 qop  { E.ExpF ($1, E.Op2F ($2, E.Op2NoArg)) }
+
+exp10:
+  KS_B_SLASH apat_list KS_R_ARROW exp  { E.LambdaE ($2, $4) }   /*(lambda abstraction, n>=1)*/
+| K_LET decl_list K_IN exp  { E.LetE ($2, $4) }         /*(let expression)*/
+| K_IF exp K_THEN exp K_ELSE exp  { E.IfE ($2, $4, $6) }        /*(conditional)*/
+| K_CASE exp K_OF SP_LEFT_BRACE alt_list SP_RIGHT_BRACE  { E.CaseE ($2, $5) }   /*(case expression)*/
+| K_DO SP_LEFT_BRACE stmt_list_exp SP_RIGHT_BRACE  { E.DoE $3 }         /*(do expression)*/
+| fexp  { E.FexpE $1 }
+
+/*
+ fexp    ->      [fexp] aexp     (function application)
+*/
+
+fexp:
+  aexp_list  { E.make_fexp $1 }
+;
+
+aexp_list:
+  aexp aexp_list  { fun fexp -> $2 (E.FappE (fexp, $1)) }
+| aexp  { fun fexp -> E.FappE (fexp, $1) }
+;
+/* fexp -- FfunE (fexp) */
+/* fexp ae1 -- FappE (FfunE (fexp), ae1) */
+/* fexp ae1 ae2 -- FappE (FappE (FfunE (fexp), ae1), ae2) */
+
+\end{commandline}
+
+\begin{commandline}
+/* parser.mly パターンおよび 二項演算パターン */
+.../* 略 */
+pat:
+  var ks_plus integer   /*(successor pattern)*/
+      { match $3 with (S.Int (i), loc) -> P.PlusP($1, i, loc) | _ -> failwith "plus integer pattern syntax error." }
+| pat0  { $1 }
+
+/*
+pati     ->      pati+1 [qconop(n,i) pati+1]
+        |       lpati
+        |       rpati
+*/
+
+/*
+lpati   ->      (lpati | pati+1) qconop(l,i) pati+1
+*/
+
+/*
+lpat6:
+  ks_minus integer      (negative literal)
+      { match $2 with 
+          (S.Int (v), l) -> S.P.MIntP (v, l)
+         | _ -> failwith "negative integer literal pattern syntax error." }
+| ks_minus float        (negative literal)
+      { match $2 with 
+          (S.Float (v), l) -> S.P.MFloatP (v, l)
+        | _ -> failwith "negative integer literal pattern syntax error." }
+;
+*/
+
+/*
+rpati   ->      pati+1 qconop(r,i) (rpati | pati+1)
+*/
+
+pat0:
+  op2_patn_list  { P.Pat0 $1 }
+
+op2_patn_list:
+  ks_minus integer op2_patn_right
+    { let p = match $2 with 
+        (S.Int (x), loc) -> P.MIntP (x, loc)
+      | _ -> failwith "negative integer literal pattern syntax error."
+      in P.PatF (p, $3)
+    }
+| ks_minus float op2_patn_right
+    { let p = match $2 with
+        (S.Float (x), loc) -> P.MFloatP (x, loc)
+      | _ -> failwith "negative integer literal pattern syntax error."
+      in P.PatF (p, $3)
+    }
+| pat10 op2_patn_right  { P.PatF ($1, $2) }
+
+op2_patn_right:
+  qconop op2_patn_list  { P.Op2F ($1, $2) }
+|   { P.Op2End }
+
+pat10:
+  apat  { $1 }
+| gcon apat_list        /*(arity gcon = k, k>=1)*/
+      { P.ConP($1, $2) }
+
+apat_list:
+  apat apat_list { $1::$2 }
+| apat           { [$1] }
+
+apat:
+  var
+      { P.VarP $1 }
+| var KS_AT apat        /*(as pattern)*/
+      { P.AsP($1, $3) }
+| gcon  /*(arity gcon = 0)*/
+      { P.ConP($1, []) }
+| qcon SP_LEFT_BRACE fpat_list SP_RIGHT_BRACE   /*(labeled pattern, k>=0)*/ /* may be error pattern */
+      { P.LabelP($1, $3) }
+| literal
+      { P.LiteralP($1) }
+| K_WILDCARD    /*(wildcard)*/
+      { P.WCardP }
+| SP_LEFT_PAREN pat SP_RIGHT_PAREN      /*(parenthesized pattern)*/
+      { $2 }
+| SP_LEFT_PAREN tuple_pat SP_RIGHT_PAREN        /*(tuple pattern, k>=2)*/
+      { P.TupleP $2 }
+| SP_LEFT_BRACKET list_pat SP_RIGHT_BRACKET     /*(list pattern, k>=1)*/
+      { P.ListP $2 }
+| KS_TILDE apat         /*(irrefutable pattern)*/
+      { P.Irref $2 }
+\end{commandline}
+
+%% \begin{commandline}
+
+%% fpat_list:
+%%   fpat SP_COMMA fpat_list  { $1::$3 }
+%% | fpat   { [$1] }
+%% |        { [] }
+
+%% tuple_pat:
+%%   pat SP_COMMA tuple_pat  { $1::$3 }
+%% | pat SP_COMMA pat       { [$1; $3] }
+
+%% list_pat:
+%%   pat SP_COMMA list_pat  { $1 :: $3 }
+%% | pat                    { [$1] }
+
+%% fpat:
+%%   qvar KS_EQ pat { ($1, $3) }
+%% ... /* 以下略 */
+%% \end{commandline}
+
+% $ dummy comment
 
 \subsubsection{二項演算子の優先順位}
 
