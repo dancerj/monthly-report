@@ -471,13 +471,32 @@ done
 
 \subsection{upstart とは}
 
-\begin{commandline}
+それでは、init についての予備知識を得たところで、本題の upstart に入りま
+しょう。README にも記述されている upstart の主な特徴は次の 6 つです。
+
+\begin{itemize}
+ \item イベントドリブンでタスクやサービスを起動・停止する。
+ \item タスクやサービスが起動・停止することでイベントが発生する。
+ \item イベントはシステム上の他のプロセスから受け取ることができる。
+ \item サービスが予期せず突然終了しても再起動することができる。
+ \item デーモンの監視と再起動は親プロセスから分離できる。
+ \item D-Bus を通じて init デーモンと通信できる。
+\end{itemize}
+
+
+◆ サービスの突然死で再起動させるのは誰？ init?
+1. プロセス死亡 2. D-Bus 経由でinit にイベント通知 3. D-Bus経由で プロセ
+ス起動
+仕組みはこう？ 要確認 ◆
+
+
+README.Debian.gzより。
 
 upstart
 =======
 
 Upstart is a replacement for the traditional sysvinit package, and
-runs as process #1.  While it is eventually intended to be used to
+runs as process \#1.  While it is eventually intended to be used to
 create a completely event-driven boot process, we are currently
 only using it to emulate the original sysvinit behaviour.
 
@@ -638,7 +657,7 @@ If you are using an initramfs generator other than initramfs-tools you
 should use this option very carefully. There are for example known
 problems with yaird, which doesn't correctly pass the --debug option to
 init and as a consequence leads to a kernel panic. For more details
-please see bug #416927.
+please see bug \#416927.
 
 
 Upstart isn't working, how can I rescue my system?
@@ -690,7 +709,7 @@ Can I emit an event by hand?
 
 Yes, "initctl emit EVENT" will emit the named event and cause any
 jobs waiting for it to be started or stopped as appropriate.
-\end{commandline}
+
 
 
 
@@ -699,6 +718,11 @@ jobs waiting for it to be started or stopped as appropriate.
 \subsection{Upstart への切り替え}
 
 \subsubsection{Sid での場合}
+
+upstart への切り替えには、upstart パッケージをインストールします。切り替
+えにはとてもリスクが高いため、通常のパッケージのインストールとは異なり、
+この入れ替えの意味をちゃんと理解しているなら、\textbf{Yes, do as I say}
+と入力しなさい、というメッセージが表示されます。
 
 \begin{commandline}
 $ sudo apt-get install upstart
@@ -722,31 +746,6 @@ $ sudo apt-get install upstart
 重大な問題を引き起こす可能性のあることをしようとしています。
 続行するには、'Yes, do as I say!' というフレーズをタイプしてください。
  ?] Yes, do as I say!
-取得:1 http://cdn.debian.or.jp sid/main libdbus-1-3 1.2.20-2 [144kB]
-取得:2 http://cdn.debian.or.jp sid/main libexpat1 2.0.1-7 [137kB]
-取得:3 http://cdn.debian.or.jp sid/main dbus 1.2.20-2 [231kB]
-取得:4 http://cdn.debian.or.jp sid/main upstart 0.6.3-1 [493kB]
-1,005kB を 6s で取得しました (165kB/s)                                         
-debconf: apt-utilsがインストールされていないため、パッケージの設定を遅らせます。
-dpkg: warning: overriding problem because --force enabled:
- これは不可欠 (essential) パッケージです - 削除すべきではありません。
-(データベースを読み込んでいます ... 現在 8736 個のファイルとディレクトリがインストールされています。)
-sysvinit を削除しています ...
-未選択パッケージ libdbus-1-3 を選択しています。
-(データベースを読み込んでいます ... 現在 8710 個のファイルとディレクトリがインストールされています。)
-(.../libdbus-1-3_1.2.20-2_amd64.deb から) libdbus-1-3 を展開しています...
-未選択パッケージ libexpat1 を選択しています。
-(.../libexpat1_2.0.1-7_amd64.deb から) libexpat1 を展開しています...
-未選択パッケージ dbus を選択しています。
-(.../dbus_1.2.20-2_amd64.deb から) dbus を展開しています...
-未選択パッケージ upstart を選択しています。
-(.../upstart_0.6.3-1_amd64.deb から) upstart を展開しています...
-libdbus-1-3 (1.2.20-2) を設定しています ...
-libexpat1 (2.0.1-7) を設定しています ...
-dbus (1.2.20-2) を設定しています ...
-Starting system message bus: dbus.
-upstart (0.6.3-1) を設定しています ...
-$
 \end{commandline}
 
 2010年2月9日現在、upstart に切り替えてまだうまく動かないようです。
@@ -793,102 +792,11 @@ init: tty4 main process (307) terminated with status 1
 init: tty4 main process ended, respawning
 init: tty5 main process (308) terminated with status 1
 init: tty5 main process ended, respawning
-init: tty2 main process (309) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (310) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (311) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (312) terminated with status 1
-init: tty1 main process ended, respawning
-
-init: tty4 main process (313) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (314) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (315) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (316) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (317) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (318) terminated with status 1
-init: tty1 main process ended, respawning
-init: tty4 main process (319) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (320) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (321) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (322) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (323) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (324) terminated with status 1
-init: tty1 main process ended, respawning
-init: tty4 main process (325) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (326) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (327) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (328) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (329) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (330) terminated with status 1
-init: tty1 main process ended, respawning
-init: tty4 main process (331) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (332) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (333) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (334) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (335) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (336) terminated with status 1
-init: tty1 main process ended, respawning
-init: tty4 main process (337) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (338) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (339) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (340) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (341) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (342) terminated with status 1
-init: tty1 main process ended, respawning
-init: tty4 main process (343) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (344) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (345) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (346) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (347) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (348) terminated with status 1
-init: tty1 main process ended, respawning
-init: tty4 main process (349) terminated with status 1
-init: tty4 main process ended, respawning
-init: tty5 main process (350) terminated with status 1
-init: tty5 main process ended, respawning
-init: tty2 main process (351) terminated with status 1
-init: tty2 main process ended, respawning
-init: tty3 main process (352) terminated with status 1
-init: tty3 main process ended, respawning
-init: tty6 main process (353) terminated with status 1
-init: tty6 main process ended, respawning
-init: tty1 main process (354) terminated with status 1
-init: tty1 main process ended, respawning
+(続く。)
 \end{commandline}
 
-コンソールは tty がうまく動かないのか、login プロンプトが返ってこず、コ
+コンソールは getty がうまく動いておらず、init により getty が再起動して
+は getty 死亡を繰り替えしてしまい、login プロンプトが返ってこず、コ
 ンソールログインはできませんが、ssh 経由のターミナルログインは問題なくで
 きました。
 
