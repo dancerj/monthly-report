@@ -257,8 +257,203 @@ Debian フリーソフトウェアガイドライン全文(\url{http://www.debian.org/socia
 \index{Haskell}
 % =======================================================================
 
-\subsection{OCaml はどんな言語}
-\subsubsection{基本的な機能}
+\subsection{OCamlはどんな言語}
+
+静的型の型推論言語というのが今の私の認識です。
+関数型言語らしい機能が注目されますが、それ以外のスタイルも良く利用されます。
+
+ここではこの記事を読みすすめるにあたって必要そうなOCamlの機能について簡単に紹介します。
+
+\subsubsection{値}
+
+以下、対話環境の入出力を前提に話をすすめます。
+ocaml-interpパッケージの /usr/bin/ocaml が対話環境のプログラムです。
+\verb|# | は対話環境のプロンプトです。
+ユーザーの入力の終わりを対話環境に認識してもらうために \verb|;;|を入力します。
+なので対話環境の\verb|# |プロンプトの後ろから\verb|;;|までがユーザーの入力です。
+\verb|- :|から始まる内容は対話環境の出力です。
+
+\begin{commandline}
+# 1;;
+- : int = 1
+# "abc";;
+- : string = "abc"
+# (1, "abc");;
+- : int * string = (1, "abc")
+# (1, ("abc", 2), 3);;
+- : int * (string * int) * int = (1, ("abc", 2), 3)
+# [ "a"; "b"; "c"];;
+- : string list = ["a"; "b"; "c"]
+# "a" :: "b" :: "c" :: [];;
+- : string list = ["a"; "b"; "c"]
+\end{commandline}
+
+値を表す式を入力すると対話環境は型の名前と値を出力しています。
+\verb|1|は\verb|int|型、\verb|"abc"|は\verb|string|型となっています。
+対話環境に式を入力したので評価が行なわれ、その結果としての出力です。
+
+\verb|(1, ("abc", 2), 3)|のようにコンマで区切って括弧でくくった値はタプルです。
+値と値の組を表現できます。型の名前は \verb|*|で連ねます。任意の型の値を組にできる強力な機能です。
+
+\verb|[ ]|でリストを表現することができます。また、\verb|::|はlispでいうところのconsです。
+リストの要素は全て同じ型である必要があります。
+
+\subsubsection{レコードとバリアント}
+
+次は値を表現する前にあらかじめ型の定義が必要であるような値です。
+
+\begin{commandline}
+# type vec_2d = { x : int; y : int };;
+type vec_2d = { x : int; y : int; }
+# { x = 1; y = 2 };;
+- : vec_2d = {x = 1; y = 2}
+# type int_or_string_or_none = I of int | S of string | N;;
+type int_or_string_or_none = I of int | S of string | N
+# I 3;;
+- : int_or_string_or_none = I 3
+# S "hello";;
+- : int_or_string_or_none = S "hello"
+# N;;
+- : int_or_string_or_none = N
+\end{commandline}
+
+一つ目の例はレコードです。Cの構造体のようなもので、フィールド名とフィールドの型を定義に記述します。
+\verb|vec_2d|というレコードの型を定義して、\verb|{ x = 1; y = 2 }|という値を評価させました。
+
+二つ目はバリアントあるいは代数データ型と呼ばれている種類の型です。
+\verb|int_or_string_or_none|という型を定義していて、
+その値は Iというタグの付いたint か Sというタグの付いたstring か N というタグ のどれかということです。
+
+バリアントは再帰的な定義も可能で、この機能で簡単に木構造を表現できます。
+
+\begin{commandline}
+# type str_tree = Leaf of string | Tree of (str_tree * str_tree);;
+type str_tree = Leaf of string | Tree of (str_tree * str_tree)
+# Leaf "abc";;
+- : str_tree = Leaf "abc"
+# Tree (Leaf "a", Tree (Leaf "b", Leaf "c"));;
+- : str_tree = Tree (Leaf "a", Tree (Leaf "b", Leaf "c"))
+\end{commandline}
+
+\subsubsection{関数}
+
+次は関数を表現する値です。
+
+\begin{commandline}
+# (fun x -> x + 1);;
+- : int -> int = <fun>
+# (fun x -> x);;
+- : 'a -> 'a = <fun>
+\end{commandline}
+
+\verb|(fun x -> x + 1)|は関数です。
+型が\verb|int -> int|と出力されていますが、
+これはintを受けとってintを返す関数という意味です。
+\verb|+|の引数はintとintなので結果として\verb|x|は\verb|int|、
+\verb|fun x -> x + 1| は \verb|int -> int|というように型の推論が行なわれています。
+
+二番目の\verb|(fun x -> x)|も関数です。
+型が\verb|'a -> 'a|と出力されていますが、
+これは何かある型の値を受けとって、同じ型の値を返す関数という意味です。
+この \verb|'a -> 'a| の関数は任意の型に対して適用が可能なので、
+全ての型についてこの関数が定義されている(\verb|int -> int| も \verb|string -> string| も ... etc)のと同様の効果があります。
+このような型を多相型と呼びます。
+
+\subsubsection{束縛}
+
+\verb|let|を使って値を変数に束縛します。
+以下は\verb|v|にたいして整数を\verb|f|に対して関数を束縛しています。
+
+\begin{commandline}
+# let v = 123;;
+val v : int = 123
+# v;;
+- : int = 123
+# let f x y = (x + y) * (x - y);;
+val f : int -> int -> int = <fun>
+# f 5 3;;
+- : int = 16
+\end{commandline}
+
+\subsubsection{パターン照合}
+
+OCamlは値の構造を分解しつつ変数を束縛することができます。
+次の例ではタプルを分解して束縛を行なっています。
+
+\begin{commandline}
+# let (x, y) = (2, 3 + 4);;
+val x : int = 2
+val y : int = 7
+# let (a, (b, c)) = (1, (2, 3));;
+val a : int = 1
+val b : int = 2
+val c : int = 3
+\end{commandline}
+
+\verb|match ... with|を使用すると、構造分解を試みつつ条件分岐することができます。
+
+関数\verb|len|はリストが空かどうかを判定しながら再帰しています。
+束縛の定義時に自身の定義を使用するときには\verb|let|ではなく\verb|let rec|を使います。
+
+関数\verb|what|は先程定義したバリアント\verb|int_or_string_or_none|の値の種類によって返す文字列を変えています。
+
+関数\verb|get_int|は\verb|int_or_string_or_none|がintのときだけSome intを返し、そうでないときは None を返します。
+'a option は組み込みの型で、ある型の値が有るかあるいは無いかを表現できるバリアントです。
+
+\begin{commandline}
+# let rec len ls = match ls with [] -> 0 | x :: rest -> 1 + len rest;;
+val len : 'a list -> int = <fun>
+# len [1; 2; 3];;
+- : int = 3
+# let what v = match v with I _ -> "int" | S _ -> "string" | N -> "none";;
+val what : int_or_string_or_none -> string = <fun>
+# what (S "abc");;
+- : string = "string"
+# what N;;
+- : string = "none"
+# let get_int v = match v with I i -> Some i | _ -> None ;;
+val get_int : int_or_string_or_none -> int option = <fun>
+# get_int N;;
+- : int option = None
+# get_int (I 10);;
+- : int option = Some 10
+\end{commandline}
+
+\subsubsection{モジュール}
+
+プログラムの規模がおおきくなってくると名前空間が重要になってきます。
+OCamlにはmoduleの機能があり名前空間を分けることができます。
+あるコンパイル単位がxyz.mlというファイル名だった場合、
+その中の定義はXyzというmoduleの中に配置されます。
+モジュール内にたとえばabcという名前があった場合、
+公開されていれば他のコンパイル単位のファイルからも Xyz.abc という名前でアクセスすることができます。
+
+\begin{commandline}
+(* xyz.ml *)
+let abc = "abc"
+...
+
+
+(* 他のファイル *)
+... Zyz.abc ...
+\end{commandline}
+
+moduleの中にさらにmoduleを定義することもできます。
+xyz.mlの中に作ったmodule SubXyzは、Xyz.SubXyzという名前のmoduleです。
+
+定義済みのモジュールを使ってmoduleを定義することもできます。
+組み込みのmoduleであるListを使って Xyz.L を定義しています。
+
+\begin{commandline}
+(* xyz.ml *)
+module SubXyz =
+  struct
+  ...
+  end
+
+module L = List
+\end{commandline}
+
 
 \subsection{関数型言語のインタプリタの簡単な作りかた}
 
