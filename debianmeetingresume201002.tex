@@ -1326,7 +1326,7 @@ L [] (m:ms)         = } : L [] ms if m /=0           (Note 6)
 
 $B$o$+$j$K$/$$$G$9$,!"$3$3$G$bFbItE*$K$O(B2$BCJ3,$K$J$C$F$$$^$9!#(B
 
-$B$^$:85$N(Btoken$BNs$N$R$H$D$a$NA`:n$rE,MQ$7$^$9!#0J2<$N$h$&$J5,B'$@$H9M$($k$H$o$+$j$d$9$$$+$b$7$l$^$;$s!#(B
+$B$^$:85$N(Btoken$BNs$K0l$DL\$NA`:n$rE,MQ$7$^$9!#0J2<$N$h$&$J5,B'$@$H9M$($k$H$o$+$j$d$9$$$+$b$7$l$^$;$s!#(B
 
 \begin{itemize}
  \item let, where, do, of $B$N8e$K(B \{ $B$,L5$$>l9g$K$OBe$o$j$K%V%m%C%/$N3+;O$r$"$i$o$9(B token $\{n\}$ $B$rA^F~!#(B
@@ -1334,7 +1334,7 @@ L [] (m:ms)         = } : L [] ms if m /=0           (Note 6)
  \item $B%$%s%G%s%H$N%l%Y%k$G8e$+$i%V%m%C%/$rG'<1$9$k$?$a$K(B token $<n>$ $B$rA^F~$7$F$*$/!#(B
 \end{itemize}
 
-$B$D$.$K$U$?$D$a$NA`:n$G$"$k4X?t(B L $B$rE,MQ$7$^$9!#(B
+$B$D$.$KFs$DL\$NA`:n$G$"$k4X?t(B L $B$rE,MQ$7$^$9!#(B
 
 L $B$O$b$H$N(Btoken$BNs$H%$%s%G%s%H%l%Y%k$N%9%?%C%/$r0z?t$K$H$j!"(B
 $B$b$H$N(Btoken$BNs$K(Btoken$B$rA^F~$7$?$b$N$rJV$94X?t$G$9!#(B
@@ -1377,9 +1377,11 @@ backtrack$B$r9T$J$($k$h$&$J(Bparser$B$J$i$3$N$h$&$J;EMM$KBP$7$F$b$h$j4JC1$KBP
 $B>-MhE*$K$O(BPackrat parsing$B$N$h$&$JJ}K!$G(Bparser$B$r=q$-D>$7$F$_$?$$$H$3$m$G$9!#(B
 
 OCaml$B$G>e(Blayout rule$B$r<BAu$7$?4X?t$,<!$N$h$&$J46$8$G$9!#(B
+token$BNs$X$N0l$DL\$NA`:n$HFs$DL\$NA`:n$r=gHV$K:\$;$F$$$^$9!#(B
 P.BLK\_OPEN $B$,(B $\{n\}$ $B$G(B P.BLK\_LEVEL $B$,(B $<n>$ $B$K$"$?$k$b$N$G$9!#(B
 $B$b$H$NDj5A$H;w$?$h$&5-=R$GI=8=$G$-$F$$$k$N$,$o$+$k$G$7$g$&$+!#(B
 
+%%\paragraph{token$BNs$X$NA`:n(B 1$B$DL\(B} \ 
 \begin{commandline}
 let all_token_rev_list lexbuf =
   let unget_s = S.create () in
@@ -1391,7 +1393,6 @@ let all_token_rev_list lexbuf =
   let rec scan_start () =
     match get_token () with
         (P.SP_LEFT_BRACE _ | P.K_MODULE _) as start -> start
-(*       | P.WS_NEWLINE _ -> scan_start () *)
       | P.WS_WHITE _ -> scan_start ()
       | other ->
           let _ = S.push other unget_s in
@@ -1407,7 +1408,6 @@ let all_token_rev_list lexbuf =
         match (prev, cur) with
             (_, (P.EOF(_) as eoft)) -> eoft
           | (_, P.WS_WHITE(_)) -> (scan_next_rec ())
-(*        | (_, P.WS_NEWLINE(_)) -> (scan_next_rec ()) *)
           | ((P.K_LET(_) | P.K_WHERE(_) | P.K_DO(_) | P.K_OF(_)), (P.SP_LEFT_BRACE(_) as lbr)) -> lbr
           | ((P.K_LET(_) | P.K_WHERE(_) | P.K_DO(_) | P.K_OF(_)), tk) ->
               let (_, (level, loc)) = (S.push tk unget_s, blk_level_pair tk) in
@@ -1420,12 +1420,14 @@ let all_token_rev_list lexbuf =
                 else tk
     in (scan_next_rec ())
   in
-    (* LST.create_stream (scan_start ()) scan_next eof_token_p *)
     (LST.fold_left
        (fun r a -> ((a, new_err_flag ()) :: r))
        []
        (LST.create_stream (scan_start ()) scan_next eof_token_p))
-... (* $BCfN,(B *)
+\end{commandline}
+
+%%\paragraph{token$BNs$X$NA`:n(B 2$B$DL\(B} \ 
+\begin{commandline}
 let rec layout istream levels =
   let push_new_token tok lform =
     LST.Cons ((tok, new_err_flag ()), lform)
@@ -1559,11 +1561,6 @@ let rec layout istream levels =
 
 % $ ;
 
-%% ocamlyacc$B$O(Byacc$B$d(Bbison$B$HF1$8$h$&$K(BLALR(1)$B$N(Bparser generator$B$H$J$C$F$*$j!"(B
-%% $B4pK\E*$K$O(Btoken$BNs$rESCf$^$GFI$_9~$s$@0LCV$H$=$N(Btoken$B$*$h$S0l$D@h$N(Btoken$B$K$h$C$F9=J82r@OCf$N<!$NF0:n$r7hDj$7$F$$$^$9!#(B
-%% Haskell$B$N(BLexing$B$K=P$F$-$?$h$&$J(B parse error $B$K$J$k$^$G%V%m%C%/$,JD$8$k$+$o$+$i$J$$$h$&$J;EMM$H$O$"$^$jAj@-$,NI$/$"$j$^$;$s!#(B
-%% backtrack$B$r9T$J$($k$h$&$J(Bparser$B$J$i$3$N$h$&$J;EMM$KBP$7$F$b$h$j4JC1$KBP1~$G$-$k$H9M$($i$l$^$9!#(B
-
 \paragraph{$BC19`$N(Bexpression} \ 
 
 $BC19`$NI=8=(B aexp $B$H$7$F$3$3$GDj5A$5$l$F$$$k$N$O!"(B
@@ -1643,10 +1640,10 @@ Haskell$B$NFs9`1i;;;R$K$O(B level 0 $B$+$i(B level 9 $B$^$G$NM%@h=g0L(B($
 $B$=$NM%@h=g0L$H7k9g5,B'(B($B1&7k9g!":87k9g!"$J$7(B)$B$r(B{\bf $B1i;;;R$rDj5A$7$F$$$k%=!<%9%3!<%IFb$G;XDj$9$k$3$H$,$G$-$^$9(B}$B!#(B
 $B$7$+$bDL>o$N4X?t$rFs9`1i;;;R$H$7$F07$&(B\footnote{$B%P%C%/%/%*!<%H(B(`)$B$G$/$/$k(B}$B$3$H$b$G$-!"3g8L$J$7$GHs>o$KJ#;($J<0$,5-=R2DG=$G$9!#(B
 $B%Q%?!<%s$K$D$$$F$b!"4X?t$K$b$J$C$F$$$k%3%s%9%H%i%/%?$rFs9`1i;;;R$H$7$F;H$C$F!"Fs9`1i;;<0$N7A<0$G%Q%?!<%s$r5-=R$7$F$$$1$^$9!#(B
-$B$b$A$m$sFs9`1i;;;R$H$7$F;H$C$?>l9g$N%3%s%9%H%i%/%?$K$bM%@h=g0L$H7k9g5,B'$,$"$j$^$9!#;XDj$NJ}K!$OF1MM$G$9!#(B
+$B$b$A$m$sFs9`1i;;;R$H$7$F;H$C$?>l9g$N%3%s%9%H%i%/%?$K$bM%@h=g0L$H7k9g5,B'$,$"$j!";XDj$NJ}K!$OF1MM$H$J$C$F$$$^$9!#(B
 
 $B$3$3$GLdBj$H$J$k$N$O(B{\bf $B9=J82r@O;~$KM%@h=g0L$,7hDj$7$F$$$J$$(B}$B$H$$$&$3$H$G$9!#(B
-$B$3$3$G$O(B expression$B!"%Q%?!<%s6&$K!"0z?t$H1i;;;R$,8r8_$KO"$J$C$F$$$k$@$1$N%U%i%C%H$J%j%9%H$H$7$F9=J82r@O$r9T$J$C$F$$$^$9!#(B
+$B$3$3$G$O(B expression$B!"%Q%?!<%s6&$K!"0z?t$H1i;;;R$,8r8_$KO"$J$C$F$$$k%j%9%H$H$7$F9=J82r@O$r9T$J$C$F$$$^$9!#(B
 
 \begin{commandline}
 /* parser.mly $BFs9`1i;;(B expression */
@@ -1833,7 +1830,7 @@ apat:
 \paragraph{$BFs9`1i;;;R$NM%@h=g0L$N2r7h(B} \ 
 
 $B0lEY!"9=J82r@O$,40N;$7$?8e$KFs9`1i;;;R$NM%@h=g0L$N2r7h$r9T$J$$$^$9!#(B
-$B9=J8LZ$r:F5"E*$KC)$j!"Fs9`1i;;<0$N%U%i%C%H$J%j%9%H$rLZ9=B$$KCV$-49$($^$9!#(B
+$B9=J8LZ$r:F5"E*$KC)$j!"Fs9`1i;;<0$N8r8_$N%j%9%H$rLZ9=B$$KCV$-49$($^$9!#(B
 
 $B6qBNE*$K$O!"Fs9`1i;;<0$N0lHV:8B&$N(B2$B$D$NC19`I=8=(B $exp_{aa}$, $exp_{bb}$ $B$*$h$S(B2$B$D$N1i;;;R(B $op_{aa}$, $op_{bb}$ $B$K$D$$$FCeL\$9$k$H!"(B
 $BFs9`1i;;<0$O<!$NFsDL$j$N$$$:$l$+$N7A$K$J$C$F$$$k$O$:$G$9!#(B
@@ -1867,7 +1864,7 @@ apat:
 %% \rowcolor{white} \multicolumn{2}{c}{$exp_{aa}$} & \multicolumn{2}{c}{$exp_{bb}$} \\
 %% \end{tabular}
 
-$B$3$N9M$(J}$r$b$H$K:F5"8F$S=P$7$N4X?t$r<BAu$9$k$H0J2<$N$h$&$K$J$j$^$9!#(B
+$B$3$N9M$(J}$r$b$H$K1i;;;R$NM%@h=g0L$H7k9g5,B'$r9MN8$7$D$D:F5"8F$S=P$7$N4X?t$r<BAu$9$k$H0J2<$N$h$&$K$J$j$^$9!#(B
 
 
 \begin{commandline}
@@ -1955,8 +1952,9 @@ apat:
 Haskell$B$NI>2A4o$r<BAu$9$k$?$a$K0J2<$N7?$N4D6-(B(env\_t)$B!"C1=c$J(Bclosure(lambda\_t)$B!"4X?tDj5A$N$?$a$N(Bclosure(closure\_t)$B$rDj5A$7$^$7$?!#(B
 
 $B@h$N5DO@$G$N(Bclosure$B$O2>0z?t%j%9%H!"(Bbody$B$N(Bexpression$B!"$*$h$S4D6-$N(B 3$B$D$r;}$C$F$$$k%G!<%?7?$G$7$?!#(B
-$B$3$A$i$GF1$8Lr3d$r2L$?$9(Blambda\_t$B$O2>0z?t%j%9%H$NBe$o$j$K(Bpattern$B$N%j%9%H$r;}$C$F$$$k$N$H!"(B
-Haskell$B$N4X?tB+G{@k8@$*$h$S%Q%?!<%sB+G{@k8@$K$*$1$k(Bwhere$B@a$N4D6-$r9=C[$9$k$?$a$N4X?t$rJ];}$?$a$N%U%#!<%k%I$,A}$($F$$$^$9!#(B
+$B$3$A$i$GF1$8Lr3d$r2L$?$9(Blambda\_t$B$G$O!"(BHaskell$B$N4X?t$N2>0z?t$,%Q%?!<%s>H9g(B(pattern match)$B$r9T$J$&$N$G(B
+$B2>0z?t%j%9%H$NBe$o$j$K(Bpattern$B$N%j%9%H$r;}$C$F$$$k$N$H!"(B
+Haskell$B$N4X?tB+G{@k8@$*$h$S%Q%?!<%s>H9g$K$h$kB+G{@k8@$K$*$1$k(Bwhere$B@a$N4D6-$r9=C[$9$k$?$a$N4X?t$rJ];}$9$k$N%U%#!<%k%I$rA}$d$7$F$$$^$9!#(B
 
 $B$^$?!"(BHaskell$B$N4X?tDj5A$N(Bpattern match$B$K$h$C$FJ#?t$N(Bexpression$B$r=q$-J,$1$k5!G=$r!"(B
 $BC1=c$J(Bclosure$B$KCV$-49$($k$N$O:$Fq$J$?$a!"J#?t$N(Bclosure$B$r;}$D$3$H$N$G$-$k7?(Bclosure\_t$B$rF3F~$7$^$7$?!#(B
@@ -2087,6 +2085,8 @@ main = let { (p, (q, r)) = (print 1, (print 2, print 3)) } in
 \verb|(p, (q, r))|$B$H(B\verb|(print 1, (print 2, print 3))|$B$N(Bpattern match$B$,9T$J$o$l$^$9$,(B
 $B<B:]$KI,MW$K$J$k(B \verb|q| $B$N$_$,:G8e$^$GI>2A$5$l$^$9!#(B
 
+\pagebreak
+
 \paragraph{$BCY1d%Q%?!<%s>H9g$N<BAu(B} \ 
 
 pattern match$B$N:]$K(Bpattern$B$K=>$C$F9=B$J,2r$r9T$J$$!"(B
@@ -2143,6 +2143,16 @@ and bind_pat_with_thunk pat =
                  | _ -> (false, [thunk]))
 ... (* $BN,(B *)
 \end{commandline}
+
+\subsection{$B$^$H$a$H:#8e$N2]Bj(B}
+
+$B7k9=$JJ,NL$K$J$C$F$7$^$$$^$7$?$,!"(B
+$B$=$l$G$b$+$J$jC<@^$C$F4X?t7?8@8l$N%W%m%0%i%_%s%0$H(B
+Haskell$B%i%$%/$J%$%s%?%W%j%?$r<BAu$9$k$K$"$?$C$F6l?4$7$?%H%T%C%/$r>R2p$7$F$_$^$7$?!#(B
+
+$B:#8e$N2]Bj$H$7$F$OL$<BAu$NItJ,$r<BAu$7$F$$$/$3$H$H!"(B
+ocamlyacc$B$K$h$k(Bparsing$B$r(BPackrat parsing$B$KCV$-49$($k$3$H$G(B
+$B$h$j;EMM$K1h$C$?9=J82r@O$r%(%l%,%s%H$K9T$J$($k$h$&$K$9$k$3$H$G$9!#(B
 
 
 % =======================================================================
