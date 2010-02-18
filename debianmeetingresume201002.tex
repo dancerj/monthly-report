@@ -1740,7 +1740,7 @@ apat:
 
 \subsection{Haskellの評価器}
 
-\label{sec:envmach}節でも述べた、環境を渡してゆく方法で
+\ref{sec:envmach}節でも述べた、環境を渡してゆく方法で
 Haskellの評価器を実装するために以下の型の環境(env\_t)、単純なclosure(lambda\_t)、関数定義のためのclosure(closure\_t)を定義しました。
 
 先の議論でのclosureは仮引数リスト、bodyのexpression、および環境の 3つを持っているデータ型でした。
@@ -1791,8 +1791,13 @@ and env_t = {
 \subsubsection{遅延評価}
 
 Haskellの評価戦略はデフォルトで遅延評価(lazy evaluation)です。
-たとえば次のようなプログラムを定義して
+次のようなプログラムを定義して
 \verb|g (f 1 2) 2|を評価することを考えてみます。
+\begin{commandline}
+f x y = x + y
+g x y = x * y
+\end{commandline}
+
 話を簡単にするために \verb|+|, \verb|*| はプリミティブであるということにすると、
 まず\verb|g|を評価すると\verb|(f 1 2) * 2|となります。
 つぎに、\verb|*|はそれ以上評価しても意味がないプリミティブなのでfが評価され、
@@ -1804,10 +1809,7 @@ Haskellの評価戦略はデフォルトで遅延評価(lazy evaluation)です。
 \verb|g (f 1 2) 2| $->$  \verb|g (1 + 2) 2| $->$ \verb|g 3 2| $->$
 \verb|g 3 2| $->$ \verb|3 * 2| $->$ \verb|6| のような感じになるはずです。
 
-\begin{commandline}
-f x y = x + y
-g x y = x * y
-\end{commandline}
+\paragraph{遅延評価の実装} \ 
 
 lazy evaluationを実装するには、
 関数の引数を評価するときに最後まで評価するのではなく、
@@ -1858,8 +1860,78 @@ let make_thunk eval_fun env evalee =
 \end{commandline}
 
 
-\subsubsection{遅延パターンマッチ}
+\subsubsection{遅延パターン照合}
 
+Haskellのパターン照合(pattern match)はlazy evaluationと組み合わさるようにして動作します。
+実際の評価に必要な部分しかpattern matchに対応するexpressionを評価しないように動きます。
+
+次のプログラムを考えます。
+
+\begin{commandline}
+main = let { (p, (q, r)) = (print 1, (print 2, print 3)) } in
+       q
+\end{commandline}
+
+このプログラムを実行すると\verb|2|のみが出力されます。
+\verb|(p, (q, r))|と\verb|(print 1, (print 2, print 3))|のpattern matchが行なわれますが
+実際に必要になる \verb|q| のみが最後まで評価されます。
+
+\paragraph{遅延パターン照合の実装} \ 
+
+pattern matchの際にpatternに従って構造分解を行ない、
+その構造分解に対応したthunkからthunkへの分解を行なっていきます。
+末端に変数のpatternがあれば環境にthunkを書き込みます。
+pattern matchの失敗をたとえばcase式で認識するために真理値を返しています。
+
+たとえばタプルの場合は、まずタプルに対応するはずのthunkを評価し、結果をタプルの要素に分解します。
+タプルのそれぞれの要素はやはりまたthunkになっているので、
+タプルのpatternのそれぞれの要素とpattern matchを行なうように再帰します。
+それぞれの要素のpattern matchが全て成功すれば、タプルのpattern matchも成功です。
+
+\begin{commandline}
+(* Lazy pattern match against thunk *)
+and bind_pat_with_thunk pat =
+  let sub_patterns_match env pat_list thunk_list =
+    L.fold_left2
+      (fun (matchp_sum, tlist_sum) pat thunk ->
+         let (matchp, tlist) = bind_pat_with_thunk pat env thunk in
+           (matchp_sum & matchp, L.append tlist_sum tlist))
+      (true, [])
+      pat_list
+      thunk_list
+  in
+    match pat with
+... (* 中略 *)
+      | P.VarP (id, _) ->
+          (fun env thunk ->
+             let _ = bind_thunk_to_env env id thunk in (true, [thunk]))
+
+      | P.AsP ((id, _), pat) ->
+          (fun env thunk ->
+             let (_, (matchp, tlist)) = (bind_thunk_to_env env id thunk,
+                                         bind_pat_with_thunk pat env thunk)
+             in (matchp, thunk :: tlist))
+... (* 中略 *)
+      | P.WCardP ->
+          (fun _ thunk -> (true, [thunk]))
+
+      | P.TupleP pat_list ->
+          (fun env thunk ->
+             let value = thunk () in
+               match value with
+                   Tuple (args) when (L.length args) = (L.length pat_list)
+                     -> sub_patterns_match env pat_list args
+                 | _ -> (false, [thunk]))
+
+      | P.ListP pat_list ->
+          (fun env thunk -> 
+             let value = thunk () in
+               match value with
+                   List (args) when (L.length args) = (L.length pat_list)
+                     -> sub_patterns_match env pat_list args
+                 | _ -> (false, [thunk]))
+... (* 略 *)
+\end{commandline}
 
 
 % =======================================================================
