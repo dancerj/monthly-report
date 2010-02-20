@@ -77,6 +77,126 @@
 
 \end{frame}
 
+\begin{frame}[containsverbatim]{ローカルで起動}
+\begin{commandline}
+$ ../../google_appengine/dev_appserver.py
+\end{commandline}
+% $ -- for emacs
+
+\url{http://localhost:8080/} でサービス提供
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{アップロード}
+
+サーバにアップロード
+ \begin{commandline}
+$ ../../google_appengine/appcfg.py update
+Initiating update.
+Email: dancerj@gmail.com
+Password for dancerj@gmail.com: 
+ \end{commandline}
+\url{http://debianmeeting.appspot.com} でサービス提供
+\end{frame}
+
+\begin{frame}[containsverbatim]{テストの実行}
+ AppEngine のフレームワークではテスト用のツールが提供されていないので、
+ 外部ツールを利用する。
+ gaeunitなどの選択肢がある。
+
+ python-webtest を活用してテストする。
+ \begin{commandline}
+$ PYTHONPATH=../../google_appengine:../../google_appengine/lib/django/ \
+ python testSystem.py
+ \end{commandline}
+\end{frame}
+
+
+\begin{frame}{データベースの構成}
+\begin{minipage}{0.4\hsize}
+ \begin{itemize}
+ \item Event
+ \item Attendance
+ \item User
+ \end{itemize}
+\end{minipage}
+\begin{minipage}{0.5\hsize}
+\begin{itemize}
+ \item Event に複数の Attendance がある
+ \item ユーザには複数の Attendance がある
+\end{itemize}
+\end{minipage}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{データベースの構成:Event}
+イベントを管理する
+
+\begin{commandline}
+ class Event(db.Model):
+    eventid = db.StringProperty()
+    owner = db.UserProperty() # the creator is the owner
+    owners_email = db.StringListProperty() # allow owner emails to be added if possible
+    title = db.StringProperty()
+    location = db.StringProperty(multiline=True)
+    content = db.StringProperty(multiline=True)
+    content_url = db.StringProperty()
+    prework = db.StringProperty(multiline=True)
+    event_date = db.StringProperty()
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+    capacity = db.IntegerProperty() # the number of possible people attending the meeting
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{データベースの構成:Attendance}
+イベントに対しての出席を管理する
+
+\begin{commandline}
+class Attendance(db.Model):
+    eventid = db.StringProperty()
+    user = db.UserProperty()
+    user_realname = db.StringProperty() # keep a cache of last realname entry.
+    prework = db.StringProperty(multiline=True) # obsolete, but used in initial version
+    prework_text = db.TextProperty() # Used everywhere, populate from prework if available.
+    attend = db.BooleanProperty()
+    enkai_attend = db.BooleanProperty()
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{データベースの構成:UserRealName}
+ユーザの名前を管理する
+
+\begin{commandline}
+class UserRealname(db.Model):
+    """Backup of user realname configuration so that user doesn't have to reenter that information."""
+    user = db.UserProperty()
+    realname = db.StringProperty()
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+\end{commandline}
+\end{frame}
+
+\begin{frame}{ソースツリーの構成}
+\begin{itemize}
+ \item \url{debianmeeting.py}: どのページがどのコードを呼び出すのかとい
+       う部分を管理しているコードです。あと、どこに入れるのか迷ったコー
+       ドもここにあるかも。
+ \item \url{admin_event.py}: 主催者のイベントの管理関連のコードです。
+ \item \url{user_registration.py}: ユーザの登録関連のコードです。
+ \item \url{webapp_generic.py}: とりあえず共通のロジックを定義しています。
+       POST と GET を同じように扱うためのコードなどが入っています。
+ \item \url{schema.py}: データストアのスキーマが定義されています。
+ \item \url{send_notification.py}: メール送信とXMPP送信ロジックが記述さ
+       れています。
+ \item \url{testSystem.py}: ユニットテストです。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{ウェブページの遷移}
+
+\includegraphics[width=1\hsize]{image201001/debian-reservation-flow.eps}
+ 
+\end{frame}
 
 \end{document}
 
