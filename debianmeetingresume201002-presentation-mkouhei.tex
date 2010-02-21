@@ -1,0 +1,178 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2010 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{ブート方法が変わるよ}
+\subtitle{sysvinit から upstart へ}
+\author{前田 耕平 mkouhei@debian.or.jp\\IRC nick: mkouhei}
+\date{2010年02月20日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+
+
+\emtext{要点}
+
+\begin{frame}
+ \frametitle{Squeeze から変更される}
+ \begin{itemize}
+  \item sysvinit から upstart に変わる
+  \item まずは互換モードから
+  \item 今んとこ getty の挙動がかなり怪しい
+ \end{itemize}
+\end{frame}
+
+\emtext{以上だけど、何か？}
+
+\begin{frame}{upstart って何？}
+ \begin{itemize}
+  \item sysvinit の後継
+  \item イベントドリブンのブートの仕組み
+  \item cron, at, inetd なども最終的にはこれにするのが目標
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{そもそも sysvinit とは}
+ \begin{itemize}
+  \item システムブート時に各種プロセスを起動させる
+  \item コンソールのログイン画面もこれ経由
+  \item システム停止時のプロセスの終了とか
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{システムブートの大まかな流れ}
+\begin{center}
+\includegraphics[height=0.78\hsize]{image201002/sysvinit.eps}
+\end{center}
+\end{frame}
+
+\begin{frame}{upstart に切り替える動機}
+\begin{itemize}
+ \item sysvinit って遅いよね(?)
+ \item USB のプラグアンドプレイがうまく行かないよね(?)
+ \item sysvinit ってもう古いよね。
+\end{itemize}
+\end{frame}
+
+\emtext{ということらしいんですが、本当？}
+
+\begin{frame}{他のディストロでは既に}
+\begin{itemize}
+ \item Ubuntu はもちろん、Fedora も既に
+ \item Google の Chrome OS そうらしい
+ \item Ubuntu 9.10 はネイティブモードらしい
+\end{itemize}
+\end{frame}
+
+\begin{frame}{一方、Debian では}
+\begin{itemize}
+ \item Squeeze から変わるらしいけど、現状はまだ sysvinit がデフォル
+       ト
+ \item 互換モードなので、p.34 6.2.1のように大部分は変わらない
+ \item なんだけど、getty の設定は inittab ではなく、/etc/init/ttyN.conf
+       で行うように
+ \item Ctrl+Alt+Del の設定も/etc/init/control-alt-delete.confに
+\end{itemize}
+\end{frame}
+
+\begin{frame}{ネイティブモードだと全てイベントドリブン}
+\begin{center}
+\includegraphics[height=0.78\hsize]{image201002/states.eps}
+\end{center}
+\end{frame}
+
+\emtext{取り合えず upstart へ}
+
+\begin{frame}[containsverbatim]{Squeeze/Sidには入っている}
+ パッケージでの導入は割と簡単。
+\begin{commandline}
+$ sudo apt-get install upstart
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています                
+状態情報を読み取っています... 完了
+以下の特別パッケージがインストールされます:
+  dbus libdbus-1-3 libexpat1
+提案パッケージ:
+  dbus-x11
+以下のパッケージは「削除」されます:
+  sysvinit
+以下のパッケージが新たにインストールされます:
+  dbus libdbus-1-3 libexpat1 upstart
+警告: 以下の不可欠パッケージが削除されます。
+何をしようとしているか本当にわかっていない場合は、実行してはいけません!
+  sysvinit
+アップグレード: 0 個、新規インストール: 4 個、削除: 1 個、保留: 9 個。
+1,005kB のアーカイブを取得する必要があります。
+この操作後に追加で 2,105kB のディスク容量が消費されます。
+重大な問題を引き起こす可能性のあることをしようとしています。
+続行するには、'Yes, do as I say!' というフレーズをタイプしてください。
+ ?] Yes, do as I say!
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{getty ちゃんと動かないじゃん！}
+「先生、ログイン画面が表示されません！」
+\begin{commandline}
+init: tty4 main process (239) terminated with status 1
+init: tty4 main process ended, respawning
+init: tty5 main process (241) terminated with status 1
+init: tty5 main process ended, respawning
+init: tty2 main process (242) terminated with status 1
+init: tty2 main process ended, respawning
+(end less)
+\end{commandline}
+
+…ssh 経由のターミナルログインはできるので、まあサーバとしては使えます。
+\end{frame}
+
+\emtext{大丈夫か？}
+
+\begin{frame}{とはいえ決まったことなので}
+ \begin{itemize}
+  \item Squeeze/Sid で人柱に協力しませう
+  \item Sid 使っていない人はまず Sid にしてみませう
+  \item 仮想マシンで試すのがよいせう
+ \end{itemize}
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
