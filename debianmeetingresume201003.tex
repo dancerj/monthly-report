@@ -48,11 +48,13 @@
 \hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日\\
 %\vspace*{-2.4cm}
 
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集1: Debian で podcast を作成するには} }
-\rotatebox{10}{\fontsize{32}{32} {\gt 対談: XXX YYY　ZZZ} }
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集1: ニューラルネットワーク特集}}
 
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集2: man-dbにはまってみた} }
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
 \end{titlepage}
-
 
 \dancersection{Introduction}{上川 純一}
 
@@ -233,10 +235,163 @@ XXXX
 
 サスペンスもの。
 
-%--------------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 \dancersection{Debian で libfftw を使ってみる}{上川純一}
-%--------------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
+\subsection{はじめに}
+
+DebianでFFTを取り扱うCのアプリケーションを書いてみたいと思うことはあり
+ませんか?今日は音声データを分析してみましょう。
+
+wav ファイルを入力として受け取り、FFTを実行してその結果を表示するアプリケー
+ションを作成してみます。
+
+\subsection{入力値の準備}
+
+適当に wav ファイルを用意しましょう。
+
+今回は手元で、aeolus を起動し、 jack で接続させ、ecasound を jack 入力に
+対して待機させ、qjackctl で接続させて収録しました。
+
+\begin{commandline}
+$ qjackctl &
+$ aeolus &
+$ vkeybd &
+$ ecasound -i jack -o test.wav
+ctrl-C で中断
+$ sweep test.wav # 適当に編集
+
+$ file ra-mono.wav 
+ra-mono.wav: RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, mono 44100 Hz
+\end{commandline}
+%$
+
+\subsection{インストール}
+
+libfftw3 をインストールします。
+あと、音声ファイルをロードするために sndfile1 を利用します。
+
+\begin{commandline}
+$ apt-get install libfftw3-dev libsndfile1-dev
+\end{commandline}
+%$
+
+\subsection{FFTWを使って wav ファイルを処理してみる}
+
+sndfile と fftw3 を使ってフーリエ変換して出力をダンプしてみましょう。
+
+\begin{commandline}
+/*BINFMTC: -lsndfile -lfftw3 -lm
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <sndfile.h>
+#include <math.h>
+#include <complex.h>
+#include <fftw3.h>
+
+/*
+  process with FFTW
+ */
+void study_sound(double* data, int size)
+{
+  fftw_complex* spectrum;
+  fftw_plan p;
+  int i;
+
+  spectrum = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * (size / 2 + 1));
+  p = fftw_plan_dft_r2c_1d(size, data, spectrum, FFTW_ESTIMATE);
+
+  /* process with FFTW */
+  fftw_execute(p);
+
+  /* dump output in CSV format */
+  printf("i,abs,arg");
+  for (i=0; i<(size/2+1); ++i) {
+    printf("%i,%f,%f\n", i,
+	   cabs(spectrum[i]),
+	   carg(spectrum[i]) / 2.0 / M_PI * 360.0);
+  }
+  fftw_destroy_plan(p);
+  fftw_free(spectrum);
+}
+
+/*
+  Process wav file.
+
+  @return 1 on failure, 0 on success.
+*/
+int process_wav_file(const char* filename, int size)
+{
+  SF_INFO sfinfo = {0, 0, 0, 0, 0, 0};
+  SNDFILE* s = sf_open(filename, SFM_READ, &sfinfo);
+  double* data = malloc(sizeof(double) * size);
+
+  if (!s || !data)
+    {
+      fprintf(stderr,
+	      "Something went wrong opening the file or allocating memory\n");
+      return 1;
+    }
+  if (sfinfo.channels != 1)
+    {
+      fprintf(stderr,
+	      "Please give me monaural audio data\n");
+      return 1;
+    }
+
+  /* Read wav file into an array of double */
+  sf_readf_double(s, data, size / sfinfo.channels);
+  study_sound(data, size / sfinfo.channels);
+  sf_close(s);
+  return 0;
+}
+
+int main(int argc, char** argv)
+{
+  process_wav_file(argv[1], atoi(argv[2]));
+  return 0;
+}
+\end{commandline}
+
+\subsection{出力を確認してみる}
+
+とりあえず簡単にグラフを作成するためのツールとして R を使ってみましょう。
+
+\begin{commandline}
+$ R
+
+R version 2.7.1 (2008-06-23)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+Rはフリーソフトウェアであり、「完全に無保証」です。 
+ 一定の条件に従えば、自由にこれを再配布することができます。 
+配布条件の詳細に関しては、'license()'あるいは'licence()'と入力してください。 
+
+Rは多くの貢献者による共同プロジェクトです。 
+詳しくは'contributors()'と入力してください。 
+また、RやRのパッケージを出版物で引用する際の形式については 
+'citation()'と入力してください。 
+ 
+'demo()'と入力すればデモをみることができます。 
+'help()'とすればオンラインヘルプが出ます。 
+'help.start()'でHTMLブラウザによるヘルプがみられます。 
+'q()'と入力すればRを終了します。 
+
+> g <- read.csv("t")
+> summary(g)
+       i             abs               angle        
+ Min.   :   0   Min.   :  0.1578   Min.   :-177.13  
+ 1st Qu.:1375   1st Qu.:  0.1943   1st Qu.: -65.36  
+ Median :2750   Median :  0.2543   Median : -42.37  
+ Mean   :2750   Mean   :  1.2575   Mean   : -40.92  
+ 3rd Qu.:4125   3rd Qu.:  0.4835   3rd Qu.: -19.46  
+ Max.   :5500   Max.   :471.8538   Max.   : 176.59  
+
+\end{commandline}
 
 %\printindex
 
