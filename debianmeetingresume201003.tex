@@ -305,6 +305,49 @@ $ apt-get install libfftw3-dev libsndfile1-dev
 \end{commandline}
 %$
 
+\subsection{sine 波を作成する}
+
+とりあえずテスト用に 440Hz の波形を作成します。
+
+\begin{commandline}
+/*BINFMTC: -lsndfile -lm
+
+  Create a sine wave at 44.1kHz for 1 second called sine.wav
+ */
+#include <stdlib.h>
+#include <stdio.h>
+#include <sndfile.h>
+#include <math.h>
+
+int create_sine(const char* filename, int size, double frequency)
+{
+  SF_INFO sfinfo = {
+    .frames = size,
+    .samplerate = 44100,
+    .channels = 1,
+    .format = SF_FORMAT_WAV | SF_FORMAT_PCM_16,
+    .sections = 0,
+    .seekable = 0
+  };
+  SNDFILE* s = sf_open(filename, SFM_WRITE, &sfinfo);
+  double* data = malloc(sizeof(double) * size);
+  int i;
+
+  for (i=0; i < size; ++i)
+    {
+      data[i] = sin(frequency * 2.0 * M_PI * i / 44100.0);
+    }
+
+  sf_writef_double(s, data, size);
+  sf_close(s);
+  return 0;
+}
+
+int main()
+{
+  return create_sine("sine.wav", 44100, 440.0);
+}
+\end{commandline}
 \subsection{FFTWを使って wav ファイルを処理してみる}
 
 sndfile と fftw3 を使ってフーリエ変換して出力をダンプしてみましょう。
@@ -384,6 +427,15 @@ int main(int argc, char** argv)
 }
 \end{commandline}
 
+
+実行してみます。
+
+\begin{commandline}
+$ ./sndfile-fftw.c sine.wav 44100 > sine.csv
+$ ./sndfile-fftw.c ra-1sec.wav 44100 > ra.csv
+
+\end{commandline}
+
 \subsection{出力を確認してみる}
 
 とりあえず簡単にグラフを作成するためのツールとして R を使ってみましょう。
@@ -409,16 +461,27 @@ Rは多くの貢献者による共同プロジェクトです。
 'help.start()'でHTMLブラウザによるヘルプがみられます。 
 'q()'と入力すればRを終了します。 
 
-> g <- read.csv("t")
-> summary(g)
-       i             abs               angle        
- Min.   :   0   Min.   :  0.1578   Min.   :-177.13  
- 1st Qu.:1375   1st Qu.:  0.1943   1st Qu.: -65.36  
- Median :2750   Median :  0.2543   Median : -42.37  
- Mean   :2750   Mean   :  1.2575   Mean   : -40.92  
- 3rd Qu.:4125   3rd Qu.:  0.4835   3rd Qu.: -19.46  
- Max.   :5500   Max.   :471.8538   Max.   : 176.59  
+> sine <- read.csv("sine.csv")
+> ra <- read.csv("ra.csv")
+> summary(sine)
+       i              abs                 arg           
+ Min.   :    0   Min.   :    0.000   Min.   :-179.9674  
+ 1st Qu.: 5512   1st Qu.:    0.000   1st Qu.:   0.0000  
+ Median :11025   Median :    0.000   Median :   0.0000  
+ Mean   :11025   Mean   :    1.000   Mean   :  -0.1395  
+ 3rd Qu.:16538   3rd Qu.:    0.000   3rd Qu.:   0.0000  
+ Max.   :22050   Max.   :22049.319   Max.   : 180.0000  
+> summary(ra)
+       i              abs                 arg         
+ Min.   :    0   Min.   :2.066e-03   Min.   :-179.93  
+ 1st Qu.: 5512   1st Qu.:1.467e-02   1st Qu.: -56.88  
+ Median :11025   Median :1.907e-02   Median : -37.80  
+ Mean   :11025   Mean   :3.944e-01   Mean   : -38.40  
+ 3rd Qu.:16538   3rd Qu.:3.620e-02   3rd Qu.: -17.82  
+ Max.   :22050   Max.   :4.072e+02   Max.   : 180.00  
 
+> plot(sine$i, sine$abs, xlim=c(400,500), ylim=c(0,22000), type="l")
+> plot(ra$i, ra$abs, xlim=c(0,2000), ylim=c(0,100), type="l")
 \end{commandline}
 
 %\printindex
