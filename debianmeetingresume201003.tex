@@ -445,7 +445,10 @@ XXXX
 \dancersection{Debian で libfftw を使ってみる}{上川純一}
 %-------------------------------------------------------------------------------
 \index{fftw}
-\index{fast fourier transform}
+\index{FFT}
+\index{DFT}
+\index{libfftw}
+\index{libsndfile}
 
 \subsection{はじめに}
 
@@ -465,10 +468,15 @@ $ apt-get install libfftw3-dev libsndfile1-dev
 \end{commandline}
 %$
 
-\subsection{簡単なsine波を作成する}
+\subsection{実験対象の準備:簡単なsine波を作成する}
 
 まず、テスト用にFFTの結果が予想できるデータを作成してみます。
 ここでは 440Hz のきれいなサイン波を作成しています。
+
+\begin{equation*}
+ data(x) = sin (\frac{2 \pi 440 x}{44100} ) 
+\footnote{sin は radian}
+\end{equation*}
 
 \begin{commandline}
 /*BINFMTC: -lsndfile -lm
@@ -510,14 +518,16 @@ int main()
 }
 \end{commandline}
 
-\subsection{複雑な入力値例の準備}
+\subsection{実験対象の準備:複雑な入力値例の準備}
 
 テスト用の入力値として、適当な wav ファイルを用意しましょう。
 
-今回は手元で、aeolus を起動し、 jack で接続させ、ecasound を jack 入力に
+今回は手元で、aeolus というオルガンシミュレータを起動し、 
+jack で接続させ、ecasound を jack 入力に
 対して待機させ、qjackctl で接続させて収録しました。
 
-結果として 16-bit mono の PCM データ1秒分を作成しました。
+それなりに長い時間録音したデータから 16-bit mono の PCM データ1秒分を切り
+出して実験用データを作成しました。
 
 \begin{commandline}
 $ qjackctl &
@@ -533,7 +543,10 @@ ra-mono.wav: RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, mono 
 
 \subsection{FFTWを使って wav ファイルを処理してみる}
 
-sndfile と fftw3 を使ってフーリエ変換して出力をダンプしてみましょう。
+sndfile と fftw3 を使ってフーリエ変換して出力をダンプしてみましょう。サン
+プルコードは sndfile を使い double の配列にwavファイルの中身を展開して、
+その内容を fftw に渡して処理しています。double の値は各 1/44100 秒の瞬間
+における空気の圧力を表しているようです。
 
 \begin{commandline}
 /*BINFMTC: -lsndfile -lfftw3 -lm
@@ -671,18 +684,29 @@ Rは多くの貢献者による共同プロジェクトです。
 > dev.off()
 \end{commandline}
 
+
+\fgref{fig:wave-sine}の440Hz のサイン波を処理した結果を見てみると、440
+Hz あたりにグラフの突起があるのが見て取れます。
+
 \begin{figure}[ht]
- \includegraphics{image201003/sine.eps}
+ \begin{center}
+  \includegraphics{image201003/sine.eps}
+ \end{center} 
  \label{fig:wave-sine}
  \caption{440Hz のサイン波}
 \end{figure}
 
+しかし、実際にオルガン音を処理した結果の\fgref{fig:wave-ra}を見てみると、
+グラフに突起が多数あって、結構複雑です。そのまま簡単に処理させてくれはし
+なさそうです。
+
 \begin{figure}[ht]
- \includegraphics{image201003/ra.eps}
+ \begin{center}
+  \includegraphics{image201003/ra.eps}
+ \end{center} 
  \label{fig:wave-ra}
  \caption{ラをaeolusで適当に演奏した音}
 \end{figure}
-
 
 %\printindex
 
