@@ -472,13 +472,110 @@ $ java -jar weka.jar
 
 \hrule
 
-\subsubsection{ARFFファイルをロードする}
+\subsubsection{Weka で扱うデータフォーマット}
 
-Preprocess タブ
+Weka では、ARFF(Attribute-Relation File Format)というフォーマットのテキ
+ストファイルを入力データとして扱います。
 
-Open File
+データフォーマットは次のようになります。
 
-/image200812/memberanalysis/attend.arff
+\begin{commandline}
+@relation 名前
+@attribute 属性名 属性の型
+@attribute 属性名 属性の型
+:
+:
+@data
+データ,データ,…,データ
+\end{commandline}
+
+\begin{itemize}
+\item @relation はデータ全体の名前を指定します。
+\item @attribute はデータの属性を表し、1つ目の引数は属性名、2つめの引数
+      は属性データの型を表します。
+\item @attribute のデータ型には、numeric, real, integer, string, date型
+      を使えます。
+      \begin{itemize}
+       \item numeric は real か integer を指定できます。
+       \item real は実数を指定できます。
+       \item integer は整数を指定できます。
+       \item string は文字列を指定できます。
+       \item date 型は日時で、デフォルトは''yyyy-MM-dd'T'HH:mm:ss''とい
+	     う書式です。
+      \end{itemize}
+ \item @data データ領域の宣言です。
+       \begin{itemize}
+	\item その次の行から CSV 形式でデータを記述します。
+	\item @attribute 行で上から設定した順に CSV の一行での左から右へ
+	      の各データとなります。
+       \end{itemize}
+\end{itemize}
+
+昨年の11月の勉強会で GNU R で扱った光熱費のデータと、気象庁が公開してい
+る気温、降水量などの気象データ\footnote{\url{http://www.data.jma.go.jp/obd/stats/etrn/index.php}}を使ってみます。
+
+まず、CSV で以下のように記述したとします。
+\begin{commandline}
+"年","月","降水量合計(mm)","平均日平均気温(℃)","平均日最高気温(℃)","平均日最低気
+温(℃)","平均風速(m/s)","最大風速(m/s)","日照時間(h)","電気使用量(kWh)","電気使用
+量(kWh)/日","料金(円)/日","合計料金","ガス使用量(m3)","ガス使用量(m3)/日","料金(
+円)/日","合計料金"
+2007,1,50,6,10.8,1.1,1,5,188.9,234,6.88235294117647,161.235294117647,5482,9,0.257142857142857,70.1714285714286,2456
+2007,2,44,7.3,12.6,1.9,1.3,6,198.1,198,7.07142857142857,168.071428571429,4706,9,0.333333333333333,80.962962962963,2186
+(snip)
+\end{commandline}
+
+これは、ARFF フォーマットでは以下のようになります。
+
+\begin{commandline}
+@relation 降水量・気温(府中市)と電気代、ガス代の関係について
+
+@attribute 年 real
+@attribute 月 real
+@attribute 降水量合計(mm) real
+@attribute 平均日平均気温(℃) real
+@attribute 平均日最高気温(℃) real
+@attribute 平均日最低気温(℃) real
+@attribute 平均風速(m/s) real
+@attribute 最大風速(m/s) real
+@attribute 日照時間(h) real
+@attribute 電気使用量(kWh) real
+@attribute 電気使用量(kWh)/日 real
+@attribute 料金(円)/日 real
+@attribute 合計料金 real
+@attribute ガス使用量(m3) real
+@attribute ガス使用量(m3)/日 real
+@attribute 料金(円)/日 real
+@attribute 合計料金 real
+
+@data
+2007,1,50,6,10.8,1.1,1,5,188.9,234,6.88235294117647,161.235294117647,5482,9,0.257142857142857,70.1714285714286,2456
+2007,2,44,7.3,12.6,1.9,1.3,6,198.1,198,7.07142857142857,168.071428571429,4706,9,0.333333333333333,80.962962962963,2186
+(snip)
+\end{commandline}
+
+\subsubsection{ARFF をロードする}
+
+先ほど用意した kohnetsu.arff をロードしてみましょう。Preprocess タブの
+Open File ボタンを押します。ダイアログが表示されるので、kohnetsu.arff を
+指定します。
+
+\begin{figure}[H]
+\begin{center}
+\caption{ARFF ファイルをロードする}
+\includegraphics[width=0.5\hsize]{image201003/weka2.png}
+\end{center}
+\end{figure}
+
+ARFF ファイルを読み込むと以下のようになります。UTF-8 エンコードであれば、
+ご覧のとおり日本語も正常に読み込めます
+
+\begin{figure}[H]
+\begin{center}
+\caption{ARFF からデータを読み込んだ結果}
+\includegraphics[width=1.0\hsize]{image201003/weka3.png}
+\end{center}
+\end{figure}
 
 \subsubsection{可視化してみる}
 
@@ -499,6 +596,7 @@ Multilayer Perceptron (ニューラルネットワークで分類)
 \begin{itemize}
  \item \url{www1.doshisha.ac.jp/~mjin/R/23.pdf}
  \item \url{http://web.sfc.keio.ac.jp/~soh/dm03/man_w_03.html}
+ \item \url{http://weka.wikispaces.com/ARFF}
 \end{itemize}
 
 %-------------------------------------------------------------------------------
