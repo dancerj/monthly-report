@@ -757,69 +757,69 @@ Hz あたりにグラフの突起があるのが見て取れます。
 \dancersection{``3.0 (quilt)''について}{吉野与志仁}
 %-------------------------------------------------------------------------------
 \subsection{はじめに}
-普段Debianを使っている皆さんはご存知とは思いますが，近々デフォルトになる
+普段Debianを使っている皆さんはご存知とは思いますが、近々デフォルトになる
 予定でsqueezeのrelease goalであるDebianソースパッケー
-ジのフォーマット``\verb|3.0 (quilt)|'' の復習をしたいと思います．
+ジのフォーマット``\verb|3.0 (quilt)|'' の復習をしたいと思います。
 \subsection{``1.0''}
-まずは``\verb|3.0 (quilt)|''の前に，いままで一般に使われてきたフォーマット(``\verb|1.0|'')を簡単にまとめます．
+まずは``\verb|3.0 (quilt)|''の前に、いままで一般に使われてきたフォーマット(``\verb|1.0|'')を簡単にまとめます。
 
-\verb|1.0|では，ソースパッケージは以下の3ファイルで構成されます．
+\verb|1.0|では、ソースパッケージは以下の3ファイルで構成されます。
 \begin{itemize}
  \item \textit{packagename}\verb|-|\textit{upstreamversion}\verb|.orig.tar.gz|
  \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.diff.gz|
  \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.dsc|
 \end{itemize}
 
-なお，正確には\verb|1.0|は2種類あって，上の通常のパッケージのほかに``Debian
-nativeな''パッケージがあります．Debian native パッケージは次の2ファイルで構成されます．
+なお、正確には\verb|1.0|は2種類あって、上の通常のパッケージのほかに``Debian
+nativeな''パッケージがあります。Debian native パッケージは次の2ファイルで構成されます。
 \begin{itemize}
  \item \textit{packagename}\verb|-|\textit{version}\verb|.tar.gz|
  \item \textit{packagename}\verb|-|\textit{version}\verb|.dsc|
 \end{itemize}
 
-ここで，\verb|*.orig.tar.gz|には，通常上流の元のソースツリーが含まれます．
-\verb|*.diff.gz|には，ソースパッケージからパッケージなどをビルドするのに必要なスクリ
-プトなどが入った \verb|debian/| ディレクトリや，上流のソースに対するパッケージ
-メンテナの変更が含まれます．
+ここで、\verb|*.orig.tar.gz|には、通常上流の元のソースツリーが含まれます。
+\verb|*.diff.gz|には、ソースパッケージからパッケージなどをビルドするのに必要なスクリ
+プトなどが入った \verb|debian/| ディレクトリや、上流のソースに対するパッケージ
+メンテナの変更が含まれます。
 
 \subsection{しかし}
-と説明してきましたが，このファイル構成には
+と説明してきましたが、このファイル構成には
 \begin{enumerate}
  \item アーカイブの圧縮形式に gzip しか使えない
  \item 複数のアーカイブで構成される上流のソースがそのまま扱えない
  \item メンテナが当てたソースへのパッチが全部つながってしまっている
  \item \verb|debian/| 以下にバイナリファイルが直接置けない
 \end{enumerate}
-などの問題点があります．
+などの問題点があります。
 
-そこで，さまざまな方法が検討されました．
+そこで、さまざまな方法が検討されました。
 
-1は，これにより上流がbz2で配布していてもgzに圧縮し直さなければならなかっ
-たりしていました．\verb|*.orig.tar.gz| の中身が上流のアーカイブの実体である，
-といった方法なども（ちょっと無駄ですが...）使われてきました．この方法はビルド時にそのtarballを展開して作業
-します．cdbsにはこの方法へのサポートもあります．
+1は、これにより上流がbz2で配布していてもgzに圧縮し直さなければならなかっ
+たりしていました。\verb|*.orig.tar.gz| の中身が上流のアーカイブの実体である、
+といった方法なども（ちょっと無駄ですが...）使われてきました。この方法はビルド時にそのtarballを展開して作業
+します。cdbsにはこの方法へのサポートもあります。
 
 2は1と同様の方法で複数のtarballが入った\verb|*.orig.tar.gz|を用意したり
-していました．
+していました。
 
-3は，当たっているパッチのそれぞれが
-どんな意図で行われたのかがわからない，ということ，また，\verb|debian/|以下のファ
-イルも上流ソースへのパッチも一緒くたになってしまっていること，が問題でした．そこで，まとまった意
-味のある単位に分割されたパッチをまず用意しておき，それらを
+3は、当たっているパッチのそれぞれが
+どんな意図で行われたのかがわからない、ということ、また、\verb|debian/|以下のファ
+イルも上流ソースへのパッチも一緒くたになってしまっていること、が問題でした。そこで、まとまった意
+味のある単位に分割されたパッチをまず用意しておき、それらを
 \verb|debian/patches/| 下に配置
-し，その細かいパッチをビル
+し、その細かいパッチをビル
 ド時に当てる/外すフレームワーク
-(patch system) が利用されています．これには dpatch や quilt などがありま
-す．なお，この細かいパッチのそれぞれには，先頭にパッチの意図を説明する文
-章を記述することが推奨されています(\url{http://dep.debian.net/deps/dep3/})．
+(patch system) が利用されています。これには dpatch や quilt などがありま
+す。なお、この細かいパッチのそれぞれには、先頭にパッチの意図を説明する文
+章を記述することが推奨されています(\url{http://dep.debian.net/deps/dep3/})。
 
-4は，バイナリファイルのdiffを取ろうとしても普通のpatchではできないことが
-原因なので，uuencodeなどでテキストに落としてpatchを取る，といった手法が
-用いられてきました．
+4は、バイナリファイルのdiffを取ろうとしても普通のpatchではできないことが
+原因なので、uuencodeなどでテキストに落としてpatchを取る、といった手法が
+用いられてきました。
 
 \subsection{そこで}
 このような問題を解決するために新たなソースパッケージのフォーマットも検討
-されました．それが``\verb|3.0 (quilt)|''フォーマット（と``\verb|3.0 (native)|''フォーマット）です．
+されました。それが``\verb|3.0 (quilt)|''フォーマット（と``\verb|3.0 (native)|''フォーマット）です。
 
 \verb|3.0 (quilt)|は次の3つ以上のファイルで構成されます。
 \begin{itemize}
@@ -830,48 +830,48 @@ nativeな''パッケージがあります．Debian native パッケージは次の
  \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.dsc|
 \end{itemize}
 
-なお，\verb|1.0|にあったDebian nativeパッケージに相当する\verb|3.0 (native)|は
-次の2ファイルで構成されます．
+なお、\verb|1.0|にあったDebian nativeパッケージに相当する\verb|3.0 (native)|は
+次の2ファイルで構成されます。
 \begin{itemize}
  \item \textit{packagename}\verb|-|\textit{version}\verb|.tar.|\textit{ext}
  \item \textit{packagename}\verb|-|\textit{version}\verb|.dsc|
 \end{itemize}
 
-ここで，まず，tarの拡張子部分\textit{ext}に gz のほか，bz2, lzma, xz が利用でき
-るようになりました．これにより問題1が解決されました（\verb|3.0 (native)|に
-おける主な変更点はこれです）．
+ここで、まず、tarの拡張子部分\textit{ext}に gz のほか、bz2, lzma, xz が利用でき
+るようになりました。これにより問題1が解決されました（\verb|3.0 (native)|に
+おける主な変更点はこれです）。
 
-また，\textit{component}の部分を適当に変えることにより複数のtarballをきち
-んと扱えるようになりました．これが問題2を解決します．
+また、\textit{component}の部分を適当に変えることにより複数のtarballをきち
+んと扱えるようになりました。これが問題2を解決します。
 
-次に，\verb|debian/|下のファイルはすべて \verb|*.debian.tar.gz| に入れることに
-なりました．これですべてが混ざった状態はなくなりました．さら
-に，\verb|debian/patches/| 下のパッチが，パッチシステム quilt と基本的に同じ方法
+次に、\verb|debian/|下のファイルはすべて \verb|*.debian.tar.gz| に入れることに
+なりました。これですべてが混ざった状態はなくなりました。さら
+に、\verb|debian/patches/| 下のパッチが、パッチシステム quilt と基本的に同じ方法
 で \verb|dpkg-source(1)| によって``ソースパッケージの展開時に'' 自動的に当たる
-ようになりました．これにより，ビルド時にパッチを当てるように \verb|debian/rules| ファイルを記述する必要はなく
-なりましたし，\verb|debian/control|ファイルに\verb|Build-Depends: quilt|
-などと書く必要もなくなりました．これらによって問題3は解決されました．
+ようになりました。これにより、ビルド時にパッチを当てるように \verb|debian/rules| ファイルを記述する必要はなく
+なりましたし、\verb|debian/control|ファイルに\verb|Build-Depends: quilt|
+などと書く必要もなくなりました。これらによって問題3は解決されました。
 
-問題4については，\verb|debian/|下のファイルをdiffとして保持することはも
-はやなくなったので解決し，\verb|*.debian.tar.|\textit{ext}に直にバイナリファイ
-ルを配置できます．
+問題4については、\verb|debian/|下のファイルをdiffとして保持することはも
+はやなくなったので解決し、\verb|*.debian.tar.|\textit{ext}に直にバイナリファイ
+ルを配置できます。
 
 \subsection{最近の動向}
-この\verb|3.0 (quilt)|フォーマットは，Debianのアーカイブが巨大化していって
-いるため，gzipよりlzma（lenny当時で，現在ならxz）を使って圧縮すればサイ
-ズを抑えられるといった理由で，lenny以降でより推進されるようになりまし
-た．Debianにあるソースパッケージすべてが\verb|3.0 (quilt)|化可能になった
+この\verb|3.0 (quilt)|フォーマットは、Debianのアーカイブが巨大化していって
+いるため、gzipよりlzma（lenny当時で、現在ならxz）を使って圧縮すればサイ
+ズを抑えられるといった理由で、lenny以降でより推進されるようになりまし
+た。Debianにあるソースパッケージすべてが\verb|3.0 (quilt)|化可能になった
 ら（潰すべきminor/wishlistバグが
 \url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?users=hertzog@debian.org;tag=3.0-quilt-by-default}
-にあります），dpkg
+にあります）、dpkg
 はデフォルトで\verb|3.0 (quilt)|フォーマットでソースパッケージをビルドする
-ように変更される，とのことです．というわけでこれから作るパッケージは3.0
-化しましょう．
+ように変更される、とのことです。というわけでこれから作るパッケージは3.0
+化しましょう。
 
 \subsection{例1：gzipパッケージ}
-具体例として，まずgzipソースパッケージ(1.3.12-9)を\verb|3.0 (quilt)|化してみ
-ました．このソースパッケージは直にpatchを当てた形式を取っていまし
-た．\verb|dpkg-source(1)|による展開時のメッセージで分かります:
+具体例として、まずgzipソースパッケージ(1.3.12-9)を\verb|3.0 (quilt)|化してみ
+ました。このソースパッケージは直にpatchを当てた形式を取っていまし
+た。\verb|dpkg-source(1)|による展開時のメッセージで分かります:
 \begin{commandline}
 $ apt-get source gzip
 パッケージリストを読み込んでいます... 完了
@@ -892,9 +892,9 @@ dpkg-source: info: upstream files that have been modified:
 
 (snip)
 \end{commandline}
-\subsubsection{バージョンの切り換え，ビルド}
-現在のデフォルトは\verb|1.0|なので，\verb|3.0 (quilt)|と明示してからソー
-スパッケージを作ります．
+\subsubsection{バージョンの切り換え、ビルド}
+現在のデフォルトは\verb|1.0|なので、\verb|3.0 (quilt)|と明示してからソー
+スパッケージを作ります。
 \begin{commandline}
 $ cd gzip-1.3.12/
 $ mkdir -p debian/source
@@ -920,13 +920,13 @@ dpkg-source: info: building gzip in gzip_1.3.12-9.dsc
 
 (snip)
 \end{commandline}
-と，とりあえず昔のdiff.gz（の上流ソースへのパッチ部分）に相当する1つのパッ
-チを自動で出力してくれます．この大きなパッチそのままではこのフォーマット
-にした意味がほとんどないので分けましょう．また，パッチの説明文テンプレー
-トも\verb|debian/changelog|を基にして付けてくれるので，修正して正しい説明にしましょう．（今回は
+と、とりあえず昔のdiff.gz（の上流ソースへのパッチ部分）に相当する1つのパッ
+チを自動で出力してくれます。この大きなパッチそのままではこのフォーマット
+にした意味がほとんどないので分けましょう。また、パッチの説明文テンプレー
+トも\verb|debian/changelog|を基にして付けてくれるので、修正して正しい説明にしましょう。（今回は
 共に省略）
 
-バイナリパッケージをビルドしてみます．
+バイナリパッケージをビルドしてみます。
 \begin{commandline}
 $ debuild -b -us -uc
  dpkg-buildpackage -rfakeroot -D -us -uc -b
@@ -945,7 +945,7 @@ dpkg-buildpackage: warning: (Use -d flag to override.)
 debuild: fatal error at line 1330:
 dpkg-buildpackage -rfakeroot -D -us -uc -b failed
 \end{commandline}
-\verb|Build-Depends|を満たして，ビルドします．
+\verb|Build-Depends|を満たして、ビルドします。
 \begin{commandline}
 $ mk-build-deps 
 dh_testdir
@@ -991,12 +991,12 @@ W: gzip: missing-dependency-on-install-info
 Finished running lintian.
 \end{commandline}
 \subsection{例2：bash-completionパッケージ}
-次に，パッチシステムとしてquiltを使っていたbash-completionパッケージを
-\verb|3.0 (quilt)|化してみました．
+次に、パッチシステムとしてquiltを使っていたbash-completionパッケージを
+\verb|3.0 (quilt)|化してみました。
 
 \subsubsection{まずビルド}
-パッチシステムでは，ビルド前はパッチは当たっていないので，自動でツリーに
-パッチが当てられてソースパッケージがビルドされます．
+パッチシステムでは、ビルド前はパッチは当たっていないので、自動でツリーに
+パッチが当てられてソースパッケージがビルドされます。
 \begin{commandline}
 $ apt-get source bash-completion
 パッケージリストを読み込んでいます... 完了
@@ -1032,12 +1032,12 @@ dpkg-source: info: building bash-completion in bash-completion_1.1-3.dsc
 
 (snip)
 \end{commandline}
-今回は問題ありませんでしたが，\verb|3.0 (quilt)|はquiltとは微妙に異なり，す
+今回は問題ありませんでしたが、\verb|3.0 (quilt)|はquiltとは微妙に異なり、す
 べて \verb|patch -p1| として扱われるのでpathを適当に調整する必要があるか
-もしれません．
+もしれません。
 \subsubsection{quilt周りの変更}
-パッチは展開時に当たるので，\verb|debian/rules|内でパッチを当てている部
-分はもう要りません．このソースパッケージは\verb|dh(1)|を使用していたので簡単でした．
+パッチは展開時に当たるので、\verb|debian/rules|内でパッチを当てている部
+分はもう要りません。このソースパッケージは\verb|dh(1)|を使用していたので簡単でした。
 \begin{commandline}
 --- debian/rules	2010-03-18 10:50:30.000000000 +0900
 +++ debian/rules.new	2010-03-18 10:54:53.000000000 +0900
@@ -1056,7 +1056,7 @@ dpkg-source: info: building bash-completion in bash-completion_1.1-3.dsc
  install: install-stamp
  install-stamp: build
 \end{commandline}
-quiltには通常は\verb|Build-Depends|しません．
+quiltには通常は\verb|Build-Depends|しません。
 \begin{commandline}
 --- debian/control	2010-03-18 10:50:30.000000000 +0900
 +++ debian/control.new	2010-03-18 10:57:00.000000000 +0900
@@ -1071,7 +1071,7 @@ quiltには通常は\verb|Build-Depends|しません．
  Vcs-Git: git://git.debian.org/git/bash-completion/debian.git
 \end{commandline}
 \subsubsection{もう一回}
-今度は初めから\verb|3.0 (quilt)|です．
+今度は初めから\verb|3.0 (quilt)|です。
 \begin{commandline}
 $ debuild -S -us -uc
  dpkg-buildpackage -rfakeroot -d -us -uc -S
@@ -1094,7 +1094,7 @@ dpkg-buildpackage: binary and diff upload (original source NOT included)
 Now running lintian...
 Finished running lintian.
 \end{commandline}
-バイナリパッケージをビルドします．
+バイナリパッケージをビルドします。
 \begin{commandline}
 $ debuild -b -us -uc
  dpkg-buildpackage -rfakeroot -D -us -uc -b
@@ -1110,31 +1110,31 @@ Now running lintian...
 Finished running lintian.
 \end{commandline}
 \subsection{例3：ptex-binパッケージ}
-次に，実際には複数のソースアーカイブを使用しているptex-binソー
-スパッケージ(3.1.11+0.04b-0.1)を\verb|3.0 (quilt)|化してみました．
+次に、実際には複数のソースアーカイブを使用しているptex-binソー
+スパッケージ(3.1.11+0.04b-0.1)を\verb|3.0 (quilt)|化してみました。
 
-ptex-binソースパッケージは，実際には \verb|ptex-src-*.tar.gz| と \verb|jmpost-*.tar.gz| の2
-つの上流tarballから構成されます．さらに\verb|Build-Depends: ptex-buildsupport|となっていますが，このptex-buildsupportパッケージは
-\verb|tetex-src-*-stripped.tar.gz|のみが含まれる，ほぼビルド専用のパッケー
-ジです．すなわち，3つの上流tarballが使われています．その上，このソースパッ
-ケージには \verb|debian/patches/|ディレクトリがありますが，quiltやdpatch
+ptex-binソースパッケージは、実際には \verb|ptex-src-*.tar.gz| と \verb|jmpost-*.tar.gz| の2
+つの上流tarballから構成されます。さらに\verb|Build-Depends: ptex-buildsupport|となっていますが、このptex-buildsupportパッケージは
+\verb|tetex-src-*-stripped.tar.gz|のみが含まれる、ほぼビルド専用のパッケー
+ジです。すなわち、3つの上流tarballが使われています。その上、このソースパッ
+ケージには \verb|debian/patches/|ディレクトリがありますが、quiltやdpatch
 といった近代的なものではなくビルド時にpatchを\verb|debian/rules|内で直接呼ぶ構成になっていま
-した．
-\subsubsection{ソースの用意，名前の変更}
+した。
+\subsubsection{ソースの用意、名前の変更}
 \begin{commandline}
  $ apt-get source ptex-bin
  $ apt-get source ptex-buildsupport
 \end{commandline}
-適当に名前を変えます．ここでは
+適当に名前を変えます。ここでは
 \begin{commandline}
 $ mv ptex-bin-3.1.11+0.04b/ptex-src-3.1.11.tar.gz ptex-bin_3.1.11+0.04b+3.0.orig.tar.gz
 $ mv ptex-bin-3.1.11+0.04b/jmpost-0.04b.tar.gz ptex-bin_3.1.11+0.04b+3.0.orig-jmpost.tar.gz
 $ mv ptex-buildsupport-3.0/tetex-src-3.0-stripped.tar.gz ptex-bin_3.1.11+0.04b+3.0.orig-tetex-stripped.tar.gz
 \end{commandline}
-としました．\verb|3.0 (quilt)|では，\verb|*.orig.tar.|\textit{ext}がまずメインで展開され，そのソースツ
+としました。\verb|3.0 (quilt)|では、\verb|*.orig.tar.|\textit{ext}がまずメインで展開され、そのソースツ
 リーに\textit{component}ディレクトリが掘られてその下に各
-\verb|*.orig-|\textit{component}\verb|.tar.|\textit{ext}が展開されます．ま
-た，\textit{component}には英数字とハイフンのみが使えます．
+\verb|*.orig-|\textit{component}\verb|.tar.|\textit{ext}が展開されます。ま
+た、\textit{component}には英数字とハイフンのみが使えます。
 \subsubsection{とりあえずビルド}
 \begin{commandline}
 $ mkdir ptex-bin-3.1.11+0.04b+3.0
@@ -1180,7 +1180,7 @@ dpkg-source: info: building ptex-bin in ptex-bin_3.1.11+0.04b+3.0-0.1.dsc
  dpkg-genchanges -S >../ptex-bin_3.1.11+0.04b+3.0-0.1_source.changes
 \end{commandline}
 とりあえず空のソースツリーで作ったのでソースがないというwarningはスルー
-します．
+します。
 \begin{commandline}
 $ cd ..
 $ dpkg-source -x ptex-bin_3.1.11+0.04b+3.0-0.1.dsc
@@ -1200,17 +1200,17 @@ INSTALL.txt    jbibextra.c  kanji.defines    ptex-base.ch  usage.c
 Makefile.in    jbibextra.h  kanji.h.in       ptexextra.c   version.c
 \end{commandline}
 メインのソースのトップディレクトリでそのままビルドできるようなものはいい
-ですが，\verb|ptex-src-*.tar.gz|はそうではないので微妙ですね... ともか
-く，今回はビルド用ディレクトリを掘ってビルドできるように\verb|debian/rules|の変
-更が必要でした．
+ですが、\verb|ptex-src-*.tar.gz|はそうではないので微妙ですね... ともか
+く、今回はビルド用ディレクトリを掘ってビルドできるように\verb|debian/rules|の変
+更が必要でした。
 \subsubsection{quilt化}
-普段パッチシステムquiltを使っていればほとんど変更の必要はありませんが，
+普段パッチシステムquiltを使っていればほとんど変更の必要はありませんが、
 このパッケージはパッチは分かれているものの自力で色々やっているので
-まずquilt化が必要でした．
+まずquilt化が必要でした。
 
-全パッチを\verb|-p1|化した上で，\verb|debian/rules|に書かれている通りの
+全パッチを\verb|-p1|化した上で、\verb|debian/rules|に書かれている通りの
 順番でパッチを\verb|quilt import && quilt push|
-しました．quiltでは同じパッチ名はダメのようですね．
+しました。quiltでは同じパッチ名はダメのようですね。
 \begin{commandline}
 $ cd debian/
 $ mv patches patches.old
@@ -1258,8 +1258,8 @@ patching file jmpost/Makefile.in
 $ rm -r debian/patches.old/
 \end{commandline}
 \subsubsection{debian/rules, debian/controlの変更}
-tarballをもう展開する必要はありません．ビルド用ディレクトリにコピーするこ
-とにします．パッチを当てる必要もないのでその辺も削ります．
+tarballをもう展開する必要はありません。ビルド用ディレクトリにコピーするこ
+とにします。パッチを当てる必要もないのでその辺も削ります。
 \begin{commandline}
 --- debian/rules	2010-03-18 12:01:15.000000000 +0900
 +++ debian/rules.new	2010-03-18 13:19:09.000000000 +0900
@@ -1333,7 +1333,7 @@ tarballをもう展開する必要はありません．ビルド用ディレクトリにコピーするこ
  	# Copy texmf.cnf from your system.
  	cp /usr/share/texmf/web2c/texmf.cnf \
 \end{commandline}
-ptex-buildsupportは不要になりました．
+ptex-buildsupportは不要になりました。
 \begin{commandline}
 --- debian/control	2010-03-18 12:01:15.000000000 +0900
 +++ debian/control.new	2010-03-18 13:23:09.000000000 +0900
@@ -1359,7 +1359,7 @@ dpkg-buildpackage: set CFLAGS to default value: -g -O2
 
 (snip)
 \end{commandline}
-試しに\verb|dpkg-source -x|してみます．
+試しに\verb|dpkg-source -x|してみます。
 \begin{commandline}
 $ dpkg-source -x ptex-bin_3.1.11+0.04b+3.0-0.1.dsc
 dpkg-source: warning: extracting unsigned source package (ptex-bin_3.1.11+0.04b+3.0-0.1.dsc)
@@ -1377,8 +1377,8 @@ dpkg-source: info: applying web2c.depend.mk.patch
 dpkg-source: info: applying pTeX_Makefile.in.patch
 dpkg-source: info: applying jmpost_Makefile.in.patch
 \end{commandline}
-無事当たりました．
-バイナリパッケージをビルドします．
+無事当たりました。
+バイナリパッケージをビルドします。
 \begin{commandline}
 $ debuild -b -us -uc
  dpkg-buildpackage -rfakeroot -D -us -uc -b
@@ -1421,14 +1421,14 @@ W: jmpost: binary-without-manpage usr/bin/pmakempx
 W: jbibtex-bin: copyright-without-copyright-notice
 Finished running lintian.
 \end{commandline}
-無事できました．
+無事できました。
 \subsection{References}
 \begin{itemize}
- \item 第41回東京エリア Debian 勉強会資料（2008年6月）．パッチシステムな
-       どの使い方の詳細はこちらにまとまっています．
- \item \verb|dpkg-source(1)|（\verb|man 1 dpkg-source|）．\verb|3.0 (quilt)|などのソースフォーマットの詳細．
+ \item 第41回東京エリア Debian 勉強会資料（2008年6月）。パッチシステムな
+       どの使い方の詳細はこちらにまとまっています。
+ \item \verb|dpkg-source(1)|（\verb|man 1 dpkg-source|）。\verb|3.0 (quilt)|などのソースフォーマットの詳細。
  \item \url{http://wiki.debian.org/ReleaseGoals/NewDebFormats}
- \item \url{http://release.debian.org/squeeze/goals.txt}．squeeze
+ \item \url{http://release.debian.org/squeeze/goals.txt}。squeeze
        release goals.
 \end{itemize}
 %\printindex
