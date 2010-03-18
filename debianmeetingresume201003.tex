@@ -753,6 +753,684 @@ Hz あたりにグラフの突起があるのが見て取れます。
  \caption{ラをaeolusで適当に演奏した音}
 \end{figure}
 
+%-------------------------------------------------------------------------------
+\dancersection{``3.0 (quilt)''について}{吉野与志仁}
+%-------------------------------------------------------------------------------
+\subsection{はじめに}
+普段Debianを使っている皆さんはご存知とは思いますが，近々デフォルトになる
+予定でsqueezeのrelease goalであるDebianソースパッケー
+ジのフォーマット``\verb|3.0 (quilt)|'' の復習をしたいと思います．
+\subsection{``1.0''}
+まずは``\verb|3.0 (quilt)|''の前に，いままで一般に使われてきたフォーマット(``\verb|1.0|'')を簡単にまとめます．
+
+\verb|1.0|では，ソースパッケージは以下の3ファイルで構成されます．
+\begin{itemize}
+ \item \textit{packagename}\verb|-|\textit{upstreamversion}\verb|.orig.tar.gz|
+ \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.diff.gz|
+ \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.dsc|
+\end{itemize}
+
+なお，正確には\verb|1.0|は2種類あって，上の通常のパッケージのほかに``Debian
+nativeな''パッケージがあります．Debian native パッケージは次の2ファイルで構成されます．
+\begin{itemize}
+ \item \textit{packagename}\verb|-|\textit{version}\verb|.tar.gz|
+ \item \textit{packagename}\verb|-|\textit{version}\verb|.dsc|
+\end{itemize}
+
+ここで，\verb|*.orig.tar.gz|には，通常上流の元のソースツリーが含まれます．
+\verb|*.diff.gz|には，ソースパッケージからパッケージなどをビルドするのに必要なスクリ
+プトなどが入った \verb|debian/| ディレクトリや，上流のソースに対するパッケージ
+メンテナの変更が含まれます．
+
+\subsection{しかし}
+と説明してきましたが，このファイル構成には
+\begin{enumerate}
+ \item アーカイブの圧縮形式に gzip しか使えない
+ \item 複数のアーカイブで構成される上流のソースがそのまま扱えない
+ \item メンテナが当てたソースへのパッチが全部つながってしまっている
+ \item \verb|debian/| 以下にバイナリファイルが直接置けない
+\end{enumerate}
+などの問題点があります．
+
+そこで，さまざまな方法が検討されました．
+
+1は，これにより上流がbz2で配布していてもgzに圧縮し直さなければならなかっ
+たりしていました．\verb|*.orig.tar.gz| の中身が上流のアーカイブの実体である，
+といった方法なども（ちょっと無駄ですが...）使われてきました．この方法はビルド時にそのtarballを展開して作業
+します．cdbsにはこの方法へのサポートもあります．
+
+2は1と同様の方法で複数のtarballが入った\verb|*.orig.tar.gz|を用意したり
+していました．
+
+3は，当たっているパッチのそれぞれが
+どんな意図で行われたのかがわからない，ということ，また，\verb|debian/|以下のファ
+イルも上流ソースへのパッチも一緒くたになってしまっていること，が問題でした．そこで，まとまった意
+味のある単位に分割されたパッチをまず用意しておき，それらを
+\verb|debian/patches/| 下に配置
+し，その細かいパッチをビル
+ド時に当てる/外すフレームワーク
+(patch system) が利用されています．これには dpatch や quilt などがありま
+す．なお，この細かいパッチのそれぞれには，先頭にパッチの意図を説明する文
+章を記述することが推奨されています(\url{http://dep.debian.net/deps/dep3/})．
+
+4は，バイナリファイルのdiffを取ろうとしても普通のpatchではできないことが
+原因なので，uuencodeなどでテキストに落としてpatchを取る，といった手法が
+用いられてきました．
+
+\subsection{そこで}
+このような問題を解決するために新たなソースパッケージのフォーマットも検討
+されました．それが``\verb|3.0 (quilt)|''フォーマット（と``\verb|3.0 (native)|''フォーマット）です．
+
+\verb|3.0 (quilt)|は次の3つ以上のファイルで構成されます。
+\begin{itemize}
+ \item \textit{packagename}\verb|-|\textit{upstreamversion}\verb|.orig.tar.|\textit{ext}
+ \item
+      \textit{packagename}\verb|-|\textit{upstreamversion}\verb|.orig-|\textit{component}\verb|.tar.|\textit{ext}（任意）
+ \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.debian.tar.|\textit{ext}
+ \item \textit{packagename}\verb|-|\textit{debianversion}\verb|.dsc|
+\end{itemize}
+
+なお，\verb|1.0|にあったDebian nativeパッケージに相当する\verb|3.0 (native)|は
+次の2ファイルで構成されます．
+\begin{itemize}
+ \item \textit{packagename}\verb|-|\textit{version}\verb|.tar.|\textit{ext}
+ \item \textit{packagename}\verb|-|\textit{version}\verb|.dsc|
+\end{itemize}
+
+ここで，まず，tarの拡張子部分\textit{ext}に gz のほか，bz2, lzma, xz が利用でき
+るようになりました．これにより問題1が解決されました（\verb|3.0 (native)|に
+おける主な変更点はこれです）．
+
+また，\textit{component}の部分を適当に変えることにより複数のtarballをきち
+んと扱えるようになりました．これが問題2を解決します．
+
+次に，\verb|debian/|下のファイルはすべて \verb|*.debian.tar.gz| に入れることに
+なりました．これですべてが混ざった状態はなくなりました．さら
+に，\verb|debian/patches/| 下のパッチが，パッチシステム quilt と基本的に同じ方法
+で \verb|dpkg-source(1)| によって``ソースパッケージの展開時に'' 自動的に当たる
+ようになりました．これにより，ビルド時にパッチを当てるように \verb|debian/rules| ファイルを記述する必要はなく
+なりましたし，\verb|debian/control|ファイルに\verb|Build-Depends: quilt|
+などと書く必要もなくなりました．これらによって問題3は解決されました．
+
+問題4については，\verb|debian/|下のファイルをdiffとして保持することはも
+はやなくなったので解決し，\verb|*.debian.tar.|\textit{ext}に直にバイナリファイ
+ルを配置できます．
+
+\subsection{最近の動向}
+この\verb|3.0 (quilt)|フォーマットは，Debianのアーカイブが巨大化していって
+いるため，gzipよりlzma（lenny当時で，現在ならxz）を使って圧縮すればサイ
+ズを抑えられるといった理由で，lenny以降でより推進されるようになりまし
+た．Debianにあるソースパッケージすべてが\verb|3.0 (quilt)|化可能になった
+ら（潰すべきminor/wishlistバグが
+\url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?users=hertzog@debian.org;tag=3.0-quilt-by-default}
+にあります），dpkg
+はデフォルトで\verb|3.0 (quilt)|フォーマットでソースパッケージをビルドする
+ように変更される，とのことです．というわけでこれから作るパッケージは3.0
+化しましょう．
+
+\subsection{例1：gzipパッケージ}
+具体例として，まずgzipソースパッケージ(1.3.12-9)を\verb|3.0 (quilt)|化してみ
+ました．このソースパッケージは直にpatchを当てた形式を取っていまし
+た．\verb|dpkg-source(1)|による展開時のメッセージで分かります:
+\begin{commandline}
+$ apt-get source gzip
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています                
+状態情報を読み取っています... 完了
+479kB のソースアーカイブを取得する必要があります。
+取得:1 http://ftp.jp.debian.org testing/main gzip 1.3.12-9 (dsc) [1,647B]
+取得:2 http://ftp.jp.debian.org testing/main gzip 1.3.12-9 (tar) [462kB]
+取得:3 http://ftp.jp.debian.org testing/main gzip 1.3.12-9 (diff) [15.7kB]
+479kB を 1s で取得しました (250kB/s)
+dpkg-source: info: extracting gzip in gzip-1.3.12
+dpkg-source: info: unpacking gzip_1.3.12.orig.tar.gz
+dpkg-source: info: applying gzip_1.3.12-9.diff.gz
+dpkg-source: info: upstream files that have been modified: 
+ gzip-1.3.12/.gbp.conf
+ gzip-1.3.12/deflate.c
+ gzip-1.3.12/gzip.1
+
+(snip)
+\end{commandline}
+\subsubsection{バージョンの切り換え，ビルド}
+現在のデフォルトは\verb|1.0|なので，\verb|3.0 (quilt)|と明示してからソー
+スパッケージを作ります．
+\begin{commandline}
+$ cd gzip-1.3.12/
+$ mkdir -p debian/source
+$ echo '3.0 (quilt)' > debian/source/format
+$ debuild -S -us -uc
+ dpkg-buildpackage -rfakeroot -d -us -uc -S
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+
+ dpkg-source -b gzip-1.3.12
+dpkg-source: info: using source format `3.0 (quilt)'
+dpkg-source: info: building gzip using existing ./gzip_1.3.12.orig.tar.gz
+dpkg-source: info: local changes stored in gzip-1.3.12/debian/patches/debian-changes-1.3.12-9, the modified files are:
+ gzip-1.3.12/.gbp.conf
+ gzip-1.3.12/deflate.c
+
+(snip)
+
+dpkg-source: info: building gzip in gzip_1.3.12-9.debian.tar.gz
+dpkg-source: info: building gzip in gzip_1.3.12-9.dsc
+ dpkg-genchanges -S >../gzip_1.3.12-9_source.changes
+
+(snip)
+\end{commandline}
+と，とりあえず昔のdiff.gz（の上流ソースへのパッチ部分）に相当する1つのパッ
+チを自動で出力してくれます．この大きなパッチそのままではこのフォーマット
+にした意味がほとんどないので分けましょう．また，パッチの説明文テンプレー
+トも\verb|debian/changelog|を基にして付けてくれるので，修正して正しい説明にしましょう．（今回は
+共に省略）
+
+バイナリパッケージをビルドしてみます．
+\begin{commandline}
+$ debuild -b -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -b
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+dpkg-buildpackage: set CPPFLAGS to default value: 
+dpkg-buildpackage: set LDFLAGS to default value: 
+dpkg-buildpackage: set FFLAGS to default value: -g -O2
+dpkg-buildpackage: set CXXFLAGS to default value: -g -O2
+dpkg-buildpackage: source package gzip
+dpkg-buildpackage: source version 1.3.12-9
+dpkg-buildpackage: source changed by Bdale Garbee <bdale@gag.com>
+dpkg-buildpackage: host architecture amd64
+dpkg-checkbuilddeps: Unmet build dependencies: mingw32
+dpkg-buildpackage: warning: Build dependencies/conflicts unsatisfied; aborting.
+dpkg-buildpackage: warning: (Use -d flag to override.)
+debuild: fatal error at line 1330:
+dpkg-buildpackage -rfakeroot -D -us -uc -b failed
+\end{commandline}
+\verb|Build-Depends|を満たして，ビルドします．
+\begin{commandline}
+$ mk-build-deps 
+dh_testdir
+
+(snip) 
+
+dpkg-deb: `../gzip-build-deps_1.0_all.deb' にパッケージ `gzip-build-deps' を構築しています。
+
+The package has been created.
+Attention, the package has been created in the current directory,
+not in ".." as indicated by the message above!
+$ sudo dpkg -i gzip-build-deps_1.0_all.deb
+未選択パッケージ gzip-build-deps を選択しています。
+(データベースを読み込んでいます ... 現在 203017 個のファイルとディレクトリがインストールされています。)
+(gzip-build-deps_1.0_all.deb から) gzip-build-deps を展開しています...
+dpkg: 依存関係の問題により gzip-build-deps の設定ができません:
+ gzip-build-deps は以下に依存 (depends) します: mingw32 ...しかし:
+  パッケージ mingw32 はまだインストールされていません。
+dpkg: gzip-build-deps の処理中にエラーが発生しました (--install):
+ 依存関係の問題 - 設定を見送ります
+以下のパッケージの処理中にエラーが発生しました:
+ gzip-build-deps
+$ sudo aptitude install gzip-build-deps
+パッケージリストを読み込んでいます... 完了
+
+(snip)
+
+タスクの記述を読み込んでいます... 完了  
+
+現在の状態: 依存関係破損が 0 個 [-1]。
+$ debuild -b -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -b
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+
+dpkg-deb: `../gzip_1.3.12-9_amd64.deb' にパッケージ `gzip' を構築しています。
+ dpkg-genchanges -b >../gzip_1.3.12-9_amd64.changes
+dpkg-genchanges: binary-only upload - not including any source code
+dpkg-buildpackage: binary only upload (no source included)
+Now running lintian...
+W: gzip: missing-dependency-on-install-info
+Finished running lintian.
+\end{commandline}
+\subsection{例2：bash-completionパッケージ}
+次に，パッチシステムとしてquiltを使っていたbash-completionパッケージを
+\verb|3.0 (quilt)|化してみました．
+
+\subsubsection{まずビルド}
+パッチシステムでは，ビルド前はパッチは当たっていないので，自動でツリーに
+パッチが当てられてソースパッケージがビルドされます．
+\begin{commandline}
+$ apt-get source bash-completion
+パッケージリストを読み込んでいます... 完了
+
+(snip)
+
+$ cd bash-completion-1.1/
+$ mkdir -p debian/source
+$ echo '3.0 (quilt)' > debian/source/format
+$ debuild -S -us -uc
+ dpkg-buildpackage -rfakeroot -d -us -uc -S
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+
+ fakeroot debian/rules clean
+dh --with quilt clean
+   dh_testdir
+   dh_auto_clean
+   dh_quilt_unpatch
+適用されているパッチはありません
+   dh_clean
+ dpkg-source -b bash-completion-1.1
+dpkg-source: info: using source format `3.0 (quilt)'
+dpkg-source: warning: patches have not been applied, applying them now (use --no-preparation to override)
+dpkg-source: info: applying 01-fix_550943.patch
+dpkg-source: info: applying 02-fix_552109.patch
+dpkg-source: info: applying 03-fix_552631.patch
+dpkg-source: info: building bash-completion using existing ./bash-completion_1.1.orig.tar.gz
+dpkg-source: info: building bash-completion in bash-completion_1.1-3.debian.tar.gz
+dpkg-source: info: building bash-completion in bash-completion_1.1-3.dsc
+ dpkg-genchanges -S >../bash-completion_1.1-3_source.changes
+
+(snip)
+\end{commandline}
+今回は問題ありませんでしたが，\verb|3.0 (quilt)|はquiltとは微妙に異なり，す
+べて \verb|patch -p1| として扱われるのでpathを適当に調整する必要があるか
+もしれません．
+\subsubsection{quilt周りの変更}
+パッチは展開時に当たるので，\verb|debian/rules|内でパッチを当てている部
+分はもう要りません．このソースパッケージは\verb|dh(1)|を使用していたので簡単でした．
+\begin{commandline}
+--- debian/rules	2010-03-18 10:50:30.000000000 +0900
++++ debian/rules.new	2010-03-18 10:54:53.000000000 +0900
+@@ -21,11 +21,11 @@
+ 
+ build: build-stamp
+ build-stamp:
+-	dh --with quilt build
++	dh build
+ 	touch $@
+ 
+ clean:
+-	dh --with quilt $@
++	dh $@
+ 
+ install: install-stamp
+ install-stamp: build
+\end{commandline}
+quiltには通常は\verb|Build-Depends|しません．
+\begin{commandline}
+--- debian/control	2010-03-18 10:50:30.000000000 +0900
++++ debian/control.new	2010-03-18 10:57:00.000000000 +0900
+@@ -3,7 +3,7 @@
+ Priority: standard
+ Maintainer: Bash Completion Maintainers <bash-completion-devel@lists.alioth.debian.org>
+ Uploaders: David Paleino <dapal@debian.org>
+-Build-Depends: debhelper (>= 7.0.50), quilt (>= 0.46-7~)
++Build-Depends: debhelper (>= 7.0.50)
+ Build-Depends-Indep: perl
+ Standards-Version: 3.8.3
+ Vcs-Git: git://git.debian.org/git/bash-completion/debian.git
+\end{commandline}
+\subsubsection{もう一回}
+今度は初めから\verb|3.0 (quilt)|です．
+\begin{commandline}
+$ debuild -S -us -uc
+ dpkg-buildpackage -rfakeroot -d -us -uc -S
+
+(snip)
+
+ fakeroot debian/rules clean
+dh clean
+   dh_testdir
+   dh_auto_clean
+   dh_clean
+ dpkg-source -b bash-completion-1.1
+dpkg-source: info: using source format `3.0 (quilt)'
+dpkg-source: info: building bash-completion using existing ./bash-completion_1.1.orig.tar.gz
+dpkg-source: info: building bash-completion in bash-completion_1.1-3.debian.tar.gz
+dpkg-source: info: building bash-completion in bash-completion_1.1-3.dsc
+ dpkg-genchanges -S >../bash-completion_1.1-3_source.changes
+dpkg-genchanges: not including original source code in upload
+dpkg-buildpackage: binary and diff upload (original source NOT included)
+Now running lintian...
+Finished running lintian.
+\end{commandline}
+バイナリパッケージをビルドします．
+\begin{commandline}
+$ debuild -b -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -b
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+
+dpkg-deb: `../bash-completion_1.1-3_all.deb' にパッケージ `bash-completion' を構築しています。
+ dpkg-genchanges -b >../bash-completion_1.1-3_amd64.changes
+dpkg-genchanges: binary-only upload - not including any source code
+dpkg-buildpackage: binary only upload (no source included)
+Now running lintian...
+Finished running lintian.
+\end{commandline}
+\subsection{例3：ptex-binパッケージ}
+次に，実際には複数のソースアーカイブを使用しているptex-binソー
+スパッケージ(3.1.11+0.04b-0.1)を\verb|3.0 (quilt)|化してみました．
+
+ptex-binソースパッケージは，実際には \verb|ptex-src-*.tar.gz| と \verb|jmpost-*.tar.gz| の2
+つの上流tarballから構成されます．さらに\verb|Build-Depends: ptex-buildsupport|となっていますが，このptex-buildsupportパッケージは
+\verb|tetex-src-*-stripped.tar.gz|のみが含まれる，ほぼビルド専用のパッケー
+ジです．すなわち，3つの上流tarballが使われています．その上，このソースパッ
+ケージには \verb|debian/patches/|ディレクトリがありますが，quiltやdpatch
+といった近代的なものではなくビルド時にpatchを\verb|debian/rules|内で直接呼ぶ構成になっていま
+した．
+\subsubsection{ソースの用意，名前の変更}
+\begin{commandline}
+ $ apt-get source ptex-bin
+ $ apt-get source ptex-buildsupport
+\end{commandline}
+適当に名前を変えます．ここでは
+\begin{commandline}
+$ mv ptex-bin-3.1.11+0.04b/ptex-src-3.1.11.tar.gz ptex-bin_3.1.11+0.04b+3.0.orig.tar.gz
+$ mv ptex-bin-3.1.11+0.04b/jmpost-0.04b.tar.gz ptex-bin_3.1.11+0.04b+3.0.orig-jmpost.tar.gz
+$ mv ptex-buildsupport-3.0/tetex-src-3.0-stripped.tar.gz ptex-bin_3.1.11+0.04b+3.0.orig-tetex-stripped.tar.gz
+\end{commandline}
+としました．\verb|3.0 (quilt)|では，\verb|*.orig.tar.|\textit{ext}がまずメインで展開され，そのソースツ
+リーに\textit{component}ディレクトリが掘られてその下に各
+\verb|*.orig-|\textit{component}\verb|.tar.|\textit{ext}が展開されます．ま
+た，\textit{component}には英数字とハイフンのみが使えます．
+\subsubsection{とりあえずビルド}
+\begin{commandline}
+$ mkdir ptex-bin-3.1.11+0.04b+3.0
+$ cd ptex-bin-3.1.11+0.04b+3.0/
+$ cp -a ../ptex-bin-3.1.11+0.04b/debian .
+$ mkdir -p debian/source
+$ echo '3.0 (quilt)' > debian/source/format
+$ dch -v 3.1.11+0.04b+3.0-0.1
+（適当にchangelog追加）
+$ debuild -S -us -uc
+ dpkg-buildpackage -rfakeroot -d -us -uc -S
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+dpkg-buildpackage: set CPPFLAGS to default value: 
+dpkg-buildpackage: set LDFLAGS to default value: 
+dpkg-buildpackage: set FFLAGS to default value: -g -O2
+dpkg-buildpackage: set CXXFLAGS to default value: -g -O2
+dpkg-buildpackage: source package ptex-bin
+dpkg-buildpackage: source version 3.1.11+0.04b+3.0-0.1
+dpkg-buildpackage: source changed by YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>
+ fakeroot debian/rules clean
+dh_testdir
+dh_testroot
+rm -f build-stamp configure-stamp
+# Add here commands to clean up after the build process.
+# Remove teTeX source directory.
+rm -rf tetex-src-3.0
+dh_clean
+dh_clean: Compatibility levels before 5 are deprecated.
+ dpkg-source -b ptex-bin-3.1.11+0.04b+3.0
+dpkg-source: info: using source format `3.0 (quilt)'
+dpkg-source: info: building ptex-bin using existing ./ptex-bin_3.1.11+0.04b+3.0.
+orig-jmpost.tar.gz ./ptex-bin_3.1.11+0.04b+3.0.orig-tetex-stripped.tar.gz ./ptex
+-bin_3.1.11+0.04b+3.0.orig.tar.gz
+dpkg-source: warning: ignoring deletion of file kanji.defines
+dpkg-source: warning: ignoring deletion of file pconvert
+dpkg-source: warning: ignoring deletion of file tftopl.ch
+
+(snip)
+
+dpkg-source: info: building ptex-bin in ptex-bin_3.1.11+0.04b+3.0-0.1.debian.tar
+.gz
+dpkg-source: info: building ptex-bin in ptex-bin_3.1.11+0.04b+3.0-0.1.dsc
+ dpkg-genchanges -S >../ptex-bin_3.1.11+0.04b+3.0-0.1_source.changes
+\end{commandline}
+とりあえず空のソースツリーで作ったのでソースがないというwarningはスルー
+します．
+\begin{commandline}
+$ cd ..
+$ dpkg-source -x ptex-bin_3.1.11+0.04b+3.0-0.1.dsc
+dpkg-source: warning: extracting unsigned source package (ptex-bin_3.1.11+0.04b+3.0-0.1.dsc)
+dpkg-source: info: extracting ptex-bin in ptex-bin-3.1.11+0.04b+3.0
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0.orig.tar.gz
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0.orig-jmpost.tar.gz
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0.orig-tetex-stripped.tar.gz
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0-0.1.debian.tar.gz
+$ cd -
+$ ls -F
+COPYRIGHT      README.txt   jbibtex.ch       mkconf        ptexextra.h
+COPYRIGHT.jis  configure*   jbibtex.defines  pconvert*     ptexhelp.h
+Changes.txt    debian/      jmpost/          pdvitype.ch   tetex-stripped/
+Files          jbibd.sed    kanji.c          pltotf.ch     tftopl.ch
+INSTALL.txt    jbibextra.c  kanji.defines    ptex-base.ch  usage.c
+Makefile.in    jbibextra.h  kanji.h.in       ptexextra.c   version.c
+\end{commandline}
+メインのソースのトップディレクトリでそのままビルドできるようなものはいい
+ですが，\verb|ptex-src-*.tar.gz|はそうではないので微妙ですね... ともか
+く，今回はビルド用ディレクトリを掘ってビルドできるように\verb|debian/rules|の変
+更が必要でした．
+\subsubsection{quilt化}
+普段パッチシステムquiltを使っていればほとんど変更の必要はありませんが，
+このパッケージはパッチは分かれているものの自力で色々やっているので
+まずquilt化が必要でした．
+
+全パッチを\verb|-p1|化した上で，\verb|debian/rules|に書かれている通りの
+順番でパッチを\verb|quilt import && quilt push|
+しました．quiltでは同じパッチ名はダメのようですね．
+\begin{commandline}
+$ cd debian/
+$ mv patches patches.old
+$ sed -i 's@^\(---\|+++\) @&ptex-bin-3.1.11+0.04b+3.0/tetex-stripped/@' patches.old/teTeX/*.patch
+$ sed -i 's@^\(---\|+++\) @&ptex-bin-3.1.11+0.04b+3.0/@' patches.old/*.patch
+$ sed -i 's@^\(---\|+++\) @&ptex-bin-3.1.11+0.04b+3.0/jmpost/@' patches.old/jmpost/*.patch
+$ mv patches.old/Makefile.in.patch patches.old/pTeX_Makefile.in.patch
+$ mv patches.old/jmpost/Makefile.in.patch patches.old/jmpost/jmpost_Makefile.in.patch
+$ quilt import patches.old/teTeX/*.patch patches.old/*.patch patches.old/jmpost/*.patch
+パッチ patches.old/teTeX/Makefile.in.patch を取り込んでいます (Makefile.in.patch として保存されます)
+パッチ patches.old/teTeX/common.mk.patch を取り込んでいます (common.mk.patch として保存されます)
+パッチ patches.old/teTeX/config.h.patch を取り込んでいます (config.h.patch として保存されます)
+パッチ patches.old/teTeX/depend.mk.patch を取り込んでいます (depend.mk.patch として保存されます)
+パッチ patches.old/teTeX/splitup.c.patch を取り込んでいます (splitup.c.patch として保存されます)
+パッチ patches.old/teTeX/web2c.depend.mk.patch を取り込んでいます (web2c.depend.mk.patch として保存されます)
+パッチ patches.old/pTeX_Makefile.in.patch を取り込んでいます (pTeX_Makefile.in.patch として保存されます)
+パッチ patches.old/jmpost/jmpost_Makefile.in.patch を取り込んでいます (jmpost_Makefile.in.patch として保存されます)
+$ cd ..
+$ env QUILT_PATCHES=debian/patches quilt push -a
+パッチ Makefile.in.patch を適用しています
+patching file tetex-stripped/texk/web2c/web2c/Makefile.in
+
+パッチ common.mk.patch を適用しています
+patching file tetex-stripped/texk/make/common.mk
+
+パッチ config.h.patch を適用しています
+patching file tetex-stripped/texk/web2c/config.h
+
+パッチ depend.mk.patch を適用しています
+patching file tetex-stripped/texk/web2c/lib/depend.mk
+
+パッチ splitup.c.patch を適用しています
+patching file tetex-stripped/texk/web2c/web2c/splitup.c
+
+パッチ web2c.depend.mk.patch を適用しています
+patching file tetex-stripped/texk/web2c/web2c/depend.mk
+
+パッチ pTeX_Makefile.in.patch を適用しています
+patching file Makefile.in
+
+パッチ jmpost_Makefile.in.patch を適用しています
+patching file jmpost/Makefile.in
+
+現在位置はパッチ jmpost_Makefile.in.patch です
+$ rm -r debian/patches.old/
+\end{commandline}
+\subsubsection{debian/rules, debian/controlの変更}
+tarballをもう展開する必要はありません．ビルド用ディレクトリにコピーするこ
+とにします．パッチを当てる必要もないのでその辺も削ります．
+\begin{commandline}
+--- debian/rules	2010-03-18 12:01:15.000000000 +0900
++++ debian/rules.new	2010-03-18 13:19:09.000000000 +0900
+@@ -6,29 +6,14 @@
+ # Uncomment this to turn on verbose mode.
+ #export DH_VERBOSE=1
+ 
+-####################
+-# Things you should change when new upstream version is available.
+-
+-# Minimal teTeX source tarball.
+-# You should install ptex-buildsupport package beforehand.
+-TETEX_SRC_TARBALL=/usr/src/tetex-src-3.0-stripped.tar.gz
+-
+ # teTeX source directory.
+-TETEX_SRC_DIR=tetex-src-3.0
+-
+-# pTeX source tarball.
+-PTEX_SRC_TARBALL=ptex-src-3.1.11.tar.gz
++TETEX_SRC_DIR=tetex-src
+ 
+ # pTeX source directory.
+-PTEX_SRC_DIR=ptex-src-3.1.11
+-
+-# Japanized MetaPost tarball.
+-JMPOST_SRC_TARBALL=jmpost-0.04b.tar.gz
++PTEX_SRC_DIR=ptex-src
+ 
+ # Japanized MetaPost source directory.
+-JMPOST_SRC_DIR=jmpost-0.04b
+-
+-####################
++JMPOST_SRC_DIR=jmpost-src
+ 
+ DEB_HOST_GNU_TYPE	:= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+ 
+@@ -42,31 +27,14 @@
+ configure: configure-stamp
+ configure-stamp:
+ 	dh_testdir
+-	# Unpack tarballs.
+-	tar xfz $(TETEX_SRC_TARBALL)
++	cp -al tetex-stripped $(TETEX_SRC_DIR)
+ 	mkdir $(TETEX_SRC_DIR)/texk/kpathsea_tetex
+ 	mv $(TETEX_SRC_DIR)/texk/kpathsea/c-proto.h $(TETEX_SRC_DIR)/texk/kpathsea_tetex/
+ 	rm -rf $(TETEX_SRC_DIR)/texk/kpathsea
+ 	ln -s /usr/include/kpathsea $(TETEX_SRC_DIR)/texk/kpathsea
+-	tar xfz $(PTEX_SRC_TARBALL) -C $(TETEX_SRC_DIR)/texk/web2c
+-	tar xfz $(JMPOST_SRC_TARBALL) -C $(TETEX_SRC_DIR)/texk/web2c/$(PTEX_SRC_DIR)
+-
+-	# Apply patches to teTeX source
+-	for f in debian/patches/teTeX/*.patch; do \
+-		patch -p0 -d $(TETEX_SRC_DIR) < $$f; \
+-	done
+-
+-	# Apply patches to pTeX source (should be named as *.patch)
+-	# Put patches in debian/patches.
+-	(for f in debian/patches/*.patch ; do \
+-	  patch -p0 -d $(TETEX_SRC_DIR)/texk/web2c/$(PTEX_SRC_DIR) < $$f ; \
+-	done)
+-
+-	# Apply patches to Japanized MetaPost source (should be named as *.patch)
+-	# Put patches in debian/patches/jmpost.
+-	(for f in debian/patches/jmpost/*.patch ; do \
+-	  patch -p0 -d $(TETEX_SRC_DIR)/texk/web2c/$(PTEX_SRC_DIR)/$(JMPOST_SRC_DIR) < $$f ; \
+-	done)
++	mkdir $(TETEX_SRC_DIR)/texk/web2c/$(PTEX_SRC_DIR)
++	for f in `find . -maxdepth 1 -type f`; do cp -al $$f $(TETEX_SRC_DIR)/texk/web2c/$(PTEX_SRC_DIR); done
++	cp -al jmpost $(TETEX_SRC_DIR)/texk/web2c/$(PTEX_SRC_DIR)/$(JMPOST_SRC_DIR)
+ 
+ 	# Copy texmf.cnf from your system.
+ 	cp /usr/share/texmf/web2c/texmf.cnf \
+\end{commandline}
+ptex-buildsupportは不要になりました．
+\begin{commandline}
+--- debian/control	2010-03-18 12:01:15.000000000 +0900
++++ debian/control.new	2010-03-18 13:23:09.000000000 +0900
+@@ -2,7 +2,7 @@
+ Section: tex
+ Priority: optional
+ Maintainer: Masayuki Hatta (mhatta) <mhatta@debian.org>
+-Build-Depends: debhelper (>> 4.0.0), texlive-binaries,
+ texlive-extra-utils, texlive-metapost, flex, bison, libkpathsea-dev, \
+ptex-base (>= 2.4), ptex-buildsupport (>= 3.0), libtool
++Build-Depends: debhelper (>> 4.0.0), texlive-binaries,
+ texlive-extra-utils, texlive-metapost, flex, bison, libkpathsea-dev, \
+ptex-base (>= 2.4), libtool
+ Standards-Version: 3.7.3
+ 
+ Package: ptex-bin
+\end{commandline}
+\subsubsection{ビルド}
+\begin{commandline}
+$ debuild -S -us -uc
+ dpkg-buildpackage -rfakeroot -d -us -uc -S
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+\end{commandline}
+試しに\verb|dpkg-source -x|してみます．
+\begin{commandline}
+$ dpkg-source -x ptex-bin_3.1.11+0.04b+3.0-0.1.dsc
+dpkg-source: warning: extracting unsigned source package (ptex-bin_3.1.11+0.04b+3.0-0.1.dsc)
+dpkg-source: info: extracting ptex-bin in ptex-bin-3.1.11+0.04b+3.0
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0.orig.tar.gz
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0.orig-jmpost.tar.gz
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0.orig-tetex-stripped.tar.gz
+dpkg-source: info: unpacking ptex-bin_3.1.11+0.04b+3.0-0.1.debian.tar.gz
+dpkg-source: info: applying Makefile.in.patch
+dpkg-source: info: applying common.mk.patch
+dpkg-source: info: applying config.h.patch
+dpkg-source: info: applying depend.mk.patch
+dpkg-source: info: applying splitup.c.patch
+dpkg-source: info: applying web2c.depend.mk.patch
+dpkg-source: info: applying pTeX_Makefile.in.patch
+dpkg-source: info: applying jmpost_Makefile.in.patch
+\end{commandline}
+無事当たりました．
+バイナリパッケージをビルドします．
+\begin{commandline}
+$ debuild -b -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -b
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+
+dpkg-buildpackage: warning: Build dependencies/conflicts unsatisfied; aborting.
+dpkg-buildpackage: warning: (Use -d flag to override.)
+debuild: fatal error at line 1330:
+dpkg-buildpackage -rfakeroot -D -us -uc -b failed
+$ mk-build-deps
+
+(snip)
+
+$ sudo dpkg -i ptex-bin-build-deps_1.0_all.deb 
+
+(snip)
+
+$ sudo aptitude install ptex-bin-build-deps
+
+(snip)
+
+$ debuild -b -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -b
+dpkg-buildpackage: set CFLAGS to default value: -g -O2
+
+(snip)
+
+dh_builddeb
+dh_builddeb: Compatibility levels before 5 are deprecated.
+dpkg-deb: `../ptex-bin_3.1.11+0.04b+3.0-0.1_amd64.deb' にパッケージ `ptex-bin' を構築しています。
+dpkg-deb: `../jbibtex-bin_3.1.11+0.04b+3.0-0.1_amd64.deb' にパッケージ `jbibtex-bin' を構築しています。
+dpkg-deb: `../jmpost_3.1.11+0.04b+3.0-0.1_amd64.deb' にパッケージ `jmpost' を構築しています。
+ dpkg-genchanges -b >../ptex-bin_3.1.11+0.04b+3.0-0.1_amd64.changes
+dpkg-genchanges: binary-only upload - not including any source code
+dpkg-buildpackage: binary only upload (no source included)
+Now running lintian...
+W: jmpost: binary-without-manpage usr/bin/pmakempx
+W: jbibtex-bin: copyright-without-copyright-notice
+Finished running lintian.
+\end{commandline}
+無事できました．
+\subsection{References}
+\begin{itemize}
+ \item 第41回東京エリア Debian 勉強会資料（2008年6月）．パッチシステムな
+       どの使い方の詳細はこちらにまとまっています．
+ \item \verb|dpkg-source(1)|（\verb|man 1 dpkg-source|）．\verb|3.0 (quilt)|などのソースフォーマットの詳細．
+ \item \url{http://wiki.debian.org/ReleaseGoals/NewDebFormats}
+ \item \url{http://release.debian.org/squeeze/goals.txt}．squeeze
+       release goals.
+\end{itemize}
 %\printindex
 
 \cleartooddpage
