@@ -371,25 +371,182 @@ piupartsがパッケージとして用意されたとしても、まだ利用しているパッケージ
 \subsection{はじめに}
 今年の2月の Debian 勉強会（Debian 温泉）で一度扱ったテーマですが、新年度
 も始まり、新入生、新入社員、新入 Debian 開発者予備軍の皆さんも、気分も新
-たにもう一回おさらいして、いずれやってくるであろう、Squeeze のリリースに
-備えましょう。
+たに、いずれやってくるであろう、Squeeze のリリースに備えもう一度おさらい
+しておきましょう。
 
 重要ポイントは2月の資料から再掲しますが、upstart が導入されることになっ
 た背景や概要などは2010年2月の Debian 勉強会の資料「ブート方法が変
 わるよ」を参照ください。
 
-\subsection{従来の init}
+\subsection{従来のinit}
 
-rcS
+まず従来の init のおさらいです。従来の init はSystem V 系の Unix 由来の
+起動の仕組みで、sysvinit といい、 Unix/Linux システムにおいて、カーネル
+がブートした後、ユーザプログラムが起動するための仕組みです。マシンに電源
+を入れてからログインプロンプトが表示されるまの流れは大まかには次のように
+なります。
 
 \begin{figure}[H]
-\caption{init, rcSの処理}
+\caption{ブートの流れ}
 \begin{center}
-%\includegraphics[height=0.5\hsize]{image201002/sysvinit.eps}
+\includegraphics[height=0.5\hsize]{image201002/sysvinit.eps}
 \end{center}
 \end{figure}
 
-\subsection{カーネルイベントをどう扱うか}
+init プロセスが起動すると、init は /etc/inittab の内容に従って、プロセス
+のを生成や停止を行います。inittab の書式は次のとおりです。
+
+\begin{commandline}
+id:runlevels:action:process
+\end{commandline}
+
+Debian システムのデフォルトランレベルは 2 なので、プロセスの生成に関わる
+基本的なエントリは次の4行です。
+
+\begin{commandline}
+id:2:initdefault:                     ←デフォルトランレベルは2
+si::sysinit:/etc/init.d/rcS           ←起動時は必ず実行
+l2:2:wait:/etc/init.d/rc 2            ←ランレベル 2で実行。
+1:2345:respawn:/sbin/getty 38400 tty1 ← getty を常駐
+\end{commandline}
+
+2行目のエントリは、ランレベルが指定されてませんが、action に sysinit が指定されているた
+めです。これはシステムブート中に他のブート用の action よりも優先して実行
+されます。ここで実行される /etc/init.d/rcS では
+
+\begin{commandline}
+exec /etc/init.d/rc S
+\end{commandline}
+
+とだけが実行されます。これはランレベル S のシングルユーザモードのときのも
+のです。上記3行目でランレベル 2のときに実行されるエントリがあることから
+も分かるとおり、
+\begin{enumerate}
+ \item ランレベル Sのプロセスが実行
+ \item ランレベル 2のプロセスが実行
+\end{enumerate}
+の順で起動プロセスが実行されます。ランレベル S 用の起動処理が終わってか
+ら、ランレベル 2 用の起動処理が実行されるのですから、/etc/rcS.d/ 以下と
+/etc/rc2.d/ 以下を比較しても分かるとおり、これが逐次実行されるのはかなり
+時間がかかります。
+
+\begin{commandline}
+$ diff -u $1<(ls /etc/rcS.d/) $2<(ls /etc/rc2.d/)
+--- /dev/fd/63  2010-04-13 07:53:36.538490250 +0900
++++ /dev/fd/62  2010-04-13 07:53:36.538490250 +0900
+@@ -1,29 +1,12 @@
+ README
+-S01mountkernfs.sh
+-S02udev
+-S03mountdevsubfs.sh
+-S04bootlogd
+-S05keyboard-setup
+-S06hostname.sh
+-S06hwclockfirst.sh
+-S07checkroot.sh
+-S08hwclock.sh
+-S08ifupdown-clean
+-S08module-init-tools
+-S08mtab.sh
+-S09checkfs.sh
+-S10ifupdown
+-S10mountall.sh
+-S11mountall-bootclean.sh
+-S12mountoverflowtmp
+-S13networking
+-S13procps
+-S13udev-mtab
+-S13x11-common
+-S14mountnfs.sh
+-S15mountnfs-bootclean.sh
+-S16kbd
+-S17console-setup
+-S18bootmisc.sh
+-S18urandom
+-S19stop-bootlogd-single
++S01rsyslog
++S01sudo
++S02acct
++S02acpid
++S02cron
++S02dbus
++S03bootlogs
++S04bootchart
++S04rc.local
++S04rmnologin
++S04stop-bootlogd                  
+\end{commandline}
+
+ちなみに以下は /etc/init.d/rc スクリプトの中でプロセス起動に直接関係する部分を抽
+出したものです。同じランレベルの中では一部並行処理されますが、ランレベル
+S → ランレベル 2の処理に比べたら些細なものでしょう。
+
+\begin{commandline}
+startup_progress() {
+        # Avoid divide by zero if anyone moved xdm/kdm/gdm first in a runlevel.
+        if [ 0 -eq "$num_steps" ] ; then return; fi
+
+        step=$(($step + $step_change))
+        progress=$(($step * $progress_size / $num_steps + $first_step))
+        $debug splash_progress "$progress" || true
+}
+(snip)
+                startup() {
+                        action=$1
+                        shift
+                        scripts="$@"
+                        for script in $scripts ; do
+                                $debug "$script" $action
+                                startup_progress
+                        done
+                }
+(snip)
+        # Split the remaining portion of the progress bar into thirds
+        progress_size=$(((100 - $PROGRESS_STATE) / 3))
+(snip)
+                        ACTION=start
+                        # Begin where rcS left off and use the final 1/3 of
+                        # the space (by leaving progress_size unchanged)
+                        first_step=$(($progress_size * 2 + $PROGRESS_STATE))
+                        step_change=1
+(snip)
+        # Count the number of scripts we need to run
+        # (for progress bars)
+        num_steps=0
+        for s in /etc/rc$runlevel.d/[SK]*; do
+                if is_splash_stop_scripts "${s##/etc/rc$runlevel.d/S??}" ; then
+                        break
+                fi
+                num_steps=$(($num_steps + 1))
+        done
+        step=0
+(snip)
+                # Now run the START scripts for this runlevel.
+                # Run all scripts with the same level in parallel
+                CURLEVEL=""
+                for s in /etc/rc$runlevel.d/S*
+                do
+                        # Extract order value from symlink
+                        level=${s#/etc/rc$runlevel.d/S}
+                        level=${level%%[a-zA-Z]*}
+                        if [ "$level" = "$CURLEVEL" ]
+                        then
+                                continue
+                        fi
+                        CURLEVEL=$level
+                        SCRIPTS=""
+                        for i in /etc/rc$runlevel.d/S$level*
+                        do
+                                [ ! -f $i ] && continue
+
+                                suffix=${i#/etc/rc$runlevel.d/S[0-9][0-9]}
+(snip)
+                        startup $ACTION $SCRIPTS
+                done
+(snip)
+\end{commandline}
+
+\subsection{upstart の特徴}
 
 \begin{figure}[h]
 \begin{center}
