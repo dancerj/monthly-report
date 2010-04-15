@@ -1,23 +1,55 @@
 # dot -Tps:cairo -o piuparts-process.eps piuparts-process.dot
 
 digraph {
-	graph [size = "4, 5"];
 	p0 [label="開始", shape=Mrecord];
 	p2 [label="chroot環境を構築", shape=box];
-	//p3 [label="dpkg -i でパッケージをインストール", shape=box];
-	//p4 [label="apt-get -yf --no-remove install\n でパッケージをインストール", shape=box];
-	p4 [label="インストールチェック", shape=box];
-	p5 [label="アンインストールチェック", shape=box];
-	//p5 [label="dpkg --remove パッケージをアンインストール", shape=box];
-	//p6 [label="dpkg --remove --purge パッケージをアンインストール", shape=box];
-	p7 [label="古いパッケージがある？", shape=diamond];
-	p8 [label="パッケージアップグレードチェック", shape=box];
-	p9 [label="アンインストールチェック", shape=box];
 	p10 [label="終了", shape=Mrecord];
 	
-	p0 -> p2 -> p4 -> p5 -> p7;
-	p7 -> p8 [label="Yes"];
-	p8 -> p9;
-	p7 -> p10 [label="No"];
-	p9 -> p10;
+	subgraph cluster_i {
+		style=filled;
+		color=lightgrey;
+		label="インストールチェック"
+		node [style=filled,color=white];
+ 		i0 [label="パッケージをインストール", shape=box];
+ 		ix [label="パッケージの依存関係などをチェック", shape=box];
+		i1 [label="結果出力", shape=box];
+		i0 -> ix ->i1 ;
+	}
+
+	subgraph cluster_ui {
+		label="アンインストールチェック"
+		node [style=filled];
+ 		ui0 [label="パッケージをアンインストール", shape=box];
+		uix [label="インストール前とアンインストール後\nのchoot内の差分をチェックする", shape=box];
+		ui1 [label="結果出力", shape=box];
+		ui0 -> uix -> ui1;
+	}
+
+	subgraph cluster_ug_ug {
+		style=filled;
+		color=lightgrey;
+		label="アップグレードチェック"
+		node [style=filled,color=white];
+ 		ug_ug0 [label="古いパッケージをインストール", shape=box];
+		ug_ug1 [label="指定したパッケージをインストール", shape=box];
+		ug_ug2 [label="結果出力", shape=box];
+		ug_ug0 -> ug_ug1 -> ug_ug2;
+	}
+
+	subgraph cluster_ug_ui {
+		label="アップグレード後のアンインストールチェック"
+		node [style=filled];
+ 		ug_ui0 [label="パッケージのアンインストール", shape=box];
+		ug_ui1 [label="インストール前とアンインストール後\nのchoot内の差分をチェックする", shape=box];
+		ug_ui2 [label="結果出力", shape=box];
+		ug_ui0 -> ug_ui1 -> ug_ui2;
+	}
+
+	{rank=same ; p0 ; i0 ; ug_ug0; }
+
+	p0 -> p2 -> i0;
+	i1 -> ui0;
+	ui1 -> ug_ug0 ;
+	ug_ug2 -> ug_ui0;
+	ug_ui2 -> p10;
 }
