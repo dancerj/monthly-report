@@ -329,10 +329,8 @@ piupartsがパッケージとして用意されたとしても、まだ利用しているパッケージ
 も始まり、新入生、新入社員、新入 Debian 開発者予備軍の皆さんも、気分も新
 たに、いずれやってくるであろう、Squeeze のリリースに備えもう一度おさらい
 しておきましょう。
-
-重要ポイントは2月の資料から再掲しますが、upstart が導入されることになっ
-た背景や概要などは2010年2月の Debian 勉強会の資料「ブート方法が変
-わるよ」を参照ください。
+\footnote{書き下ろすつもりでしたが、個人的な都合で余裕がなく、今回の事前配布資料は基本的に、2010年2月の Debian 勉強会の資料「ブート方法が変
+わるよ」を再編したものです。}
 
 \subsection{従来のinit}
 
@@ -384,144 +382,100 @@ exec /etc/init.d/rc S
 の順で起動プロセスが実行されます。ランレベル S 用の起動処理が終わってか
 ら、ランレベル 2 用の起動処理が実行されるのですから、/etc/rcS.d/ 以下と
 /etc/rc2.d/ 以下を比較しても分かるとおり、これが逐次実行されるのはかなり
-時間がかかります。
-
-\begin{commandline}
-$ diff -u $1<(ls /etc/rcS.d/) $2<(ls /etc/rc2.d/)
---- /dev/fd/63  2010-04-13 07:53:36.538490250 +0900
-+++ /dev/fd/62  2010-04-13 07:53:36.538490250 +0900
-@@ -1,29 +1,12 @@
- README
--S01mountkernfs.sh
--S02udev
--S03mountdevsubfs.sh
--S04bootlogd
--S05keyboard-setup
--S06hostname.sh
--S06hwclockfirst.sh
--S07checkroot.sh
--S08hwclock.sh
--S08ifupdown-clean
--S08module-init-tools
--S08mtab.sh
--S09checkfs.sh
--S10ifupdown
--S10mountall.sh
--S11mountall-bootclean.sh
--S12mountoverflowtmp
--S13networking
--S13procps
--S13udev-mtab
--S13x11-common
--S14mountnfs.sh
--S15mountnfs-bootclean.sh
--S16kbd
--S17console-setup
--S18bootmisc.sh
--S18urandom
--S19stop-bootlogd-single
-+S01rsyslog
-+S01sudo
-+S02acct
-+S02acpid
-+S02cron
-+S02dbus
-+S03bootlogs
-+S04bootchart
-+S04rc.local
-+S04rmnologin
-+S04stop-bootlogd                  
-\end{commandline}
-
-ちなみに以下は /etc/init.d/rc スクリプトの中でプロセス起動に直接関係する部分を抽
-出したものです。同じランレベルの中では一部並行処理されますが、ランレベル
-S → ランレベル 2の処理に比べたら些細なものでしょう。
-
-\begin{commandline}
-startup_progress() {
-        # Avoid divide by zero if anyone moved xdm/kdm/gdm first in a runlevel.
-        if [ 0 -eq "$num_steps" ] ; then return; fi
-
-        step=$(($step + $step_change))
-        progress=$(($step * $progress_size / $num_steps + $first_step))
-        $debug splash_progress "$progress" || true
-}
-(snip)
-                startup() {
-                        action=$1
-                        shift
-                        scripts="$@"
-                        for script in $scripts ; do
-                                $debug "$script" $action
-                                startup_progress
-                        done
-                }
-(snip)
-        # Split the remaining portion of the progress bar into thirds
-        progress_size=$(((100 - $PROGRESS_STATE) / 3))
-(snip)
-                        ACTION=start
-                        # Begin where rcS left off and use the final 1/3 of
-                        # the space (by leaving progress_size unchanged)
-                        first_step=$(($progress_size * 2 + $PROGRESS_STATE))
-                        step_change=1
-(snip)
-        # Count the number of scripts we need to run
-        # (for progress bars)
-        num_steps=0
-        for s in /etc/rc$runlevel.d/[SK]*; do
-                if is_splash_stop_scripts "${s##/etc/rc$runlevel.d/S??}" ; then
-                        break
-                fi
-                num_steps=$(($num_steps + 1))
-        done
-        step=0
-(snip)
-                # Now run the START scripts for this runlevel.
-                # Run all scripts with the same level in parallel
-                CURLEVEL=""
-                for s in /etc/rc$runlevel.d/S*
-                do
-                        # Extract order value from symlink
-                        level=${s#/etc/rc$runlevel.d/S}
-                        level=${level%%[a-zA-Z]*}
-                        if [ "$level" = "$CURLEVEL" ]
-                        then
-                                continue
-                        fi
-                        CURLEVEL=$level
-                        SCRIPTS=""
-                        for i in /etc/rc$runlevel.d/S$level*
-                        do
-                                [ ! -f $i ] && continue
-
-                                suffix=${i#/etc/rc$runlevel.d/S[0-9][0-9]}
-(snip)
-                        startup $ACTION $SCRIPTS
-                done
-(snip)
-\end{commandline}
+時間がかかるでしょう。
 
 \subsection{upstart の特徴}
 
-\begin{figure}[h]
+upstart は　sysvinit をイベントベースに置き換えたもので、
+サービスの開始と停止はイベントの通信にもとづきます。
+
+upstart の特徴は次の6つです。
+
+\begin{itemize}
+ \item イベントドリブンでタスクやサービスを起動・停止する。
+ \item タスクやサービスが起動・停止することでイベントが発生する。
+ \item イベントはシステム上の他のプロセスから受け取ることができる。
+ \item サービスが予期せず突然終了しても再起動することができる。
+ \item デーモンの監視と再起動は親プロセスから分離できる。
+ \item D-Bus を通じて init デーモンと通信できる。
+\end{itemize}
+
+upstart の状態遷移は次の図のようになります。
+
+\begin{figure}[thbp]
 \begin{center}
 \caption{upstart 状態遷移}
 \includegraphics[height=0.7\hsize]{image201002/states.eps}
 \end{center}
 \end{figure}
 
+\clearpage
 
-カーネルがモジュールをロード完了したら udev / hal 経由で notification ?
-upstart がそれをlistenしている?
-どうイベント駆動にしているか。
+upstartは、sysvinitと同様な機能を提供しますが、\textbf{非同期イベントに
+応じて自律的に動作する点}がもっとも異なります。そのため、sysvinit に対す
+る upstart のメリットには、
+\begin{itemize}
+ \item 利用可能なハードウェアだけでブートするため、runlevel が必要ない。
+       これは存在しないハードウェアを必要とするジョブをトリガーとしない
+       ため。
+ \item ホットプラグデバイスに対応
+\end{itemize}
+といったことが挙げられます。
 
-なぜそちらが速いのか。
+例えば、システムがブート後、NICを挿すと
+\begin{enumerate}
+ \item network-interface-add イベント生成
+ \item DHCPジョブがネットワークカードを構成
+ \item network-interface-upイベントが生成
+ \item デフォルトルートが新しいインタフェースに割り当て
+ \item default-route-upイベントが生成
+ \item NICを必要とするジョブ(各種サーバ)が自動的に開始される
+\end{enumerate}
 
-複雑な依存関係: ネットワークスワップデバイス、LVM上のファイルデバイス、
-NFS (/etc/fstab でのマウント順序の指定) などなどに対応するための幾多の苦
-難をどうupstart は解決したか。
+逆にネットワークカードがなくなった場合は自動的に停止されます。
 
+\subsubsection{upstartへ の切り替え}
+
+切り替えには upstart パッケージをインストールします。通常のパッケージのインストールとは異なり、続行する場合は、\textbf{Yes, do as I say}と入力しなさい、というメッセージが表示されます。
+これはうまくいかない場合は Debian システムが起動できなくなるなどのリスク
+があるためです。
+
+\begin{commandline}
+$ sudo apt-get install upstart
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています                
+状態情報を読み取っています... 完了
+以下の特別パッケージがインストールされます:
+  dbus libdbus-1-3 libexpat1
+提案パッケージ:
+  dbus-x11
+以下のパッケージは「削除」されます:
+  sysvinit
+以下のパッケージが新たにインストールされます:
+  dbus libdbus-1-3 libexpat1 upstart
+警告: 以下の不可欠パッケージが削除されます。
+何をしようとしているか本当にわかっていない場合は、実行してはいけません!
+  sysvinit
+アップグレード: 0 個、新規インストール: 4 個、削除: 1 個、保留: 9 個。
+1,005kB のアーカイブを取得する必要があります。
+この操作後に追加で 2,105kB のディスク容量が消費されます。
+重大な問題を引き起こす可能性のあることをしようとしています。
+続行するには、'Yes, do as I say!' というフレーズをタイプしてください。
+ ?] Yes, do as I say!
+\end{commandline}
+
+2月の Debian 勉強会時点で、lxc の環境で試した際\footnote{2010年2月9日現
+在}は、getty がうまく動かず、起動しては突然死して、再起動されて、また突
+然死、というのを繰り返してしまい、コンソールからのログインは出来ない状態
+でしたが、今回の資料作成時点\footnote{2010年4月11日に、Squeeze Official
+Snapshot amd64 BC Binary-1 20100322-03:30の ISO イメージを使用した最小構
+成。}では、
+KVM環境で問題なく起動します。バージョンが変わってませんが、環境が異なる
+ので原因は後者にありそうではあります。
+
+\subsection{参考資料}
+
+\url{http://www.ibm.com/developerworks/jp/linux/library/l-boot-faster/index.html}
 
 %-------------------------------------------------------------------------------
 \dancersection{debtags 入門}{やまねひでき}
