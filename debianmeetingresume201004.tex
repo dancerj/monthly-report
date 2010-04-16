@@ -49,9 +49,9 @@
 \includegraphics[width=210mm]{image201003/debsen.eps}\\
 \hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
 
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集１: ＸＸＸＸ}}
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集１: piupartsの使い方}}
 
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集２: ＹＹＹＹＹ} }
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集２: debtags入門} }
 
 \vspace*{-2cm}
 \hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
@@ -102,17 +102,19 @@
 \hrule
 \end{minipage}
 
-\dancersection{事前課題}{上川 純一}
+\dancersection{事前課題}{岩松 信洋}
 
 今回の事前課題は以下です:
 
 \begin{enumerate}
- \item xxxx
+ \item あなたの使っているinitは何ですか？使っている理由を教えてください。
+ \item あなたのパッケージ検索方法を教えてください。
+
 \end{enumerate}
 
 この課題に対して提出いただいた内容は以下です。
 
-% \input{image201003/prework.tex}
+\input{image201004/prework.tex}
 
 \dancersection{最近のDebian関連のミーティング報告}{前田耕平}
 \subsection{東京エリアDebian勉強会62回目報告}
@@ -141,6 +143,22 @@ dvi サポートとかを考えるとめんどくさすぎですが、どうしたものか。
 
 宴会は銀座ライオン。
 
+\dancersection{Debian Trivia Quiz}{岩松 信洋}
+
+ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
+題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
+りあいがないので、理解度のテストをします。特に一人だけでは意味がわからな
+いところもあるかも知れません。みんなで一緒に読んでみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.deban.org} に投稿された
+内容とDebian Project Newsからです。
+
+\begin{multicols}{2}
+ \input{image201004/quiz.tex}
+\end{multicols}
+
+\clearpage
+
 %\dancersection{libsane 入門}{本庄}
 %\dancersection{debhelper v7 でのパッケージ管理}{誰か}
 %\dancersection{死屍累々のundefoma 、その後は?}{誰か}
@@ -150,8 +168,7 @@ dvi サポートとかを考えるとめんどくさすぎですが、どうしたものか。
 piuparts は 次期リリース squeeze の目標の一つに挙げられている
 \texttt{Package clean install/uninstall}を達成するためのサポートツールです。
 既に構築されたDebianパッケージのインストール、アンインストール、アップグ
-レードのチェック
-を行います。
+レードのチェックを行います。
 通常、パッケージ構築時の依存関係チェックや実際の構築には\texttt{pbuilder/cowbuilder}を使
 います。パッケージのインストール、動作確認までは行いますが、アンインストー
 ルまでの確認を行っているパッケージメンテナは少ないようで（実際にそのまま
@@ -160,92 +177,413 @@ piuparts は 次期リリース squeeze の目標の一つに挙げられている
 もあるようです。また、stable からのアップグレードチェックもパッケージメ
 ンテナはあまりやってないのではないでしょうか。
 このような問題をチェックするためのツールとして\texttt{piuparts}は作られました。
-では、\texttt{piuparts}をどのように使うのか見ていきましょう。
+では、\texttt{piuparts}はどのように動き、どのように使うのか見ていきましょう。
 
 \subsection{piupartsの使い方}
 
-基本的な使い方は以下のように実行します。
+\texttt{piuparts}を使ってパッケージのチェックを行う場合には、
 \texttt{piuparts}コマンドにチェックしたいパッケージを指定します。
+例えば、\texttt{libcv4\_2.0.0-4\_i386.deb}パッケージをチェックしてその結果
+を\texttt{/tmp/libcv4\_2.0.0-4\_i386.piuparts-log}に保存する場合には以
+下のように実行します。
+実行するとログが標準出力にも出力されますが、\texttt{-l}オプションで指定
+したログ指定先にも保存されます。
+出力されるログからパッケージのインストール、アンインストール、アップグレードを確認
+することができます。
 
 \begin{commandline}
-$ piuparts ../foo_1.0-2_i386.deb
+$ sudo piuparts libcv4_2.0.0-4_i386.deb -l /tmp/libcv4_2.0.0-4_i386.piuparts-log
+0m0.0s INFO: ------------------------------------------------------------------------------
+0m0.0s INFO: To quickly glance what went wrong, scroll down to the bottom of this logfile.
+0m0.0s INFO: FAQ available at http://wiki.debian.org/piuparts/FAQ
+0m0.0s INFO: ------------------------------------------------------------------------------
+0m0.0s INFO: piuparts version 0.38 starting up.
+0m0.0s INFO: Command line arguments: /usr/sbin/piuparts libcv4_2.0.0-4_i386.deb -l /tmp/libcv4_2.0.0-4_i386.piuparts-log
+0m0.0s INFO: Running on: Linux chimagu 2.6.31-1-686 #1
+ SMP Sun Nov 15 20:39:33 UTC 2009 i686
+0m0.0s DEBUG: Starting command: ['dpkg', '--info', 'libcv4_2.0.0-4_i386.deb']
+0m0.2s DUMP:
+.... 省略 .....
+6m32.6s DEBUG: Starting command: ['chroot',
+ '/tmp/tmplunhrZ', 'umount', '/proc']
+6m32.6s DEBUG: Command ok: ['chroot',
+ '/tmp/tmplunhrZ', 'umount', '/proc']
+6m33.0s DEBUG: Removed directory tree at /tmp/tmplunhrZ
+6m33.0s INFO: PASS: All tests.
+6m33.0s INFO: piuparts run ends.
 \end{commandline}
 
+\texttt{piuparts}の使い方は大きくわけて2つあります。一つはローカルPCにあるパッケージをチェッ
+クする場合、もう一つは既にDebianにインストールされているパッケージをチェックす
+る場合に使います。
+前者はパッケージメンテナがよく使う方法です。パッケージをアップロードする
+前にパッケージを指定してテストします。
+後者の場合はあまりメンテナはあまり使う機会はないと思いますが、後で説明す
+る\texttt{piuparts.debian.org}で使われています。
 
-\texttt{-d} ディストリビューションを指定します。複数のディストリビューションをチェック
- したい場合には、 \texttt{-d} を並べます。
+\subsection{piupartsの動作}
+では、\texttt{piuparts}の動作を見てみましょう。状態遷移図を図\ref{fig:piuparts-process}に示します。
+非常にシンプルなチェック方法になっていることがわかります。
 
--dev.deb のチェックはどうなるのか。
+\begin{figure}[H]
+\caption{piupartsの動作}
+\begin{center}
+\includegraphics[height=0.8\hsize]{image201004/piuparts-process.eps}
+\label{fig:piuparts-process}
+\end{center}
+\end{figure}
 
-
-
-\subsection{piupartsの動き}
+大まかな動きは以上になりますが、内部ではdpkg、aptの動きを利用したものに
+なっています。
+例えば、パッケージのインストールチェックは以下のような動きになっています。
+\begin{enumerate}
+\item \texttt{dpkg -i} で 指定されたパッケージをインストールする。\\
+依存するパッケージがあるばあい、これは失敗する。
+\item \texttt{apt-get -yf --no-remove} でパッケージの依存関係をaptで回避してイン
+      ストールする。
+\end{enumerate}
+これは、パッケージ依存関係をパッケージ情報から抽出して指定する方法を取ら
+ず、aptのチェック機構を用いて依存関係を回避しようとしています。
 
 \subsection{ログの見方}
-\subsubsection{問題ない場合}
+\texttt{piuparts}はログが多いので正しい動きをしているのか非常にわかりずらいです。
+どのように見たらよいのか簡単に説明します。
+
+\texttt{piuparts}のログは、基本的に以下の順で出力されます。
+\begin{enumerate}
+\item コマンド実行({\bf DEBUG: Starting command:})
+\item 実行開始タグ({\bf DUMP:})
+\item 実行時のログ
+\item コマンド結果({\bf ERROR:} or {\bf DEBUG: Command ok})
+\end{enumerate}
+そして、最後にテスト結果が出力されます。
+次にテストが正常に終了した場合と、問題がある場合を見てみます。
+
+\subsubsection{テストが正常に終了した場合}
+
+テストに問題がない場合には、以下のように出力されます。
+インストール $\rightarrow$ アンインストール、インストール $\rightarrow$ アッ
+プグレード $\rightarrow$ アンインストール のチェックが正常に終了しているこ
+とがわかります。
+\begin{commandline}
+.....省略.....
+6m13.7s INFO: PASS: Installation and purging test.
+.....省略.....
+6m32.6s INFO: PASS: Installation, upgrade and purging tests.
+.....省略.....
+6m33.0s INFO: PASS: All tests.
+6m33.0s INFO: piuparts run ends.
+\end{commandline}
+
 \subsubsection{エラーがある場合}
 
-\subsection{細かい設定}
+エラーがある場合には、{\bf ERROR:}の次にエラー内容がされます。
+以下に、実際のエラー内容を示します。
+これは、upstartのチェック結果ですが、essentialパッケージである、sysvinit
+をアンインストールしようとして、エラーになっています。
 
-\subsection{QAチームからのサポート}
+\begin{commandline}
+0m6.0s DEBUG: Starting command: ['chroot', '/org/piuparts.debian.org/tmp/tmpZ-SX9D', 'apt-get', '-y', 'install', 'upstart']
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^: コマンド実行
+0m6.3s DUMP:
+^^^^^^^^^^^: コマンド実行時の情報
+  Reading package lists...
+  Building dependency tree...
+  The following extra packages will be installed:
+    libdbus-1-3
+  Recommended packages:
+    dbus
+  The following packages will be REMOVED:
+    sysvinit
+  The following NEW packages will be installed:
+    libdbus-1-3 upstart
+  WARNING: The following essential packages will be removed.
+  This should NOT be done unless you know exactly what you are doing!
+    sysvinit
+  0 upgraded, 2 newly installed, 1 to remove and 0 not upgraded.
+  Need to get 636kB of archives.
+  After this operation, 1196kB of additional disk space will be used.
+  E: There are problems and -y was used without --force-yes
+0m6.3s ERROR: Command failed (status=100): ['chroot', '/org/piuparts.debian.org/tmp/tmpZ-SX9D', 'apt-get', '-y', 'install', 'upstart']
+^^^^^^^^^^^^: コマンド結果
+\end{commandline}
+
+\subsection{piupartsのオプション}
+普通の使い方では使いづらいので、\texttt{piuparts}で提供されているオプションを
+自分が使っている開発環境に合わせて使うのが普通のようです。以下では
+よく使うオプションを紹介します。
+
+\subsubsection{pbuilderのbase.tgzをpiupartsで利用する}
+\texttt{piuparts}はテストする度にbaseイメージを構成するパッケージ群をミラーサーバ
+から取得し、baseイメージを構築します。キャッシュする機構はいまのところ存
+在せず、毎回取得する仕様になっています。これではサーバに負荷がかかります。
+そこで、\texttt{-p}オプションを使います。 このオプションはpbuilderのbaseイメー
+ジ\texttt{/var/cache/pbuilder/base.tgz}を使ってテストを行うオプションで
+す。
+通常、パッケージメンテナは pbuilder/cowbuilderを使ってパッケージビルドチェック
+を行うので、便利なオプションの一つです。
+また、pbuilderを使ってないが、base.tgzを独自のスクリプトで保持している人
+もいるでしょう。この場合には\texttt{--basetgz}オプションでtgzファイルを
+指定することによって、利用できます。
+
+\subsubsection{ディストリビューションの指定}
+piupartsは unstable(sid)だけでなく、現在サポートされているDebianのディストリビュー
+ションとUbuntuのディストリビューションをサポートしています。
+ディストリビューションの指定には\texttt{-d}オプションを指定します。
+これは複数指定することができ、指定した順にテストが実行されます。
+以下の例では、sid環境を構築し、テストした後、squeeze の環境を構築し、テ
+ストします。
+\begin{commandline}
+$ sudo piuparts -d sid -d squeeze libcv4_2.0.0-4_i386.deb
+.....
+\end{commandline}
+
+\subsection{debianにインストールされているパッケージのテスト}
+既に debian にインストールされているパッケージのテストを行う場合には、
+\texttt{--apt}オプションを使います。
+特定のディストリビューションにあるパッケージのテストを行いたい場合には、
+\texttt{-d}オプションでディストリビューションを指定する必要があります。
+
+\begin{commandline}
+$ sudo piuparts --apt -d squeeze libcv4
+\end{commandline}
+
+\subsubsection{ミラーサーバの指定}
+デフォルトでは、\texttt{piuparts}が使うDebianリポジトリは、
+\texttt{/etc/apt/sources.list}からパーサして利用します。
+一家に一台Debianミラーの時代です。グローバルなミラーサーバを使用せず
+にローカルにあるミラーサーバを指定する場合には、\texttt{--mirror}オプショ
+ンを使って指定します。
+
+\begin{commandline}
+$ sudo piuparts -p libcv4_2.0.0-4_i386.deb --mirror http://debmirror.example.org/debian
+\end{commandline}
+
+\subsubsection{依存するパッケージの回避方法}
+通常、ライブラリソースパッケージはlibfoo0、libfoo-dev など複数のバイナリパッケージを生
+成します。この場合、libfoo-dev パッケージは libfoo0 パッケージに依存して
+いるので、libfoo-devパッケージだけでテストしても、libfoo0がないのでテス
+トでエラーになります。
+この場合には、パッケージを2つ(libfoo0, libfoo-dev)指定することで回避でき
+ます。
+
+\begin{commandline}
+$ sudo piuparts -p libcv-dev_2.0.0-4_i386.deb libcv4_2.0.0-4_i386.deb
+\end{commandline}
+
+また、ソースパッケージから作成されたバイナリパッケージのテストを行う場合
+には、\texttt{*.changes}ファイルを指定します。
+
+\begin{commandline}
+$ sudo piuparts -p opencv_2.0.0-4_i386.changes
+\end{commandline}
+
+\subsection{piuparts.debian.org}
 piupartsがパッケージとして用意されたとしても、まだ利用しているパッケージ
-メンテナは少ないようです。そこで、QAチームは既にDebianにインストールされ
+メンテナは少ないようです。また、パッケージ作成時には問題がなかったが、依
+存関係があるパッケージが更新および削除され、正常にインストール等ができな
+い状態になる場合があります。
+そこで、QAチームは既にDebianにインストールされ
 たパッケージをチェックするためのサービス\texttt{piuparts.debian.org}を立
 ち上げました。
 これでチェックされた内容は、\texttt{qa.debian.org}で提供されている情報の
 一部として、表示されています。
 
-\subsection{問題点}
-依存しているパッケージが悪いのに、それが自分のパッケージにも出てくる件。
+\subsubsection{現在チェックエラーになっているパッケージ}
 
-\subsection{その他}
-現在、　v2 を開発中。
+\texttt{piuparts}でチェックでエラーになっているパッケージはタグとユーザダグで検索できます。
+\begin{itemize}
+\item タグ : piuparts
+\item ユーザタグ : debian-qa@lists.debian.org
+\end{itemize}
+
+BTSでは以下のURLで参照できます。
+\url{http://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=piuparts;users=debian-qa@lists.debian.org}
+
+\subsection{現在の問題点}
+現在、piupartsにはいくつかの問題点があります。
+\url{http://packages.qa.debian.org}で表示されるチェック結果が誤解を受け
+やすいという点です。
+依存しているパッケージが問題を持っているのに、それが自分のパッケージにエラーとなって
+表示されます。情報を追えばどのパッケージでエラーになっているのか分かりま
+すが、情報を追うのがめんどうです。
+
+細かいところでは、\texttt{-B}の使い方がわかりません。
+\begin{commandline}
+$ piuparts --help
+.... 中略 ....
+ -B FILE, --end-meta=FILE
+                     XXX
+\end{commandline}
+ちなみに \#560050で 報告されていますが、開発者本人が報告しているので修正する
+気がないのかもしれません。
+
+\subsection{まとめ}
+
+今回は基本的な使い方と、パッケージメンテナから利用する場合に使うオプショ
+ンを説明しました。パッケージメンテナの方は自分でもっているパッケージテス
+トに組み込んでみてはいかがでしょうか。パッケージの基本的な部分の問題が
+減るのでよいと思います。
+
+また、現在piuparts v2 を開発中です。開発はbzr上で行われています。
 \url{http://code.liw.fi/piuparts2/bzr/trunk/}
-
+ソースコードも多くなく、やっていることも単純です。
+興味のある方は参加してみてはいかがでしょうか。
 
 \dancersection{upstart 再入門}{前田耕平}
 
 \subsection{はじめに}
 今年の2月の Debian 勉強会（Debian 温泉）で一度扱ったテーマですが、新年度
 も始まり、新入生、新入社員、新入 Debian 開発者予備軍の皆さんも、気分も新
-たにもう一回おさらいして、いずれやってくるであろう、Squeeze のリリースに
-備えましょう。
+たに、いずれやってくるであろう、Squeeze のリリースに備えもう一度おさらい
+しておきましょう。
+\footnote{書き下ろすつもりでしたが、個人的な都合で余裕がなく、今回の事前配布資料は基本的に、2010年2月の Debian 勉強会の資料「ブート方法が変
+わるよ」を再編したものです。}
 
-重要ポイントは2月の資料から再掲しますが、upstart が導入されることになっ
-た背景や概要などは2010年2月の Debian 勉強会の資料「ブート方法が変
-わるよ」を参照ください。
+\subsection{従来のinit}
 
-\subsection{従来の init}
-
-rcS
+まず従来の init のおさらいです。従来の init はSystem V 系の Unix 由来の
+起動の仕組みで、sysvinit といい、 Unix/Linux システムにおいて、カーネル
+がブートした後、ユーザプログラムが起動するための仕組みです。マシンに電源
+を入れてからログインプロンプトが表示されるまの流れは大まかには次のように
+なります。
 
 \begin{figure}[H]
-\caption{init, rcSの処理}
+\caption{ブートの流れ}
 \begin{center}
-%\includegraphics[height=0.5\hsize]{image201002/sysvinit.eps}
+\includegraphics[height=0.5\hsize]{image201002/sysvinit.eps}
 \end{center}
 \end{figure}
 
-\subsection{カーネルイベントをどう扱うか}
+init プロセスが起動すると、init は /etc/inittab の内容に従って、プロセス
+のを生成や停止を行います。inittab の書式は次のとおりです。
 
-\begin{figure}[h]
+\begin{commandline}
+id:runlevels:action:process
+\end{commandline}
+
+Debian システムのデフォルトランレベルは 2 なので、プロセスの生成に関わる
+基本的なエントリは次の4行です。
+
+\begin{commandline}
+id:2:initdefault:                     ←デフォルトランレベルは2
+si::sysinit:/etc/init.d/rcS           ←起動時は必ず実行
+l2:2:wait:/etc/init.d/rc 2            ←ランレベル 2で実行。
+1:2345:respawn:/sbin/getty 38400 tty1 ← getty を常駐
+\end{commandline}
+
+2行目のエントリは、ランレベルが指定されてませんが、action に sysinit が指定されているた
+めです。これはシステムブート中に他のブート用の action よりも優先して実行
+されます。ここで実行される /etc/init.d/rcS では
+
+\begin{commandline}
+exec /etc/init.d/rc S
+\end{commandline}
+
+とだけが実行されます。これはランレベル S のシングルユーザモードのときのも
+のです。上記3行目でランレベル 2のときに実行されるエントリがあることから
+も分かるとおり、
+\begin{enumerate}
+ \item ランレベル Sのプロセスが実行
+ \item ランレベル 2のプロセスが実行
+\end{enumerate}
+の順で起動プロセスが実行されます。ランレベル S 用の起動処理が終わってか
+ら、ランレベル 2 用の起動処理が実行されるのですから、/etc/rcS.d/ 以下と
+/etc/rc2.d/ 以下を比較しても分かるとおり、これが逐次実行されるのはかなり
+時間がかかるでしょう。
+
+\subsection{upstart の特徴}
+
+upstart は　sysvinit をイベントベースに置き換えたもので、
+サービスの開始と停止はイベントの通信にもとづきます。
+
+upstart の特徴は次の6つです。
+
+\begin{itemize}
+ \item イベントドリブンでタスクやサービスを起動・停止する。
+ \item タスクやサービスが起動・停止することでイベントが発生する。
+ \item イベントはシステム上の他のプロセスから受け取ることができる。
+ \item サービスが予期せず突然終了しても再起動することができる。
+ \item デーモンの監視と再起動は親プロセスから分離できる。
+ \item D-Bus を通じて init デーモンと通信できる。
+\end{itemize}
+
+upstart の状態遷移は次の図のようになります。
+
+\begin{figure}[thbp]
 \begin{center}
 \caption{upstart 状態遷移}
 \includegraphics[height=0.7\hsize]{image201002/states.eps}
 \end{center}
 \end{figure}
 
+\clearpage
 
-カーネルがモジュールをロード完了したら udev / hal 経由で notification ?
-upstart がそれをlistenしている?
-どうイベント駆動にしているか。
+upstartは、sysvinitと同様な機能を提供しますが、\textbf{非同期イベントに
+応じて自律的に動作する点}がもっとも異なります。そのため、sysvinit に対す
+る upstart のメリットには、
+\begin{itemize}
+ \item 利用可能なハードウェアだけでブートするため、runlevel が必要ない。
+       これは存在しないハードウェアを必要とするジョブをトリガーとしない
+       ため。
+ \item ホットプラグデバイスに対応
+\end{itemize}
+といったことが挙げられます。
 
-なぜそちらが速いのか。
+例えば、システムがブート後、NICを挿すと
+\begin{enumerate}
+ \item network-interface-add イベント生成
+ \item DHCPジョブがネットワークカードを構成
+ \item network-interface-upイベントが生成
+ \item デフォルトルートが新しいインタフェースに割り当て
+ \item default-route-upイベントが生成
+ \item NICを必要とするジョブ(各種サーバ)が自動的に開始される
+\end{enumerate}
 
-複雑な依存関係: ネットワークスワップデバイス、LVM上のファイルデバイス、
-NFS (/etc/fstab でのマウント順序の指定) などなどに対応するための幾多の苦
-難をどうupstart は解決したか。
+逆にネットワークカードがなくなった場合は自動的に停止されます。
 
+\subsubsection{upstartへ の切り替え}
+
+切り替えには upstart パッケージをインストールします。通常のパッケージのインストールとは異なり、続行する場合は、\textbf{Yes, do as I say}と入力しなさい、というメッセージが表示されます。
+これはうまくいかない場合は Debian システムが起動できなくなるなどのリスク
+があるためです。
+
+\begin{commandline}
+$ sudo apt-get install upstart
+パッケージリストを読み込んでいます... 完了
+依存関係ツリーを作成しています                
+状態情報を読み取っています... 完了
+以下の特別パッケージがインストールされます:
+  dbus libdbus-1-3 libexpat1
+提案パッケージ:
+  dbus-x11
+以下のパッケージは「削除」されます:
+  sysvinit
+以下のパッケージが新たにインストールされます:
+  dbus libdbus-1-3 libexpat1 upstart
+警告: 以下の不可欠パッケージが削除されます。
+何をしようとしているか本当にわかっていない場合は、実行してはいけません!
+  sysvinit
+アップグレード: 0 個、新規インストール: 4 個、削除: 1 個、保留: 9 個。
+1,005kB のアーカイブを取得する必要があります。
+この操作後に追加で 2,105kB のディスク容量が消費されます。
+重大な問題を引き起こす可能性のあることをしようとしています。
+続行するには、'Yes, do as I say!' というフレーズをタイプしてください。
+ ?] Yes, do as I say!
+\end{commandline}
+
+2月の Debian 勉強会時点で、lxc の環境で試した際\footnote{2010年2月9日現
+在}は、getty がうまく動かず、起動しては突然死して、再起動されて、また突
+然死、というのを繰り返してしまい、コンソールからのログインは出来ない状態
+でしたが、今回の資料作成時点\footnote{2010年4月11日に、Squeeze Official
+Snapshot amd64 BC Binary-1 20100322-03:30の ISO イメージを使用した最小構
+成。}では、
+KVM環境で問題なく起動します。バージョンが変わってませんが、環境が異なる
+ので原因は後者にありそうではあります。
+
+\subsection{参考資料}
+
+\url{http://www.ibm.com/developerworks/jp/linux/library/l-boot-faster/index.html}
 
 %-------------------------------------------------------------------------------
 \dancersection{debtags 入門}{やまねひでき}
