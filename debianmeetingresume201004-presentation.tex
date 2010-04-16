@@ -173,13 +173,20 @@ Debian の常識、もちろん知ってますよね?
 \begin{frame}{はじめに}
 パッケージメンテナの簡易ワークフロー
 
-\begin{figure}[H]
-\begin{center}
+\begin{figure}[h]
 \includegraphics[height=0.6\hsize]{image201004/devwork.eps}
 \label{fig:devwork}
-\end{center}
 \end{figure}
 
+\end{frame}
+
+
+\begin{frame}{忘れがちなテスト}
+忘れがちなテスト
+\begin{itemize}
+\item アンインストールのチェック
+\item クリーンインストールのチェック
+\end{itemize}
 \end{frame}
 
 \begin{frame}{piuparts}
@@ -229,10 +236,10 @@ $ sudo piuparts libcv4_2.0.0-4_i386.deb -l /tmp/libcv4_2.0.0-4_i386.piuparts-log
 
 \begin{frame}{piupartsの動作}
 \begin{figure}[H]
-\begin{center}
-\includegraphics[height=0.8\hsize]{image201004/piuparts-process.eps}
+%\begin{center}
+\includegraphics[height=0.7\hsize]{image201004/piuparts-process.eps}
 \label{fig:piuparts-process}
-\end{center}
+%\end{center}
 \end{figure}
 
 \end{frame}
@@ -265,7 +272,9 @@ $ sudo piuparts libcv4_2.0.0-4_i386.deb -l /tmp/libcv4_2.0.0-4_i386.piuparts-log
 \begin{frame}[containsverbatim]{エラーがある場合}
 
 \begin{commandline}
-0m6.0s DEBUG: Starting command: ['chroot', '/org/piuparts.debian.org/tmp/tmpZ-SX9D', 'apt-get', '-y', 'install', 'upstart']
+0m6.0s DEBUG: Starting command: ['chroot', \
+  '/org/piuparts.debian.org/tmp/tmpZ-SX9D',\
+   'apt-get', '-y', 'install', 'upstart']
 0m6.3s DUMP:
   Reading package lists...
   Building dependency tree...
@@ -284,38 +293,42 @@ $ sudo piuparts libcv4_2.0.0-4_i386.deb -l /tmp/libcv4_2.0.0-4_i386.piuparts-log
   Need to get 636kB of archives.
   After this operation, 1196kB of additional disk space will be used.
   E: There are problems and -y was used without --force-yes
-0m6.3s ERROR: Command failed (status=100): ['chroot', '/org/piuparts.debian.org/tmp/tmpZ-SX9D', 'apt-get', '-y', 'install', 'upstart']
+0m6.3s ERROR: Command failed (status=100): ['chroot', \
+  '/org/piuparts.debian.org/tmp/tmpZ-SX9D', \
+  'apt-get', '-y', 'install', 'upstart']
 \end{commandline}
 \end{frame}
 
 \begin{frame}[containsverbatim]{piupartsのオプション}
-普通の使い方では使いづらいので、\texttt{piuparts}で提供されているオプションを
-自分が使っている開発環境に合わせて使うのが普通のようです。以下では
-よく使うオプションを紹介します。
+
 \end{frame}
 
-\begin{frame}[containsverbatim]{pbuilderのbase.tgzをpiupartsで利用する}
+\begin{frame}[containsverbatim]{-p オプション}
+pbuilderのbase.tgzをpiupartsで利用する
+
 \begin{commandline}
 $ sudo piuparts -p libcv4_2.0.0-4_i386.deb
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{ディストリビューションの指定}
+\begin{frame}[containsverbatim]{-d オプション}
+テストするディストリビューションの指定
 \begin{commandline}
 $ sudo piuparts -d sid -d squeeze libcv4_2.0.0-4_i386.deb
 .....
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{debianにインストールされているパッケージのテスト}
+\begin{frame}[containsverbatim]{- -apt オプション}
+debianにインストールされているパッケージのテスト
 \begin{commandline}
 $ sudo piuparts --apt -d squeeze libcv4
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{ミラーサーバの指定}
+\begin{frame}[containsverbatim]{- -mirror オプション}
+ミラーサーバの指定
 
-\texttt{--mirror}で指定。\\
 \begin{commandline}
 $ sudo piuparts -p libcv4_2.0.0-4_i386.deb --mirror http://debmirror.example.org/debian
 \end{commandline}
@@ -323,8 +336,8 @@ $ sudo piuparts -p libcv4_2.0.0-4_i386.deb --mirror http://debmirror.example.org
 
 \begin{frame}[containsverbatim]{依存するパッケージの回避方法}
 \begin{itemize}
-\item パッケージの指定で回避する方法
-
+\item パッケージの指定で回避する方法\\
+依存するパッケージを一緒に指定する
 \begin{commandline}
 $ sudo piuparts -p libcv-dev_2.0.0-4_i386.deb libcv4_2.0.0-4_i386.deb
 \end{commandline}
