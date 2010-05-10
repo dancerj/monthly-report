@@ -4,6 +4,7 @@
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2010 Junichi Uekawa
+%     Copyright (C) 2010 Nobuhiro Iwamatsu
 
 %     This program is free software; you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -107,7 +108,9 @@
 今回の事前課題は以下です:
 
 \begin{enumerate}
- \item xxxx
+ \item 普段使っているLinuxディストリビューションと使ってみたいLinuxディ
+       ストリビューションは何ですか？使っている理由、魅力、不満点、使っ
+       てみたい理由を教えてください。
 \end{enumerate}
 
 この課題に対して提出いただいた内容は以下です。
@@ -120,6 +123,246 @@
 % (query-replace-regexp "^[	 ]\+" "")
 
 
+\dancersection{Debian Trivia Quiz}{岩松 信洋}
+
+ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
+題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
+りあいがないので、理解度のテストをします。特に一人だけでは意味がわからな
+いところもあるかも知れません。みんなで一緒に読んでみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.deban.org} に投稿された
+内容とDebian Project Newsからです。
+
+\begin{multicols}{2}
+\input{image201005/quiz.tex}
+\end{multicols}
+
+\clearpage
+
+\dancersection{DebianでのLinuxカーネルとの付き合い方}{岩松}
+
+\subsection{はじめに}
+
+ここ数年でDebianのLinuxカーネル開発体制やLinuxカーネルに関するツールの使
+い方が変わってきました。Debian JP のMLでもたまにLinuxカーネルに関してハ
+マっている方おられるようです。
+ネット上でも情報がまとまっていなかったり、間違った情報が流れているような
+ので、簡単にまとめてみました。
+
+\subsection{Debian Linux カーネルの開発状況}
+Debian の Linux カーネルは Debian Kernel Team によって開発およびメンテナ
+ンスされています。
+もちろんDebianでは LinuxカーネルもDebianパッケージとして提供されており、
+容易に利用可能な状態になっています。
+チームコアメンバは Bastian Blank, Frederik Schul, Maximilian Attems,
+Ben Hutchings で、彼らがが中心になってメンテナンスしています。各々はもち
+ろんカーネル開発者です。
+彼らだけでは全アーキテクチャの面倒を見きれないので、各アーキテクチャメン
+テナとともにカーネルパッケージのメンテナンスを行っています。
+アーキテクチャメンテナはBuilddメンテナや、Debian-instller チームなどを掛
+け持ちした約20名の開発者がいます。
+
+\subsection{Debian Kernel Teamによってメンテナンスされている主要なパッケージ}
+
+Debian Kernel TeamではLinuxカーネルに関するいくつかのパッケージをメンテ
+ナンスしています。ここでは、開発体制とメンテナンスしている主要なパッケージについて説明しま
+す。
+
+\subsection{DebianでのLinuxカーネル開発プロセス}
+
+
+去年の7月頃までは基本となるLinuxカーネルバージョンは決まっていましたが、
+パッケージのリリースはあまり決まっていませんでした。
+去年のDebconfではLinuxカーネルのstableリリースに合わせて開発を行うこと
+が決まり、パッケージのバージョニングと開発/メンテナンススタイルももこれ
+に合わせて変更されています。
+例えば、2010年5月現在では LinuxのLTSサポートカーネルバージョンは
+2.6.32.13です。これにより、Debianのパッケージバージョンは
+linux-2.6\_2.6.32-13 となり、Debianにインストールされます。
+バックポートの場合には、Debianパッケージに直接取り込まれることはなく、
+stable@kernel.orgにメールして、stableカーネルに取り込んでもらうように交
+渉し、upstreamに取り込まれた後にDebianパッケージとして提供されるようにな
+ります。
+また、バグがあった場合には、LinusカーネルへのHEADへのパッチとstableへのパッチ
+を用意し、取り込まれるまで待ちます。
+Debian Kernel Teamで作成されたパッチは積極的にLinusカーネルに取り込まれ
+るように働きかけます。この成果としては、ドライバのnon-freeファームウェア
+のパッチなどがあります。
+
+\includegraphics{image201005/debian-kernel-devel.eps}
+\includegraphics{image201005/debian-kernel-devel2.eps}
+\includegraphics{image201005/debian-kernel-team.eps}
+
+
+\subsection{linux カーネル/linux-2.6}
+Debian Kernel Teamがメンテナンスしているパッケージの一つにlinux-2.6があ
+ります。
+これはLinuxカーネルの主要なパッケージであり、このパッケージから各アーキ
+テクチャ向けのカーネル、ドライバ、ヘッダファイル向けのパッケージが生成さ
+れます。現在はUpstream共にliunx-2.6を開発しているので、このパッケージ名
+になっています。
+
+
+
+\subsection{linux-latest-2.6} 
+\texttt{linux-latest-2.6}パッケージは仮想パッケージを提供します。
+例えば、amd64アーキテクチャ向けのLinuxカーネルイメージパッケージは
+\texttt{linux-image-2.6.32-5-amd64}になりますが、\texttt{linux-latest-2.6}パッケージでは
+\texttt{linux-image-2.6-amd64} を提供し、 \texttt{linux-image-2.6.32-5-amd64} に依存します。
+これは、ABI の変更を追従するためです。
+ABIのバージョン（上の例だと5）をパッケージ名に含めてるので、ABIが変更された場合のカーネ
+ルアップデートが困難になります。ようするに、\texttt{linux-image-2.6.32-4-amd64}
+と\texttt{linux-image-2.6.32-5-amd64}ではABIが異なるので別パッケージ扱い
+になるというわけです。2つの
+なぜ、カーネルパッケージ名にABIのバージョ
+ンをふくめているのかというと、パッケージのバージョンに入れてしまうと新し
+いバージョン扱いになってしまうので、Debianにインストールされるのが遅くなっ
+てしまうためです。
+これを回避するために、仮想パッケージを用意して、ABIが変更される度に
+linux-latest-2.6 がアップデートされるという仕組みになっています。
+
+linux-kbuild-2.6
+これは、linux-headers パッケージに依存しています。
+このパッケージのソースコードはアップストリームのソースコードからkbuildを
+行うために必要な部分を抽出して作られます。
+
+%  なぜ、これらはわかれているのか。
+
+\subsection{今時のDebianカーネルのビルド方法}
+
+大抵のユーザはDebianで提供されているバイナリパッケージを使います。
+しかし、たまにビルドしたい人がいるわけです。
+
+理由としては以下のものが考えられます。
+
+\begin{itemize}
+\item 何か修正するためのパッチを適用したい。
+\item オレオレパッチを適用したカーネルを使いたい。
+\item プリエンプションモデルが気に入らない。
+\item timer frequencyを変更したい。
+\item 毎日カーネルをビルドしないと気が済まない。
+\end{itemize}
+
+このような事から日頃からカーネルのビルドを行って置くことが重要です。
+
+%http://kernel-handbook.alioth.debian.org/ch-common-tasks.html
+%http://wiki.debian.org/HowToRebuildAnOfficialDebianKernelPackage#Thestoryoflinux-kbuild-2.6
+
+
+\subsubsection{Debianのカーネルを再ビルドする。}
+
+Debianのカーネルを再ビルドするのは簡単です。以下のように実行します。
+\begin{enumerate}
+\item Debianが提供しているカーネルのビルドに必要なパッケージをインストー
+      ルする
+\begin{commandline}
+$ sudo apt-get build-dep linux-source-2.6.26
+\end{commandline}
+
+\item Debianのカーネルソースをインストールする。
+\begin{commandline}
+$ sudo apt-get install linux-source-2.6.26
+\end{commandline}
+\item make-kpkg コマンドを使ってカーネルパッケージをビルドする。
+\begin{commandline}
+$ fakeroot make-kpkg --revision=test00debian kernel_image kernel_headers
+\end{commandline}
+
+\end{enumerate}
+
+
+しかし、これではDebianパッケージにはパッチが適用されていない状態です。パッ
+チを適用する必要あがります。
+
+\begin{commandline}
+$ /usr/src/kernel-patches/all/2.6.26/apply/debian -a x86_64 -f xen
+\end{commandline}
+-a でアーキテクチャ、-f で flavourを指定します。
+
+\subsubsection{オフィシャルDebianカーネルをリビルドする}
+
+
+\subsubsection{Debianのカーネルにパッチを適用して利用する。}
+
+\subsubsection{リリースされたカーネルをdebianパッケージにする}
+LinusやstableチームによってリリースされたLinuxカーネルをDebianパッケージ
+を作成するには\texttt{kernel-package}パッケージを使います。
+lennyでは\texttt{kernel-package}の機能が足りていないので、testingや
+unstableのパッケージを持ってきましょう。特に特別なパッケージに依存してい
+ないので、そのまま\texttt{dpkg}コマンドでインストールすることができます。
+
+\begin{enumerate}
+\item \texttt{kernel-package}パッケージと\texttt{fakeroot}パッケージをイ
+ ンストールする。
+\begin{commandline}
+$ sudo apt-get install kernel-package fakeroot
+\end{commandline}
+
+\item ソースTARボールをダウンロードし、展開する。
+\item カーネルコンフィグをカスタマイズする。
+\begin{commandline}
+$ make menuconfig
+\end{commandline}
+
+\item \texttt{make-kpkg}コマンドを使ってカーネルパッケージを構築する。
+\begin{commandline}
+$ make-kpkg --revision=test00 kernel_image kernel_headers
+\end{commandline}
+
+\item ビルドが終わるとパッケージができているので、インストールします。
+\begin{commandline}
+$ sudo dpkg -i linux-headers-2.6.33.3_test00_amd64.deb  linux-image-2.6.33.3_test00_amd64.deb
+\end{commandline}
+
+\end{enumerate}
+
+
+\subsection{git/HEADをDebianパッケージにする。}
+今時はカーネルがリリースされる度にカーネルのソースコードをダウンロードす
+るのではなく、gitリポジトリからビルドするのが通でしょう。たぶん。
+
+\begin{commandline}
+$ git remote update
+$ git checkout origin/master
+\end{commandline}
+
+\subsection{よくある QA}
+
+\subsubsection{最新カーネル向けパッケージををlenny上で作れません}
+
+
+\subsection{initrd が作られません。}
+grubのメニューを変更して、initrdを使わないようにしましょう。
+というのは半分冗談で、kenrel-pakcage 12.012 以降から initrdを作らない仕様に変
+更されました。\texttt{make-kpkg}コマンドを使ってinitrdを含めたカーネルイ
+メージを作成するには、以下を実行する必要があります。
+\begin{commandline}
+$ sudo mkdir -p /etc/kernel/postinst.d/
+$ sudo cp
+ /usr/share/doc/kernel-package/examples/etc/kernel/postinst.d/initramfs \
+ /etc/kernel/postinst.d/
+\end{commandline}
+
+実行した後に再度カーネルパッケージを作ると、インストール時にinitrdイメー
+ジを構築してくれます。
+
+\subsection{-j オプションを使ってカーネルパッケージをビルドしたいのですが}
+
+make-kpkg コマンドの \texttt{DEBIAN\_KERNEL\_JOBS} 変数を使いましょう。
+例えば、-j8 相当は以下のように実行します。
+\begin{commandline}
+$ make-kpkg --revision=test00 kernel_image kernel_headers DEBIAN_KERNEL_JOBS=8
+\end{commandline}
+
+
+\subsection{2.6.33 向けのlinux-kbuild-2.6を作りたいのですが}
+\url{http://wiki.debian.org/HowToRebuildAnOfficialDebianKernelPackage#Thestoryoflinux-kbuild-2.6}
+を参照。
+2.6.33 は experimental にありますが、バグ(\#573176)があります。パッチを
+当てて、ビルドしましょう。
+
+\subsection{最新のカーネルを使いたいのだけど、パッケージにするのがめんどいです。}
+\url{http://kernel-archive.buildserver.net}で提供されていますが、現在サーバダウン中です。
 
 \printindex
 
