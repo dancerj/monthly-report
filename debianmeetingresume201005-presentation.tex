@@ -1,0 +1,1102 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2010 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{東京エリア Debian 勉強会/つくらぐ勉強会}
+\subtitle{資料}
+\author{岩松 信洋 iwamatsu@debian.org\\IRC nick: iwamatsu}
+\date{2010年05月15日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\emtext{設営準備にご協力ください}
+
+\begin{frame}
+ \frametitle{勉強会の連絡事項}
+\begin{minipage}[t]{0.45\hsize}
+  \begin{itemize}
+   \item 注意事項
+	 \begin{itemize}
+	  \item 飲食?
+	 \end{itemize}
+  \end{itemize}
+\end{minipage} 
+\begin{minipage}[t]{0.45\hsize}
+ \begin{itemize}
+  \item GNU/Linux とは
+  \item ディストリビューションLT大会
+  \item 未定
+  \item DebianでのLinuxカーネルとの付き合い方
+  \item Debian / mozc を Debianパッケージにした
+ \end{itemize}
+\end{minipage}
+\end{frame}
+
+\begin{frame}
+ \frametitle{前回のDebian勉強会}
+\begin{minipage}[t]{0.45\hsize}
+  \begin{itemize}
+   \item 西東京/稲城市で開催
+   \item 注意事項
+	 \begin{itemize}
+	  \item 飲食?
+	 \end{itemize}
+  \end{itemize}
+\end{minipage} 
+\begin{minipage}[t]{0.45\hsize}
+ \begin{itemize}
+  \item piuparts の使い方
+  \item upstart 再入門
+  \item debtags 入門
+  \item Debian JP Project Leader からのありがたいお言葉
+ \end{itemize}
+\end{minipage}
+\end{frame}
+
+\begin{frame}{Hack Cafe}
+ 最近ハックカフェしてますか?\\
+ 毎週、新宿近辺で Debian Hack Cafe を行っているはずです。\\
+ \url{http://twitter.com/debian_hackcafe}\\
+\end{frame}
+
+\emtext{事前課題}
+
+\begin{frame}{事前課題}
+\begin{enumerate}
+ \item 普段使っているLinuxディストリビューションと使ってみたいLinuxディストリ
+ ビューションは何ですか？
+ \item 使っている理由、魅力、不満点、使ってみたい理由
+ を教えてください。
+\end{enumerate}
+\end{frame}
+
+{\footnotesize
+\input{image201004/prework.tex}
+}
+
+
+\section{DWN quiz}
+\begin{frame}{Debian 常識クイズ}
+
+Debian の常識、もちろん知ってますよね?
+知らないなんて恥ずかしくて、知らないとは言えないあんなことやこんなこと、
+みんなで確認してみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.deban.org} に投稿された
+内容とDebian Project Newsからです。
+
+\end{frame}
+
+\subsection{問題}
+
+% クイズを貼る
+
+
+% ------------------------------------------------------------------------------
+\emtext{自己紹介}
+% ------------------------------------------------------------------------------
+
+
+\begin{frame}{岩松です}
+\begin{itemize}
+\item 岩松 信洋 (いわまつ のぶひろ)
+\item Debian Officiall Developer \\
+\item Debian でやっていること \\
+SH4アーキテクチャメンテナ / SH4 カーネル 担当 / Buildd / Bluetooth,
+      OpenCV, slim, USBカメラ, gcc, eglibc, etc...
+\item その他 \\
+Linux Kernel 開発者, ドライバメンテナ、U-Boot メンテナ、コミッタ
+\end{itemize}
+
+\end{frame}
+
+
+% ------------------------------------------------------------------------------
+\emtext{Debian/Linux カーネル}
+% ------------------------------------------------------------------------------
+
+\begin{frame}{アジェンダ}
+\begin{itemize}
+\item Debian Linux カーネルの開発体制、開発状況
+\item 各カーネルに関するパッケージの説明
+\item カーネルパッケージの作り方
+\item よくある質問
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian Linux カーネルの開発状況}
+\begin{itemize}
+\item Debian の Linux カーネルは Debian Kernel Team によって開発およびメンテナ
+ンス。
+\item チームコアメンバは Bastian Blank, Frederik Schul, Maximilian Attems,
+Ben Hutchings
+\item 各アーキテクチャメンテナがいる。\\
+アーキテクチャメンテナはBuilddメンテナや、Debian-instller チーム、eglibc
+メンテナなど。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=1.0\hsize]{image201005/debian-kernel-team.eps}
+\end{center}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{DebianでのLinuxカーネル開発プロセス}
+%去年の6月頃まではDebianでベースとするLinuxカーネルバージョンは決まっていましたが、
+%パッケージのリリースサイクルはあまり決まっていませんでした。
+%去年のDebconfではLinuxカーネルのstableリリースに合わせて開発を行うこと
+%が決まり、パッケージのバージョニングと開発/メンテナンススタイルもこれ
+%に合わせて変更されています。
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debianカーネル用語}
+\begin{itemize}
+\item Debianカーネル\\
+Debianからパッケージとしてリリースされているパッケージ。
+\item LTS \\
+Long-term Supportの略。現在は 2.6.32 が対象。以前は 2.6.27。
+\item stable カーネル \\
+\texttt{The Linux Kernel Archives}からダウンロードできるカーネル。
+現在、2.6.33.3、2.6.32.12、2.6.31.13、2.6.30.10、2.6.27.46の5つが存在し
+ます。
+\item Linus/HEAD \\
+Linus git リポジトリのHEAD。HEADはその時の最新を意味します。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{カーネルパッケージのバージョン関係}
+
+\begin{itemize}
+\item 開発体制プロセスの変更により、カーネルパッケージのバージョンやアップロー
+ドのタイミングが変更された。
+\item Debianカーネルは stable カーネルリリースベース。\\
+最新版は 2.6.32.12。このカーネルをベースにDebianパッケージにした場合、パッケージバージョンは
+linux-2.6\_2.6.32-12 。stable リリースバージョンをDebian
+バージョンに置き換えており、Debian バージョン ＝ Linux カーネルのstable
+リリースバージョンとなる。
+\item 新しいstableリリースが出ない限り、Debianパッケージもアップロー
+ドされない（現時点では。）
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{パッチのバックポート}
+\begin{itemize}
+\item バックポートパッチは Debianでは直接取り込まない。
+\item stableカーネル経由。(stable@kernel.org)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{バグレポートとパッチ}
+\begin{itemize}
+\item バグがあった場合には、Debian の BTSを利用できる。
+\item Upstream(stabelカーネル、場合によってはLinus/HEAD)に転送してくれる
+      かも。
+\item Debian Kernel Teamで作成されたパッチは積極的にLinusカーネルに取り
+      込む。
+\item 取り込まれない場合、Debian specific パッチとして管理される。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=1.1\hsize]{image201005/debian-kernel-devel.eps}
+\end{center}
+\end{figure}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian Kernel Teamによってメンテナンスされている主要なパッケージ}
+
+Debian Kernel TeamではLinuxカーネルに関するいくつかのパッケージをメンテ
+ナンスしています。ここでは、主要なパッケージと関係について説明します。
+\end{frame}
+
+\begin{frame}[containsverbatim]{linux-2.6 パッケージ}
+
+\begin{table}[ht]
+\begin{minipage}{0.3\hsize}
+\begin{itemize}
+\item Linuxカーネルの主要なパッケージ
+\item 各アーキ
+テクチャ向けのカーネル、ヘッダファイル、libc向けヘッダファイル、ドキュメ
+ント等のパッケージが生成される。
+\end{itemize}
+
+\end{minipage}
+\begin{minipage}{0.6\hsize}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.8\hsize]{image201005/debian-kernel-package.eps}
+\end{center}
+\end{figure}
+\end{minipage}
+\end{table}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{カーネルコンフィグ}
+\begin{itemize}
+\item 基本 config , アーキテクチャ用 config , flavour用 config で構成さ
+ れている。
+\item これらがパッケージビルド時にひとつになって、カーネルコンフィグが行
+ われる。
+\item 優先順位は 基本 config \textless アーキテクチャ用 config \textless flavour用 config 
+\item コンフィグを各ファイルに自動的で分割するプログラムは存在しないので
+ 手作業で更新する。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{linux-latest-2.6 パッケージ} 
+
+Debianカーネルの最新ABIを追従するためのメタパッケージを提供する。
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=1.0\hsize]{image201005/linux-latest-2.6.eps}
+\end{center}
+\end{figure}
+\end{frame}
+
+\begin{frame}[containsverbatim]{ABIのチェック}
+
+\begin{itemize}
+\item syscall などのABIが変更された場合のチェックなど。
+\item \texttt{linux-2.6/debian/bin/buildcheck.py}カーネルパッケージビル
+      ド時に実行。
+\item 大きな変更がない場合は更新しない場合もある。
+\end{itemize}
+
+\begin{commandline}
+--省略--
+make[3]: Leaving directory  `/home/mattems/src/linux-2.6-2.6.32/debian/build/build_amd64_none_amd64'
+python debian/bin/buildcheck.py debian/build/build_amd64_none_amd64 amd64 none amd64
+ABI has changed!  Refusing to continue.
+
+Added symbols:
+dev_attr_usbip_debug    module: drivers/staging/usbip/usbip_common_mod, version: 0x79bd9084, export: EXPORT_SYMBOL_GPL 
+getboottime             module: vmlinux, version: 0x0619ca8a, export: EXPORT_SYMBOL_GPL
+monotonic_to_bootbased  module: vmlinux, version: 0xdb274e52, export: EXPORT_SYMBOL_GPL
+--省略--
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{linux-kbuild-2.6}
+\begin{itemize}
+\item \texttt{linux-kbuild-2.6}はカーネルドライバ構築をサポートするため
+      のスクリプトを持つ。
+\item stableカーネルのソースコードからkbuildを行うために必要な部分を抽出
+      して作られる。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{linux-kbuild-2.6}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=1.0\hsize]{image201005/linux-kbuild-2.6.eps}
+\end{center}
+\end{figure}
+\end{frame}
+
+\begin{frame}[containsverbatim]{まとめ}
+\begin{itemize}
+\item Debian のカーネルメンテナンスはチーム制。
+\item カーネルに関係するパッケージメンテナやアーキテクチャメンテナによっ
+      てメンテナンスされている。
+\item パッケージのアップデートはstabelリリースベース。
+\item 更新を用意にするためにメタパッケージを使っている。
+\item ABIのチェックなどもしてけっこう真面目。
+\end{itemize}
+\end{frame}
+
+\emtext{今時のDebianカーネルのビルド方法}
+
+\begin{frame}[containsverbatim]
+みなさん、カーネルのコンパイルしていますか？
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{今時のDebianカーネルのビルド方法}
+
+\begin{itemize}
+\item 大抵のユーザはDebianで提供されているカーネルを使う。
+\item たまにビルドしたくなるときがある。
+
+\begin{itemize}
+\item 何か修正するためのパッチを適用したい。
+\item オレオレパッチを適用したカーネルを使いたい。
+\item プリエンプションモデルが気に入らない。\\
+\texttt{CONFIG\_PREEMPT\_XXX}の変更
+\item Timer frequencyを変更したい。\\
+\texttt{CONFIG\_HZ\_XXX}の変更
+\item 毎朝、自分のマシンで使うカーネルをビルドしないと気が済まない。
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{日頃からの鍛錬がものを言う}
+このような事から日頃からカーネルのビルドを行って置くことが重要です。
+しかし、Debianではいくつかのカーネル構築方法があります。これらを一つずつ
+みてみましょう。
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debianカーネルビルド方法}
+
+\begin{itemize}
+\item Debianオフィシャルカーネルをリビルドする
+\item Debian カーネルにパッチを適用してビルドする。
+\item Debianオフィシャルカーネルをリビルドする(その２)。
+\item リリースされたカーネルを Debian パッケージにする。
+\item git/HEAD を Debian パッケージにする。
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debianオフィシャルカーネルをリビルドする}
+
+\begin{itemize}
+\item カーネルソースパッケージを持ってきて debuild \\
+これではすべての flavour をビルドしてしまう。\\
+\item flavour : amd64, vserver , xen, openvz,  etc.. 
+\item 指定したflavour だけをビルドする方法。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{Debianオフィシャルカーネルをリビルドする}
+
+\begin{itemize}
+\item Linux-2.6 ソースコードをダウンロードする。\\
+まず、linux-2.6 ソースパッケージをダウンロードします。
+ダウンロードできたら、展開されたディレクトリに移動します。
+\begin{commandline}
+$ apt-get source linux-2.6
+$ cd linux-2.6-2.6.32
+\end{commandline}
+
+\item linux-2.6 パッケージのビルドに必要なパッケージをインストールする。\\
+パッケージのビルドに必要なパッケージをインストールするには
+      \texttt{build-dep}オプションを使います。
+\begin{commandline}
+$ sudo apt-get build-dep linux-2.6
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{Debianオフィシャルカーネルをリビルドする}
+\begin{itemize}
+\item Debian カーネル向けのパッチを適用する。
+
+\begin{commandline}
+$ make -f debian/rules clean
+$ make -f debian/rules source-all
+\end{commandline}
+
+\texttt{debian/rules source-all}では、全てのアーキテクチャ向けに
+パッチを適用してしまうので、特定のアーキテクチャのパッチを適用したい場合
+には以下のように実行します。
+
+\begin{commandline}
+$ make -f debian/rules.gen source_amd64
+\end{commandline}
+
+
+\item 利用したいflavourで初期化する。\\
+amd64アーキテクチャのamd64 flavourで初期化したい場合には以下のように実行します。
+
+\begin{commandline}
+$ fakeroot make -f debian/rules.gen setup_amd64_none_amd64
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{Debianオフィシャルカーネルをリビルドする}
+\begin{itemize}
+
+\item カーネルコンフィグを変更する。\\
+カーネルコンフィグを変更したい場合には、
+\texttt{debian/build/build\_amd64\_none\_amd64}ディレクトリ
+移動して、カーネルコンフィグを行います。コンフィグ終了後は元の
+ディレクトリに戻る必要があります。
+
+\begin{commandline}
+$ cd debian/build/build_amd64_none_amd64
+$ make menuconfig
+$ cd ../../..
+\end{commandline}
+
+\item パッケージをビルドする。\\
+\texttt{debuild / dpkg-buildpackage}コマンドは利用せず、debian/rules のター
+      ゲットを指定してパッケージをビルドします。
+
+\begin{commandline}
+$ fakeroot make -f debian/rules.gen binary-arch_amd64_none_amd64
+\end{commandline}
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debianカーネルにパッチを適用して利用する}
+
+\begin{itemize}
+\item Debianカーネルをベースに自分が作ったパッチを当てて利用する。
+\item 自分のパッチをDebianのカーネルパッチ機構に取り込む必要がある。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debianカーネルパッチ機構}
+
+\begin{itemize}
+\item debian/patches/bugfix\\
+重要なバグ修正用パッチを格納する。
+
+\item debian/patches/debian\\
+Debian 専用パッチを格納する。
+
+\item debian/patches/features\\
+まだ upstreamにマージされていないパッチを格納する。
+
+\item debian/patches/series\\
+パッチを管理するファイルを格納しているディレクトリ。
+Debian バージョン毎にファイルがあります。
+
+\end{itemize}
+さらにアーキテクチャ毎にパッチが分かれる。
+\end{frame}
+
+\begin{frame}[containsverbatim]{自分が作成したパッチを適用する例}
+自分が作成したパッチ(oreore.patch)を適用する例。
+\begin{itemize}
+\item カーネルソースコードを取得する。\\
+展開後に、ディレクトリに移動します。
+\begin{commandline}
+$ apt-get source linux-2.6
+$ cd linux-2.6-2.6.32
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{自分のパッチを適用したカーネルをビルドする方法}
+
+\begin{itemize}
+\item Changelogを更新する。\\
+DebianパッケージのChangelogを更新する場合、\texttt{dch}コマンドを使う。
+
+\begin{commandline}
+$ dch --local +test -D UNRELEASED
+\end{commandline}
+
+Liuxカーネルパッケージのバージョンが\texttt{2.6.32-12}の
+場合には\texttt{2.6.32-12+test1}になる。
+
+
+\item パッチをディレクトリにコピーする。\\
+
+パッチを debian/patches ディレクトリ以下にコピーします。
+\begin{commandline}
+$ cp ~/oreore.patch debian/patches/bugfix/
+\end{commandline}
+
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{自分のパッチを適用したカーネルをビルドする方法}
+
+\begin{itemize}
+\item コピーしたパッチを有効にする。\\
+コピーしたパッチを有効にするには、\texttt{debian/patches/series/}ディレ
+クトリにパッチを適用したいDebianバージョンのファイルを作成し、パッチのパ
+スを指定します。
+\begin{commandline}
+$ echo ``+ bugfix/oreore.patch'' >> debian/patches/series/12+test1
+\end{commandline}
+
+\item \texttt{./debian/bin/gencontrol.py}を実行する。
+\texttt{./debian/bin/gencontrol.py}を実行し、ビルド用のスクリプトや設定
+      ファイルを新しいDebianバージョン向けに更新します。
+\begin{commandline}
+$ ./debian/bin/gencontrol.py
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{自分のパッチを適用したカーネルをビルドする方法}
+
+\begin{itemize}
+\item 一度初期化し、パッチを適用する。\\
+\begin{commandline}
+$ make -f debian/rules clean
+$ make -f debian/rules.gen source_amd64
+\end{commandline}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]%{自分のパッチを適用したカーネルをビルドする方法}
+\begin{itemize}
+\item パッケージをビルドする。\\
+amd64 の amd64 flavourをビルドする場合には以下のように実行します。
+\begin{commandline}
+$ fakeroot make -f debian/rules.gen binary-arch_amd64_none_amd64
+\end{commandline}
+
+エラーがなければ、パッチが有効になったカーネルパッケージがビルドさ
+れます。
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian オフィシャルカーネルをリビルドする}
+
+\begin{itemize}
+\item  Debianカーネルを再ビルドする方法はもうひとつの方法。
+\item \texttt{linux-source-2.6.XX}パッケージを利用する。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{linux-source-2.6.XXパッケージから再ビルドする。}
+
+\begin{itemize}
+\item Debianが提供しているカーネルのビルドに必要なパッケージをインストー
+      ルする。
+\begin{commandline}
+$ sudo apt-get build-dep linux-source-2.6.32
+\end{commandline}
+
+\item Debianのカーネルソースをインストールする。
+\begin{commandline}
+$ sudo apt-get install linux-source-2.6.32
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]%{linux-source-2.6.XXパッケージから再ビルドする。}
+
+\begin{itemize}
+
+\item make-kpkg コマンドを使ってカーネルパッケージをビルドする。
+
+\begin{commandline}
+$ fakeroot make-kpkg --revision=test00 kernel_image kernel_headers
+\end{commandline}
+
+\end{itemize}
+
+\begin{itemize}
+\item これではDebianパッケージにはパッチが適用されていない状態。。
+\item \texttt{linux-patch-debian-XXXX}パッケージからパッチを適用
+する必要がある。
+\item パッチを当てた後に再度ビルド。
+\end{itemize}
+
+\begin{commandline}
+$ sudo apt-get install linux-patch-debian-2.6.32 
+$ /usr/src/kernel-patches/all/2.6.32/apply/debian -a x86_64 -f xen
+\end{commandline}
+
+\texttt{-a} でアーキテクチャ、\texttt{-f} で flavourを指定します。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{リリースされたカーネルをdebianパッケージ
+ にする}
+
+\begin{itemize}
+\item LinusやstableチームによってリリースされたLinuxカーネルをDebianパッ
+      ケージにする。
+\item \texttt{kernel-package}パッケージを使うのがDebian流です。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]%{リリースされたカーネルをdebianパッケージにする}
+
+\begin{itemize}
+\item \texttt{kernel-package}パッケージと\texttt{fakeroot}パッケージをイ
+ ンストールします。
+\begin{commandline}
+$ sudo apt-get install kernel-package fakeroot
+\end{commandline}
+
+\item ソースをダウンロードし、展開します。
+\item カーネルコンフィグを実行します。
+\begin{commandline}
+$ make menuconfig
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]%{リリースされたカーネルをdebianパッケージにする}
+
+\begin{itemize}
+
+\item \texttt{make-kpkg}コマンドを使ってカーネルパッケージを構築する。
+
+make-kpkg コマンドにはいくつかのオプションがありますが、よく利用するオプ
+      ションについて説明します。
+\begin{itemize}
+\item kernel\_image \\
+カーネルイメージパッケージビルドを指定します。
+\item kernel\_headers \\
+カーネルヘッダビルドを指定します。
+\item --revision \\
+リビジョンを指定します。これはDebianバージョンに付加されます。
+\item --append\_to\_version\\
+カーネルバージョンを追加します。これはパッケージ名に付加されます。
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item --added\_modules\\
+Debianパッケージになっているカーネルモジュールをビルドします。
+\item --added\_patches\\
+Debianパッケージなっているカーネルパッチを有効にしてビルドします。
+\item --initrd \\
+initrdイメージをビルドする際に必要です。initrdイメージはパッケージインストール時
+      に作成するように仕様が変わっています。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]%{リリースされたカーネルをdebianパッケージにする}
+
+例えば、リビジョンを\texttt{test12345}、バージョンに\texttt{append67890}指定し、カーネルパッケージとカーネルヘッダパッ
+      ケージをビルドする場合には以下のように実行します。
+      リビジョンの前に.(ピリオド)をつけているのは、2.6.33.3の場合には
+      2.6.33.3.append67890となるようにするため。 
+\begin{commandline}
+$ fakeroot make-kpkg --revision=.test12345 \
+  --append-to-version=append67890 kernel_image
+\end{commandline}
+
+作成されるパッケージ名は以下のようになり、
+\texttt{--append-to-version}と\texttt{--revision}は以下のように配置され
+      ます。
+\begin{commandline}
+linux-image-(kernel-version)(--append-to-version)_(--revision)_(architecture).deb 
+\end{commandline}
+
+
+\end{frame}
+
+\begin{frame}[containsverbatim]%{リリースされたカーネルをdebianパッケージにする}
+
+\begin{itemize}
+
+\item ビルドが終わるとパッケージがビルドされているので、インストールする。
+\begin{commandline}
+$ sudo dpkg -i \ 
+  ../linux-image-2.6.33.3.append67890_testrev12345_amd64.deb
+\end{commandline}
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{git/HEADをDebianパッケージにする}
+
+\begin{itemize}
+\item リリースされる度にソースダウンロードするの？\\
+そんなことが許されるのは小学生まで。
+\item いまどきはgitリポジトリを利用する。
+みんな持ってるよね？
+\item kernel-packageがサポート。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]%{git/HEADをDebianパッケージにする}
+
+\begin{itemize}
+\item Linux git リポジトリをコピーする。\\
+      Linux カーネルのgitリポジトリがない場合には\texttt{git clone} コマンドで取
+      得します。
+\begin{commandline}
+$ git clone \
+  git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+\end{commandline}
+
+linux-2.6 ディレクトリができるので移動します。
+\begin{commandline}
+$ cd linux-2.6
+\end{commandline}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]%{git/HEADをDebianパッケージにする}
+
+\begin{itemize}
+
+
+\item リポジトリのアップデートを行う。\\
+普段からgitリポジトリを使っていじっている人はアップデートしましょ
+      う。
+\begin{commandline}
+$ git pull
+\end{commandline}
+
+\item \texttt{make-kpkg clean} を実行する。\\
+\texttt{make-kpkg clean} を実行し、一度初期化をします。
+\begin{commandline} 
+$ make-kpkg clean
+\end{commandline}
+
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]%{git/HEADをDebianパッケージにする}
+
+\begin{itemize}
+
+\item カーネルパッケージをビルドする。\\
+\texttt{make-kpkg} を使ってカーネルパッケージをビルドします。
+
+ビルドすると、Makefile からバージョンを抽出し、パッケージバージョンを
+つけてくれます。
+\texttt{git log --pretty=format:\%h -1}はチェックアウトしているHEADの
+短縮されたハッシュ値を取得し、\texttt{--revision} オプションに渡し
+ています。
+これにより、どのコミットから作成したカーネルイメージなのかわかるようにな
+ります。
+
+\begin{commandline}
+$ fakeroot make-kpkg --revision=1+`git log --pretty=format:\%h -1`\
+   --initrd kernel_image
+-- 省略 --
+$ ls ../
+linux-2.6  linux-image-2.6.34-rc7_1+be83567_amd64.deb
+\end{commandline}
+
+\end{itemize}
+
+\end{frame}
+
+\emtext{よくある質問}
+
+\begin{frame}[containsverbatim]{最新カーネル向けパッケージをlenny上で作れません}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{最新カーネル向けパッケージをlenny上で作れません}
+kernel-packageパッケージが古いのでlennyではビルドできません。
+\end{frame}
+
+\begin{frame}[containsverbatim]{最新カーネル向けパッケージをlenny上で作
+ れません}
+
+testing/unstableにある kenrel-package パッケージをlennyにインストール
+することによって対応できます。kernel-package に依存しているパッケージも
+lenny内から持ってくることができるので、特にシステムが壊れるということは
+ないと思われます。
+\end{frame}
+
+\begin{frame}[containsverbatim]{initrdイメージ が作られません。}
+\end{frame}
+
+\begin{frame}[containsverbatim]{initrdイメージ が作られません。}
+grubのメニューを変更して、initrdを使わないようにしましょう。
+\end{frame}
+
+\begin{frame}[containsverbatim]{initrdイメージ が作られません。}
+というのは半分冗談で、kenrel-pakcage 12.012 以降から initrdを作らない仕様に変
+更されました。\texttt{make-kpkg}コマンドを使ってinitrdを含めたカーネルイ
+メージを作成するには、以下を実行する必要があります。
+\begin{commandline}
+$ sudo mkdir -p /etc/kernel/postinst.d/
+$ sudo cp
+ /usr/share/doc/kernel-package/examples/etc/kernel/postinst.d/initramfs \
+ /etc/kernel/postinst.d/
+$ fakeroot make-kpkg --revision=1 --initrd kernel_image
+\end{commandline}
+
+実行した後に再度カーネルパッケージを作ると、インストール時にinitrdイメー
+ジを構築します。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{-j オプションを使ってカーネルパッケージ
+ をビルドしたいのですが}
+\end{frame}
+
+\begin{frame}[containsverbatim]{-j オプションを使ってカーネルパッケージをビルドしたいのですが}
+make-kpkg コマンドの \texttt{DEBIAN\_KERNEL\_JOBS} 変数を使いましょう。
+例えば、-j8 相当は以下のように実行します。
+\begin{commandline}
+$ make-kpkg --revision=test00 kernel_image DEBIAN_KERNEL_JOBS=8
+\end{commandline}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{最新カーネル向けのlinux-kbuild-2.6を作り
+ たいのですが}
+\end{frame}
+
+\begin{frame}[containsverbatim]{最新カーネル向けのlinux-kbuild-2.6を作り
+ たいのですが}
+
+\begin{itemize}
+\item linux-kbuild-2.6パッケージがない場合がある。\\
+experimental にある場合のみ。
+\item ぶっちゃけ、メンテナの手抜き
+\item 自分で用意する必要がある\\
+\url{http://wiki.debian.org/HowToRebuildAnOfficialDebianKernelPackage#Thestoryoflinux-kbuild-2.6}
+ちなみに2.6.33以降のパッケージを作成する場合には、 バグ(\#573176)があり
+      ます。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{最新のカーネルを使いたいのだけど、パッケー
+ ジにするのがめんどいです。}
+\end{frame}
+
+\begin{frame}[containsverbatim]{最新のカーネルを使いたいのだけど、パッケー
+ ジにするのがめんどいです。}
+\url{http://kernel-archive.buildserver.net}で提供されていますが、現在サーバダウン中です。
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{まとめ}
+\begin{itemize}
+\item Debianのカーネル構築方法はいくつかある。
+\item 自分のライフスタイルの合わせたカーネルコンパイルを。
+\item 知らないとハメられるところが多い。
+\item 技術が分散しているので、ハックできる余地あり。
+\item 自分でカーネルぐらいコンパイルしましょう。
+\item git いいよ、git。
+\end{itemize}
+
+\end{frame}
+
+
+% ------------------------------------------------------------------------------
+\emtext{mozcをDebianパッケージ化してみた}
+% ------------------------------------------------------------------------------
+\begin{frame}
+Google 日本語入力がオープンソース化し、フリーソフトウェア \texttt{mozc}としてリリース
+されました。Debianでも利用できるよう、パッケージ化しDebianにアップロー
+ドしました。その流れを説明します。
+\end{frame}
+
+\begin{frame}
+所々に煽り文句が入っていますが、スルーカを使いましょう。
+ネタなので過剰反応しないように！
+\end{frame}
+
+\begin{frame}
+twitter では Debianパッケージ化した！とかUbuntu用にした！とか流れていま
+ すが！
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item debian/rules ファイルが既にあるので、パッケージ化は簡単。\\
+ほとんどはこれを使ってdebuildしただけのもの。
+\item 使えればいいとかじゃなくて！
+\item なんで ITPしないかね。
+\item 中途半端なDebianパッケージを駆逐するために立ち上がった！ $<-$ いまこ
+      こ。
+\end{itemize}
+
+\end{frame}
+
+%\begin{frame}
+%Debian 開発者は中途半端なDebianパッケージを駆逐するためにも頑張っている！
+%\end{frame}
+
+\begin{frame}{簡単なパッケージアップロードまでの流れ}
+\begin{enumerate}
+\item 気になるソフトウェアを見つけました！
+\item ITP / RFP / パッケージ有無のチェック
+\item ソースコードをダウンロード
+\item ライセンスをチェック
+%DFSGに合致しないライセンスの場合は変更を依頼。\\
+%オープンソースソフトウェアライセンス イコール DFSGに合致するライセンスではない。\\
+\item ソースコードをチェック
+%どのような技術を使っているのか、どのようなソフトウェアを使っているか。\\
+%パッケージのメンテナンス = ソフトウェアの動きをある程度理解する必要がある。
+\item ITPする。
+%パッケージ化するよーという宣言
+\item パッケージ化 \\
+%デバッグ、デバッグ、デバッグ。\\
+%各種ツールを使うと楽。
+デバッグ、piuparts, pbuilder, lintian, debhelper etc...
+
+\item Debian へのアップロードアップロード。
+\item FTP master によるチェック。
+\item Debianへのインストール。
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{修正した内容}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item まず、バージョンが違うよ。\\
+ debian/changelog そのままつかわないで。\\
+ 今のバージョンは0.11 だよ。ソース見ましょう。
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item パッケージの説明が適当すぎるよ。 \\
+修正した。
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item ビルド時に gyp をダウンロードするよ！\\
+gyp を自動ダウンロードしないように修正。\\
+Debianパッケージを使うように修正。\\
+gyp Debian パッケージちょっと古いので、更新メールをしたら、
+早速アップロードされた。
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item protobuf もビルドするよ！\\
+protobuf をビルドしないように修正。\\
+ソースコードからばっさり削除。Debianパッケージによって
+インストールされたprotobufを使うように修正。
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{itemize}
+\item rx のライセンスちゃんと書着ましょう。\\
+rx は apache license だよ。copyright ファイルのアップデート。\\
+rx は Debian パッケージになってないので、後日 パッケージアップロード予定。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\begin{itemize}
+
+\item gtest も Debianパッケージがあるよ！\\
+ソースコードから削除。インストールされた gtestを使うように修正。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\begin{itemize}
+\item ibus向けのアイコンがない！\\
+そのまま使うとmozc のアイコンでないよ！\\
+バグ報告した。mozc BTS 1ゲットずさー。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+ \begin{itemize}
+  \item ibus の ヘッダファイル、ライブラリファイルのパスがハードコーディン
+	グだよ。\\
+	pkg-configを使うように修正。mozc BTSにパッチを送った。
+ \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\begin{itemize}
+\item \texttt{base/scoped\_ptr.h}のライセンスは 修正BSDライセンスじゃないよ。\\
+License\: Boost Software License - Version 1.0 です。\\
+debian/copyrightに書いた。
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+というわけで、さっきアップロードしました。
+\end{frame}
+
+\begin{frame}
+今回得た知識
+\begin{itemize}
+\item protobufの使い方
+\item gtestの使い方 
+\item gyp の使い方
+\item iBusの簡単な動き
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+Debianパッケージ化する場合には、Debianに持っていくよう心がけてください。
+\end{frame}
+
+
+\begin{frame}{次回の勉強会}
+
+
+\begin{itemize}
+ \item 2010年6月19日: 未定 \\
+ \item 2010年6月26日: OSC 2010 北海道\\　 
+\end{itemize}
+ 
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
