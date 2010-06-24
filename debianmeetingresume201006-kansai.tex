@@ -134,7 +134,7 @@ puppet-el は、emacs でシンタックスハイライトさせるためのものなので、
 emacs を使わない人はなくても OK ですが、なしでは割とやってられません。
 
 \begin{commandline}
-$ aptitude install puppet puppet-el
+$ sudo aptitude install puppet puppet-el
 $ emacs site.pp 
 \end{commandline}
 
@@ -163,6 +163,7 @@ $ puppet site.pp
 何が起きたか確認してみてください。予想通りすぎて、ちょっと拍子抜けかも知
 れませんが……。
 
+\newpage
 \subsection{概要}
 
 \subsubsection{用語の整理}
@@ -212,7 +213,7 @@ puppet は、だいたい次のような構成で動きます。
 
 \begin{itemize}
 \item puppet : マニフェストを実行するコマンド
-\item puppetd : puppetmaster にマニフェストをリクエストして実行するデーモン
+\item puppetd : puppetmasterd にマニフェストをリクエストして、それを実行するデーモン
 \item puppetmasterd : マニフェストの束をもっていて、puppetd のリクエスト
       にあわせて適切に配布するデーモン
 \end{itemize}
@@ -226,6 +227,7 @@ puppet は、だいたい次のような構成で動きます。
 最後でもご紹介しますが、普通の構成についても既に山ほど記事や資料はあるので、
 興味がある方はそちらをご参照頂ければと思います。
 
+\newpage
 \subsubsection{ディレクトリ配置}
 
 puppet が使用するディレクトリですが、典型的にはこんな感じです。設定でど
@@ -401,6 +403,8 @@ puppet にモジュールを認識させるには、次のステップが必要です。
 puppet --modulepath ~/.puppet/modules ~/.puppet/manifests/site.pp
 \end{commandline}
 
+さて、無事に動いたでしょうか。
+
 \subsubsection{切り出しで迷ったら}
 
 愛情こめて育てた site.pp からモジュールを切り出そう、と思ったときに、
@@ -424,7 +428,7 @@ xmonad モジュール、platex モジュール……などと考えるわけです。
 puppet を作っている puppetlabs という企業が、最近モジュール用の
 リポジトリとして alioth のようなサイトをオープンしました。
 
-http://forge.puppetlabs.com/
+\url{http://forge.puppetlabs.com/}
 
 ブラウザでジャンル毎に公開されているモジュールを探したりできる
 ようになっています。今はまだ登録されているモジュールの数が少ないですが、
@@ -487,7 +491,7 @@ metadata.json
 モジュールを作るのに慣れてきたら、これを使っていくのもいいと思います。
 逆に、慣れないうちは余分なものが多くて邪魔かも。
 
-\subsection{ \tt{ \$HOME} の管理に使う}
+\subsection{ \tt{\$HOME} の管理に使う}
 
 さて。長い長ぁい前置きが終わり、ようやくここからが本題です。
 
@@ -496,14 +500,13 @@ puppet はその目的 (システムの構成管理) を考えても、root で
 
 $Bでも、そんな大げさにシステムあっちゃこっちゃいじらないし、自分の
 home ディレクトリで設定ファイルを適当に管理してくれたらいいから、
-というのが今回のお題です。
+というのが今回のお題だったりするわけです。
 
-package の操作などもあるので、やっぱり実行は root でやって
+package 操作などもあるので、やっぱり実行は root でやって
 もらう必要がどうしてもあります。でも、そのままファイルを作られたら、
 パーミッションが root:root になってしまいますし、そもそも
 puppet はマニフェストの中で実行ユーザのホームディレクトリを認識
 するようには作られていません。
-
 
 \subsubsection{環境変数の受け渡し}
 
@@ -516,7 +519,7 @@ FACTER 環境変数についての詳細は省きますが、ひとまず一種の
 おまじないとして、渡したい環境変数の頭に、「FACTER\textunderscore」を
 つけるのだと思っておいてください。
 
-使い方はこうです。
+具体的には、こういう感じで使います。
 
 \begin{commandline}
 sudo FACTER_HOME=$HOME puppet /path/to/site.pp
@@ -534,10 +537,11 @@ sudo FACTER_HOME=$HOME puppet /path/to/site.pp
 
 最初に作ってもらったマニフェストを見直してみてください。この仕掛けを使え
 ば、ユーザ名を直接書かずに、使い回せる形で書き直すことができます。
+モジュールにすることを考えても、こちらの方がより融通がきくようになりますね。
+ユーザ名埋め込みとか、ゾッとしませんよね。
 
-モジュールにすることを考えても、こちらの方がより融通がきくようになります。
 当面必要になるのは、\tt{\$HOME} と \tt{\$USER}、後は \tt{group} くらいなので、このあたり
-埋めこんでシェルスクリプトにしておきます。
+を埋めこんでシェルスクリプトにしておきます。
 
 \begin{commandline}
 #!/bin/sh
@@ -545,6 +549,16 @@ sudo FACTER_HOME=$HOME puppet /path/to/site.pp
 FACTERENV="FACTER_HOME=$HOME FACTER_USER=$USER FACTER_GROUP=`id -gn`"
 sudo $FACTERENV puppet ~/.puppet/manifests/site.pp --modulepath ~/.puppet/modules --debug --verbose
 \end{commandline}
+
+これを適当に \textasciitilde/.puppet/puppet.sh あたりに保存しておいて、実行する時は
+
+\begin{commandline}
+$ ~/.puppet/puppet.sh
+\end{commandline}
+
+とすれば、マニフェストのどこでも、\$home と \$user、\$group にアクセスすることができます。実行ユーザの環境変数を拾っているので、シェルスクリプト自体には sudo は不要です。
+
+これで下準備も整いましたので、どんどんマニフェストやモジュールを書いていってみてください。
 
 %http://arika.org/diary/2009/04/24/sudo-and-env
 %http://d.hatena.ne.jp/kakurasan/20070723/p1
@@ -581,27 +595,30 @@ sudo $FACTERENV puppet ~/.puppet/manifests/site.pp --modulepath ~/.puppet/module
 \subsubsection{資料は英語}
 
 puppet の公式な資料は、puppetlabs のサイトでメンテナンスされています。
-使うために必要な資料は比較的よく整備されていると思いますが、基本的には英
+使うために必要な文書は比較的よく整備されていると思いますが、基本的には英
 語です。
 
-私は下記の資料をよく参照しています。
+私は下記をよく参照しています。
 
 \begin{itemize}
- \item language guide : 
- \item type reference :
- \item meta parameter reference : 
+ \item language tutorial : \url{http://docs.reductivelabs.com/guides/language_tutorial.html}
+ \item type reference : \url{http://docs.puppetlabs.com/references/stable/type.html}
+ \item meta parameter reference : \url{http://docs.puppetlabs.com/references/0.25.5/metaparameter.html}
 \end{itemize}
 
 \subsubsection{日本語の資料}
 
 puppet は国内でも素晴しい先達によってすでに語り尽くされていたりします
-ので、もうちょっと慣れるまでは英語は……という方は、下記の資料などに
+ので、もうちょっと慣れるまで英語は……という方は、下記の資料などに
 あたってみてください。
 
+今回のセッションで扱った内容は、ほぼこれらの資料でカバーされてる範囲を
+出ていなかったりしますが、とっかかりにはなるのではと思います。
+
 \begin{itemize}
- \item 技評の連載
- \item puppetlabs のプレゼン資料和訳
- \item hbstudy 資料
+ \item オープンソースなシステム自動管理ツール Puppet : \url{http://gihyo.jp/admin/serial/01/puppet}
+ \item Puppet によるインフラ管理入門 : \url{http://www.sssg.org/~naoya/puppet/project.html}
+ \item puppet のススメ : \url{http://www.slideshare.net/mizzy/puppet-3258268}
 \end{itemize}
 
 \dancersection{今後の予定}{Debian JP}
