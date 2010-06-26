@@ -225,9 +225,156 @@ GNU Hello でパッケージを作成。
     \end{description}
 \end{prework}
 
-\dancersection{(仮1)}{佐々木洋平}
+\dancersection{debhelper と CDBS のお話　{\normalsize $\sim$source format 3.0, the magic debhelper rules$\sim$}}{佐々木洋平}
 
-{\bf Fixme}
+次期安定版 6.0(squeeze)での RELEASE GOALS の一つに「new source package format support」があります\footnote{\url{http://release.debian.org/squeeze/goals.txt}}。
+ここでの「new source package format」が {\bf source format 3.0} です。
+\vspace{1em}
+
+{\tt debhelper} は deb パッケージの構築を補助する様々なツール群です%
+\footnote{%
+deb パッケージそのものは {\tt debhelper} 無しでも作成できますが、
+普通は {\tt debhelper} を使います。}。
+多くのパッケージでは {\tt debhelper} の呼び出しはテンプレ化されているので
+共通している {\tt debhelper} の呼び出しを隠蔽し
+パッケージ作成のルール(debian/rules)を簡単にするのが
+{\tt dh} と {\tt CDBS}です。
+\vspace{1em}
+
+ここでは source format 3.0, dh, CDBS についてお話しします。
+ちなみに、
+告知タイトルに「深追い」とか「CDBS 2.0」とかいう文字列があった気がしますが
+気にしないで下さい。
+
+\subsection{source format 1.0 $\to$ 3.0 }
+
+source format 3.0 の前に、
+これまでの source format 1.0 について簡単に復習しましょう。debian のソースパッケージは主に以下の構成物からなります:
+\begin{quote}
+    \begin{screen}
+        \begin{description}
+              \item[.orig.tar.gz] 　\\
+            オリジナルのソース一式
+              \item[.dsc]　\\
+            パッケージの情報(パッケージの説明、メンテナ、ファイルのハッシュなど)
+              \item[.diff.gz]　\\
+            バイナリパッケージをビルドするための変更点。
+            Debian 固有のパッケージの場合には存在しない。
+        \end{description}
+    \end{screen}
+\end{quote}
+
+さて, このソースフォーマットの構成には, 以下の問題点があります:
+\begin{enumerate}
+      \item アーカイブの圧縮形式として{\tt gzip} しか使えない。
+      \item upstream のソースが複数のアーカイブから構成される場合が面倒。
+      \item パッケージメンテナの作成したパッチが全部単一の patch に。
+      \item diff で表現されるので(画像などの)バイナリが置きにくい。
+\end{enumerate}
+
+source format 1.0 の場合、これらの問題点は, だいたい以下の様に解決していました:
+\begin{quote}
+    \begin{description}
+          \item[1. アーカイブの圧縮形式として{\tt gzip} しか使えない。] 　\\
+        % 
+        例えば upstream が bzip2 で配布されている場合でも gzip で圧縮しなお
+        す、 もしくは tarball in tarball \footnote{%
+          .orig.tar.gz を展開するとディレクトリ内にupstream の bzip2 が配置
+          される。ビルドする際に tar を展開してからビルドする} などの形式に
+        する, などです。
+        % 
+        後述の CDBS を使用する場合には tarball in tarball 用のルールが
+        用意されています。
+        % 
+          \item[2. upstream のソースが複数のアーカイブから構成される場合が面倒。]　\\
+        % 
+        前述の tarball in tarball で対応しています。
+        % 
+          \item[3. パッケージメンテナの作成したパッチが全部単一の patch に。]　\\
+        % 
+        {\tt diff.gz} は {\tt debian} 以下のファイルが{\bf 全て}単一のファイ
+        ルになっています。{\tt debian/control} や {\tt debian/rules} だけではなく、
+        upstream のソースへのパッチも全て一つのファイルになっています。
+        % 
+        そこで、upstream のソースへのパッチは {\tt debian/patches} 以下に
+        意味のある単位で分割して配置し、パッケージ作成の際に
+        パッチの apply/unapply を行なうことにしています。
+        % 
+        このためのツールとしては{\tt dpatch} や
+        {\tt quilt}
+        \footnote{%
+          こう書くと語弊があるかもしれませんが、
+          {\tt quilt}は Debian 固有のツール{\bf ではありません}。念の為。}
+        があります。
+        % 
+        また、cdbs にはパッチの apply/unapply をするためのルールが用意されていますし、
+        dh には{\tt --with quilt} というオプションが用意されています。
+        % 
+        ちなみに、
+        各パッチの先頭にその意図を記述するタグを追加しておくことが推奨されています
+        \footnote{\url{http://dep.debian.net/deps/dep3/}\\
+          面倒なので佐々木はサボリがちです。}。
+        % 
+          \item[4. diff で表現されるので(画像などの)バイナリが置きにくい。]　\\
+        uuencode/uudecode で diff が取れる形式にしておく、などの工夫がされています。
+    \end{description}
+\end{quote}
+
+というわけで、これまでの source format でも問題点について対応はできます。
+しかしながら、
+こういった特殊な操作を行なうことなく
+問題点を解決するための新たなフォーマットとして、新たに
+{\tt 3.0 (quilt)} と {\tt 3.0 (native)} が制定されました%
+\footnote{\url{http://wiki.debian.org/Projects/DebSrc3.0}}。
+
+{\tt 3.0 (quilt)} は以下のファイル群で構成されます:
+\begin{quote}
+    \begin{screen}
+        \begin{description}
+              \item[{\tt .orig.tar}.{\it ext}] 　\\
+            upstream のソース。複数のソースからなる場合には基本となるソースに
+            この名前をつける。{\it ext} は圧縮の拡張子であり、
+            {\tt gz, bz2, lzma, xz}が使用可能。
+            % 
+              \item[{\tt .orig}{\it -component1}{\tt .tar.}{\it ext}]　\\
+            upstream が複数のソースから構成される場合に作成する。
+            % 
+            {\it -componet} はソースの名前に対応して適宜名付ける.
+              \item[{\tt .debian.tar.}{\it ext}]　\\
+            {\tt debian} ディレクトリの中身。1.0 の {\tt diff.gz} から
+            {\tt .tar.}{\it ext} になり、全てが混在した単一の patch では
+            なくなった
+            % 
+              \item[{\tt .dsc}] 　\\
+            これは変更無し. 
+        \end{description}
+    \end{screen}
+\end{quote}
+また {\tt 3.0 (native)} は 1.0 での Debian 固有パッケージに対応しており、
+{\tt.orig.}{\it -component}{\tt .tar}{\it ext} と
+{\tt debian.tar.}{\it ext} が存在しません。
+%
+
+これらの変更により
+\begin{enumerate}
+      \item アーカイブの圧縮形式として{\tt gzip} しか使えない。\\
+    $\to$ {\tt .gzip, bzip2, lzma, xz} を使用できるようになりました。
+    特に {\tt .gz} に比べて {\tt .xz} は圧縮率が高く、高速に伸長できるので
+    現在では {\tt .xz} の使用が推奨されています。
+    %
+      \item upstream のソースが複数のアーカイブから構成される場合が面倒。\\
+    $\to$ {\tt .orig}{\it -component}{\tt .tar}{\it .ext} により
+    複数のソースを使用できるようになりました。
+    これら{\tt .orig}{\it -component}{\tt .tar}{\it .ext} は
+    ソースの展開時に {\tt compnent} というサブディレクトリに展開されます。
+      \item パッケージメンテナの作成したパッチが全部単一の patch に。    
+      \item diff で表現されるので(画像などの)バイナリが置きにくい。\\
+    $to$ {\tt debian.tar.}{\it ext} になったので全てが混然となった
+    状態は解消され、バイナリも含めることができます。
+\end{enumerate}
+
+
+
 
 \dancersection{puppetに \tt{ \textdollar HOME} を管理させてみよう}{倉敷悟}
 
