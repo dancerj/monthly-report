@@ -4324,7 +4324,7 @@ root.mainloop() # 無限ループ
       \item[{\tt \^}] 行頭に一致
       \item[{\tt \$}] 行末に一致
 \end{description}
-行頭(\^ ), 行末(\$ )にマッチさせる場合の例:
+行頭(\^\ ), 行末(\$ )にマッチさせる場合の例:
 \begin{commandline}
       % grep '^bin:' /etc/passwd
       % grep '/bash$' /etc/passwd 
@@ -4385,7 +4385,7 @@ grep 以外でも、emacs や vi でも同じ様に使える。もちろん, perl 
     [0-9]\{1,5\} 
 \end{commandline}
 
-\subsubsection{( ) と $\backslash$n}
+\subsubsection{( ) と $\backslash$n (n=1..9)}
 
 (　) で囲んだところを順に $\backslash$1 ,$\backslash$2 ... として使える。
 置換に使うと置換元の一部を使える。
@@ -4402,49 +4402,52 @@ vi の ex モードや、emacs の replace regexp でも使える。
 \subsection{事前課題の空気を読んだ解答をレビュー}
 \begin{commandline}
 sed -n -e 's/^bin:.*:\([^:]*\)$/\1/p' /etc/passwd
-｛
-      行頭がbin:で
-      何か文字が 0 文字以上あって
-      : があって
-      : 以外が 0 以上あるところを1番目のバッファにいれて
-      行末
-｝
 \end{commandline}
-というパターンがあれば、1番目のバッファを表示する.
+これは、
+\begin{quote}
+\begin{verbatim}
+｛
+行頭がbin:　で
+何か文字が０文字以上あって
+: があって
+: 以外が０以上あるところを1番目のバッファにいれて
+行末
+｝
+\end{verbatim}
+\end{quote}
+というパターンがあれば、1番目のバッファを表示する
 
 \subsection{実例}
 \subsubsection{ssh アタッカーをブロックする}
 /var/log/daemon.log に
 \begin{commandline}
-      Apr 11 04:46:07 ns sshd[31776]: Invalid user oracle from 211.233.73.66
-
-      Apr 11 09:17:05 ns sshd[5607]: Did not receive identification string from 211.155.227.20
+Apr 11 04:46:07 ns sshd[31776]: Invalid user oracle from 211.233.73.66
+Apr 11 09:17:05 ns sshd[5607]: Did not receive identification string from 211.155.227.20
 \end{commandline}
       のような行があれば、その IP アドレスを /etc/hosts.deny に登録する
-      \begin{commandline}          
-      #! /bin/sh
-      # Apr 11 04:46:07 ns sshd[31776]: Invalid user oracle from 211.233.73.66
-      # Apr 11 09:17:05 ns sshd[5607]: Did not receive identification string from 211.155.227.20 
-      LANG=C
-      export LANG
+\begin{commandline}          
+#! /bin/sh
+# Apr 11 04:46:07 ns sshd[31776]: Invalid user oracle from 211.233.73.66
+# Apr 11 09:17:05 ns sshd[5607]: Did not receive identification string from 211.155.227.20
 
-      HOSTSDENY=/etc/hosts.deny 
-      sed -n \
-      -e 's/^.* sshd.*: Invalid user .* from \([0-9][0-9\.]*\)/\1/p' \
-      -e 's/^.* sshd.*: Did not receive identification string from \([0-9][0-9\.]*\)/\1/p' \
-      /var/log/daemon.log | sort -u |
-      while read IP
-      do
-      # /etc/hosts.deny
-              
-      L=`grep '^ALL : '$IP'$' $HOSTSDENY`
-      
-      if [ "$L" = "" ]
-      then
-      echo "ALL : $IP" >> $HOSTSDENY
-      fi
-      done
-  \end{commandline}
+LANG=C
+export LANG
+HOSTSDENY=/etc/hosts.deny
+
+sed -n \
+        -e 's/^.* sshd.*: Invalid user \(.*\) from \([0-9][0-9\.]*\)/\1 \2/p' \
+        -e 's/^.* sshd.*: Did not receive identification string from \([0-9][0-9\.]*\)/\1/p' \
+        /var/log/daemon.log | sort -u |
+while read NAME IP 
+do
+        # /etc/hosts.deny
+        L=`grep '^ALL : '$IP'$' $HOSTSDENY`
+        if [ "$L" = "" ]
+        then
+                echo "ALL : $IP" >> $HOSTSDENY
+        fi
+done
+\end{commandline}
 
 
 \subsubsection{%
@@ -4470,8 +4473,13 @@ sed -n -e 's/^bin:.*:\([^:]*\)$/\1/p' /etc/passwd
 \subsubsection{キモ }
 
 行頭もしくは行末を起点にパターンマッチをすると良い場合が多い。
-\^~ と \$ とを活用。
+\begin{quote}
+→ \^\ と \$\ とを活用
+\end{quote}
 スペース区切りは TAB とスペースがいくつあるかわからない。
+\begin{quote}
+→ * や \{n,m\} を活用
+\end{quote}
 \begin{commandline}
 [<SP.><TAB>][<SP><TAB>]*
 [<SP.><TAB>]\{1,\}
