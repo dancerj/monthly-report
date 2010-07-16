@@ -1268,8 +1268,11 @@ kernel 2.6.29 で完全にマージされ、カーネルにパッチを当
 lxc は GPL2 ライセンスで公開されていて、開発およびメンテナンスは、Daniel
 Lezcano 氏が実質一人で行っています。
 
-Debian では、squeeze/Sid からパッケージ化されており、一つ前の最新版
-\footnote{2009年11月27日現在、0.6.3。}がパッケージとなっています。
+Debian では、squeeze/Sid からパッケージ化されており、最新版
+\footnote{2010年7月16日現在、0.7.1。2010年6月にWebサイト\url{http://lxc.sourceforge.net/}もリニューアルされました。}がパッケージとなっています。
+\footnote{元々の内容は2009年11月27日時点での一つ前の最新版だった0.6.3を
+元に記述していましたが、本書に掲載するにあたり最新版の0.7.1で内容をアッ
+プデートしています。}
 
 \subsubsection{他のコンテナ型仮想化技術との比較}
 
@@ -1306,24 +1309,33 @@ lxc の機能をフルに活用するには以下のカーネルオプションが有効になっている
 必要があります。
 
 \begin{commandline}
-* General
+* General setup
   * Control Group support
-    -> namespace cgroup subsystem
-    -> cpuset support
-    -> Group CPU scheduler
-    -> control group freeze subsystem
-    -> Basis for grouping tasks (Control Groups)
-    -> Simple CPU accounting
+    -> Namespace cgroup subsystem
+    -> Freezer cgroup subsystem
+    -> Cpuset support
+    -> Simple CPU accounting cgroup subsystem
     -> Resource counters
-    -> Memory resource controllers for Control Groups
-    -> Namespace support
+      -> Memory resource controllers for Control Groups
+  * Group CPU scheduler
+    -> Basis for grouping tasks (Control Groups)
+  * Namespaces support
     -> UTS namespace
     -> IPC namespace
     -> User namespace
     -> Pid namespace
-  * Network support
-    -> Networking options
-      -> Network namespace support
+    -> Network namespace
+* Device Drivers
+  * Character devices
+    -> Support multiple instances of devpts
+  * Network device support
+    -> MAC-VLAN support
+    -> Virtual ethernet pair device
+* Networking
+  * Networking options
+    -> 802.1d Ethernet Bridging
+* Security options
+  -> File POSIX Capabilities
 \end{commandline}
 
 これらが有効になっているかを確認するには、lxcのソースツリーに含まれている、
@@ -1332,17 +1344,15 @@ src/lxc/lxc-checkconfig.in というシェルスクリプトを実行すれば、現在起動
 す。
 
 また、Debian パッケージでは、/usr/bin/lxc-checkconfig としてインストール
-されています。squeeze/Sid で Debian のカーネルパッケージ\footnote{2009年
-11月27日現在、linux-image-2.6.30-2-amd64}を使っている環境で確認すると以
-下の結果になります。Cgroup memory controller のみが無効になっているよう
+されています。squeeze/Sid で Debian のカーネルパッケージ\footnote{2010年
+7月16日現在、linux-image-2.6.32-3-amd64}を使っている環境で確認すると以
+下の結果になります。NamespacesとCgroup memory controllerが無効になっているよう
 です。
 
 \begin{commandline}
-$ lxc-checkconfig 
-Kernel config /proc/config.gz not found, looking in other places...
-Found kernel config file /boot/config-2.6.30-2-amd64
+$ lxc-checkconfig
 --- Namespaces ---
-Namespaces: enabled
+Namespaces: required
 Utsname namespace: enabled
 Ipc namespace: enabled
 Pid namespace: enabled
@@ -1356,13 +1366,17 @@ Cgroup namespace: enabled
 Cgroup device: enabled
 Cgroup sched: enabled
 Cgroup cpu account: enabled
-Cgroup memory controller: disabled
-Cgroup cpuset: enabled
+Cgroup memory controller: missing
 
 --- Misc ---
 Veth pair device: enabled
 Macvlan: enabled
+Vlan: enabled
 File capabilities: enabled
+
+Note : Before booting a new kernel, you can check its configuration
+usage : CONFIG=/path/to/config /usr/bin/lxc-checkconfig
+
 \end{commandline}
 
 \subsubsection{Debian でのインストール}
@@ -1377,27 +1391,46 @@ lxc だけです。
 $ sudo apt-get install lxc
 \end{commandline}
 
-これでアプリケーションコンテナを試すことはできます。README にも載ってい
-る手順ですが、次のコマンドを実行すると、即席のコンテナを起動できます。
+\subsubsection{cgroupファイルシステムのマウント}
+
+インストールが完了したら、/etc/fstabに以下を追加します。
+
+\begin{commandline}
+cgroup  /var/local/cgroup  cgroup  defaults  0  0
+\end{commandline}
+
+マウントポイントの/var/local/cgroupは任意の場所で構いません。今回のパス
+はもともと存在しないのでディレクトリを作成します。作成したら、マウントし
+ます。
+
+\begin{commandline}
+$ sudo mkdir /var/local/cgroup
+$ sudo mount cgroup
+\end{commandline}
+
+\subsubsection{動作確認}
+
+これでアプリケーションコンテナを試すことができます。開発元のドキュメント
+\footnote{\url{http://lxc.sourceforge.net/man/lxc.html}}にも載っている手
+順ですが、次のコマンドを実行すると、即席のコンテナを起動できます。
 
 \begin{commandline}
 $ uname -a
-Linux silicon 2.6.32 #1 SMP Sun Dec 6 02:30:30 JST 2009 x86_64 GNU/Linu
-$ sudo lxc-execute -n hoge -f ./lxc-macvlan.conf /bin/bash
-# uname -a
-Linux alpha 2.6.32 #1 SMP Sun Dec 6 02:30:30 JST 2009 x86_64 GNU/Linux
+Linux silicon 2.6.34 #1 SMP Mon May 17 22:08:26 JST 2010 x86_64 GNU/Linux
+$ sudo lxc-execute -n foo -f /usr/share/doc/lxc/examples/lxc-macvlan.conf /bin/bash
+root@alpha:~# id
+uid=0(root) gid=0(root) 所属グループ=0(root)
 \end{commandline}
 
 他のコンソールからコンテナが起動しているか確認してみます。
 
 \begin{commandline}
-$ sudo lxc-info -n hoge
-'hoge' is RUNNING
-$ lxc-ps -n hoge 
+$ sudo lxc-info -n foo
+'foo' is RUNNING
+$ sudo lxc-ps -n foo
 CONTAINER    PID TTY          TIME CMD
-            4747 pts/3    00:00:00 bash
-            5692 pts/3    00:00:00 lxc-ps
-            5693 pts/3    00:00:00 ps
+           20751 pts/1    00:00:00 lxc-ps
+           20752 pts/1    00:00:00 ps
 \end{commandline}
 
 ちゃんと確認できましたね。今回は、これで以上です、と言いたいところですが、
@@ -1511,184 +1544,184 @@ iptables -t nat -A PREROUTING -d 192.168.0.1 -p tcp --dport 5984 -i br0 -j DNAT 
 \label{sec:make_container}
 
 では、システムコンテナのイメージを作成してみます。lxc のパッケージに含まれる、
-/usr/share/doc/lxc/examples/lxc-debian.gz を使って、Debian のシステムコ
+/usr/lib/lxc/lxc/templates/lxc-debian を使って、Debian のシステムコ
 ンテナを作成します。
 
-まず、このファイルをホームディレクトリなどで伸張します。
-\begin{commandline}
-$ zcat /usr/share/doc/lxc/examples/lxc-debian.gz > ~/lxc-debian
-\end{commandline}
-
-次に、cgroup ファイルシステムをマウントします。/etc/fstab に下記一行を追
-記します。マウントポイントは任意の場所で構いません。
-
-\begin{commandline}
-cgroup  /var/local/cgroup  cgroup  defaults  0  0
-\end{commandline}
-
-追記したら、マウントポイントのディレクトリを作成し、マウントします。
-
-\begin{commandline}
-$ sudo mkdir /var/local/cgroup
-$ sudo mount cgroup
-\end{commandline}
-
-それでは、先ほどの lxc-debian スクリプトを使ってコンテナイメージを作成し
-ます。このスクリプトでは debootstrap を使ってイメージが作成されますが、
+このスクリプトでは debootstrap を使ってイメージが作成されますが、
 ディストリビューションは lenny になっています。前述した通り本環境は
 squeeze/Sid ですので、コンテナも squeeze/Sid の方が良ければ、コンテナイ
 メージを作成する前に予めスクリプトを書き換えておく必要があります。
-また、パッケージも、デフォルトで apache2 がインストールされたり、一方、
+
+パッケージは、デフォルトでは以下のものがインストールされます。
+\begin{itemize}
+ \item ifupdown
+ \item locales
+ \item libui-dialog-perl
+ \item dialog
+ \item dhcp-client
+ \item netbase
+ \item net-tools
+ \item iproute
+ \item openssh-server
+ \item iputils-ping
+\end{itemize}
+
 sudo や vi, dig コマンドが無かったりするので、そのままインストールすると
 不便であったりするので、予めインストールするパッケージの指定を変更してお
-く必要があります。lxc-debian スクリプト内の debootstrap コマンドの
-\verb/--include/オプションでパッケージの指定は変更できます。
-また、sshd の設定や、ネットワークの設定も予め設定しておくと便利です。以
-下、変更済みファイルとの diff の結果を掲載しておきます。
+く必要があります。lxc-debian スクリプト内の download\_debian()関数の
+\verb/packages/変数でパッケージの指定は変更できます。
 
 \begin{commandline}
-$ diff -u  a/lxc-debian b/lxc-debian 
---- a/lxc-debian	2009-11-30 21:22:59.000000000 +0900
-+++ b/lxc-debian	2009-10-30 17:58:20.000000000 +0900
-@@ -8,8 +8,8 @@
- MNTFILE=
- TMPMNTFILE=
- UTSNAME=
--IPV4="172.20.0.21"
--GATEWAY="172.20.0.1"
-+IPV4="192.168.0.101"
-+GATEWAY="192.168.0.1"
- MTU="1500"
+$ diff -u /usr/lib/lxc/lxc/templates/lxc-debian lxc-debian 
+--- /usr/lib/lxc/lxc/templates/lxc-debian       2010-06-28 00:18:36.000000000 -1000
++++ lxc-debian  2010-07-16 02:38:25.000000000 -1000
+@@ -94,7 +94,10 @@
+ netbase,\
+ net-tools,\
+ iproute,\
+-openssh-server
++openssh-server,\
++vim-tiny,\
++sudo,\
++dnsutils
  
- # These paths are within the container so do not need to obey configure prefixes
-@@ -99,14 +99,14 @@
- SyslogFacility AUTH
- LogLevel INFO
- LoginGraceTime 120
--PermitRootLogin yes
-+PermitRootLogin no
- StrictModes yes
- RSAAuthentication yes
- PubkeyAuthentication yes
- IgnoreRhosts yes
- RhostsRSAAuthentication no
- HostbasedAuthentication no
--PermitEmptyPasswords yes
-+PermitEmptyPasswords no
- ChallengeResponseAuthentication no
- EOF
- }
-@@ -259,8 +259,8 @@
- 	        # download a mini debian into a cache
- 		echo "Downloading debian minimal ..."
- 		debootstrap --verbose --variant=minbase --arch=$ARCH \
--		    --include ifupdown,locales,libui-dialog-perl,dialog,apache2,netbase,net-tools,iproute,openssh-server \
--		    lenny $CACHE/partial-$ARCH http://ftp.debian.org/debian
-+		    --include ifupdown,locales,libui-dialog-perl,dialog,sudo,vim-tiny,dnsutils,netbase,net-tools,iproute,openssh-server \
-+		    sid $CACHE/partial-$ARCH http://cdn.debian.or.jp/debian
- 		
- 		RESULT=$?
- 		if [ "$RESULT" != "0" ]; then
+     cache=$1
+     arch=$2
 \end{commandline}
 
-それでは、コンテナを作成します。コンテナを作成する場所は任意の場所にでき
-ます。通常、lxc-debian スクリプトを実行を実行したディレクトリの下に
-debianディレクトリを自動的に作成し、その下にコンテナイメージである
-rootfs が作成されます。配置したいディレクトリが無ければ作成し、そのディ
-レクトリへ移動し、\texttt{sudo lxc-debian create}を実行します。
+それでは、コンテナを作成します。コンテナを作成するディレクトリは予め作成
+しておき、lxc-debianスクリプトの-pまたは--pathオプションでそのパスを指定
+します。指定したディレクトリの下に、lxcの設定ファイルconfigと、rootfsイ
+メージディレクトリが作成されます。
 
 \begin{commandline}
-$ sudo mkdir /var/cache/lxc
-$ cd /var/cache/lxc
-$ sudo bash /home/kohei/lxc-debian create
-What is the name for the container ? [debian] hoge                 <- コンテナの名前
-What hostname do you wish for this container ? [hoge]              <- コンテナのホスト名
-What IP address do you wish for this container ? [192.168.0.101]   <- コンテナの IPアドレス
-What is the gateway IP address ? [192.168.0.1]                     <- コンテナから見たデフォルトゲートウェイのアドレス
-What is the MTU size ? [1500]
-Specify the location of the rootfs [./rootfs.hoge]
-Specify the location for an extra fstab file [(none)]
+$ sudo mkdir /var/cache/lxc/hoge
+$ sudo ./lxc-debian -p /var/cache/lxc/hoge
+debootstrap is /usr/sbin/debootstrap
+Checking cache download in /var/cache/lxc/debian/rootfs-amd64 ... 
+Downloading debian minimal ...
+I: Retrieving Release
+I: Retrieving Packages
+I: Validating Packages
+I: Resolving dependencies of required packages...
+I: Resolving dependencies of base packages...
 (snip)
-Choose your architecture
-1) amd64
-2) i386
-#? 1                                                               <- Core 2 Duo のマシンなのでアーキテクチャは amd64 を選択。
-Architecture amd64 selected
-Checking cache download ...Found.
-Copying rootfs ...Done.
-(snip)
-update-rc.d: using dependency based boot sequencing
-Done.
-
-You can run your container with the 'lxc-start -n hoge'
+I: Base system installed successfully.
+Download complete.
+debootstrap is /usr/sbin/debootstrap
+Checking cache download in /var/cache/lxc/debian/rootfs-amd64 ... 
+Copying rootfs to /var/cache/lxc/hoge/rootfs...Generating locales (this might take a while)...
+Generation complete.
+ Removing any system startup links for /etc/init.d/umountfs ...
+   /etc/rc0.d/S40umountfs
+   /etc/rc6.d/S40umountfs
+ Removing any system startup links for /etc/init.d/hwclock.sh ...
+   /etc/rc0.d/K25hwclock.sh
+   /etc/rc6.d/K25hwclock.sh
+   /etc/rcS.d/S11hwclock.sh
+ Removing any system startup links for /etc/init.d/hwclockfirst.sh ...
+   /etc/rcS.d/S08hwclockfirst.sh
+Root password is 'root', please change !
 \end{commandline}
 
-これで、/var/cache/lxc/debian/rootfs.hoge という名前でコンテナイメージの
+これで、/var/cache/lxc/hoge/rootfsという名前でコンテナイメージの
 ディレクトリが作成され、ここに、debootstrap による Debian イメージのコピー
-が作成されます。初めて \texttt{lxc-debian create} を実行すると、
+が作成されます。初めて \texttt{lxc-debian}スクリプト を実行すると、
 debootstrap でダウンロードされるキャッシュイメージが、
-/var/cache/lxc/debian/rootfs-architecture として作成されます。\footnote{今回は
+/var/cache/lxc/debian/rootfs-archとして作成されます。\footnote{今回は
 amd64 を選択しているので、/var/cache/lxc/debian/rootfs-amd64 となります。}
 
-コンテナ自体のメタ情報は、/var/lib/lxc ディレクトリのコンテナ名のディレ
-クトリ以下にあります。ツリー表示すると以下のようになっています。
+コンテナ自体のメタ情報は、コンテナを起動させた後に、cgroupファイルシステムのマウントポイントの下に、
+/var/local/lxc/コンテナ名 に格納されます。
 
 \begin{commandline}
-$ tree hoge/
-couchdb/
-|-- cgroup
-|-- config
-|-- fstab
-|-- init
-|-- network
-|   `-- veth0
-|       |-- ifindex
-|       |-- link
-|       |-- mtu
-|       |-- name
-|       `-- up
-|-- nsgroup -> /var/local/cgroup/hoge
-|-- pts
-|-- rootfs
-|   `-- rootfs -> /var/cache/lxc/debian/rootfs.hoge
-|-- state
-|-- tty
-`-- utsname
-
-5 directories, 13 files
+$ ls  /var/local/cgroup/hoge/
+cgroup.event_control             debug.taskcount
+cgroup.procs                     devices.allow
+cpu.shares                       devices.deny
+cpuacct.stat                     devices.list
+cpuacct.usage                    freezer.state
+cpuacct.usage_percpu             memory.failcnt
+cpuset.cpu_exclusive             memory.force_empty
+cpuset.cpus                      memory.limit_in_bytes
+cpuset.mem_exclusive             memory.max_usage_in_bytes
+cpuset.mem_hardwall              memory.memsw.failcnt
+cpuset.memory_migrate            memory.memsw.limit_in_bytes
+cpuset.memory_pressure           memory.memsw.max_usage_in_bytes
+cpuset.memory_spread_page        memory.memsw.usage_in_bytes
+cpuset.memory_spread_slab        memory.move_charge_at_immigrate
+cpuset.mems                      memory.soft_limit_in_bytes
+cpuset.sched_load_balance        memory.stat
+cpuset.sched_relax_domain_level  memory.swappiness
+debug.cgroup_css_links           memory.usage_in_bytes
+debug.cgroup_refcount            memory.use_hierarchy
+debug.current_css_set            net_cls.classid
+debug.current_css_set_cg_links   notify_on_release
+debug.current_css_set_refcount   tasks
+debug.releasable
 \end{commandline}
+
+\subsubsection{システムコンテナの設定}
+
+システムコンテナの起動の前後にやることがあります。設定しない場合のデメリッ
+トを記載しておきました。
+\begin{itemize}
+ \item /etc/hostnameの設定\
+       設定しない場合、ホストOSと同じホスト名になる。
+ \item /etc/hostsの設定\
+       設定しないとlocalhostやコンテナ自身のホスト名を解決できない。
+ \item /etc/networik/interfaceの設定\
+       通常、eth0がデフォルトのNICなので、ホストOS側でWiFiを使ってeth0が
+       リンクアップしていないと、DHCPでIPアドレスが割り当てられず起動に
+       時間がかかる。
+ \item ログイン用のユーザの作成\
+       ログイン可能なユーザがrootユーザだけ\footnote{初期パスワードは
+       rootなので変更すること。}。コンテナ起動後でもできるので、後で必ず
+       行うこと。
+\end{itemize}
+
+2009年12月のときに紹介した、バージョン0.6.3とは違い、コンテナのOSに対す
+る初期設定は何もされず、debootstrapで作成した状態のままです。ですので、
+コンテナ起動前後でのOSの基本的な設定が必要になってきます。
 
 \subsubsection{システムコンテナの起動}
-
-システムコンテナの起動の前に、やることがあります。コンテナイメージに、ロ
-グイン可能なユーザアカウントを作成することと、/etc/hosts を書き換えるこ
-とです。前者は、コンテナ作成後にそのまま起動させたのでは、ログインするこ
-とができません。ホストOS 側と同じユーザアカウントで問題なければ、
-/var/cache/lxc/debian/rootfs.hoge/etc/ディレクトリの下の、passwd,
-shadow, group をホストのそれで上書きしておくと良いでしょう\footnote{今後
-作成するコンテナ全てに共通して言えることなので、キャッシュイメージである、
-/var/cache/lxc/debian/rootfs-amd64/etc/ディレクトリ以下を上書きしておい
-た方が良いかもしれません。}。後者はコンテナ自身の名前解決の設定が目的で
-す。現状では、コンテナの/etc/hosts は、一律、
-
-\begin{commandline}
-127.0.0.1	localhost
-127.0.1.1	ホストOSのホスト名
-\end{commandline}
-
-となっており、上記の2行目が、/etc/hostname と異なるため、ユーザアカウン
-トを作っても、ログイン時に名前解決で時間が掛かってしまいます。
-ですので、予め、ホストOSのホスト名になっている部分をコンテナのホスト名に書き換えておく必要
-があるわけです。\footnote{これは、lxc-debian スクリプト自体でコンテナの
-ホスト名を書き換えるようにしておけば済む話だと思うんですけどね。}
-
 上記の設定を終えたら、システムコンテナを起動します。
 システムコンテナの起動は、\texttt{lxc-start} コマンドを使います。一つの
 環境で複数のコンテナを起動できるので、コンテナ名の指定が必ず必要です。コ
-ンテナ名の指定には、オプション\texttt{-n} を使います。
+ンテナ名の指定には、オプション\texttt{-n} を使います。また、\texttt{-f}
+オプションでのconfigの指定も必要です。
 
 \begin{commandline}
-$ sudo lxc-start -n hoge
+$ sudo lxc-start -n hoge -f /var/cache/lxc/hoge/config               
+INIT: version 2.86 booting
+Activating swap...done.
+Cleaning up ifupdown....
+Checking file systems...fsck 1.41.3 (12-Oct-2008)
+done.
+Setting kernel variables (/etc/sysctl.conf)...done.
+Mounting local filesystems...done.
+Activating swapfile swap...done.
+Setting up networking....
+Configuring network interfaces...SIOCADDRT: No such process
+Failed to bring up eth0:1.
+done.
+INIT: Entering runlevel: 3
+Starting OpenBSD Secure Shell server: sshd.
+
+Debian GNU/Linux 5.0 hoge console
+
+hoge login: kohei
+Password: 
+Last login: Fri Jul 16 05:06:28 HST 2010 on console
+Linux hoge 2.6.34 #1 SMP Mon May 17 22:08:26 JST 2010 x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+kouhei@hoge:~$
 \end{commandline}
 
 このまま起動させると、現在のシェルでそのままコンテナのコンソールが表示さ
@@ -1696,7 +1729,7 @@ $ sudo lxc-start -n hoge
 バックグラウンドで起動させるには、\texttt{-d} オプションをつけます。
 
 \begin{commandline}
-$ sudo lxc-start -n hoge -d
+$ sudo lxc-start -n hoge -d -f /var/cache/lxc/hoge/config
 \end{commandline}
 
 KVM や Xen などのようにカーネルから起動させる訳ではなく、init プロセスか
@@ -1715,9 +1748,6 @@ Linux コンテナのライフサイクルは他の仮想化技術と大きく異なるところはなく、
  \caption{Linux コンテナのライフサイクル}
  \label{fig:lxc-lifecycle}
 \end{figure*}
-
-
-
 
 この図での状態を遷移させるためのコマンド、つまりコンテナを管理するための
 コマンドは以下の通りです。
@@ -1796,16 +1826,30 @@ cgroup ファイルシステムからアクセスすることもできます。今回はマウントポ
 \begin{commandline}
 $ cd /var/local/cgroup
 $ ls -F
-couchdb/               cpuset.memory_pressure           git/
-cpu.shares             cpuset.memory_pressure_enabled   hoge/
-cpuacct.stat           cpuset.memory_spread_page        net_cls.classid
-cpuacct.usage          cpuset.memory_spread_slab        notify_on_release
-cpuacct.usage_percpu   cpuset.mems                      octave/
-cpuset.cpu_exclusive   cpuset.sched_load_balance        release_agent
-cpuset.cpus            cpuset.sched_relax_domain_level  tasks
-cpuset.mem_exclusive   devices.allow                    w3m/
-cpuset.mem_hardwall    devices.deny                     web/
-cpuset.memory_migrate  devices.list
+cgroup.event_control             debug.taskcount
+cgroup.procs                     devices.allow
+cpu.shares                       devices.deny
+cpuacct.stat                     devices.list
+cpuacct.usage                    hoge/
+cpuacct.usage_percpu             memory.failcnt
+cpuset.cpu_exclusive             memory.force_empty
+cpuset.cpus                      memory.limit_in_bytes
+cpuset.mem_exclusive             memory.max_usage_in_bytes
+cpuset.mem_hardwall              memory.memsw.failcnt
+cpuset.memory_migrate            memory.memsw.limit_in_bytes
+cpuset.memory_pressure           memory.memsw.max_usage_in_bytes
+cpuset.memory_pressure_enabled   memory.memsw.usage_in_bytes
+cpuset.memory_spread_page        memory.move_charge_at_immigrate
+cpuset.memory_spread_slab        memory.soft_limit_in_bytes
+cpuset.mems                      memory.stat
+cpuset.sched_load_balance        memory.swappiness
+cpuset.sched_relax_domain_level  memory.usage_in_bytes
+debug.cgroup_css_links           memory.use_hierarchy
+debug.cgroup_refcount            net_cls.classid
+debug.current_css_set            notify_on_release
+debug.current_css_set_cg_links   release_agent
+debug.current_css_set_refcount   tasks
+debug.releasable
 \end{commandline}
 
 /var/local/cgroup ディレクトリ以下にある、``xxx.yyyy''の形式をとっている
@@ -1835,7 +1879,7 @@ libvirt で扱えるか検証してみたところ、定義ファイルを作るところまではでき
 
 \item LXC: Linux コンテナツール ; IBM developer Works Japan\\
       \url{http://www.ibm.com/developerworks/jp/linux/library/l-lxc-containers/}\footnote{
-      今年の2月の記事ですが内容が若干古く、現在存在しないコマンドもある
+      2009年2月の記事ですが内容が若干古く、現在存在しないコマンドもある
       ので要注意。}
 \item Cgroup And Memory Resource Controller\\
       \url{http://www.linux-foundation.jp/uploads/seminar20081119/CgroupMemcgMaster.pdf}
