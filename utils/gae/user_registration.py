@@ -11,6 +11,9 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
     def process_input(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
+        if not user:
+            self.send_user_to_auth_screen_in_different_window()
+            return
 
         # try loading the item with same eventid from datastore
         event = self.load_event_with_eventid_cached(eventid)
@@ -57,6 +60,18 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
         else:
             template_filename = 'UserEventRegistrationPage.html'
 
+        self.template_render_output(template_values, template_filename)
+
+    def send_user_to_auth_screen_in_different_window(self):
+        """Send user to login screen, in a different window.  The
+        original page will be inside an iframe, and it's not desirable
+        to open up an authentication screen inside the iframe.
+        """
+        redirect_url = users.create_login_url(self.request.uri)
+        template_filename = 'PopupReirectToLoginPage.html'
+        template_values = {
+            'redirect_url': redirect_url,
+            }
         self.template_render_output(template_values, template_filename)
 
 class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
