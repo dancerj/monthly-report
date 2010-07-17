@@ -56,6 +56,7 @@ application = webapp.WSGIApplication([
     ('/', TopPage),
     ('/newevent', admin_event.NewEvent),
     ('/event', user_registration.UserEventRegistrationPage),
+    ('/eventsimple', user_registration.UserEventRegistrationPage),
     ('/eventregister', user_registration.UserCommitEventRegistration),
     ('/eventadmin/edit', admin_event.EditEvent),
     ('/eventadmin/register', admin_event.RegisterEvent),
