@@ -4237,135 +4237,148 @@ $GPGSV,3,1,09,3,44,055,37,6,33,060,33,7,50,266,39,8,28,311,37*7A
     \includegraphics[scale=0.6]{image200912/handmadegpsloger2.png}
 \end{figure*}
 \clearpage
-\item プログラム例 (抜粋)
-% \subsubsection*{プログラム例}
-% （抜粋ですのでこのままでは動作しません）
+\item プログラム例１：データのログ
 \begin{commandline}
-#!	/usr/bin/python2.5 
-# -*- coding: utf8 -*- 
+#!	/usr/bin/python2.5
+# -*- coding: utf8 -*-
 
-#******************************************** 
-#	 
-#	コード例 for KDM 2009.12.27	 
-#	 
-#	Now edited on .... 2009-02-07 ... 
-#	Reviced on    .... 2009-12-23 
-#	 
-#******************************************** 
+#********************************************
+#	
+#	Created			.... 2010-01-03
+#	updated			.... 2010-07-11
+#	
+#	object:			logging data from gps  reeiver	
+#	
+#	input device:	gps receiver (N103)
+#	output-1:		file
+#	output-2:		terminal
+#	
+#	data format:	NMEA-0183.
+#	
+# ********************************************
 
-# 必要なモジュールをインポート
-import os.path 
-import Tkinter as Tk 
-import time, datetime 
-import	serial 
-import	string 
-	. 
-	. 
-	. 
-# GUI バッファ準備
-root = Tk.Tk() 
-buff_date = Tk.StringVar() 
-buff_date.set(honjitsu) 
+import	serial
 
-buff_hT = Tk.StringVar() 
-buff_mT = Tk.StringVar() 
-buff_sT = Tk.StringVar() 
-buff_hT.set('') 
-buff_mT.set('') 
-buff_sT.set('') 
-	. 
-	. 
-	. 
-# 表示欄の作成
-# display date &  gpstime 
-f0 = Tk.Frame(master=None, relief= 'ridge', bd=3) 
-bd0 = Tk.Label(f0, text="きょうは", font=dfont12, relief = 'ridge') 
-bd1 = Tk.Label(f0, textvariable = buff_date, font=dfont18, relief = 'ridge') 
-bd2 = Tk.Label(f0, text="    ", font=dfont12, relief = 'flat') 
-b00 = Tk.Label(f0, text="時刻", relief = 'ridge') 
-b01 = Tk.Label(f0, textvariable = buff_hT, font=dfont18, relief = 'ridge') 
-b02 = Tk.Label(f0, text="時", relief = 'ridge') 
-b03 = Tk.Label(f0, textvariable = buff_mT, font=dfont18, relief = 'ridge') 
-b04 = Tk.Label(f0, text="分", relief = 'ridge') 
-b05 = Tk.Label(f0, textvariable = buff_sT, font=dfont18, relief = 'ridge') 
-b06 = Tk.Label(f0, text="秒", relief = 'ridge') 
+# open read/write file.
+d_fname = "logdata01"
+fw = open(d_fname, 'w')
+fw.close()
+fw = open(d_fname, 'a')
 
-for e in [ bd0, bd1, bd2, b00, b01, b02, b03, b04, b05, b06 ]: 
-	e.pack(side='left', padx=5) 
+# open serial line.
+ser = serial.Serial('/dev/ttyUSB0', 38400, timeout = 3)
+serstr = ser.portstr + "\n"
+print ser.portstr
 
-# display latitude 
-f1 = Tk.Frame(master=None, relief= 'ridge', bd=3) 
-b10 = Tk.Label(f1, text="北緯", font=dfont24, relief = 'ridge') 
-b11 = Tk.Label(f1, textvariable = buff_dLa, font=dfont48, relief = 'ridge') 
-b12 = Tk.Label(f1, text="度", relief = 'ridge') 
-b13 = Tk.Label(f1, textvariable = buff_mLa, font=dfont48, relief = 'ridge') 
-b14 = Tk.Label(f1, text="分", relief = 'ridge') 
-b15 = Tk.Label(f1, textvariable = buff_sLa, font=dfont48, relief = 'ridge') 
-b16 = Tk.Label(f1, text="秒", relief = 'ridge') 
+for  i in range(10):
+	line = (ser.readline() ).strip() 	# get 1 line 'GPGGA' sentence.
+	print line
+	line += "\n"
+	fw.write(line)						# write new data to log file.
 
-for e in [b10, b11, b12, b13, b14, b15, b16 ]: 
-	e.pack(side='left', padx=5) 
-	. 
-	. 
-	. 
-# １秒毎の表示定義関数
-def showtime(): 
-	# open log file for write gps data 
-	f = open( fname, 'a') 
-	gpstime = '' 
-	# get 'GPGGA' sentence from gps receiver. 
-	# USBシリアルラインのオープン
-	ser = serial.Serial('/dev/ttyUSB0', 4800, timeout = 3) 
-	print ser.portstr 
-	line = ser.readline() 	# １行づつ読み込み
-	words = line.split(',') 
-	while( not words[0] == '$GPGGA'): 
-		line = ser.readline() 
-		words = line.split(',') 
-	print line 
-	ser.close() 
-
+fw.close()
+ser.close()
 \end{commandline}
-\clearpage
-プログラム例, 続き
+%\clearpage
+\item プログラム例１：データのログ
+プログラム例２：　現在位置（緯度）の表示
 \begin{commandline}
-	# time # 時刻データの切り出しと変換
-	time = words[1] 
-	hT_utc = time[:2] 
-	hT_jst = str( ( int(hT_utc) + 9 ) % 24 ).zfill(2) 
-	mT = time[2:4] 
-	sT = str( int( float(time[4:]) ) ).zfill(2) 
-	gpstime = 'gpstime  = ' + hT_jst + ':' + mT + ':' + sT + ' JST' 
-	. 
-	. 
-	. 
-	# latitude # 緯度データの切り出しと変換
-	lati = words[2] 
-	deg_lati = " " + lati[:2] 
-	min_lati = lati[2:4] 
-	sec_lati = str( int(float(lati[4:]) * 60 ) ).zfill(2) 
-	gpslati = 'latitude = ' + deg_lati + ':' + min_lati + ':' + sec_lati + ' ' + words[3] + '  ' 
-	# longitude # 経度データの切り出しと変換
-	long = words[4] 
-	deg_long = long[:3] 
-	min_long = long[3:5] 
-	sec_long = str( int(float(long[5:]) * 60 ) ).zfill(2) 
-	gpslong  = 'longitude=' + deg_long + ':' + min_long + ':' + sec_long + ' ' + words[5] + '  ' 
-	# koudo 
-	kodo = words[9] 
-	gpskodo  = 'koudo= ' + kodo + ' m' 
-	. 
-	. 
-	. 
-	# write new data to data file 
-	f.write(line) 		# ログデータのファイルへの書き込み
+#!	/usr/bin/python2.5
+# -*- coding: utf8 -*-
 
-	f.close 
+#********************************************
+#	
+#	Created			.... 2009-02-07 ...
+#	updated			.... 2010-07-11
+#	
+#	object:			display latitude on the screen	
+#	
+#	input device:	gps receiver (N103)
+#	output-1:		file
+#	output-2:		screen
+#	
+#	data format:	NMEA-0183.
+#	
+#********************************************
 
-	root.after(1, showtime) # １秒毎に表示を更新
+import	serial
+import Tkinter as Tk
+import	string
+# import os.path
 
-showtime() # 表示関数の起動
-root.mainloop() # 無限ループ
+
+root = Tk.Tk()
+
+buff_dLa = Tk.StringVar()
+buff_mLa = Tk.StringVar()
+buff_sLa = Tk.StringVar()
+buff_dLa.set('')
+buff_mLa.set('')
+buff_sLa.set('')
+
+# define function
+def cmd_quit():
+	root.destroy()
+
+# display frame
+
+# define display font
+dfont = 'Monospace '
+dfont12 = dfont + '12'
+dfont18 = dfont + '18'
+dfont24 = dfont + '24'
+dfont28 = dfont + '28'
+dfont48 = dfont + '48'
+
+# display latitude
+f1 = Tk.Frame(master=None, relief= 'ridge', bd=3)
+b10 = Tk.Label(f1, text="北緯", font=dfont24, relief = 'ridge')
+b11 = Tk.Label(f1, textvariable = buff_dLa, font=dfont48, relief = 'ridge')
+b12 = Tk.Label(f1, text="度", relief = 'ridge')
+b13 = Tk.Label(f1, textvariable = buff_mLa, font=dfont48, relief = 'ridge')
+b14 = Tk.Label(f1, text="分", relief = 'ridge')
+b15 = Tk.Label(f1, textvariable = buff_sLa, font=dfont48, relief = 'ridge')
+b16 = Tk.Label(f1, text="秒", relief = 'ridge')
+
+for e in [b10, b11, b12, b13, b14, b15, b16 ]:
+	e.pack(side='left', padx=5)
+
+# display Exit Button
+b99 = Tk.Button(master=None, text="Bye", command=cmd_quit)
+
+# display Tate ni naraberu.
+for e in [ f1, b99]:
+# for e in [ f0, f1, f2, f3, f4, b99]:
+	e.pack(side='top', padx=5, pady=5)
+
+def showtime():
+	# get 'GPGGA' sentence from gps receiver.
+	ser = serial.Serial('/dev/ttyUSB0', 38400, timeout = 3)
+	# ser = serial.Serial('/dev/ttyUSB0', 4800, timeout = 3)
+	print ser.portstr
+	line = ser.readline()
+	words = line.split(',')
+	while( not words[0] == '$GPGGA'):
+		line = ser.readline()
+		words = line.split(',')
+	print line
+	ser.close()
+
+	# latitude
+	lati = words[2]
+	deg_lati = " " + lati[:2]
+	min_lati = lati[2:4]
+	sec_lati = str( int(float(lati[4:]) * 60 ) ).zfill(2)
+	gpslati = 'latitude = ' + deg_lati + ':' + min_lati + ':' + sec_lati + ' ' + words[3] + '  '
+
+	buff_dLa.set(deg_lati)
+	buff_mLa.set(min_lati)
+	buff_sLa.set(sec_lati)
+
+	root.after(1, showtime)
+
+showtime()
+root.mainloop()
 \end{commandline}
 \end{enumerate}
 
