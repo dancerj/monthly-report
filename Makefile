@@ -56,7 +56,9 @@ deb:
 	debuild -us -uc -i'.*pdf$$|.git'
 
 listtopic:
-	lgrep dancersection *-{natsu,fuyu}.tex | sed -n 's/\\dancersection{\([^}]*\)}.*/\1/p'
+	# for generating undocumenteddebian.muse
+	lgrep dancersection *-{natsu,fuyu}.tex | \
+		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
 .PHONY: deb clean all publish listtopic check
 
