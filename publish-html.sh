@@ -21,7 +21,9 @@ rm -f *.dvi *.html
 for A in html/*.html; do
     sed -i -e 's,src="image.*/,src=",' "$A"
     sed -i -f tex4ht/dnp-trim.sed "$A"
-    rm "$A.tmp"
+
+    # try to loop until diff is stable
+    rm "$A.tmp" # clean up for previous runs.
     while ! diff "$A.tmp" "$A" > /dev/null ; do
 	mv "$A.tmp" "$A" || true
 	echo "Modifying $A..."
