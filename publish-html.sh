@@ -3,7 +3,7 @@
 # copy the results to alioth
 # scp -p html/* alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/html
 
-sudo apt-get install -y tex4ht dvi2ps-fontdata-a2n dvi2dvi dvipng
+sudo apt-get install -y tex4ht dvi2ps-fontdata-a2n dvi2dvi dvipng jtex-base
 for A in *.tex; do
     case $A in 
 	*presentation*) ;;
