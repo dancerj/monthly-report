@@ -28,3 +28,5 @@ for A in html/*.html; do
 	sed -f tex4ht/dnp-span.sed "$A" > "$A.tmp"
     done
 done
+
+rm html/*.tmp
