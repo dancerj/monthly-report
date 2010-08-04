@@ -20,5 +20,10 @@ def send_notification(from_address, address, owner_address, title, mail_body):
 def send_notification_to_user_and_owner(user_address, owner_address, owners_email, title, mail_body):
     """Send feedback to registering user, and owner."""
     owners_email.append(owner_address)
+
+    # Make sure join does the right thing when it is empty list. We
+    # don't want to send to ',hoge'.
+    if "" in owners_email:
+        owners_email.remove("")
     
     send_notification(user_address, user_address, ",".join(owners_email), title, mail_body)
