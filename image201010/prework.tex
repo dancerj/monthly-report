@@ -239,3 +239,46 @@ Debian package になっているかチェックしつつ試しにインストールして遊んでみる。
 帰りの電車の中でも OCaml 書き。
 
 \end{prework}
+
+\begin{prework} {tai@rakugaki.org}
+ \subsection{生活環境として…}
+ 実はXは見切りをつけてGUI環境はWindowsなのだが、これはDebian上のVM。そし
+ て、ウェブサーバーやデータベースなどの各種サーバも同様にVMにしてkvmや
+ openvz/lxcで稼動。なので、
+
+ \begin{enumerate}
+  \item 手元PCでおもむろにリモートデスクトップを起動（mstsc.exeやrdesktop）
+  \item VMなWindowsに接続
+  \item その中でホストにログイン
+  \item emacsやw3mを開いて生活（GUIものはWindows側）
+  \item 特定のサーバをいじるときだけvzctl enter/lxc-consoleで接続
+ \end{enumerate}
+ というのが毎日の生活手順。
+
+ Debianらしい？ユースケースとしては、kvm/openvz/lxcが使うrootfsは実体は
+ aufsでクローニングされた環境で、それをrootdir/nfsroot対象にして稼動して
+ いたり。このあたりは非標準なaufsまでビルドしており、さらに各種の仮想化
+ 機能を組み込んだカーネルパッケージを提供してくれるDebianは大変ありがた
+ い。
+
+ \subsection{端末・ルータとして…}
+ 上の生活環境にアクセスするための端末や各所のGWも多くがDebian。
+
+ 端末は持ち歩き用はWindowsだが、その他の各所に置きっぱなしの固定端末は全
+ てディスクをDebian入りCF/USBに差し替えて、rdesktop端末になっている。ロー
+ カルで動かすのはratpoisonとrdesktopだけ。ここでもaufs大役立ちで、真の/
+ を/roに移動させて/全体をaufsでラップすると、chroot /ro+upgradeで更新で
+ きて非常に便利。昔のオンメモリで動かす方式や一部フォルダだけtmpfsを重ね
+ る方式ではこうはいかない。
+
+ ルータとしては、Debianには標準でaiccu/miredo/radvdやらがあるのでIPv6ルー
+ タにもすぐなって楽。もっともTokyo6to4の登場で不要になった…（そもそも
+ IPv6は管理用とipv6.2ch.netとかつてMSが主催したInstallManiaxでしか使って
+ ない…）。最近Vyattaにも手を出してますが、いずれも必要なら素Debianに抜
+ けてopenvpnでもvtunでもhttptunnelでも何でも使って穴を通せるのはとても安
+ 心。
+
+ そういうわけで「困ったらDebian。とりあえずDebian」な一日です。
+ え？RedHat/CentOS？そういう時はfebootstrap/rinseですよ。（ホント何でも
+ あるな…）
+\end{prework}
