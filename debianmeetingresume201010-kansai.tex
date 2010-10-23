@@ -114,6 +114,15 @@
 以前やまねさんに言われました通り、
 関西は毎度毎度飲み会で物事が決まるみたいです(笑)。
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.35\textwidth]{image201010/kansaidebian1.jpg}
+    \includegraphics[width=0.35\textwidth]{image201010/kansaidebian2.jpg}
+    \includegraphics[width=0.35\textwidth]{image201010/kansaidebian3.jpg}
+    \caption{作っていただいた張り紙(上左)と勉強会の様子(上右)買ってきた
+ ドーナツと差し入れ(下)}
+\end{figure}
+
 \subsection{2010 年度日本 OSS 貢献者賞・日本 OSS 奨励賞}
 
 IPA より 2010 年度日本 OSS 貢献者賞・日本 OSS 奨励賞受賞者の発表がありました%
@@ -165,10 +174,432 @@ IRC サーバ: {\tt{irc.debian.or.jp:6667}}、
 
 
 \dancersection{最近の Debian Live の動向}{のがたじゅん}
-%
-% add article here
-%
 
+2009年6月の関西Debian勉強会でDebian Liveについてお話しましたが、あれから、
+Debian Liveの状況がかなり変わったのでまとめてみました。
+
+
+\subsection{Debian Liveとは(おさらい)}
+
+改めてDebian Liveを説明すると、書き込み不可(リードオンリー)のメディアなど
+から起動するDebianシステムです。Debian Liveを作成するにはlive-buildを使い、
+ライブシステムの起動を補助するlive-bootとlive-configを組み込んだシステム
+を作成します。
+
+\subsection{Debian Live 1.xから2.x/3.xの変更点}
+
+Debian Liveの解説が若干変わったことに気づいた人はいらっしゃるでしょうか。
+ここではDebian Live 1.x(Lenny)からDebian Live 2.x(Squeeze)/3.0(Whizzy)の
+変更点について述べます。
+
+基本的な作成方法などはDebian Live 1.xと変わらないので、Debian Liveを以前
+使ったことがある人も、ここに書いてある変更点を変更するだけでレシピを移行
+できます。
+
+
+\subsubsection{Debian Live作成ツールのlive-helperがlive-buildに変更}
+
+大きな変更の一つめは、Debian Liveを作成するツールがlive-helperから
+live-buildに変わりました。
+
+live-helperからの変更としてはツールの名前が変更されたほかに、コマンドも変
+更され、live-helperでは「lh\_config」のように頭にlh\_がついたコマンドを直
+接実行していましたが、live-buildではdebhelper7のようにlbコマンドにコマン
+ドに与えて呼び出す形に変更されました。
+
+内部的にはかなりの変更がありましたが、通常使用するには変わっていないので、
+以前のレシピがある人は「lh\_」を「lb 」に置き換えるだけで問題なく使えます。
+
+\begin{table}[h]
+\begin{center}
+ \begin{tabular}{|l|l|}
+ \hline
+ live-helper & live-build \\
+ \hline \hline
+ lh\_config & lb config \\
+ \hline
+ lh\_build & lb build \\
+ \hline
+ lh\_clean & lb clean \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+
+\subsubsection{live-initramfsがlive-bootとlive-configに変わった}
+
+大きな変更の二つめは、live-initramfsがlive-bootとlive-configに置き換えら
+れました。
+
+1.x系で使われるlive-initramfsは、Debian Live起動時にライブシステム特有の
+設定をおこなうスクリプトですが、2.x/3.x系からは機能が分割され、システム起
+動時の早い段階、ライブメディアにあるルートファイルシステムをマウントなど
+をおこなうlive-bootと、ライブシステム上でデーモンなどの起動設定をおこなう
+live-configに新たに書き直されました。
+
+分けられた理由としては、live-initramfsの見通しの悪さと起動の遅さがありま
+した。live-initramfsはもともとubuntuが開発したcasperからフォークし機能を
+追加していましたが、Debian Liveが意図する様々なデバイスからの起動が考えら
+れていなかったため拡張していくと見通しが悪くなってきていました。
+
+そして、live-initramfsではinitrdの中でおこなわなくてもよいデーモンの起動
+設定などの処理をinitrdの中でおこなっていて、起動時間の足を引っ張っていま
+した。
+
+これらの理由から置き換えられたのですが、結果、見通しがよくなり起動も高速
+化することになりました。
+
+起動の高速化では、Squeeze以降デーモンの並列起動化とinsservの導入もあって
+相乗効果でかなり早くなりました。(Squeeze Live Alpha2のリリースノートでは
+1分半から54秒になったと出ていましたが個人的にはもっと早いように感じます)
+
+live-initramfsはinitだけの対応でしたが、live-bootからはinit以外にubuntu
+で使われているupstart、fedoraで使われているsystemdにも対応しました。
+
+--bootappend-liveに与えるオプションについてですが、大幅に変わったので
+  live-bootとlive-configのmanを参照にして書き換える必要があります。例とし
+  て日本語キーボードを指定するオプションを書いておきます。
+
+\begin{table}[h]
+\begin{center}
+ \begin{tabular}{|l|l|}
+ \hline
+ live-helper & live-build \\
+ \hline
+ \hline
+  kmodel=jp106 keyb=jp &
+  keyboard-model=jp106 keyboard-layouts=jp \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+オプションについては--bootappend-liveオプションで指定する以外にも、
+live-bootの場合はlive/boot.confやlive/boot.d/以下、live-configの場合は
+live/config.confやlive/config.d/以下にオプションを書いたファイルを置くと
+起動時に読み込まれるようになりました。
+
+日本語環境を指定する場合、config/binary\_local-includes/live/config.conf
+に以下のように書いておくと--bootappend-liveオプションの指定がなくなるので
+すっきりすると思います。
+
+\begin{commandline}
+ LIVE_LOCALES=ja_JP.UTF-8
+ LIVE_TIMEZONE=Asia/Tokyo
+ LIVE_UTC=no
+ LIVE_KEYBOARD_MODEL=jp106
+ LIVE_KEYBOARD_LAYOUTS=jp
+\end{commandline}
+
+オプション関係についてはmanにかなり丁寧に書いてあるので一度読んでおくとよ
+いでしょう。
+
+\subsubsection{パッケージリストの指定方法が変わりました}
+
+Debian Liveにインストールしたいパッケージを一括して指定するパッケージリス
+トの指定方法が変わりました。
+
+1.x系ではconfig/chroot\_local-packageslists/にパッケージリストのファイル
+を置き、--packages-listsオプションで置いたリストファイルの名前を列挙して
+いましたが、2.x/3.x系からはconfig/chroot\_local-packageslists/に拡張子
+「.list(ドットリスト)」をつけたファイルを置くだけで適用されるようになりま
+した。
+
+\begin{table}[h]
+\begin{center}
+ \begin{tabular}{|p{0.45\textwidth}|l|}
+ \hline
+ live-helper & live-build \\
+ \hline
+ \hline
+  config/chroot\_local-packageslists/examplelist lh\_config --packages-lists "examplelist" &
+  config/chroot\_local-packageslists/examplelist.list  \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{ISOとHDD両用のバイナリイメージを作成するオプションの追加}
+
+今までlive-helperではISOイメージ(iso)かハードディスクイメージ(usb-hdd)ど
+ちらかのイメージしか作成できませんでしたが、live-buildから
+は--binary-imagesオプションにiso-hybridを指定してISO,HDDどちらにも利用で
+きるオプションが追加されました。
+
+例のようにiso-hybridで作成したイメージをddでUSBメモリに書き込んで使うこと
+ができます。
+
+\begin{commandline}
+ $ lb --binary-image iso-hybrid
+ $ sudo lb build
+ $ dd if=binary-hybrid.iso of=/dev/sdX bs=1M
+\end{commandline}
+
+\subsubsection{オプションの有効/無効の指定がenabled/disabledからtrue/falseに変更}
+
+細かい変更ですが、live-buildのオプション有効/無効の指定方法が
+enabled/disabledから、true/falseに変わりました。以前のままでもエラーが出
+ない(デフォルトの設定が使われてしまう)ので気をつけましょう。
+
+\begin{table}[h]
+\begin{center}
+ \begin{tabular}{|l|l|}
+ \hline
+ live-helper & live-build \\
+ \hline \hline
+ --apt-recommends disabled & --apt-recommends false  \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{自動化スクリプトを置くディレクトリがscriptsからautoに変更}
+
+こちらも細かな変更ですが自動化スクリプトを置くディレクトリがscriptsから
+autoディレクトリに変わりました。これはディレクトリ名をリネームするだけで
+OKです。
+
+\subsubsection{自動化スクリプトの呼び出しオプションがnoautoconfigからnoautoに変更}
+　
+autoディレクトリに置いた自動化スクリプトから呼び出すオプションが、
+noautoconfigからnoautoに変わりました。
+以前のままですとループに入るので気がつくと思います。
+
+\begin{table}[h]
+\begin{center}
+ \begin{tabular}{|l|l|}
+ \hline
+ live-helper & live-build \\
+ \hline \hline
+ lh\_config noautoconfig & lb config noauto  \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{パッケージのセクションを指定する--categoriesオプションが--archive-areasに変更}
+
+mainやcontribなどのパッケージセクションを指定する--categoriesオプションが--archive-areasに変わりました。
+こちらもlb configを実行したときにエラーが出るので気がつくと思います。
+
+\begin{table}[h]
+\begin{center}
+ \begin{tabular}{|l|l|}
+ \hline
+ live-helper & live-build \\
+ \hline \hline
+ lh\_config --categories "main contrib non-free" &
+ lb config --archive-areas "main contrib non-free"  \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Debian Liveの新機能など}
+Debian Liveの新機能などについて述べます。
+
+\subsubsection{live-installerとlive-install-launcher}
+live-installerはDebian Installerを使ってDebian Liveの内容をそのままインス
+トールするd-iのモジュールです。
+
+設定方法は簡単で--debian-installerオプションにliveを指定して作成すれば使
+えます。
+
+\begin{commandline}
+ $ lb config --debian-installer live
+\end{commandline}
+
+live-installerのメリットとしてはDebianのインストールが簡単になることが挙
+げられます。
+
+live-installerを使ったインストールでは、ライブメディアに保存したパッケー
+ジを使ってインストールを行うので、ネットワークの設定をDHCPにまかせると、
+ユーザーとrootの設定とパーティションの設定以外することがありません。
+(apt-lineはLiveの設定が使われます。)
+これはかなりおすすめなので、一度試してみてください。
+
+live-install-launcherは、Debian Live上でDebian Installerを起動するラン
+チャーです。ようやくGUIインターフェースのd-iが動きましたが、安定してイン
+ストールするにはまだ時間がかかりそうだと思っていたら、Debian Liveイメージ
+のDaily Buildでは外されてしまいました。
+
+\subsubsection{live-build-cgi,live-studio}
+
+live-build-cgiとlive-studioはlive-buildのwebインターフェースで、ブラウザ
+から設定してDebian Liveの作成ができます。この2つについてですが、まだチェッ
+クできておらずDebian Liveのサイトにあるものを試してみただけです。
+
+live-build-cgiは、素のlive-buildに近い感じで設定項目も細かく設定できます
+が、解説がないと使うのは難しいように思いました。
+
+live-studioはdjangoで書かれているWebインターフェースです。設定項目は少な
+くパッと見のとっつきはいいのですが、GUIインターフェースのlive-magicに似せ
+てあるせいか日本語環境に適した設定ができないので、こちらもまだまだ微妙な
+感じでしょう。
+
+\subsection{Debian Live tips}
+ここではDebian Liveの作成、使用についてのTipsについて述べます。
+
+\subsection{Tips 1:一発で日本語環境入りのDebian Liveを作る}
+
+以前は日本語環境に必要なパッケージをインストールするにはパッケージリスト
+を作っていましたが、パッケージリストを作らなくともaptitudeのtaskselを使え
+ば日本語環境に必要なパッケージを一発でインストールできます。
+
+設定方法は--taskselオプションに「aptitude」、--tasksオプションにaptitude
+のタスク(例で言うなら「japanese japanese-desktop」)を指定します。
+
+\begin{commandline}
+ $ lb config --tasksel aptitude --tasks "japanese japanese-desktop"
+\end{commandline}
+
+GNOMEを使う場合はjapanese-gnome-desktop、KDEを使う場合は
+japanese-kde-desktopも合わせて指定しておくと良いでしょう。
+
+指定できるタスクの一覧はtasksel-dataパッケージに入っている
+/usr/share/tasksel/debian-tasks.descに書かれています。
+
+\subsection{Tips 2:Debian Liveをネットワーク上から起動する}
+
+Debian LiveはCD/DVDやUSBメモリなどのデバイス以外に、PXEブートとNFSを利用
+してネットワーク越しに起動することもできます。
+
+Debian Liveのイメージを置くサーバーの設定は、ネットワーク越しにDebianイン
+ストーラを起動する設定とほぼ同じなので参考にしてください。
+\footnote{4.5. TFTP ネットブート用ファイルの準備:
+\url{http://www.debian.org/releases/testing/i386/ch04s05.html.ja}}
+
+\subsubsection{ネットワーク起動用Debian Liveの作成}
+
+基本的には通常のDebian Live作成と変わりませんが、--binary-imagesオプショ
+ンに「net」、--net-root-serverオプションにDebian Liveイメージを置くサーバー
+のアドレス、--net-root-pathオプションにDebian Liveイメージのパスを指定し
+て作成します。
+
+\begin{commandline}
+ $ lb config -b net --net-root-server "192.168.0.3" --net-root-path "/srv/debian-live" 
+\end{commandline}
+
+ビルドするとbinary-net.tar.gzというアーカイブファイルができます。
+
+\subsubsection{ネットワーク起動用サーバーをインストール}
+
+Debian Liveイメージを置くサーバーを設定します。起動させるにはDHCPサーバー
+とTFTPサーバー、カーネル起動後本体をマウントするためNFSサーバーが必要にな
+るのでインストールします。
+
+\begin{commandline}
+ # aptitude install dhcp3-server tftpd-hpa nfs-kernel-server
+\end{commandline}
+
+インストール後、/srvディレクトリが出来ているので、この下に作成したDebian
+Liveのイメージbinary-net.tar.gzを展開します。
+
+\begin{commandline}
+ # cd /srv/
+ # tar xvfj binary-net.tar.gz
+\end{commandline}
+
+\subsubsection{DHCPサーバーの設定}
+
+/etc/dhcp/dhcpd.confの末尾あたりにに配布するIPの範囲などを書きます。
+
+\begin{commandline}
+subnet 192.168.100.0 netmask 255.255.255.0 {
+  range 192.168.100.51 192.168.100.61; ← dhcpを配布するレンジ
+
+  option routers 192.168.100.1; ← ゲートウェイ
+  option domain-name-servers 192.168.100.100; ← ネームサーバー
+  option broadcast-address 192.168.100.255; ← ブロードキャスト
+  option subnet-mask 255.255.255.0; ← サブネットマスク
+
+  filename "pxelinux.0"; ← ブートするファイル名
+}
+\end{commandline}
+
+/etc/default/isc-dhcp-serverにDHCPサーバーに使うインターフェース名を書き
+ます。
+
+\begin{commandline}
+ INTERFACES="eth0" ←インターフェース名を書く
+\end{commandline}
+
+DHCPサーバーを再起動します。
+
+\begin{commandline}
+ # service isc-dhcp-server restart
+\end{commandline}
+
+\subsubsection{TFTPサーバーの設定}
+
+/etc/default/tftpd-hpaの設定を変更します。
+
+\begin{commandline}
+ TFTP_DIRECTORY="/srv/tftpboot" ← デフォルトでは"/srv/tftp"になっているのを変更
+\end{commandline}
+
+TFTPサーバーを再起動します。
+
+\begin{commandline}
+ # service tftp-hpa restart
+\end{commandline}
+
+\subsubsection{NFSサーバーの設定}
+
+/etc/exportsに展開したDebian Live本体のパスを書きます。
+
+\begin{commandline}
+ /srv/debian-live *(ro,async,no_root_squash,no_subtree_check)
+\end{commandline}
+
+設定を反映させます。
+
+\begin{commandline}
+ # exportfs -rv
+\end{commandline}
+
+\subsubsection{クライアントマシンの設定}
+
+クライアントマシンのBIOS設定をネットワークブートを最初にして起動します。
+
+\subsubsection{NFS上に差分を保存する(未完)}
+
+Debian Live本体をNFSを使ってマウントするということは、書き込みができる差
+分領域もNFS上に保存できるのかと言えばできます。
+
+保存するにはlb configに--net-cow-serverオプションに保存サーバーのアドレ
+ス、--net-cow-pathオプションに保存サーバーのパスを指定して作成するか、
+Liveの起動オプションに「nfscow=(サーバーアドレス):(サーバーパス)」と指定
+します。
+
+\begin{commandline}
+ $ lb config  --net-cow-server "192.168.0.3" --net-cow-path "/srv/live-rw"
+\end{commandline}
+
+ですが試してみたところ、NFS領域をaufsでマウントするとカーネルがエラーメッ
+セージをバカバカ吐いて死んでしまうのでした。
+
+\subsection{SqueezeのDebian Liveはどうなるのか}
+正直なところわかりません。
+
+Squeezeと同時にリリースされるのは確実ですが、当初目玉として予定されていた
+live-install-launcherがSqueezeのフリーズに間に合わず、何日か前の
+autobuildのビルドイメージには入っていたものも外されたのでWhizzy以降になる
+と思われます。
+
+Syslinuxの起動画面も去年のdebconfで提案として発表されていたおしゃれなロゴ
+になっていましたが、これも通常のDebianロゴに戻されました。
+
+このことからSqueezeのDebian LiveはLennyと同じくライブシステムのみのリリー
+スとなる模様です。
+
+\subsection{まとめ}
+前回の発表で基本的なところはカバーできたかなと思っていたら、ちゃぶ台返し
+でガッツリ変わってしまいました。
+
+Debian Liveがこの先どうなるかわかりませんが(Squeezeが安定する前に「次は
+3.0でいくぜ!なんて言うぐらいだし」)、これがみなさまの助けになれば幸いです。
 
 \dancersection{今後の予定}{Debian JP}
 
