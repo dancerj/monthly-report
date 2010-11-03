@@ -120,6 +120,56 @@
 % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
+\dancersection{ext4 ファイルシステムをDebianで活用してみる}{上川 純一}
+%-------------------------------------------------------------------------------
+\index{ext4}
+
+ext4 ファイルシステムは Linux で広く使われている ext3 の後継ファイルシス
+テムとして登場したファイルシステムです。特徴としては、ext3 と同じくジャー
+ナリング機能をもち、データ領域をブロック単位ではなくエクステント(一連の領
+域)で確保していること。32ビットから48ビットになったので、ファイルシステム
+サイズがext3 の制限を越えている。atimeなどが秒より細かい時間でわかるよう
+になる、などです。
+
+\subsection{ファイルシステムを作ってみる}
+
+それでは、ext4ファイルシステムを作ってみましょう。実は通常のext3ファイル
+システムをそのままext4としてマウントすることもできるようです。そうすると徐々に
+ファイルが書き換えるたびにextentベースになったりするようです。
+ただ、ファイルシステム全体のパラメータがext4用ではないので、ファイルシス
+テムをいちから作成するのがよいでしょう。
+
+アロケータのアルゴリズムも改善されているので小さなファイルのアロケーショ
+ンも改善しているようですので、バックアップしてリストアするのがよいのでは
+ないでしょうか。
+
+ext4 を使うには十分新しい e2fsprogs と十分あたらしいLinux Kernel があれば
+よいです。Debian 5.0 (lenny) の時点で必要なパッケージはそろっているようです。
+
+\begin{commandline}
+ $ sudo lvcreate -L 1G -n lvext4 vghoge
+  Logical volume "lvext4" created
+ $ sudo mount /dev/vghoge/lvext4 /mnt/
+ $ mount -v 
+ /dev/mapper/vghoge-lvext4 on /mnt type ext4 (rw)
+ $ df -h /mnt/
+ Filesystem          サイズ  使用  残り 使用% マウント位置
+ /dev/mapper/vghoge-lvext4
+                     1008M   34M  924M   4% /mnt
+ $ df -T /mnt/ 
+ Filesystem    Type   1K-ブロック    使用   使用可 使用% マウント位置
+ /dev/mapper/vghoge-lvext4
+              ext4     1032088     34052    945608   4% /mnt
+ $ df -i /mnt/
+ Filesystem            Iノード  I使用   I残り I使用% マウント位置
+ /dev/mapper/vghoge-lvext4
+                       65536      11   65525    1% /mnt
+ $ dmesg 
+ [  463.992450] EXT4-fs (dm-1): mounted filesystem with ordered data mode
+\end{commandline}
+
+
+%-------------------------------------------------------------------------------
 \dancersection{NILFSをDebianで活用してみる}{山田 泰資}
 %-------------------------------------------------------------------------------
 \index{NILFS}
