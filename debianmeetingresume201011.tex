@@ -190,14 +190,185 @@ Debianでインストールする方法
 \index{Btrfs}
 
 \subsection{Btrfsってどんなファイルシステム?}
-\subsection{インストール方法}
+Btrfs は、Linux kernel の 2.6.29 から kernel のリリースにも含まれるようになった、新しいコピーオンライト形式のファイルシステムであり、フォールトトレラントや修復機能、容易な管理機能などが備わっています。ZFS の影響を受けていると言われており、Oracle の Chris Mason により GPL で開発がすすめられています。
+現在はまだ開発中の状態にあります。
 
-Debianでインストールする方法
+なお、今回は Debian Squeeze/Sid を使用して解説しますが、Squeeze/Sid の README においても、まだ現時点ではベンチマークとレビュー以外に使用するなとの注意書きがありました。
+\begin{commandline}
+$ cat /usr/share/doc/btrfs-tools/README.Debian
+btrfs-tools for Debian
+----------------------
 
-\subsection{マウント・fsck}
+WARNING: Btrfs is under heavy development, and is not suitable for any uses
+other than benchmarking and review.
+
+ -- Daniel Baumann <daniel@debian.org>  Sun, 29 Jul 2007 12:19:00 +0200
+\end{commandline}
+
+
+\subsection{Debianでインストールする方法}
+Debian で Btrfs を使用する手順は、btrfs-tools パッケージをインストールするだけになります。
+\begin{commandline}
+$ sudo apt-get install btrfs-tools
+\end{commandline}
+
+
+\subsection{フォーマット・マウント・btrfsck}
+
+フォーマットは mkfs.btrfs で行えます。
+\begin{commandline}
+# mkfs.btrfs /dev/sda
+
+WARNING! - Btrfs Btrfs v0.19 IS EXPERIMENTAL
+WARNING! - see http://btrfs.wiki.kernel.org before using
+
+fs created label (null) on /dev/sda
+        nodesize 4096 leafsize 4096 sectorsize 4096 size 500.00MB
+Btrfs Btrfs v0.19
+\end{commandline}
+
+マウントも通常通り、mount を使用できます。
+\begin{commandline}
+# mkdir /mnt/btrfs1
+# mount /dev/sda /mnt/btrfs1
+# df -T
+Filesystem    Type   1K-blocks      Used Available Use% Mounted on
+/dev/sde1     ext3    19272572   2833388  15460192  16% /
+tmpfs        tmpfs      517260         0    517260   0% /lib/init/rw
+udev         tmpfs      512936       100    512836   1% /dev
+tmpfs        tmpfs      517260         0    517260   0% /dev/shm
+/dev/sda     btrfs      512000    205092    306908  41% /mnt/btrfs1
+\end{commandline}
+
+ここで試しにファイルをコピーしてみると、次のようにコピーオンライトのおかげで高速なコピーがされていることがわかります。
+\begin{commandline}
+# ls -al /mnt/btrfs1/
+total 102408
+dr-xr-xr-x 1 root root         8 Nov 17 04:14 .
+drwxr-xr-x 3 root root      4096 Nov 17 04:01 ..
+-rw-r--r-- 1 root root 104857600 Nov 17 04:03 data
+# time cp /mnt/btrfs1/data  /mnt/btrfs1/data-copy
+
+real    0m0.731s
+user    0m0.000s
+sys     0m0.556s
+# ls -al /mnt/btrfs1/
+total 116584
+dr-xr-xr-x 1 root root        26 Nov 17 04:14 .
+drwxr-xr-x 3 root root      4096 Nov 17 04:01 ..
+-rw-r--r-- 1 root root 104857600 Nov 17 04:03 data
+-rw-r--r-- 1 root root 104857600 Nov 17 04:14 data-copy
+\end{commandline}
+
+ドキュメントには fsck はまだ完全には実装されておらず、アンマウントされた状態でFSエクステントツリーのチェックのみが実装されている、と記載されていましたが、実際に実行したところではマウント状態であっても実行できました。
+なお、「-a」オプションが実装されていないため現時点では fsck.btrfs へのシンボリックリンクは存在せず、btrfsck を直接実行する必要があります。
+\begin{commandline}
+# btrfsck /dev/sda
+found 210018304 bytes used err is 0
+total csum bytes: 204800
+total tree bytes: 303104
+total fs tree bytes: 8192
+btree space waste bytes: 74736
+file data blocks allocated: 209715200
+ referenced 209715200
+Btrfs Btrfs v0.19
+\end{commandline}
+
+\subsection{複数のディスクを使用してみる}
+
+Btrfs では複数のディスクの束ねて使用することもできます。ここでは先ほど作成した /dev/sda に /dev/sdb を追加してみます。btrfs device add で簡単に追加できます。df で追加した分の容量が増えていることが確認できます。
+\begin{commandline}
+# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/sde1             19272572   3414148  14879432  19% /
+tmpfs                   517260         0    517260   0% /lib/init/rw
+udev                    512936       100    512836   1% /dev
+tmpfs                   517260         0    517260   0% /dev/shm
+/dev/sda                512000        28    511972   1% /mnt/btrfs1
+# btrfs device add /dev/sdb /mnt/btrfs1/
+# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/sde1             19272572   3414148  14879432  19% /
+tmpfs                   517260         0    517260   0% /lib/init/rw
+udev                    512936       100    512836   1% /dev
+tmpfs                   517260         0    517260   0% /dev/shm
+/dev/sda               1024000        28   1023972   1% /mnt/btrfs1
+\end{commandline}
+
+以下のようにフォーマット時から複数のディスクを束ねてフォーマットすることもできます。
+\begin{commandline}
+# mkfs.btrfs /dev/sda /dev/sdb
+
+WARNING! - Btrfs Btrfs v0.19 IS EXPERIMENTAL
+WARNING! - see http://btrfs.wiki.kernel.org before using
+
+adding device /dev/sdb id 2
+fs created label (null) on /dev/sda
+        nodesize 4096 leafsize 4096 sectorsize 4096 size 1000.00MB
+Btrfs Btrfs v0.19
+# mount /dev/sda /mnt/btrfs1
+# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/sde1             19272572   3414152  14879428  19% /
+tmpfs                   517260         0    517260   0% /lib/init/rw
+udev                    512936       100    512836   1% /dev
+tmpfs                   517260         0    517260   0% /dev/shm
+/dev/sda               1024000        28   1023972   1% /mnt/btrfs1
+\end{commandline}
 
 
 \subsection{バックアップ用のファイルシステムとして使ってみる}
+
+まずは、サブボリュームを作成します。
+\begin{commandline}
+# btrfs subvolume create /mnt/btrfs1/subvolume
+Create subvolume '/mnt/btrfs1/subvolume'
+\end{commandline}
+
+この作成したサブボリュームは以下のようにマウントオプション「subvol=」を付けてマウントできるようになります。スナップショットはサブボリュームに対して作成できるので、バックアップが必要な操作はサブボリューム内で行うようにします。
+ここでは例として、「hello」が入った hello.txt を作成しておきます。
+\begin{commandline}
+# mkdir /mnt/sub
+# mount -o subvol=subvolume /dev/sda /mnt/sub/
+# echo hello > /mnt/sub/hello.txt
+\end{commandline}
+
+次に、先ほど作成したサブボリュームのスナップショットを取ってみます。スナップショットを取る前に sync を実行しておかないと、書き込まれていないデータがある可能性があるため、sync を実行しておきましょう。
+スナップショットが取れたら hello.txt に「world」を追加書込しておきます。
+\begin{commandline}
+# sync;sync
+# btrfs subvolume snapshot /mnt/btrfs1/subvolume/ /mnt/btrfs1/snapshot1
+Create a snapshot of '/mnt/btrfs1/subvolume/' in '/mnt/btrfs1/snapshot1'
+# echo world >> /mnt/sub/hello.txt
+\end{commandline}
+
+すると、以下のように hello.txt に差異があることがわかり、正常にスナップショットが取れていることがわかります。
+\begin{commandline}
+# cat /mnt/sub/hello.txt
+hello
+world
+# cat /mnt/btrfs1/snapshot1/hello.txt
+hello
+\end{commandline}
+
+この作成したスナップショットも同様に「subvol=」を使用してマウントできるため、以下のように容易に過去の時点まで戻ってマウントすることができます。
+\begin{commandline}
+# mount -o subvol=snapshot1 /dev/sda /mnt/sub/
+# cat /mnt/sub/hello.txt
+hello
+\end{commandline}
+
+なお、作成したサブボリュームは btrfs subvolume list で表示できるはずでしたが、現時点の Squeeze/Sid ではエラーになってしまいました。
+\begin{commandline}
+# btrfs subvolume list /mnt/btrfs1
+ERROR: can't perform the search
+\end{commandline}
+
+\subsection{まとめ}
+新しいファイルシステムである Btrfs について説明しました。ところどころひっかかる点はあるものの、まだ開発段階であるとはいえ、一通りの機能は使用できている状態になっています。
+スナップショットの作成や、ディスクを束ねるのが、簡単なコマンドで実行できるという点は、サーバ管理を行う上で便利な機能といえます。
+
+今後の開発で、開発版のメッセージが無くなり、実運用に使用できるまで成熟することを期待したいところです。
 
 %-------------------------------------------------------------------------------
 \dancersection{分散ファイルシステムCEPHをDebianで活用してみる}{服部 武史}
