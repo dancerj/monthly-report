@@ -199,9 +199,8 @@ Debianでインストールする方法
 Btrfs は、Linux kernel の 2.6.29 から kernel のリリースにも含まれるようになった、新しいコピーオンライト形式のファイルシステムであり、フォールトトレラントや修復機能、容易な管理機能などが備わっています。ZFS の影響を受けていると言われており、Oracle の Chris Mason により GPL で開発がすすめられています。
 現在はまだ開発中の状態にあります。
 
-なお、今回は Debian Squeeze/Sid を使用して解説しますが、Squeeze/Sid の README においても、まだ現時点ではベンチマークとレビュー以外に使用するなとの注意書きがありました。
+なお、今回は Squeeze/Sid を使用して解説しますが、Squeeze/Sid の README\footnote{/usr/share/doc/btrfs-tools/README.Debian} においても、まだ現時点ではベンチマークとレビュー以外に使用するなとの注意書きがありました。
 \begin{commandline}
-$ cat /usr/share/doc/btrfs-tools/README.Debian
 btrfs-tools for Debian
 ----------------------
 
@@ -211,17 +210,15 @@ other than benchmarking and review.
  -- Daniel Baumann <daniel@debian.org>  Sun, 29 Jul 2007 12:19:00 +0200
 \end{commandline}
 
-
 \subsection{Debianでインストールする方法}
-Debian で Btrfs を使用する手順は、btrfs-tools パッケージをインストールするだけになります。
+Debian で Btrfs を使用する手順は、btrfs-toolsパッケージをインストールするだけになります。
 \begin{commandline}
 $ sudo apt-get install btrfs-tools
 \end{commandline}
 
-
 \subsection{フォーマット・マウント・btrfsck}
 
-フォーマットは mkfs.btrfs で行えます。
+フォーマットは\texttt{mkfs.btrfs}で行えます。
 \begin{commandline}
 # mkfs.btrfs /dev/sda
 
@@ -233,7 +230,7 @@ fs created label (null) on /dev/sda
 Btrfs Btrfs v0.19
 \end{commandline}
 
-マウントも通常通り、mount を使用できます。
+マウントも通常通り、\texttt{mount}を使用できます。
 \begin{commandline}
 # mkdir /mnt/btrfs1
 # mount /dev/sda /mnt/btrfs1
@@ -266,8 +263,8 @@ drwxr-xr-x 3 root root      4096 Nov 17 04:01 ..
 -rw-r--r-- 1 root root 104857600 Nov 17 04:14 data-copy
 \end{commandline}
 
-ドキュメントには fsck はまだ完全には実装されておらず、アンマウントされた状態でFSエクステントツリーのチェックのみが実装されている、と記載されていましたが、実際に実行したところではマウント状態であっても実行できました。
-なお、「-a」オプションが実装されていないため現時点では fsck.btrfs へのシンボリックリンクは存在せず、btrfsck を直接実行する必要があります。
+ドキュメントには\texttt{fsck}はまだ完全には実装されておらず、アンマウントされた状態でFSエクステントツリーのチェックのみが実装されている、と記載されていましたが、実際に実行したところではマウント状態であっても実行できました。
+なお、「\texttt{-a}」オプションが実装されていないため現時点では\texttt{fsck.btrfs}へのシンボリックリンクは存在せず、\texttt{btrfsck}を直接実行する必要があります。
 \begin{commandline}
 # btrfsck /dev/sda
 found 210018304 bytes used err is 0
@@ -281,8 +278,7 @@ Btrfs Btrfs v0.19
 \end{commandline}
 
 \subsection{複数のディスクを使用してみる}
-
-Btrfs では複数のディスクの束ねて使用することもできます。ここでは先ほど作成した /dev/sda に /dev/sdb を追加してみます。btrfs device add で簡単に追加できます。df で追加した分の容量が増えていることが確認できます。
+Btrfsでは複数のディスクの束ねて使用することもできます。ここでは先ほど作成した /dev/sda に /dev/sdb を追加してみます。\texttt{btrfs device add}で簡単に追加できます。\texttt{df}で追加した分の容量が増えていることが確認できます。
 \begin{commandline}
 # df
 Filesystem           1K-blocks      Used Available Use% Mounted on
@@ -300,14 +296,10 @@ udev                    512936       100    512836   1% /dev
 tmpfs                   517260         0    517260   0% /dev/shm
 /dev/sda               1024000        28   1023972   1% /mnt/btrfs1
 \end{commandline}
-
 以下のようにフォーマット時から複数のディスクを束ねてフォーマットすることもできます。
 \begin{commandline}
 # mkfs.btrfs /dev/sda /dev/sdb
-
-WARNING! - Btrfs Btrfs v0.19 IS EXPERIMENTAL
-WARNING! - see http://btrfs.wiki.kernel.org before using
-
+(省略)
 adding device /dev/sdb id 2
 fs created label (null) on /dev/sda
         nodesize 4096 leafsize 4096 sectorsize 4096 size 1000.00MB
@@ -322,24 +314,20 @@ tmpfs                   517260         0    517260   0% /dev/shm
 /dev/sda               1024000        28   1023972   1% /mnt/btrfs1
 \end{commandline}
 
-
 \subsection{バックアップ用のファイルシステムとして使ってみる}
-
 まずは、サブボリュームを作成します。
 \begin{commandline}
 # btrfs subvolume create /mnt/btrfs1/subvolume
 Create subvolume '/mnt/btrfs1/subvolume'
 \end{commandline}
-
-この作成したサブボリュームは以下のようにマウントオプション「subvol=」を付けてマウントできるようになります。スナップショットはサブボリュームに対して作成できるので、バックアップが必要な操作はサブボリューム内で行うようにします。
+この作成したサブボリュームは以下のようにマウントオプション「\texttt{subvol=}」を付けてマウントできるようになります。スナップショットはサブボリュームに対して作成できるので、バックアップが必要な操作はサブボリューム内で行うようにします。
 ここでは例として、「hello」が入った hello.txt を作成しておきます。
 \begin{commandline}
 # mkdir /mnt/sub
 # mount -o subvol=subvolume /dev/sda /mnt/sub/
 # echo hello > /mnt/sub/hello.txt
 \end{commandline}
-
-次に、先ほど作成したサブボリュームのスナップショットを取ってみます。スナップショットを取る前に sync を実行しておかないと、書き込まれていないデータがある可能性があるため、sync を実行しておきましょう。
+次に、先ほど作成したサブボリュームのスナップショットを取ってみます。スナップショットを取る前に\texttt{sync}を実行しておかないと、書き込まれていないデータがある可能性があるため、\texttt{sync}を実行しておきましょう。
 スナップショットが取れたら hello.txt に「world」を追加書込しておきます。
 \begin{commandline}
 # sync;sync
@@ -347,8 +335,7 @@ Create subvolume '/mnt/btrfs1/subvolume'
 Create a snapshot of '/mnt/btrfs1/subvolume/' in '/mnt/btrfs1/snapshot1'
 # echo world >> /mnt/sub/hello.txt
 \end{commandline}
-
-すると、以下のように hello.txt に差異があることがわかり、正常にスナップショットが取れていることがわかります。
+すると、次のようにhello.txtに差異があり、正常にスナップショットが取れていることがわかります。
 \begin{commandline}
 # cat /mnt/sub/hello.txt
 hello
@@ -356,15 +343,13 @@ world
 # cat /mnt/btrfs1/snapshot1/hello.txt
 hello
 \end{commandline}
-
-この作成したスナップショットも同様に「subvol=」を使用してマウントできるため、以下のように容易に過去の時点まで戻ってマウントすることができます。
+この作成したスナップショットも同様に「\texttt{subvol=}」を使用してマウントできるため、以下のように容易に過去の時点まで戻ってマウントすることができます。
 \begin{commandline}
 # mount -o subvol=snapshot1 /dev/sda /mnt/sub/
 # cat /mnt/sub/hello.txt
 hello
 \end{commandline}
-
-なお、作成したサブボリュームは btrfs subvolume list で表示できるはずでしたが、現時点の Squeeze/Sid ではエラーになってしまいました。
+なお、作成したサブボリュームは\texttt{btrfs subvolume list}で表示できるはずでしたが、現時点の Squeeze/Sid ではエラーになってしまいました。
 \begin{commandline}
 # btrfs subvolume list /mnt/btrfs1
 ERROR: can't perform the search
