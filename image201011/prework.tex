@@ -1,31 +1,66 @@
-\begin{prework}{ henrich }
+\begin{prework}{ 吉野(yy\_y\_ja\_jp) }
+あまり面白設定ではないですが... 手元のラップトップでは /boot には ext2
+ その他には ext3，最近使っているデスクトップでは /boot には ext3 その他
+ には LVM 上に ext4 を使っています。
+\end{prework}
 
+\begin{prework}{ キタハラ }
+デフォルトのext3一択。
+設定もデフォルトのまま。
+(NTFS上のVMイメージ上のext3もあるけど)
+\end{prework}
+
+\begin{prework}{ yos.takahashi }
+ext3/4を主に使ってます。ext3のデータサルベージについて日経Linux2011年1月号に執筆しました。
+\end{prework}
+
+\begin{prework}{ MATOHARA }
+以前inode 枯渇に遭遇してからinode が動的に割り当てられるXFS を選択するこ
+ とが多いです．NILFS は少し試してみたのですが，mount 時に以下のようなメッ
+ セージが出てまだ怖いなと思いました．
+\begin{commandline}
+$ sudo mount /dev/sdb1 /mnt
+mount.nilfs2: WARNING! - The NILFS on-disk format may change at any time.
+mount.nilfs2: WARNING! - Do not place critical data on a NILFS filesystem. 
+\end{commandline}
+その他NotePC ではdm-crypt の上にファイルシステムを置いて暗号化したり、
+ eCryptfs で暗号化したりしています。書き込み時にCPU をかなり消費します…。
+\end{prework}
+
+\begin{prework}{ やまだ }
+過去、ext2-$>$reiserfs-$>$jfs-$>$xfs-$>$reiserfs-$>$ext3と使ってきました。
+
+雑感:
+\begin{itemize}
+ \item reiserfs: 小ファイルや多数ファイルのアクセスがキビキビしてて良かっ
+       た！しかしふとした浮気心がその後の七転八倒ロードに・・・
+ \item jfs: 当時v1.0を名乗ったIBMアリエナサス！翌月にはxfsに逃避
+ \item xfs: fsck==trueに感動。しかし数年使ったもののマシン不調時の0byte
+       ファイル問題の嵐で耐えられず逃げた
+\end{itemize}
+そしてreiser4に超期待するうちにあれがああなって、結局ext3に固定化。htreeも入ったし、もう鉄板なら何でもいいです・・・といいつつnilfsなどに手を出しています。ext3の設定はnoatime程度ですが、これにaufsを被せて自分自身だとか *strap 環境をクローニングしています。実験・テストに便利でお勧めです。USBメモリ稼動でも有用。
+
+後はLVMではなくMDを使って冗長化＋バックアップをしています。
+ MD(sda,sdb,sdc)で構築し、通常はMD(２台)で稼動。バックアップの時は
+ attach/detachをする。ブロックレベルなのでリカバリはFS任せですが、容量が
+ 増えると他に方法がない・・。
+\end{prework}
+
+\begin{prework}{ henrich }
 使ってる時間はNTFSが長いんじゃないですかね＠職場。
 先日ノート用の新しいディスクをext4でフォーマットしましたが全く違いが判らない使い方しかしていません。
-
 \end{prework}
-
-
 
 \begin{prework}{ emasaka }
-
 つるしのFSを使ってます
-
 \end{prework}
-
-
 
 \begin{prework}{ 本庄 }
-
 ext3を使用しています。特に変わったことはしていません。
-
 FSじゃないですが、最近Lennyで2TBのHDDを使ったらpartedっての使われて驚きました。
-
 \end{prework}
 
-
 \begin{prework}{ 吉田@小江戸 }
-
 自宅で日常的に活用しているファイルシステムはReiserFSです。
 仕事で使ってる環境はext3ですが、ext3は電源断等でジャーナルが
 壊れて壊滅した過去の経験（古いカーネルですが...）があり、
@@ -35,17 +70,9 @@ FSじゃないですが、最近Lennyで2TBのHDDを使ったらpartedっての使われて驚きました。
 継続的に使っています。
 数年前はReiserFSのメイン開発者(Hans Reiser)が逮捕されてしまい、メンテナンスを心配していました。
 しかし、その後もReiserFSは他の開発者により継続して保守されているので、安心しました。
-
-\end{prework}
-
-\begin{prework}{ あらきやすひろ }
-
-
-
 \end{prework}
 
 \begin{prework}{ nozzy123nozzy }
-
 \begin{enumerate}
  \item LVMについては、CentOS5.5が導入するものそのままに利用してます。た
        だ、システムが乗っているVolume名はデフォルトから手作業（実際には
@@ -57,25 +84,17 @@ FSじゃないですが、最近Lennyで2TBのHDDを使ったらpartedっての使われて驚きました。
 \end{enumerate}
 \end{prework}
 
-
-
 \begin{prework}{ まえだこうへい }
 \begin{itemize}
- \item Debianでは特に凝ったことせず、ext3を使ってます。OpenBlockSにしろ、
-       MacBookにしろ、利用するデータ量は経験的に分かっているので、LVMは
-       使ってません。LVMを使うのはKVM/QEMUを使うときに、qcow2イメージディ
-       スクで仮想マシンを作るときだけです。
- \item うちのなかで一番特殊なファイルシステムは、Armadillo-Jで自宅内の
-       DHCPサーバを運用するためにJFFSを使っています。これのデフォルトの
-       ファームウェアでは、リブートするとすべて初期化されてしまうので、
-       RAM領域に書きこんで、電源落としても消えないJFFSが便利です。Debian
-       ではないので、直接関係ないですが、DebianのARM版のudhcpのパッケー
-       ジを使ってます。
+ \item Debianでは特に凝ったことせず、ext3を使ってます。仮想マシンでqcow2
+       イメージディスク利用時以外は、LVMは使ってません。
+ \item うちで一番特殊なのは、自宅内のDHCPサーバ用のArmadillo-Jで使ってい
+       るJFFSです。デフォルトのファームウェアではリブートすると設定は全
+       て初期化されてしまうので、RAM領域に書きこみ、電源切っても消えない
+       点が便利です。Debianのudhcpのソースパッケージからビルドして使ってます。
        \footnote{\url{http://d.hatena.ne.jp/mkouhei/20080601/1212330630}}
- \item Debian絡みで、今、自分の中で一番ホットなのはpalm webOSです。これはUbuntuを
-       カスタマイズしたものらしいのですが、/etc/mtabを見ると35行もあると
-       いうかなり変態な構成になってます。
+ \item 今Debian絡みで、自分の中で一番ホットなのはpalm webOSです。これはUbuntuを
+       カスタマイズしたものらしいのですが、/etc/mtabを見ると35行もあり、
+       かなり変態な構成ですね。
 \end{itemize}
 \end{prework}
-
-
