@@ -363,15 +363,298 @@ ERROR: can't perform the search
 \dancersection{分散ファイルシステムCEPHをDebianで活用してみる}{服部 武史}
 %-------------------------------------------------------------------------------
 \index{CEPH}
-
 \subsection{CEPHってどんなファイルシステム?}
+CEPHはRADOSGW(FastCGIベースのproxy)と呼ばれる分散オブジェクトストレージ技術に
+基いている。CephはAmazonが使うS3と互換性のあるインタフェースをlibradosを
+用いることで簡単なアクセスを提供する、らしい\footnote{←未確認。
+\url{http://ceph.newdream.net/}より}。親サーバーから子サーバーに対し複数
+のBrtFSを束ねて、一つのファイルシステムであるように動作する。
 
-分散オブジェクトストレージ技術に基づいたうんたら。
-多数のBtrFSノードがほげほげ。
+Cephが動作するサーバーはBrtFSを持つサーバーに対しSSH接続を行い、ファイル
+システムを構築したりコンフィグデータの交換を行うため、サーバーから
+クライアントへリモート接続ができる環境が必要となる。今回は附属のSSH接続を用いた。
+
+\subsection{インストールした環境}
+以下のマシンを5台で動作させた。親サーバーはBrtFSも兼ねさせた。
+\begin{itemize}
+ \item HARD: intel
+ \item CPU: XEON 3.2GHz
+ \item MEM: 2048Gbyte
+ \item NIC: 100M/FULL
+ \item KERNEL: 2.6.36
+\end{itemize}
 
 \subsection{インストール方法}
 
-\subsection{ほげほげ}
+\begin{commandline}
+# apt-get install automake autoconf gcc g++ libboost-dev libedit-dev libssl-dev libtool libfcgi libfcgi-dev libfuse-dev \
+linux-kernel-headers libatomic-ops-dev btrfs-tools libexpat1-dev openssh-server
+% tar xzpf ceph-0.22.2.tar.gz
+% cd ceph-0.22.2
+% ./configure --prefix=/usr/local
+% make -j 4
+# make install
+# cp -rpi src/ceph_common.sh /etc/init.d/
+\end{commandline}
+
+\subsection{設定}
+コンフィグは以下のように、BrtFSが動作するサーバーを指定するだけの簡単な設定を行う。
+
+\begin{itemize}
+ \item mon...クラスタ管理サーバー
+ \item osd...データの保存先サーバー
+ \item mds...メタデータ管理サーバー
+\end{itemize}
+
+\begin{commandline}
+# mkdir /etc/ceph
+# touch /etc/ceph/ceph.conf
+# ln -s /etc/ceph/ceph.conf /usr/local/etc/ceph/ceph.conf
+\end{commandline}
+
+設定内容は以下のとおり。
+\begin{commandline}
+[global]
+        pid file = /var/run/ceph/$name.pid
+        debug ms = 0
+
+[mon]
+        mon data = /data/mon$id
+
+[mon1]
+        host = sv1
+        mon addr = 172.25.3.172:6789
+
+[mon2]
+        host = sv2
+        mon addr = 172.25.3.175:6789
+
+[mon3]
+        host = sv3
+        mon addr = 172.25.3.174:6789
+
+[mon4]
+        host = sv4
+        mon addr = 172.25.3.173:6789
+
+[mon5]
+        host = sv5
+        mon addr = 172.25.3.210:6789
+
+[mds]
+        debug mds = 0
+
+[mds1]
+        host = sv1
+
+[mds2]
+        host = sv2
+
+[mds3]
+        host = sv3
+
+[mds4]
+        host = sv4
+
+[mds5]
+        host = sv5
+
+[osd]
+        sudo = true
+        osd data = /data/ods$id
+        osd journal = /data/osd$id/journal
+        osd journal size = 100
+        debug osd  = 0
+        debug filestore = 0
+
+[osd1]
+        host = sv1
+        btrfs devs = /dev/loop7
+
+[osd2]
+        host = sv2
+        btrfs devs = /dev/loop7
+
+[osd3]
+        host = sv3
+        btrfs devs = /dev/loop7
+
+[osd4]
+        host = sv4
+        btrfs devs = /dev/loop7
+
+[osd5]
+        host = sv5
+        btrfs devs = /dev/loop7
+\end{commandline}
+
+また、BrtFSを持つサーバー群には親サーバーからSSHで自動接続するために
+以下のように親に子供のパブリックkeysを登録しておく。
+\begin{commandline}
+# ssh-keygen -t rsa
+# cat .ssh/id_rsa >> .ssh/authorized_keys
+# cat sv1_id_rsa >> .ssh/authorized_keys
+# cat sv2_id_rsa >> .ssh/authorized_keys
+# cat sv3_id_rsa >> .ssh/authorized_keys
+# cat sv4_id_rsa >> .ssh/authorized_keys
+# cat sv5_id_rsa >> .ssh/authorized_keys
+\end{commandline}
+
+\subsection{起動}
+Cephファイルシステムの構築
+\begin{commandline}
+# mkcephfs -c /etc/ceph/ceph.conf --allhosts --mkbtrfs
+# /etc/init.d/ceph --allhosts start
+# mount -t ceph "172.25.3.172":/ /mnt/
+\end{commandline}
+
+\subsection{テスト}
+テスト方法として5台のマシンそれぞれのHDDをBrtFSでフォーマットする方法と、
+5台のマシンそれぞれで組まれているMD(RAID1)上のImageをloopデバイスに
+mountした状態で、それをBrtFSにフォーマットしたマシン5台と性能をBonnieと
+単純なddで比較した。
+
+\subsubsection{rawデバイス(単純に今回テストするHDDを単体でテストした結果)}
+\begin{commandline}
+ Using uid:0, gid:0.
+ Writing with putc()...done
+ Writing intelligently...done
+ Rewriting...done
+ Reading with getc()...done
+ Reading intelligently...done
+ start 'em...done...done...done...
+ Version 1.03d       ------Sequential Output------ --Sequential Input- --Random-
+                     -Per Chr- --Block-- -Rewrite- -Per Chr- --Block-- --Seeks--
+ Machine        Size K/sec %CP K/sec %CP K/sec %CP K/sec %CP K/sec %CP  /sec %CP
+ sv1            4G 38262  96 43978  21 21875   7 44260  88 60659   6 290.9   1
+\end{commandline}
+ 
+\subsubsection{loopデバイス(MD上のimageをCephで提供されたものをマウントした場合の結果)}
+\begin{commandline}
+ sv1:/home/admin# bonnie++ -d /mnt/ -n 0 -u root -b
+ Using uid:0, gid:0.
+ Writing with putc()...done
+ Writing intelligently...done
+ Rewriting...done
+ Reading with getc()...done
+ Reading intelligently...done
+ start 'em...done...done...done...
+ Version 1.03d       ------Sequential Output------ --Sequential Input- --Random-
+                     -Per Chr- --Block-- -Rewrite- -Per Chr- --Block-- --Seeks--
+ Machine        Size K/sec %CP K/sec %CP K/sec %CP K/sec %CP K/sec %CP  /sec %CP
+ sv1            4G  9869  21  9551   1  5009   1 10264  21 12659   1 255.6   2
+\end{commandline}
+
+\subsubsection{dd(bonnieではなくddで書いた場合)}
+\begin{commandline}
+ sv1:/home/admin# dd if=/dev/zero of=gomi bs=1024k count=1000
+ 1000+0 records in
+ 1000+0 records out
+ 1048576000 bytes (1.0 GB) copied, 13.1775 s, 79.6 MB/s
+\end{commandline}
+
+\subsubsection{sdb(HDDを1台まるままcephに渡した場合)}
+\begin{commandline}
+ sv1:/home/admin# bonnie++ -d /mnt -n 0 -u root -b
+ Using uid:0, gid:0.
+ Writing with putc()...done
+ Writing intelligently...done
+ Rewriting...done
+ Reading with getc()...done
+ Reading intelligently...done
+ start 'em...done...done...done...
+ Version 1.03d       ------Sequential Output------ --Sequential Input- --Random-
+                     -Per Chr- --Block-- -Rewrite- -Per Chr- --Block-- --Seeks--
+ Machine        Size K/sec %CP K/sec %CP K/sec %CP K/sec %CP K/sec %CP  /sec %CP
+ sv1 4G  5073  11  4746   0  4439   1 10155  20 12536   1 301.7   2
+\end{commandline}
+
+\subsubsection{sdb ddテスト(bonnieではなくddでテストした結果)}
+\begin{commandline}
+ v1:/mnt# dd if=/dev/zero of=gomi bs=1024k count=1000
+ 1000+0 records in
+ 1000+0 records out
+ 1048576000 bytes (1.0 GB) copied, 172.361 s, 6.1 MB/s
+\end{commandline}
+テスト結果より、書きこみ性能及Read性能はCephにHDDまるまま渡すより
+特定のデバイス上で用意したループデバイスの方が性能適に良いと思われる。
+
+尚、上記テスト中以下のようなログを吐き切離されるような事象が発生していた。
+\begin{commandline}
+Nov 17 04:34:24 sv1 kernel: ceph: osd5 up
+Nov 17 04:34:24 sv1 kernel: ceph: osd5 weight 0x10000 (in)
+Nov 17 04:34:51 sv1 kernel: ceph: osd5 down
+\end{commandline}
+
+上記事象が発生したあと、cephを終了させて、再度起動すると
+マウントができず以下のようになってしまうことがあった。
+
+\begin{commandline}
+sv1:/# mount -t ceph "172.25.3.172":/ /mnt/
+mount: 172.25.3.172:/: can't read superblock
+\end{commandline}
+
+上記の事象になってしまった場合は、再度cephを構築しなおすと
+マウントできるようになるがデータはまっさらになってしまう。
+
+\subsection{対障害性について}
+Cephファイルシステム上に膨大なディレクトリツリーをcopyしながら、
+通信ができない状態にしてcopy状態を確認した。
+
+すると以下のようなログを繰り返しながら永遠にcopyされない状態が継続した。
+\begin{commandline}
+Nov 18 03:18:41 sv1 kernel: ceph: osd1 down
+Nov 18 03:18:41 sv1 kernel: ceph: osd4 down
+Nov 18 03:19:46 sv1 kernel: ceph:  tid 69773 timed out on osd2, will reset osd
+Nov 18 03:19:46 sv1 kernel: ceph:  tid 69799 timed out on osd3, will reset osd
+Nov 18 03:19:46 sv1 kernel: ceph:  tid 69838 timed out on osd5, will reset osd
+Nov 18 03:20:06 sv1 kernel: ceph: osd1 up
+Nov 18 03:20:06 sv1 kernel: ceph: osd4 up
+\end{commandline}
+
+通信状態を復旧させると、copyを再開した。
+自動的に切離されたりすると嬉しいのだが。。。
+
+P.S.
+以下はCephファイルシステムに適当なDebianのミラーディレクトリを
+消したり作ったりしていた際、以下ログが発生しumountもできず
+リブートする羽目になった例。バグの原因までは追及できておりません。
+
+\begin{commandline}
+Kernel BUG at f84e50c8 [verbose debug info unavailable]
+invalid opcode: 0000 [#1] SMP DEBUG_PAGEALLOC
+last sysfs file: /sys/module/libcrc32c/initstate
+Modules linked in: ceph loop nfsd lockd auth_rpcgss sunrpc exportfs tun dm_snapshot dm_mirror dm_region_hash dm_log shpchp 
+pci_hotplug sd_mod sg mptspi mptscsih mptbase scsi_transport_spi scsi_mod e1000 skge btrfs crc32c libcrc32c
+ [last unloaded: scsi_wait_scan]
+
+Pid: 28241, comm: cosd Tainted: G        W   2.6.36 #1 SE7520JR22S/_To Be Filled By O.E.M._
+EIP: 0060:[<f84e50c8>] EFLAGS: 00210286 CPU: 1
+EIP is at btrfs_truncate+0x45b/0x486 [btrfs]
+EAX: ffffffe4 EBX: f2312ba8 ECX: 00000000 EDX: 00000070
+ESI: 00000000 EDI: c842d7f0 EBP: ccda4ecc ESP: ccda4e88
+ DS: 007b ES: 007b FS: 00d8 GS: 0033 SS: 0068
+Process cosd (pid: 28241, ti=ccda4000 task=cd10ac50 task.ti=ccda4000)
+Stack:
+ 00001000 00000000 dbf68cf8 00000000 00000001 00000000 dbf68d24 00000001
+<0> 00000712 00000000 dbf68f40 c842d7f0 dbf68e6c 00000000 00000000 00000000
+<0> dbf68e6c ccda4ee4 c105d417 00000000 dbf68e6c ccda4f34 f2312ba8 ccda4f08
+Call Trace:
+ [<c105d417>] ? vmtruncate+0x37/0x40
+ [<f84e5316>] ? btrfs_setattr+0x223/0x269 [btrfs]
+ [<c1088ae3>] ? notify_change+0x14f/0x23b
+ [<c1077748>] ? do_truncate+0x62/0x7b
+ [<c11c1ed8>] ? _raw_spin_unlock_irq+0x8/0xb
+ [<c1077a6e>] ? do_sys_truncate+0x186/0x18c
+ [<c1077a85>] ? sys_truncate64+0x11/0x13
+ [<c1002610>] ? sysenter_do_call+0x12/0x26
+ [<c11c0000>] ? dump_stack+0x39/0x61
+Code: 8b 4d ec 83 79 28 00 74 11 89 ca 89 d8 e8 19 f0 ff ff 85 c0 74 04 0f 0b eb fe 8b 4d ec 89 d8 8b 55 e8 e8 6a a1 ff ff 
+85 c0 74 04 <0f> 0b eb fe 8b 55 e8 89 d8 8b 7b 1c e8 18 6c ff ff 85 c0 74 04 
+EIP: [<f84e50c8>] btrfs_truncate+0x45b/0x486 [btrfs] SS:ESP 0068:ccda4e88
+---[ end trace dad60256e5a2b66e ]---
+cosd used greatest stack depth: 1176 bytes left
+\end{commandline}
 
 %-------------------------------------------------------------------------------
 \dancersection{Debian Miniconf 計画検討}{山本 浩之}
