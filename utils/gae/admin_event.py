@@ -83,6 +83,9 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
             if event == None:
                 self.http_error_message('Event id %s not found' % (eventid))
                 return
+            if not self.check_auth_owner(event):
+                self.http_error_message('Not your event')
+                return
 
         event.eventid = eventid
         event.owners_email = self.request.get('owners_email').split(',')
