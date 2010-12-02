@@ -10,6 +10,7 @@ from google.appengine.api import users
 from google.appengine.ext import webapp
 
 import admin_event
+import enquete
 import schema
 import user_registration
 import webapp_generic
@@ -55,6 +56,11 @@ class Thanks(webapp_generic.WebAppGenericProcessor):
 application = webapp.WSGIApplication([
     ('/', TopPage),
     ('/newevent', admin_event.NewEvent),
+    ('/enquete/edit', enquete.EnqueteAdminEdit),
+    ('/enquete/editdone', enquete.EnqueteAdminEditDone),
+    ('/enquete/sendmail', enquete.EnqueteAdminSendMail),
+    ('/enquete/respond', enquete.EnqueteRespond),
+    ('/enquete/responddone', enquete.EnqueteRespondDone),
     ('/event', user_registration.UserEventRegistrationPage),
     ('/eventsimple', user_registration.UserEventRegistrationPage),
     ('/eventregister', user_registration.UserCommitEventRegistration),

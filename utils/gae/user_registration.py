@@ -127,6 +127,7 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
             }
         mail_message = self.template_render(mail_template, 'UserCommitEventRegistration.txt')
         send_notification.send_notification_to_user_and_owner(user.email(), 
+                                                              user.email(), 
                                                               event.owner.email(), 
                                                               event.owners_email,
                                                               mail_title, mail_message)
