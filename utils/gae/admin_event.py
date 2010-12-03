@@ -160,5 +160,5 @@ You are not allowed to see a summary""")
             'num_enkai_attend': num_enkai_attend,
             }
 
-        self.response.headers['Content-type'] = 'text/plain'
+        self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
         self.template_render_output(template_values, 'PreworkLatex.txt')
