@@ -60,6 +60,7 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
     """Send mail to all participants by request of the administrator."""
     def process_input(self):
         eventid = self.request.get('eventid')
+        target_email = self.request.get('email')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:
@@ -76,8 +77,13 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
         self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
         for attendance in attendances:
+            # try to find the right attendance.
+            if target_email != attendance.user.email():
+                continue
+
             mail_template = {
                 'eventid': eventid,
+                'event': event,
                 'user_realname': attendance.user_realname,
                 }
             mail_message = self.template_render(

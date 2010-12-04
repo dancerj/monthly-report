@@ -131,6 +131,7 @@ You are not allowed to see a summary""")
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
 
         template_values = {
+            'eventid': eventid,
             'attendances': attendances,
             'num_attend': num_attend,
             'num_enkai_attend': num_enkai_attend,
