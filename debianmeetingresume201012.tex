@@ -147,6 +147,13 @@ ceph について紹介しました。
 Debian Developer の数も着々と増えていき、当初の目標が達成されてきていま
 すね。
 
+今年東京エリアDebian勉強会常連のやまねさんがDebian Developerになりました。
+苦節6年おめでとうございます。
+% ueno ? kiwamu ?
+
+Debian Maintainer 申請も複数通りました。
+% FIXME: だれが今年通ったか?
+
 \subsection{基本的な数値}
 
 Debian 勉強会は毎回事前課題事後課題を設定しており、予習復習を必要だとう
@@ -280,6 +287,9 @@ Debian 勉強会は毎回事前課題事後課題を設定しており、予習復習を必要だとう
 \end{minipage}
 \end{table}
 
+% FIXME: 今年は出席者名簿が手元にない回がある、申し込み人数と事前課題提出人数
+% はわかるのだが。Help.
+
 %-------------------------------------------------------------------------------
 \dancersection{CACert の準備に何が必要か}{山田 泰資}
 %-------------------------------------------------------------------------------
@@ -293,8 +303,232 @@ Debian 勉強会は毎回事前課題事後課題を設定しており、予習復習を必要だとう
 %-------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------
-\dancersection{libsaneを使ってみた}{本庄 弘典}
+\dancersection{俺のlibsaneが火を噴くぜ！}{本庄 弘典}
+\footnote{このタイトルは誰が付けたのでしょうか？}
 %-------------------------------------------------------------------------------
+
+\index{libsane}
+
+SANEはScanner Access Now Easyの頭文字を取ったもので、各種デバイスから画
+像を取り出すための汎用インターフェースです。主にスキャナから画像を取得
+するため、LinuxやFreeBSDなどフリーなOSで利用されます。
+
+今回はSANEの仕組みとlibsaneを用いたプログラムの作成方法について解説します。
+
+\subsection{SANEの構造}
+
+SANEを利用するアプリケーションはlibsane.soという共有ライブラリをリンク
+します。libsane.soはdllと呼ばれる仮想デバイスドライバを通し、各デバイス
+ごとに作られたドライバにアクセスすることでデバイスを制御します。また図
+に示されるように、net仮想ドライバで他のマシンのsanedに接続することで、
+リモートスキャナへのアクセスを実現します。
+\cite{sane,sanejp,saneapi}
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[height=0.5\hsize] {image201012/libsane02.png}
+ \caption{SANEの構造}
+\label{fig:sane}
+\end{center}
+\end{figure}
+
+なお、
+SANEを利用するユーザはscannerグループに所属させる必要があります。
+
+\newpage
+
+\subsection{Code Flow}
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[height=0.5\hsize] {image201012/codeflow.png}
+ \caption{Code Flow}
+\label{fig:codeflow}
+\end{center}
+\end{figure}
+
+
+\subsection{スキャンするためのコード}
+
+とりあえずスキャンするだけのコードは次のようになります。
+
+\begin{commandline}
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sane/sane.h>
+
+
+#define MAXLEN 32768
+
+int main()
+{
+  SANE_Status stat;
+  SANE_Handle hndl;
+  SANE_Byte buf[MAXLEN];
+  SANE_Int len = MAXLEN;
+  FILE *fp;
+
+  stat = sane_init(NULL, NULL);
+  printf("init: %d\n", stat);
+  stat = sane_open("fujitsu:libusb:008:002", &hndl);
+  printf("open: %d\n", stat);
+
+  fp = fopen("foo.bin", "wb");
+  stat = sane_start(hndl);
+  printf("start: %d\n", stat);
+  while (len == MAXLEN) {
+    stat = sane_read(hndl, buf, MAXLEN, &len);
+    printf("read: %d\n", stat);
+    printf("read_len: %d\n", len);
+    fwrite(buf, len, 1, fp);
+  }
+  fclose(fp);
+
+  sane_close(hndl);
+  printf("close: %d\n", stat);
+  sane_exit();
+  printf("exit: %d\n", stat);
+}
+\end{commandline}
+
+このコードで保存されるfoo.binは、
+ScanSnap S1500の場合、
+ヘッダ無しのpbmファイルとして保存されました。
+スキャナによってはpgmで保存されるものもあり、
+デフォルトで保存される画像のモードは特に決まっていないようです。
+
+
+\subsection{カラーのスキャン}
+
+オプションの設定にはいくつか注意点があるようです。
+
+\begin{itemize}
+\item sane\_get\_option\_descriptor()でオプションの説明文やフォーマットの取得が可能。
+\item sane\_control\_option(hndl, 0, SANE\_ACTION\_GET\_VALUE, \&num, \&info)でオプションの総数を取得できる。
+\item sane\_control\_option()でActionにSANE\_ACTION\_GET\_VALUEを指定することで現在設定されているオプションを読み出すことが可能。
+\item sane\_control\_option()でActionにSANE\_ACTION\_SET\_VALUEを指定することでオプションの設定が可能。
+\item sane\_control\_option()を呼ぶ際には事前にsane\_get\_option\_descriptor()を呼び出しておく必要がある。 
+\end{itemize}
+
+\begin{commandline}
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sane/sane.h>
+
+#define MAXLEN 32768
+
+int main()
+{
+  SANE_Status stat;
+  SANE_Handle hndl;
+  const SANE_Option_Descriptor *opt;
+  SANE_Int info = 0;
+  SANE_Byte buf[MAXLEN];
+  SANE_Int len = MAXLEN;
+  SANE_Parameters param;
+  FILE *fp;
+
+  stat = sane_init(NULL, NULL);
+  printf("stat: %d\n", stat);
+  stat = sane_open("fujitsu:libusb:008:004", &hndl);
+  printf("open: %d\n", stat);
+
+  int x=300, y=300;
+  opt = sane_get_option_descriptor(hndl, 4);
+  printf("get_option_descriptor: %03d: %d\n", 0, opt->size);
+  stat = sane_control_option(hndl, 4, SANE_ACTION_SET_VALUE, &x, &info);
+  printf("control_option: %d\n", stat);
+  printf("info: %d\n", info);
+
+  opt = sane_get_option_descriptor(hndl, 5);
+  printf("get_option_descriptor: %03d: %d\n", 0, opt->size);
+  stat = sane_control_option(hndl, 5, SANE_ACTION_SET_VALUE, &y, &info);
+  printf("control_option: %d\n", stat);
+  printf("info: %d\n", info);
+
+  strcpy(buf, "Color");
+  opt = sane_get_option_descriptor(hndl, 3);
+  printf("get_option_descriptor: %03d: %d\n", 0, opt->size);
+  stat = sane_control_option(hndl, 3, SANE_ACTION_SET_VALUE, buf, &info);
+  printf("control_option: %d\n", stat);
+  printf("info: %d\n", info);
+
+  stat = sane_start(hndl);
+  printf("%d\n", stat);
+  fp = fopen("foo.ppm", "wb");
+
+  stat = sane_get_parameters(hndl, &param);
+  printf("get_parameters: %d\n", stat);
+  sprintf(buf, "P6\x0a# SANE data follows\x0a%d %d\x0a%d\x0a",
+    param.pixels_per_line, param.lines, 255);
+  fwrite(buf, strlen(buf), 1, fp);
+
+
+  while (len == MAXLEN) {
+    stat = sane_read(hndl, buf, MAXLEN, &len);
+    printf("read: %d\n", stat);
+    printf("read_len: %d\n", len);
+    fwrite(buf, len, 1, fp);
+  }
+  fclose(fp);
+
+  sane_close(hndl);
+  printf("close: %d\n", stat);
+  sane_exit();
+  printf("exit: %d\n", stat);
+}
+\end{commandline}
+
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[height=0.5\hsize] {image201012/dst02.jpg}
+ \caption{スキャン結果}
+\label{fig:scan}
+\end{center}
+\end{figure}
+
+モノクロではわかりづらいと思いますが、
+ScanSnap S1500でスキャンした結果、
+RとBが入れ替わってスキャンされました。
+
+\subsection{まとめ}
+
+\begin{itemize}
+\item やや不安定(特に権限周り)
+  \begin{itemize}
+  \item scanimage -Lでたまにsegmentation faultする 
+  \end{itemize}
+\item スキャナによってデフォルトの動作がまちまち
+  \begin{itemize}
+  \item ScanSnapは.pbmでスキャン
+  \item CanoScanは.pgmでスキャン 
+  \end{itemize}
+\item スキャナによってRGBの順番すらまちまち
+  \begin{itemize}
+    \item でもこれはScanSnapが悪いのかも
+    \item ScanSnapはTWAIN未対応だし 
+  \end{itemize}
+\item ドキュメント化されていない罠の存在
+\item スキャナのボタンをイベントとして使えないっぽい 
+\end{itemize}
+
+\begin{thebibliography}{0}
+ \bibitem{sane}SANE - Scanner Access Now Easy \\
+http://www.sane-project.org/
+
+ \bibitem{sanejp}
+SANE-tutorial-JP / 著者:David Mosberger / 翻訳:川岸 良治\\
+http://archive.linux.or.jp/JF/JFdocs/SANE-tutorial-JP.html
+
+ \bibitem{saneapi}
+SANE Standard Version 2.0 proposal 0.08 - rauch/beck \\
+http://www.sane-project.org/sane2/0.08/
+
+\end{thebibliography}
 
 %-------------------------------------------------------------------------------
 \dancersection{Debian Miniconf 企画案}{山本}
