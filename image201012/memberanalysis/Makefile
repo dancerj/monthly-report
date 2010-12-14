@@ -11,3 +11,6 @@ attend.png: attend.csv attend.py
 
 attend-r.csv: attend.csv
 	(echo "year,month,attend,prework,postwork"; cat attend.csv ) > attend-r.csv
+
+kansai.png: kansai.csv attend-kansai.py
+	./attend-kansai.py
