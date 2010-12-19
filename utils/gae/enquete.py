@@ -157,6 +157,8 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
                                     (eventid))
             return
         enquete_response = schema.EventEnqueteResponse()
+        enquete_response.eventid = eventid
+        enquete_response.user = user
         enquete_response.overall_comment = self.request.get('overall_comment')
         for sequence, question_item in enumerate(enquete.question_text):
             enquete_response.question_response.append(long(self.request.get('question' + str(sequence))))
@@ -177,6 +179,7 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
             'eventid': eventid,
             'user_realname': attendance.user_realname,
             'question_text_array': question_text_array,
+            'overall_comment': enquete_response.overall_comment,
             }
         mail_message = self.template_render(
             mail_template, 'EnqueteRespondDone.txt')

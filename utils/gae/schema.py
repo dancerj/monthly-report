@@ -46,3 +46,4 @@ class EventEnqueteResponse(db.Model):
     question_response = db.ListProperty(long)
     overall_comment = db.TextProperty() # a general comment from user.
     timestamp = db.DateTimeProperty(auto_now_add=True)
+    user = db.UserProperty()
