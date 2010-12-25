@@ -83,6 +83,9 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
             if event == None:
                 self.http_error_message('Event id %s not found' % (eventid))
                 return
+            if not self.check_auth_owner(event):
+                self.http_error_message('Not your event')
+                return
 
         event.eventid = eventid
         event.owners_email = self.request.get('owners_email').split(',')
@@ -104,6 +107,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         mail_message = self.template_render(mail_template, 'RegisterEvent.txt')
 
         send_notification.send_notification_to_user_and_owner(user.email(), 
+                                                              user.email(), 
                                                               event.owner.email(),
                                                               event.owners_email,
                                                               mail_title, mail_message)
@@ -127,6 +131,7 @@ You are not allowed to see a summary""")
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
 
         template_values = {
+            'eventid': eventid,
             'attendances': attendances,
             'num_attend': num_attend,
             'num_enkai_attend': num_enkai_attend,
@@ -156,5 +161,5 @@ You are not allowed to see a summary""")
             'num_enkai_attend': num_enkai_attend,
             }
 
-        self.response.headers['Content-type'] = 'text/plain'
+        self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
         self.template_render_output(template_values, 'PreworkLatex.txt')

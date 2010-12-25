@@ -17,7 +17,7 @@ def send_notification(from_address, address, owner_address, title, mail_body):
     # sending mail with full body
     mail.send_mail(from_address, address, title, mail_body, bcc=owner_address)
 
-def send_notification_to_user_and_owner(user_address, owner_address, owners_email, title, mail_body):
+def send_notification_to_user_and_owner(from_address, user_address, owner_address, owners_email, title, mail_body):
     """Send feedback to registering user, and owner."""
     owners_email.append(owner_address)
 
@@ -26,4 +26,4 @@ def send_notification_to_user_and_owner(user_address, owner_address, owners_emai
     if "" in owners_email:
         owners_email.remove("")
     
-    send_notification(user_address, user_address, ",".join(owners_email), title, mail_body)
+    send_notification(from_address, user_address, ",".join(owners_email), title, mail_body)

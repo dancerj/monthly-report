@@ -116,7 +116,9 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
 
         attendance.put()
 
-        mail_title = "[Debian登録システム] %s が %s に登録しました" % (user.nickname(), event.title.encode('utf-8')) 
+        mail_title = "[Debian登録システム] %s (%s) が %s に登録しました" % (
+            attendance.user_realname.encode('utf-8'), 
+            user.nickname(), event.title.encode('utf-8')) 
         
         mail_template = {
             'attendance': attendance,
@@ -125,6 +127,7 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
             }
         mail_message = self.template_render(mail_template, 'UserCommitEventRegistration.txt')
         send_notification.send_notification_to_user_and_owner(user.email(), 
+                                                              user.email(), 
                                                               event.owner.email(), 
                                                               event.owners_email,
                                                               mail_title, mail_message)

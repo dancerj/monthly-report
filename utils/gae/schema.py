@@ -31,3 +31,19 @@ class UserRealname(db.Model):
     user = db.UserProperty()
     realname = db.StringProperty()
     timestamp = db.DateTimeProperty(auto_now_add=True)
+
+class EventEnquete(db.Model):
+    """Enquete questions for an event."""
+    eventid = db.StringProperty()
+    overall_message = db.TextProperty()
+    question_text = db.StringListProperty()
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+
+class EventEnqueteResponse(db.Model):
+    """Enquete respnose for an event by one person."""
+    eventid = db.StringProperty()
+    # responses for 1-5 questions. 0 is N/A
+    question_response = db.ListProperty(long)
+    overall_comment = db.TextProperty() # a general comment from user.
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+    user = db.UserProperty()

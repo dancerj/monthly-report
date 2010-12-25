@@ -80,6 +80,13 @@ class WebAppGenericProcessor(webapp.RequestHandler):
             memcache.add(key, data, MEMCACHE_EXPIRE_TIME)
             return data
 
+    def load_enquete_with_eventid(self, eventid):
+        """Load an enquete with the eventid.
+        """
+        enquetes = schema.EventEnquete.gql('WHERE eventid = :1 ORDER BY timestamp DESC LIMIT 1', eventid)
+        enquete = enquetes.get()
+        return enquete
+
     def invalidate_event_with_eventid(self, eventid):
         """Invalidate an event memcache for eventid, should be called when data is updated."""
         key = self.event_memcache_key(eventid)
