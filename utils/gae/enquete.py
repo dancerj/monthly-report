@@ -1,6 +1,7 @@
 # Enquete page editing and submitting.
 # coding=utf-8
 from google.appengine.api import users
+from google.appengine.api import taskqueue
 
 import schema
 import send_notification
@@ -57,10 +58,10 @@ class EnqueteAdminEditDone(webapp_generic.WebAppGenericProcessor):
 
 
 class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
-    """Send mail to all participants by request of the administrator."""
+    """Send mail to all participants by request of the administrator.
+    This code will queue the mail through GAE taskqueue."""
     def process_input(self):
         eventid = self.request.get('eventid')
-        target_email = self.request.get('email')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:
@@ -77,28 +78,47 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
         self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
         for attendance in attendances:
-            # try to find the right attendance.
-            if target_email != attendance.user.email():
-                continue
-
             mail_template = {
                 'eventid': eventid,
                 'event': event,
                 'user_realname': attendance.user_realname,
+                'admin_email': user.email()
                 }
             mail_message = self.template_render(
                 mail_template, 'EnqueteAdminSendMail.txt')
             mail_title = "[Debian登録システム] イベント %s のアンケートの依頼" % event.title.encode('utf-8')
 
-            send_notification.send_notification_to_user_and_owner(
-                user.email(), # send from currently logged in admin user.
-                attendance.user.email(),
-                event.owner.email(),
-                event.owners_email,
-                mail_title, mail_message)
-
+            taskqueue.add(url = '/enquete/sendmailworker',
+                          queue_name = 'enquetemail',
+                          params = {
+                    'eventid': eventid,
+                    'to': attendance.user.email(),
+                    'mail_title': mail_title,
+                    'mail_message': mail_message,
+                    }
+                          )
             # show page content
             self.response.out.write(mail_message)
+
+
+class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
+    """Taskqueue email handler. This is the worker job which will
+    actually send mail."""
+    def process_input(self):
+        eventid = self.request.get('eventid')
+        event = self.load_event_with_eventid_cached(eventid)
+        if event == None:
+            self.http_error_message('Event id %s not found' % (eventid))
+            return
+
+        send_notification.send_notification_to_user_and_owner(
+            'noreply@debianmeeting.appspotmail.com',
+            self.request.get('to'),
+            event.owner.email(),
+            event.owners_email,
+            self.request.get('mail_title'),
+            self.request.get('mail_message'))
+
 
 class EnqueteRespond(webapp_generic.WebAppGenericProcessor):
     """Page for user to enter form for enquete."""
@@ -134,7 +154,7 @@ class EnqueteRespond(webapp_generic.WebAppGenericProcessor):
             'question_text_array': question_text_array,
             }
         self.template_render_output(template_values, 'EnqueteRespond.html')
-
+        
 
 class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
     """User has responded to enquete and sends the result. We will

@@ -59,6 +59,7 @@ application = webapp.WSGIApplication([
     ('/enquete/edit', enquete.EnqueteAdminEdit),
     ('/enquete/editdone', enquete.EnqueteAdminEditDone),
     ('/enquete/sendmail', enquete.EnqueteAdminSendMail),
+    ('/enquete/sendmailworker', enquete.EnqueteAdminSendMailWorker),
     ('/enquete/respond', enquete.EnqueteRespond),
     ('/enquete/responddone', enquete.EnqueteRespondDone),
     ('/event', user_registration.UserEventRegistrationPage),
