@@ -56,3 +56,12 @@ X2010年のDebianを振り返って.2011年を企画する           -0.4506499
 CACertの準備に何が必要か                                0.6139406
 俺のlibsaneが火をふくぜ                                -0.1797731
 Debian.Miniconf.企画                                    1.0000000
+
+
+> cor(enquete$俺の, enquete$X)
+[1] 0.6547702
+> cor(enquete$俺の, enquete$事前)
+[1] 0.7572402
+> cor(enquete$CAC, enquete$事前)
+[1] -0.2988072
+> 
