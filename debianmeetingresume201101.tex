@@ -185,8 +185,31 @@ Debian勉強会アンケートシステムの稼働開始と案内について。
 
 \subsection{アンケートシステムの利用方法}
 
+
 \includegraphics[width=0.5\hsize]{image201101/enquete-edit.png}
 \includegraphics[width=0.5\hsize]{image201101/enquete-respond.png}
+
+イベントの管理者はイベントの一覧画面からアンケート作成画面に遷移すること
+ができます。そこでは、ユーザに表示するための全体的なメッセージと、各項目
+を改行区切りで記述する欄があります。
+
+ユーザにメールを送信すると、ユーザにはリンクの書いてあるメールが届きます。
+そのリンクをクリックすると、ユーザはアンケートに回答することができます。
+
+ユーザは各項目については0から5までの値で回答することができます。
+そして、全体について自由記述の項目があります。
+
+\begin{itemize}
+ \item N/A \footnote{ユーザにとって回答に値しない、例えば自分がプレゼンテーション
+       していた場合や、遅刻・早退して自分がその場にいなかった、など、ア
+       ンケートに回答できない理由はいろいろありえます。}
+ \item すごくよくない
+ \item よくない
+ \item どちらでもない
+ \item よかった
+ \item 素晴らしい、他人にも薦めたい
+\end{itemize}
+
 \subsection{アンケートシステムの設計と実装}
 
 アンケートシステムの設計と実装について見てみましょう。
@@ -197,8 +220,38 @@ Debian勉強会アンケートシステムの稼働開始と案内について。
 どうかです。今回は分離して必要なときに主導でjoinするアプローチにしてみま
 した。
 
+\begin{verbatim}
+class EventEnquete(db.Model):
+    """Enquete questions for an event."""
+    eventid = db.StringProperty()
+    overall_message = db.TextProperty()
+    question_text = db.StringListProperty()
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+
+class EventEnqueteResponse(db.Model):
+    """Enquete respnose for an event by one person."""
+    eventid = db.StringProperty()
+    # responses for 1-5 questions. 0 is N/A
+    question_response = db.ListProperty(long)
+    overall_comment = db.TextProperty() # a general comment from user.
+    timestamp = db.DateTimeProperty(auto_now_add=True)
+    user = db.UserProperty()
+\end{verbatim}
 
 \subsubsection{ユーザインタフェース}
+
+ユーザインタフェース部分は enquete.py に記述しています。メールやHTMLファ
+イルの表示部分には、テンプレートを利用しています。
+
+\begin{itemize}
+ \item EnqueteAdminEdit.html 管理者用のアンケート編集画面
+ \item EnqueteAdminSendMail.txt 管理者が参加者にアンケートを依頼するメー
+       ル送信するときのメールのテンプレート
+ \item EnqueteRespond.html 参加者がアンケートを返答する際に表示される
+       HTML。
+ \item EnqueteRespondDone.txt 参加者がアンケートを回答したときに送信され
+       る確認メール。
+\end{itemize}
 
 \subsubsection{バックグラウンドタスク}
 
