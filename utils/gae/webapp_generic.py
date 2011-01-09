@@ -87,6 +87,14 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         enquete = enquetes.get()
         return enquete
 
+    def load_enquete_responses_with_eventid(self, eventid):
+        """Load enquete responsees for the eventid.
+        """
+        enquete_responses = schema.EventEnqueteResponse.gql(
+            'WHERE eventid = :1 ORDER BY timestamp DESC', 
+            eventid).fetch(1000)
+        return enquete_responses
+
     def invalidate_event_with_eventid(self, eventid):
         """Invalidate an event memcache for eventid, should be called when data is updated."""
         key = self.event_memcache_key(eventid)

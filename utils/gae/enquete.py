@@ -211,3 +211,30 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
             event.owner.email(),
             event.owners_email,
             mail_title, mail_message)
+
+class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
+    """Admin submits edits to the enquete questionnaire."""
+    def process_input(self):
+        eventid = self.request.get('eventid')
+        event = self.load_event_with_eventid_cached(eventid)
+        if not self.check_auth_owner(event):
+            self.http_error_message('Not your event')
+            return
+        enquete = self.load_enquete_with_eventid(eventid)
+        if enquete == None:
+            self.http_error_message('Enquete for event id %s not found' %
+                                    (eventid))
+            return
+        enquete_responses = self.load_enquete_responses_with_eventid(eventid)
+        if enquete_responses == None:
+            self.http_error_message('Event id %s has not enquete response' % (eventid))
+            return
+        template_values = {
+            'event': event,
+            'question_text': enquete.question_text,
+            'enquete_responses': enquete_responses,
+            }
+        self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
+        self.template_render_output(template_values, 'EnqueteAdminShowEnqueteResult.txt')
+
+
