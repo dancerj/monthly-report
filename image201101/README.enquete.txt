@@ -65,3 +65,17 @@ Debian.Miniconf.企画                                    1.0000000
 > cor(enquete$CAC, enquete$事前)
 [1] -0.2988072
 > 
+
+
+> fivenum(enquete)
+[1] 0 3 4 5 5
+> fivenum(enquete$事前)
+[1] 0 3 4 4 4
+> fivenum(enquete$X)
+[1] 0 3 4 5 5
+> fivenum(enquete$CACert)
+[1] 4 4 5 5 5
+> fivenum(enquete$俺の)
+[1] 0 4 5 5 5
+> fivenum(enquete$Debian)
+[1] 1 2 3 4 4
