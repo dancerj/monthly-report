@@ -217,6 +217,9 @@ class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
     def process_input(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
+        if event == None:
+            self.http_error_message('Event id %s not found' % (eventid))
+            return
         if not self.check_auth_owner(event):
             self.http_error_message('Not your event')
             return
