@@ -29,6 +29,7 @@
 \usepackage{monthlyreport}
 \usepackage{wrapfig}
 \usepackage{supertabular}
+\usepackage{ascmac}
 
 % 日付を定義する、毎月変わります。
 \newcommand{\debmtgyear}{2011}
@@ -407,6 +408,607 @@ $ R
 %-------------------------------------------------------------------------------
 \dancersection{KinectをDebianで使ってみた}{山田 泰資}
 %-------------------------------------------------------------------------------
+
+\index{kinect}
+\subsection{Kinectって何？}
+
+KinectはMicrosoftが2010/11にXBox360の新しい操作デバイスとして発売した
+ゲームデバイスで、強力な画像認識機能を持ち、一切コントローラなどを
+手にしないゲームプレイを実現します。
+
+ハードウェアとしての最大の特徴は、画像認識と言っても単なるカメラではなく、
+深度センサを搭載していることです。この種の深度センサ付カメラは従来も
+あったのですが、Kinectは大量生産されることもあって価格が1万4千円前後と
+従来と比べてまさに桁違いの安さで、このためPCなどの周辺機器として
+流用できないかと発売前から高い注目を集めました。
+
+\subsection{発売、そしてKinectハックへ}
+
+そして発売されると普通にUSB接続ができることが判明（単品販売品のみ。
+XBox360同梱版はケーブルを加工する必要あり）し、すかさず画像・深度
+データのキャプチャ方法が解析されます。こうしてまず生まれたのが
+libfreenectです。libfreenectは急速に開発が進み、
+\begin{enumerate}
+\item カメラ（通常、深度、赤外線）画像の取得
+\item カメラのチルト制御
+\item 加速度センサの読み出し
+\item 筐体LEDの制御
+\end{enumerate}
+とサウンド関係以外はほぼ制御できるようになり、各種言語へのラッパーが
+作られたりOpenCVなどの既成の画像認識ライブラリと組み合わせてデモが
+作成されるなど、あっというまに普及が進みました。ここまでが発売後
+１ヶ月程の話になります。
+
+しかし、libfreenectだけでは限界がありました。XBox360ではkinectを
+使ったゼスチャ認識などの高度な機能を持ったアプリケーション（ゲーム）を
+作成できる環境が用意されているのですが、libfreenectはあくまで
+ハードウェアにアクセスするまでなので、その部分が欠けていたのです。
+
+実は前評判では「本体側の負荷を下げるため、Kinect側でジェスチャ認識などの
+高水準認識も分担する能力がある」という話もあったのですが、最終的には
+深度センサまでがハードウェアで、残りはXBox360向けのソフトウェア
+ライブラリで実現する形となっていたのでした。
+
+しかし、ここで新展開が起こります。Kinectの深度センサと上記ライブラリの
+原型提供を行ったPrimeSense社から、
+\begin{enumerate}
+\item Linux, Windows用のKinect搭載センサ用ドライバをOSSとして公開する
+\item ゼスチャ認識機能を備えた OpenNI フレームワークをOSSとして公開する
+\item 骨格認識および高度なジェスチャ認識を行う NITE ライブラリを無償提供する
+\footnote{OSSではなく、無償利用のためのライセンスコードが公開された}
+\end{enumerate}
+という発表が行われ、純正のXBox360開発環境と遜色がなくなり、人気が
+さらに高まりました。
+
+これを生かして年末にかけては3Dモデリングツール（MikuMikuDance）に
+モーションキャプチャエンジンとして組み込んだり、年明けにはARウルトラ
+セブン（画面中の自分の姿にウルトラセブンのコスプレをオーバレイし、
+ジェスチャにあわせて様々な必殺技を繰り出すことができる）が登場するなど、
+日本では現在進行形で爆発的な盛り上がりを見せています。
+
+ここではOpenNIおよびNITEの利用方法を紹介しつつ、それを元に
+Debian勉強会のプレゼンテーションをジェスチャで行う支援ツールの
+作成までを紹介します。
+
+\subsection{OpenNIとNITEの導入}
+まずはインストールです。
+\begin{enumerate}
+\item 独自に拡張が始まっているOpenNIとドライバ(SensorKinect)はgithubから
+\item NITEはバイナリのためPrimeSense社サイト(http://www.openni.org/)から
+\end{enumerate}
+それぞれ入手します。
+
+現段階ではバージョンの組み合わせによっては動作しないことがあり、
+ここでは以下の組み合わせで導入します：
+\begin{enumerate}
+\item OpenNI (stable) / https://github.com/OpenNI/OpenNI.git
+\item SensorKinect (avin2 version) / https://github.com/avin2/SensorKinect.git
+\item NITE-Bin-Ubuntu-x64-1.3.0.17.tar.bz2
+\end{enumerate}
+
+いくつかのパッケージを入れるなどビルド環境を整えておく必要は
+あります
+\footnote{apt-get install gcc python2.6 libusb-1.0-0-dev freeglut3-dev doxygen graphviz あたりで整うかと思います}
+が、後は付属のドキュメントの通りに進めればトラブルなく導入できました。
+
+まずはOpenNI本体をインストールします：
+\begin{commandline}
+$ git-clone https://github.com/OpenNI/OpenNI.git
+$ cd OpenNI/Platform/Linux-x86/CreateRedist
+$ ./RedistMaker # ビルドおよびインストール用バイナリセットを作ります
+...
+$ cd ../Redist
+$ pwd
+/d/src/openni/OpenNI/Platform/Linux-x86/Redist
+$ sudo ./install.sh
+copying shared libraries...OK
+copying executables...OK
+copying include files...OK
+creating database directory...OK
+registering module 'libnimMockNodes.so'...OK
+registering module 'libnimCodecs.so'...OK
+registering module 'libnimRecorder.so'...OK
+
+*** DONE ***
+$
+\end{commandline}
+
+次にドライバ（といっても、Linux版のものは単なる共有ライブラリです）：
+\begin{commandline}
+$ git-clone https://github.com/avin2/SensorKinect.git
+$ cd SensorKinect/Platform/Linux-x86/CreateRedist
+$ ./RedistMaker # ビルドおよびインストール用バイナリセットを作ります
+...
+$ cd ../Redist
+$ pwd
+/d/src/openni/SensorKinect/Platform/Linux-x86/Redist
+$ sudo ./install.sh
+creating config dir /usr/etc/primesense...OK
+copying shared libraries...OK
+copying executables...OK
+registering module 'libXnDeviceSensorV2.so' with OpenNI...OK
+registering module 'libXnDeviceFile.so' with OpenNI...OK
+copying server config file...OK
+setting uid of server...OK
+creating server logs dir...OK
+installing usb rules...OK
+
+*** DONE ***
+$
+\end{commandline}
+
+そして最後にNITEのインストールです：
+\begin{commandline}
+$ tar xf NITE-Bin-Ubuntu-x86-1.3.0.17.tar.bz2 -C /d/src/openni/
+$ cd Nite-1.3.0.17
+$ sudo ./install.bash -l=0KOIk2JeIBYClPWVnMoRKn5cdY4=
+...バイナリを/usr/lib等にコピーした後、サンプルコードをビルドする...
+$
+\end{commandline}
+
+最後のNITEの導入で指定した「0KOIk2JeIBYClPWVnMoRKn5cdY4=」が
+無料利用のための公開ライセンスキーになります。
+
+これらのインストールが終わると
+\begin{enumerate}
+\item /usr/libにlibnim*.so, libXn*.so, libXnV*.so
+\item /usr/include/{ni,nite}に各種ヘッダファイル
+\item /usr/binにniReg, niLicenseコマンド（モジュールやライセンスの管理用）
+\item /var/lib/niにモジュールやライセンスの管理用XMLファイル
+\item /usr/etc/primesenseにOpenNIやモジュールの設定・データファイル
+\end{enumerate}
+という構成になります。/usr/etc/primesenseはLFS的におかしな位置のため、
+/var/lib/ni/modules.xmlから参照しているパス設定を変更の上、/etcに
+移動させるとよいかもしれません。
+\footnote{OpenNIのパッケージを作成予定ですが、このあたりは検証後直す予定}
+
+あと、サンプルコードを動かせるよう一部ファイルを修正しておきましょう。
+NITEを展開した Nite-1.3.0.17/Data/ 下のXMLファイルを以下の内容にします。
+ライセンスキーの書き込みと、キャプチャ設定の修正・追加になります。
+
+Sample-Scene.xmlの内容：
+\begin{commandline}
+<OpenNI>
+  <Licenses>
+    <License vendor="PrimeSense" key="0KOIk2JeIBYClPWVnMoRKn5cdY4="/>
+  </Licenses>
+  <Log writeToConsole="true" writeToFile="false">
+    <!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
+    <LogLevel value="3"/>
+    <Masks>
+    <Mask name="ALL" on="false"/>
+    </Masks>
+    <Dumps>
+    </Dumps>
+  </Log>
+  <ProductionNodes>
+    <Node type="Depth">
+      <Configuration>
+        <MapOutputMode xRes="640" yRes="480" FPS="30"/>
+        <Mirror on="true"/>
+      </Configuration>
+    </Node>
+    <Node type="Scene" />
+  </ProductionNodes>
+</OpenNI>
+\end{commandline}
+
+Sample-Tracking.xmlの内容：
+\begin{commandline}
+<OpenNI>
+  <Licenses>
+    <License vendor="PrimeSense" key="0KOIk2JeIBYClPWVnMoRKn5cdY4="/>
+  </Licenses>
+  <Log writeToConsole="false" writeToFile="false">
+    <!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
+    <LogLevel value="3"/>
+    <Masks>
+    <Mask name="ALL" on="true"/>
+    </Masks>
+    <Dumps>
+    </Dumps>
+  </Log>
+  <ProductionNodes>
+    <Node type="Depth" name="Depth1">
+      <Configuration>
+      <MapOutputMode xRes="640" yRes="480" FPS="30"/>
+      <Mirror on="true"/>
+      </Configuration>
+    </Node>
+    <Node type="Gesture" />
+    <Node type="Hands" />
+  </ProductionNodes>
+</OpenNI>
+\end{commandline}
+
+Sample-User.xmlの内容：
+\begin{commandline}
+<OpenNI>
+  <Licenses>
+    <License vendor="PrimeSense" key="0KOIk2JeIBYClPWVnMoRKn5cdY4="/>
+  </Licenses>
+  <Log writeToConsole="true" writeToFile="false">
+    <!-- 0 - Verbose, 1 - Info, 2 - Warning, 3 - Error (default) -->
+    <LogLevel value="3"/>
+    <Masks>
+    <Mask name="ALL" on="false"/>
+    </Masks>
+    <Dumps>
+    </Dumps>
+  </Log>
+  <ProductionNodes>
+    <Node type="Depth" name="Depth1">
+      <Configuration>
+      <MapOutputMode xRes="640" yRes="480" FPS="30"/>
+      <Mirror on="true"/>
+      </Configuration>
+    </Node>
+    <Node type="User" />
+  </ProductionNodes>
+</OpenNI>
+\end{commandline}
+
+これらの内容の意味については次項で解説します。
+
+\subsection{Kinectを叩いてみる - OpenNIを使ってみよう}
+それではOpenNIから使ってみましょう。
+以下はサンプルを少しいじって、深度カメラを叩いて深度情報を
+取得し、それをPPM画像の形でダンプするようにしてみたものです。
+
+\begin{commandline}
+/*BINFMTCXX: -Wall -I/usr/include/ni -I/usr/include/nite -lOpenNI
+ *
+ * 深度情報のキャプチャを行い、PGM画像として保存する。
+ * カメラからの距離がピクセルの濃淡で表される画像になる。
+ *
+ */
+
+#include <XnCppWrapper.h>
+
+#define log(...) do { \
+        fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");    \
+    } while (0)
+
+#define die(...) do { \
+        fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); exit(1);   \
+    } while (0)
+
+// 深度センサが返すデータは深度が16bit値で左上から並んでいるので、
+// そのまま16bit PGMとしてダンプすれば画像になる。
+void
+ppmsave(xn::DepthMetaData& meta, const char *outfile) {
+    const XnDepthPixel* pix = meta.Data();
+
+    XnUInt32 xmax = meta.XRes();
+    XnUInt32 ymax = meta.YRes();
+
+    // dump 16bit depth data as 16bit PGM
+    FILE* out = fopen(outfile, "w+");
+    fprintf(out, "P5\n%d %d 65535\n", xmax, ymax);
+    fwrite(pix, sizeof(XnDepthPixel), xmax * ymax, out);
+    fclose(out);
+}
+
+int
+main(int argc, char **argv) {
+    xn::Context context;
+    xn::EnumerationErrors errors;
+    xn::DepthGenerator dgen;
+    xn::DepthMetaData meta;
+
+    if (argc < 3) {
+        die("Usage: %s kinect.xml depth.pgm", argv[0]);
+    }
+
+    // XML構成ファイルでの初期化、深度カメラへの参照取得、そしてキャプチャ
+    context.InitFromXmlFile(argv[1], &errors);
+    context.FindExistingNode(XN_NODE_TYPE_DEPTH, dgen);
+    context.WaitOneUpdateAll(dgen);
+
+    // キャプチャデータの取得と保存
+    dgen.GetMetaData(meta);
+    ppmsave(meta, argv[2]);
+
+    context.Shutdown();
+    return 0;
+}
+\end{commandline}
+
+これを実行すると、
+\begin{commandline}
+\$ ./camera3d.cc kinect.xml depth.pgm
+\end{commandline}
+次のように各ピクセルの深さが画像として取れます：
+\begin{center}
+\includegraphics[height=6cm]{image201101/depth.eps}
+\end{center}
+正直何がなんだか？という画像ですが、右側にいるのがノートPCを
+膝において座っている私です。
+
+ここでの中核部分は以下の３行です。
+\begin{commandline}
+context.InitFromXmlFile(argv[1], &errors);
+context.FindExistingNode(XN_NODE_TYPE_DEPTH, dgen);
+context.WaitOneUpdateAll(dgen);
+\end{commandline}
+
+OpenNIではシステム中にどのようなデバイスが存在するか、また、
+それらの構成（カメラなら解像度など）はどうなるかを外部のXMLで
+記述でき、それを元に初期化を行います。コードだけでも書くことは
+できるのですが、その場合は構成を変更するとコードの書き換えが
+必要になります。
+
+このコンテキスト（context）を作成し、そこにデバイスやフィルタ（未登場
+ですが、センサデータの入力を受けてゼスチャ認識を行い、登録されている
+フックをトリガするものなどがあります）といったOpenNIモジュール群を
+接続する、というのがOpenNI/NITEのプログラムフローになります。
+
+最後に、上で利用したkinect.xmlも引用しておきます：
+\begin{commandline}
+<OpenNI>
+  <!-- ログ設定。以下の設定で標準出力は使わず Log/*.log に書く -->
+  <Log writeToConsole="false" writeToFile="true">
+    <LogLevel value="0"/>
+    <Masks>
+      <Mask name="ALL" on="true"/>
+    </Masks>
+    <Dumps />
+  </Log>
+
+  <ProductionNodes>
+    <Node type="Image" name="Kin2D">
+      <Configuration>
+        <MapOutputMode xRes="640" yRes="480" FPS="30"/>
+        <Mirror on="true"/>
+      </Configuration>
+    </Node>
+
+    <Node type="Depth" name="Kin3D">
+      <Configuration>
+        <MapOutputMode xRes="640" yRes="480" FPS="30"/>
+        <Mirror on="true"/>
+      </Configuration>
+    </Node>
+
+    <Node type="Scene" />
+    <Node type="User" />
+    <Node type="Gesture" />
+    <Node type="Hands" />
+  </ProductionNodes>
+</OpenNI>
+\end{commandline}
+以後の例もすべてこのXMLを使って動かしています。
+
+\subsection{ジェスチャの検出方法 - NITEを使う}
+それでは次はジェスチャの認識をさせてみましょう。
+こちらではNITEライブラリを利用します。
+
+これもOpenNIフレームワーク上のプログラミングなのでコンテキストを
+生成する点は同じですが、NITEではコンテキストを介した深度センサ
+データのやりとりのような低レベルの操作は隠され、
+\begin{enumerate}
+\item ジェスチャー操作の流れを管理する、コンテキストをラップするセッションマネージャ
+\item セッションマネージャに登録される各種のジェスチャー検出器
+\item それら検出器に登録される、操作検知時に呼び出されるコールバック
+\end{enumerate}
+という構造のコードになります。操作中・操作終了をセッションマネージャが
+判定し、「セッション中」の動作のみが検出器にかかるよう調整しています。
+
+実際にどのようなものになるか、見てみましょう：
+\begin{commandline}
+/*BINFMTCXX: -Wall -I/usr/include/ni -I/usr/include/nite -lXnVNite -lOpenNI
+ *
+ * 簡単なジェスチャ認識のテスト。
+ * 手を振ってセッション開始すると、プッシュとスワイプ動作を認識する。
+ *
+ */
+
+#include <XnCppWrapper.h>
+#include <XnVNite.h>
+
+/**********************************************************************
+ * Utility Functions
+ **********************************************************************/
+
+#define log(...) do {                       \
+        fprintf(stderr, __VA_ARGS__);       \
+        fprintf(stderr, "\n");              \
+    } while (0)
+
+#define die(...) do {                       \
+        fprintf(stderr, __VA_ARGS__);       \
+        fprintf(stderr, "\n");              \
+        exit(1);                            \
+    } while (0)
+
+/**********************************************************************
+ * セッションマネージャや検出器に登録するコールバック関数
+ * 現在は個々のジェスチャーを認識した等のログを出すのみ。
+ **********************************************************************/
+
+static void
+OnSessionStart(const XnPoint3D &p, void *data) {
+    log("session start");
+}
+
+static void
+OnSessionEnd(void *data) {
+    log("session end");
+}
+
+static void
+OnFocusStartDetected(const XnChar *focus,
+                     const XnPoint3D &p, XnFloat progress, void *data) {
+    log("focus start");
+}
+
+static void
+OnSwipe(XnVDirection dir, XnFloat speed, XnFloat angle, void *data) {
+    log("swipe detected. dir=%d, speed=%f, angle=%f", dir, speed, angle);
+}
+
+static void
+OnPush(XnFloat speed, XnFloat angle, void *data) {
+    log("push detected. speed=%f, angle=%f", speed, angle);
+}
+
+/**********************************************************************
+ * Main
+ **********************************************************************/
+
+int
+main(int argc, char **argv) {
+    xn::Context context;
+
+    if (argc < 2) {
+        die("Usage: %s kinect.xml", argv[0]);
+    }
+
+    context.InitFromXmlFile(argv[1]);
+
+    // セッションマネージャと各種検出器の生成
+    XnVSessionManager* sm = new XnVSessionManager;
+    XnVSwipeDetector*  sd = new XnVSwipeDetector;
+    XnVPushDetector*   pd = new XnVPushDetector;
+
+    // セッションマネージャの初期化
+    //
+    // 手を振って（Wave）セッションに入り、休止状態からのセッション再開は
+    // 手を上げる（RaiseHand）。セッション中は下で登録された検出器が操作を
+    // 検出するようユーザの動きをそれらに伝達する。
+    sm->Initialize(&context, "Wave", "RaiseHand");
+    sm->RegisterSession(NULL,
+                        OnSessionStart, OnSessionEnd, OnFocusStartDetected);
+
+    // ジェスチャー検出器と検知した際のコールバックを登録
+    sm->AddListener(sd);
+    sm->AddListener(pd);
+    sd->RegisterSwipe(NULL, OnSwipe);
+    pd->RegisterPush(NULL, OnPush);
+
+    // 後はずっと入力を待ってはイベント処理するループ
+    context.StartGeneratingAll();
+    for (;;) {
+        context.WaitAndUpdateAll();
+        sm->Update(&context);
+    }
+    return 0;
+}
+\end{commandline}
+
+最初の深度データの画像を保存する例よりも簡単になりました。
+上では XnVSwipeDetector と XnVPushDetector の２種類だけを使いましたが、
+NITEには10を超える様々な基本ジェスチャーの検出器があり、また、
+複数のジェスチャーを組み合わせた操作に対応するための複合処理などを
+行う補助クラスも用意されています。
+
+このように、多種多様な検出器を用意して、煩雑な体の各部の動きの
+トラッキングや照合の手間をNITEは省いてくれます。
+
+\begin{itembox}[l]{各種の操作と認識率}
+なお、動かしてみるとわかりますが、動作によって「きちんと認識される」度が
+結構違います。スワイプは「一瞬手を止めて、それからさっと流す」動作なのですが
+非常に認識率が悪いです。一方、プッシュ操作はほぼ確実に認識されます。
+プッシュ（Push, Click）動作は手振り（Wave）動作と並んで「セッション開始の
+シグナル動作（focus gesture）」として実用的とマニュアルに書かれていますが、
+よくわかります。快適な操作感のためには結局カスタムの検出器を作成する必要が
+ありそうです。
+\end{itembox}
+
+\subsection{アプリケーションの制御方法 - XTestの話}
+さて、これまでOpenNI, NITEと例を出してきましたが、次はこれで
+認識したジェスチャでどう他のアプリケーションを制御するかです。
+今回はX11のxtst(XTest)拡張でマウスやキーイベントを送り、それで
+（この資料の）プレゼンテーションが行えるようにします。
+
+XTest自体の使い方は以下のようになります。
+\begin{commandline}
+/*BINFMTCXX:-Wall -lXtst -lX11
+ * XTestを使ったキーとマウスの制御テスト
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/extensions/XTest.h>
+
+#define log(...) fprintf(stderr, __VA_ARGS__)
+#define die(...) do { fprintf(stderr, __VA_ARGS__); exit(1); } while (0)
+
+enum { DOWN = 1, UP, DOWNUP };
+
+void
+sendkey(Display *disp, unsigned int keysym, int mask) {
+    unsigned int kc = XKeysymToKeycode(disp, keysym);
+    if (mask & DOWN) { XTestFakeKeyEvent(disp, kc, True, CurrentTime); }
+    if (mask & UP)   { XTestFakeKeyEvent(disp, kc, False, CurrentTime); }
+    XSync(disp, False);
+}
+
+int
+main(int argc, char **argv) {
+    Display *disp;
+
+    if ((disp = XOpenDisplay(NULL)) == NULL) {
+        die("Unable to open display\n");
+    }
+
+    // キー入力のテスト - とりあえず ls させてみる
+    unsigned int key[] = { XK_L, XK_S, XK_Return };
+    for (int i = 0; i < (int)(sizeof(key) / sizeof(*key)); i++) {
+        sendkey(disp, key[i], DOWNUP);
+    }
+
+    // 相対位置移動
+    XTestFakeRelativeMotionEvent(disp, -100, -100, CurrentTime);
+    XSync(disp, False);
+    sleep(3);
+
+    // 絶対位置移動
+    XTestFakeMotionEvent(disp, -1, 100, 100, CurrentTime);
+    XSync(disp, False);
+    sleep(3);
+
+    // XTestのFakeMotionでなぜかXMing上のポインターが動かないので、
+    // XWarpPointerを使ってみるテスト・・・これだと動くようだ。
+    XWarpPointer(disp, None, None, 0, 0, 0, 0, 200, 200);
+    XSync(disp, False);
+    sleep(3);
+
+    // Control押しながら右クリックを実行（メニューが出るか確認）
+    sendkey(disp, XK_Control_L, DOWN);
+    XTestFakeButtonEvent(disp, 3, True,  CurrentTime);
+    XTestFakeButtonEvent(disp, 3, False, CurrentTime);
+    sendkey(disp, XK_Control_L, UP);
+    XSync(disp, False);
+
+    // 終了
+    XTestDiscard(disp);
+    XCloseDisplay(disp);
+
+    return 0;
+}
+\end{commandline}
+
+操作したいアプリケーションに合わせて
+\begin{enumerate}
+\item XTestFakeKeyEvent
+\item XTestFakeButtonEvent
+\item XTestFakeMotionEvent
+\item XTestFakeRelativeMotionEvent
+\end{enumerate}
+で操作イベントを送りながら、XSyncで同期を取る（ポインタを移動させて
+入力、のような操作で、移動が完了してから入力がされるようにする）というのが
+基本的な処理になります。
+
+あとはこれを先のOpenNI/NITEのジェスチャ検知をトリガに発行してやれば、
+今回のデモは完成になります。
+
+\subsection{デモ}
+さて当日うまくいくか・・・
 
 %-------------------------------------------------------------------------------
 \dancersection{CACert Assurance}{山田 泰資}
