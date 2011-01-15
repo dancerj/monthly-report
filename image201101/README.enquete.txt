@@ -79,3 +79,11 @@ Debian.Miniconf.企画                                    1.0000000
 [1] 0 4 5 5 5
 > fivenum(enquete$Debian)
 [1] 1 2 3 4 4
+
+
+> plot(enquete$CACert, enquete$俺の, xlim=c(1,5), ylim=c(1,5))
+> png('oreno-cacert.png')
+> plot(enquete$CACert, enquete$俺の, xlim=c(1,5), ylim=c(1,5))
+> dev.off()
+X11cairo 
+       2 
