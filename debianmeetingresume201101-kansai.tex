@@ -114,10 +114,190 @@
 参加者の皆さんによる回答は以下の通りです。
 
 
-\dancersection{kFreeBSD で生活するための知恵袋}{杉本典充}
+\dancersection{Debian GNU/kFreeBSDで便利に暮らすためのTips}{杉本典充}
 
-ここに杉本さんの原稿が入る
+\subsection{Debian GNU/kFreeBSDについて}
+Debian GNU/kFreeBSDとは、Debian Projectで開発しているオペレーティングシステムのひとつです。Squeezeにて技術プレビュー版としてリリースされることになっています。\footnote{http://www.debian.org/ports/kfreebsd-gnu/}
 
+\subsubsection{Debian GNU/kFreeBSDの現状}
+Debian GNU/kFreeBSDは現在次のような状況です。
+
+\begin{itemize}
+  \item カーネルはFreeBSD 8.1ベースのものに一本化された。(7.3カーネルは廃止。)
+  \item まだLinuxバイナリ互換機能は動かない模様。(linux.koのロード自体に失敗する。)
+  \item FreeBSD本家では8.2のリリースが間近のため、Debian GNU/kFreeBSDでもアップデートを作業中(2011/1/12にカーネルの新しいバージョン8.2-rc1がアップロードされた)。
+\end{itemize}
+
+\subsection{ZFS環境下でリアルタイム系アプリケーションを使用するTips}
+\subsubsection{現象}
+私のPC環境では、sftpを実行してサーバから1GBのファイルをダウンロードすると、audaciousで再生中のMP3ファイルが音飛びします。ディスクのアクセスLEDは「消灯、数秒間連続点灯、消灯」を繰り返すようなディスクアクセスをしており、音飛びはHDD LEDが点灯中に発生します。
+
+なお、PCの環境は以下です。
+
+\begin{itemize}
+  \item ノートPCのVAIO TZ。2.5inch HDD（SATA150接続）の250GB。
+  \item /はUFS、/homeはZFSとしている。
+  \item ZFSの設定で、圧縮はしない(compression=off)設定にしている。
+  \item 再生するMP3ファイルとsftpでダウンロードする1GBのファイルは双方ZFS領域に読み書きする。
+\end{itemize}
+
+\subsubsection{原因の推定}
+ディスクのアクセスLEDが点灯しているときにMP3ファイルの再生が音飛びするため、1GBのファイルを書き込み中にMP3ファイルの読み込みが行えななかったためと推測します。
+
+そのため、大きいファイルを書き込む場合でもディスクへの連続書き込み時間を短くするようにZFSのパラメータを調整すれば現象は解決すると考えます。
+
+ZFSのパラメータ設定についてはFreeBSDを使う人たちで研究されており、その結果が公開されています。\footnote{http://wiki.freebsd.org/ZFSTuningGuide}
+
+\subsubsection{ZFSのパラメータを調整する}
+ZFSのパラメータを表示するには"sysctl''コマンドを使用します。
+今回調整するパラメータは'vfs.zfs.arc\_max'のため、現在の値を確認します。
+
+\begin{commandline}
+$ sysctl -a | grep arc_max
+vfs.zfs.arc_max: 428705280
+\end{commandline}
+
+デフォルト値は約400MBに設定されています。
+
+FreeBSDにおけるZFSのパラメータ設定は"/boot/loader.conf''に記述するのですが、Debian GNU/kFeeeBSDでは"/boot/loader.conf''に記述しても効きません。
+また、カーネルの起動後に"sysctl'コマンドを直接実行してもすでにZFS subsystemが起動しているため変更できない状況です。
+
+そのため、grubの起動パラメータとして設定する方法をとりました。
+
+\begin{commandline}
+$ sudo vim /etc/grub.d/10_kfreebsd
+# （省略）
+# 元から設定しているパラメータ
+set kFreeBSD.vfs.root.mountfrom=${kfreebsd_fs}:${kfreebsd_device}
+set kFreeBSD.vfs.root.mountfrom.options=rw
+
+# 今回新しい設定値を追加します。
+set kFreeBSD.vfs.zfs.arc_max="100M"
+# （省略）
+$ sudo update-grub
+$ sudo reboot
+\end{commandline}
+
+\subsubsection{確認}
+
+\begin{commandline}
+$ sysctl -a | grep arc_max
+vfs.zfs.arc_max: 104857600
+\end{commandline}
+
+設定した通り、100MBになりました。
+これでテストしてみると音飛びがしなくなりました。
+
+このパラメータ値はハードウェア環境、ディスク負荷で個々に違ってくるため、皆さんの使い方に合わせてチューニングしてみてください。
+
+\subsection{USBメモリのマウントに関するTips}
+\subsubsection{まず普通にやってみる}
+私のDebian GNU/kFreeBSD環境は"ja\_JP.UTF-8''のlocaleを使用しています。
+FAT32でフォーマットしているUSBメモリに日本語ファイル名をもつファイルがある場合はmount時に文字コードの変換が必要になります。
+そのため、文字コード変換のオプションを指定してマウントを試みます。
+
+すると"libiconv.so''がないといわれ、エラーになります。
+
+\begin{commandline}
+$ sudo mount_msdosfs -L ja_JP.UTF-8 -D CP932 /dev/da0 /mnt/usb
+mount_msdosfs: Unable to load iconv library: libiconv.so: cannot open shared object file: No such file or directory
+: No such file or directory
+mount_msdosfs: msdosfs_iconv: No such file or directory
+\end{commandline}
+
+\subsubsection{libiconvのビルド}
+しかしDebianにはlibiconv.soというライブラリファイルは存在しません。
+そのため、GNUのサイトからtarballをダウンロードしてbuildすることにします。
+
+\begin{commandline}
+$ cd
+$ mkdir tmp
+$ wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.13.1.tar.gz
+$ tar zxvf libiconv-1.13.1.tar.gz
+$ cd libiconv-1.13.1
+$ ./configure
+$ make
+$ sudo make install
+$ ls /usr/local/lib
+charset.alias  libcharset.so        libiconv.la    libiconv.so.2.5.0
+libcharset.a   libcharset.so.1      libiconv.so    python2.6
+libcharset.la  libcharset.so.1.0.0  libiconv.so.2  site_ruby
+\end{commandline}
+
+
+再度mountを試みます。
+コマンド自体はエラーになりませんが、/mnt/usbの中をlsしてみると、日本語部分が
+?で表示されています。文字コードの変換に失敗したようです。
+
+\begin{commandline}
+$ sudo mount_msdosfs -L ja_JP.UTF-8 -D CP932 /dev/da0 /mnt/usb
+\end{commandline}
+
+\subsubsection{文字コード変換の失敗原因}
+FreeBSD本家のカーネルでもmount\_msdosfsでUTF-8へ文字コードを変換する処理は動作しないようです。\footnote{日本語のUTF-8へファイル名を変換してmountできるようにするパッチはFreeBSDを使う有志によって作成されているようですが、GENERICカーネルに取り込まれていないようです。}
+そのため、考えられる方法は以下の3つありそうです。
+
+\begin{itemize}
+  \item USBメモリに日本語ファイル名を使わない。（他人からもらったデータの場合は都合が悪い場合もある。）
+  \item localeの設定を"ja\_JP.eucJP'で運用する。(eucJPへの変換は動作するため)
+  \item 一時的にlocaleを"ja\_JP.eucJP''に設定してUSBメモリからHDDにコピーし、convmvでUTF-8へファイル名を変換する。その後、localeを"ja\_JP.UTF-8''に戻す。
+\end{itemize}
+
+私の環境ではすでにUTF-8の文字コード環境を使っている都合上、convmvを使った方法を紹介します。
+
+
+まずは、ja\_JP.eucJP環境で起動します。
+\begin{commandline}
+$ vim .xinitrc
+# export LANGUAGE='ja_JP.UTF-8'
+# export LC_ALL='ja_JP.UTF-8'
+# export LANG='ja_JP.UTF-8'
+export LANGUAGE='ja_JP.eucJP'
+export LC_ALL='ja_JP.eucJP'
+export LANG='ja_JP.eucJP'
+$ startx
+\end{commandline}
+
+ファイルを一度HDDにコピーし、コピーしたファイル名の文字コードを変換します。
+\begin{commandline}
+$ sudo mount_msdosfs -L ja_JP.eucJP -D CP932 /dev/da0 /mnt/usb
+$ mkdir ~/usbtmp
+$ cd ~/usbtmp
+$ cp -r /mnt/usb/* ./
+$ convmv -r -f eucjp -t utf8 * --notest
+\end{commandline}
+
+localeを元に戻します。
+
+\begin{commandline}
+$ vim .xinitrc
+export LANGUAGE='ja_JP.UTF-8'
+xxport LC_ALL='ja_JP.UTF-8'
+export LANG='ja_JP.UTF-8'
+# export LANGUAGE='ja_JP.eucJP'
+# export LC_ALL='ja_JP.eucJP'
+# export LANG='ja_JP.eucJP'
+$ startx
+\end{commandline}
+
+一手間必要ですが、localeを"ja\_JP.UTF-8"で使う場合はこのような回避策を行うことで対応することができます。
+
+\subsection{今後の課題}
+日常生活で使えると便利な以下の事項については、現在調査中です。
+
+\begin{itemize}
+  \item iceweaselがよくフリーズする。（代わりにepiphany-browserを使用している。）
+  \item Flashはやはり鬼門で安定して動作できていない。（gnashはひとまずpurgeしている。）
+  \item VAIO TZの液晶の明るさ変更(Fnキーから音量は何もしなくても変更できているが…。)
+  \item 無線LAN（iwn0として内蔵無線LANカードの認識はできているがエラーになる）
+  \item IS03を使ってテザリングする。（まずはドライバをなんとかしないと）
+\end{itemize}
+
+\subsection{終わりに}
+Debian GNU/kFreeBSDはこれから更に完成度を高めていけるオペレーティングシステムのため、オペレーティングシステムの開発に関わりたい人には打ってつけのプロジェクトです。
+今後もDebian GNU/kFreeBSDを使い、デバッグしながらいろいろ勉強していきたいです。
+
+みなさまも機会があればDebian GNU/kFreeBSDを使ってみてください。
 
 \dancersection{reportbugのなんとか}{のがたじゅん}
 
