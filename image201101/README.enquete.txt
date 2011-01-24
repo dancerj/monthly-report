@@ -1,22 +1,24 @@
 これだと、0を0点として評価してしまうな。
 
 > enquete <- read.csv('201012enquete.csv')
+
 > summary(enquete)
-  事前課題紹介   X2010年のDebianを振り返って.2011年を企画する
- Min.   :0.000   Min.   :0.000                               
- 1st Qu.:3.000   1st Qu.:3.000                               
- Median :4.000   Median :4.000                               
- Mean   :3.333   Mean   :3.556                               
- 3rd Qu.:4.000   3rd Qu.:5.000                               
- Max.   :4.000   Max.   :5.000                               
+  事前課題紹介  X2010年のDebianを振り返って.2011年を企画する
+ Min.   :3.00   Min.   :3                                   
+ 1st Qu.:3.75   1st Qu.:3                                   
+ Median :4.00   Median :4                                   
+ Mean   :3.75   Mean   :4                                   
+ 3rd Qu.:4.00   3rd Qu.:5                                   
+ Max.   :4.00   Max.   :5                                   
+ NA's   :1.00   NA's   :1                                   
  CACertの準備に何が必要か 俺のlibsaneが火をふくぜ Debian.Miniconf.企画
- Min.   :4.000            Min.   :0.000           Min.   :1.000       
- 1st Qu.:4.000            1st Qu.:4.000           1st Qu.:2.000       
+ Min.   :4.000            Min.   :4.000           Min.   :1.000       
+ 1st Qu.:4.000            1st Qu.:4.500           1st Qu.:2.000       
  Median :5.000            Median :5.000           Median :3.000       
- Mean   :4.556            Mean   :3.667           Mean   :2.778       
+ Mean   :4.556            Mean   :4.714           Mean   :2.778       
  3rd Qu.:5.000            3rd Qu.:5.000           3rd Qu.:4.000       
  Max.   :5.000            Max.   :5.000           Max.   :4.000       
-
+                          NA's   :2.000                               
 
 > quantile(enquete$俺の)
   0%  25%  50%  75% 100% 
@@ -87,3 +89,18 @@ Debian.Miniconf.企画                                    1.0000000
 > dev.off()
 X11cairo 
        2 
+
+
+> cor(enquete$CAC, enquete$俺の, use="pairwise.complete.obs")
+[1] 0.7302967
+> cor(enquete$CAC, enquete$俺の, use="complete.obs")
+[1] 0.7302967
+> cor(enquete$俺の, enquete$事前, use="complete.obs")
+[1] -0.2581989
+> cor(enquete$CAC, enquete$事前, use="complete.obs")
+[1] 0
+> cor(enquete$CAC, enquete$事前, use="pairwise.complete.obs")
+[1] 0
+> cor(enquete$俺の, enquete$事前, use="pairwise.complete.obs")
+[1] -0.2581989
+> 
