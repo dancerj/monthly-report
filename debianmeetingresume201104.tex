@@ -143,24 +143,105 @@
 %-------------------------------------------------------------------------------
 \index{apache}
 
+Apache httpd というウェブサーバがあります。おそらく定番と言われるウェブ
+サーバで、多くの人が利用していると思います。ウェブサーバとして多くの機能
+を提供しているApacheですが、モジュールという仕組みで機能拡張出きるように
+なっています。
+今回はApacheモジュールを作ってみることにします。
+
 \subsection{Apacheモジュールをつくりたいとき}
+
+Apacheモジュールが作りたいときはどういうときでしょうか。
+作りたいと思ったときがつくりどき。
+
+Apacheモジュールでできることはどういうことでしょうか。Apacheの受け取る入
+力(HTTP Request)から出力(HTTP Response)のほぼ任意の場所にフックとして割り
+込むことができて、入出力のデータを加工することが可能です。
+
 \subsection{Debian の Apache パッケージの構成}
 
-httpd と Debian apache2 はどれくらい違うか。
+ところで、httpd と Debian apache2 はどれくらい違うかご存知でしょうか。
 
 Debian パッケージのREADME.Debian を見てみましょう。
 \cite{Apache2ReadmeDebian}
 
-apache2コマンドが環境変数に依存している。
-apache2ctl / /etc/init.d/apache2 を利用しないと起動とかできない。
-設定ファイルの配置が全然違う。
-a2enmod / a2dismod コマンドが追加されている。
+ざっと眺めただけでも以下の点で特徴があります。
+
+\begin{itemize}
+ \item  apache2コマンドが環境変数に依存している。
+ \item  apache2ctl / /etc/init.d/apache2 を利用しないと起動とかできない。
+ \item  設定ファイルの配置が全然違う。
+ \item  a2enmod / a2dismod コマンドが追加されている。
+\end{itemize}
 
 \subsection{Apacheモジュールの作成}
 
+普通のApacheモジュールの作成の流れをみてみましょう。
+
 \subsubsection{テンプレート生成}
+
+apxs2 コマンドを利用してテンプレートを作成します。
+モジュール名でディレクトリが作成されます。
+
+\begin{commandline}
+$ apxs2 -g -n dancerqps
+$ cd dancerqps
+$ ls 
+$ ls
+Makefile  mod_dancerqps.c  modules.mk
+\end{commandline}
+
 \subsubsection{ソースコード編集}
+
+ソースコードを編集しましょう。この場合、自動で生成された
+\url{mod_dancerqps.c}がメインのモジュールソースコードです。
+
+まず一番下に一番重要な構造が定義されています。ここで重要なのは
+\verb!dancerqps_register_hooks! を登録しているところでしょうか。
+
+\begin{commandline}
+module AP_MODULE_DECLARE_DATA dancerqps_module = {
+    STANDARD20_MODULE_STUFF,
+    NULL,                  /* create per-dir    config structures */
+    NULL,                  /* merge  per-dir    config structures */
+    NULL,                  /* create per-server config structures */
+    NULL,                  /* merge  per-server config structures */
+    NULL,                  /* table of config file commands       */
+    dancerqps_register_hooks  /* register hooks                      */
+};
+\end{commandline}
+
+
+\verb!dancerqps_register_hooks!で実際にフックの登録を行います。
+ここでは、アウトプットフィルタを登録しています。
+\begin{commandline}
+static void dancerqps_register_hooks(apr_pool_t *p) {
+  ap_register_output_filter(dancerqps_name, dancerqps_filter,
+			    NULL, AP_FTYPE_RESOURCE);
+}
+\end{commandline}
+
+そして、実際に各リクエストのアウトプットに対して実効するフィルタのコード
+を書きます。
+
+\begin{commandline}
+static apr_status_t dancerqps_filter(ap_filter_t *f, apr_bucket_brigade *bb) {
+  /* ここでなにか処理をする */
+  ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, f->r,
+		"dancerqps processing was here!");
+  return ap_pass_brigade(f->next, bb);
+}
+\end{commandline}
+
 \subsubsection{モジュールのファイルインストール}
+
+モジュールをビルドしてインストールする一連の手順をしてくれるコマンドがあ
+ります。
+
+\begin{commandline}
+$ sudo apxs2 -c -i mod_dancerqps.c
+\end{commandline}
+
 \subsubsection{モジュールを有効にする}
 
 apxs2 コマンドでモジュールを有効にする方法は a2enmodなどのコマンドの存在
