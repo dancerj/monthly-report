@@ -1,0 +1,348 @@
+\documentclass[cjk,dvipdfm,12pt,%
+hyperref={bookmarks=true,bookmarksnumberd=true,bookmarksopen=false,%
+colorlinks=false,%
+pdftitle={Debian GNU/kFreeBSD で便利に暮らすための Tips},%
+pdfauthor={杉本典充},%
+pdfinstitute={dictoss@live.jp},%
+pdfsubject={$\sim$第43回関西Debian勉強会$\sim$},%
+}]{beamer}
+
+\title{Debian GNU/kFreeBSD で便利に暮らすための Tips}
+\subtitle{{\scriptsize$\sim$第43回関西Debian勉強会$\sim$}}
+\author[杉本 典充]{{\large\bf 杉本典充}}
+\institute[]{{\normalsize\tt dictoss@live.jp}}
+\date{{\small 2011 年 1 月 23 日}}
+
+%\usepackage{amsmath}
+%\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[varg]{txfonts}
+%\usepackage{D6math}
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+\usetheme{Kyoto}
+\def\museincludegraphics{%
+  \begingroup
+  \catcode`\|=0
+  \catcode`\\=12
+  \catcode`\#=12
+  \includegraphics[width=0.9\textwidth]}
+%\renewcommand{\familydefault}{\sfdefault}
+%\renewcommand{\kanjifamilydefault}{\sfdefault}
+\begin{document}
+\settitleslide
+\begin{frame}
+\titlepage
+\end{frame}
+\setdefaultslide
+
+
+\begin{frame}[fragile]
+\frametitle{発表において}
+\begin{itemize}
+  \item 何か質問、疑問があれば随時質問をどうぞ。
+  \item ツッコミ、大歓迎。間違いを指摘していただくとこの場の皆さんが
+幸せになれます。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{アジェンダ}
+\begin{itemize}
+  \item 自己紹介
+  \item Debian GNU/kFreeBSDの紹介と現状
+  \item ZFS 環境下でリアルタイム系アプリケーションを使用する Tips
+  \item USB メモリのマウントに関する Tips
+  \item 今後の課題
+  \item 終わりに
+  \item 質問コーナー
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{発表者について}
+\begin{itemize}
+  \item 名前：杉本　典充 (dictoss@live.jp)
+  \item Twitter : dictoss
+  \item Debian GNU/Linuxは大学2年の頃から使っている。
+(当時はtestingのsarge)
+  \item ここ数年Debian GNU/LinuxとFreeBSDを集中して使っている。
+  \item 両者が合体したDebian GNU/kFreeBSDがおもしろそうなので常用環境として使っている。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Debian GNU/kFreeBSDとは}
+\begin{commandline}
+$ uname -a
+GNU/kFreeBSD VAIOTZ-DEB 8.1-1-amd64 #0 Tue Jan  4 15:07:39 CET 2011
+x86_64 amd64 Intel(R) Core(TM)2 Duo CPU     U7700  @ 1.33GHz
+GNU/kFreeBSD
+\end{commandline}
+
+\begin{itemize}
+  \item Debian Projectで開発が進んでいる新しいOS。
+  \item カーネルはFreeBSDカーネルを使用。
+  \item パッケージシステムはdpkg/apt。
+  \item 採用ソフトウェアはDFSGに従って決定する。
+  \item 現段階ではi386版とamd64版の2つのアーキテクチャをサポート。
+  \item 主な情報はDebian Wikiにある。(英語なのでかんばって読みましょう。)
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Debian GNU/kFreeBSDの現状}
+\begin{itemize}
+  \item カーネルは8.1系のみに一本化(7.3カーネルはリポジトリから削除)
+  \item Linuxバイナリ互換機能はまだ動かない
+  \item 2011/1/12にカーネル8.2-rc1がリポジトリにアップロードされた模様。
+\end{itemize}
+\end{frame}
+
+%-----start ZFS-----------
+
+\takahashi[40]{ZFS 環境下でリアルタイム系アプリケーションを使用する Tips}
+
+\begin{frame}[fragile]
+\frametitle{現象}
+\begin{itemize}
+  \item audaciousでMP3の音声ファイルを再生中
+  \item sftpを実行して1GBのファイルをダウンロードする
+  \item このとき、再生中の音声が音飛びする
+\end{itemize}
+\begin{itemize}
+  \item PCはVAIO TZでSATA150接続の250GB HDD
+  \item /はUFS、/homeはZFS
+  \item /homeのZFS領域はcompression=off
+  \item MP3ファイルと1GBのファイルは、双方ZFS領域に読み書きする
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{原因の推定}
+\begin{itemize}
+  \item この状態のとき、HDD LEDが「消灯、数秒間連続点灯、消灯」を繰り返す動作となる
+  \item 音声再生で音飛びするのはHDD LEDが連続点灯中のみに起こる
+  \item ディスクへデータ書き込み中にデータ読み込みができなかったために音飛びしているような気がする
+  \item ZFSのパラメータを調整してHDDへの連続書き込み時間を短くすれば解決しそう
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ZFSパラメータを調整する(1)}
+\begin{itemize}
+  \item 先人達の功績 http://wiki.freebsd.org/ZFSTuningGuide
+  \item 連続書き込みするデータサイズは''vfs.zfs.arc\_max''というパラメータ
+\end{itemize}
+
+\begin{commandline}
+$ sysctl -a | grep arc_max
+vfs.zfs.arc_max: 428705280
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ZFSパラメータを調整する(2)}
+\begin{itemize}
+  \item FreeBSDでは"/boot/loader.conf"に記述するが、kFreeBSDでは効かなかった
+  \item sysctlコマンドで直接変更しようとしたが、read only parameterと怒られ変更できず
+  \item ファイルシステムのパラメータ設定をgrubの起動パラメータで指定していることを思い出す
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{ZFSパラメータを調整する(3)}
+\begin{commandline}
+$ sudo vim /etc/grub.d/10_kfreebsd
+# (省略)
+# 元から設定しているパラメータ
+set kFreeBSD.vfs.root.mountfrom=${kfreebsd_fs}:${kfreebsd_device}
+set kFreeBSD.vfs.root.mountfrom.options=rw
+
+# 今回新しい設定値を追加します.
+set kFreeBSD.vfs.zfs.arc_max="100M"
+# (省略)
+$ sudo update-grub
+$ sudo reboot
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{確認}
+\begin{commandline}
+$ sysctl -a | grep arc_max
+vfs.zfs.arc_max: 104857600
+\end{commandline}
+\begin{itemize}
+  \item 100MBに設定されています
+  \item とりあえず、音飛びはしなくなりました
+  \item ハードウェア環境や再生ソフトウェアのバッファサイズでも結果は違ってくると思うので、そこは適時調整してみてください
+\end{itemize}
+\end{frame}
+
+%-----end ZFS-----------
+%-----start USB-memory-----------
+
+\takahashi[40]{USB メモリのマウントに関する Tips}
+
+\begin{frame}[fragile]
+\frametitle{普通にマウントしてみる}
+\begin{itemize}
+  \item 私の環境では"ja\_JP.UTF-8"にlocaleを設定している
+  \item FAT32領域のマウント時にファイル名をCP932からUTF-8へ変換する必要がある
+  \item 実行すると以下のエラーになった
+\end{itemize}
+
+\begin{commandline}
+$ sudo mount_msdosfs -L ja_JP.UTF-8 -D CP932 /dev/da0 /mnt/usb
+mount_msdosfs: Unable to load iconv library: libiconv.so:
+cannot open shared object file: No such file or directory
+: No such file or directory
+mount_msdosfs: msdosfs_iconv: No such file or directory
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{libiconv.soのビルド(1)}
+\begin{itemize}
+  \item Debianにはlibiconv.soという共有ライブラリは存在しない
+  \item iconv系関数はlibc0.1-devに一緒に混ぜ込んでビルドがかかっているので、libcライブラリに含まれている("nm -D"コマンドで確認できる)
+  \item とりあえず今回は自分でlibiconv.soをビルドすることにする
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{libiconv.soのビルド(2)}
+\begin{commandline}
+$ cd
+$ mkdir tmp
+$ wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.13.1.tar.gz
+$ tar zxvf libiconv-1.13.1.tar.gz
+$ cd libiconv-1.13.1
+$ ./configure
+$ make
+$ sudo make install
+$ ls /usr/local/lib
+charset.alias  libcharset.so        libiconv.la    libiconv.so.2.5.0
+libcharset.a   libcharset.so.1      libiconv.so    python2.6
+libcharset.la  libcharset.so.1.0.0  libiconv.so.2  site_ruby
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{もう一度やってみる}
+\begin{commandline}
+$ sudo mount_msdosfs -L ja_JP.UTF-8 -D CP932 /dev/da0 /mnt/usb
+\end{commandline}
+\begin{itemize}
+  \item コマンドの実行自体でエラーはでなかった。
+  \item 実際にマウント先を確認すると、日本語部分が?マークになっており、変換に失敗。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{失敗原因の追求}
+\begin{itemize}
+  \item FreeBSDのGENERICカーネルそのものがファイル名の文字コード変換処理でUTF-8文字を正しく処理できない。
+  \item FreeBSDではUTF-8を使いたい有志によってUTF-8を通すパッチ自体はある
+  \item でもDebian GNU/kFreeBSDはそのパッチは適用されていないためUTF-8は通らない
+  \item できればカーネルの自前ビルドはやりたくない
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{解決策の案}
+\begin{itemize}
+  \item FAT32領域に日本語ファイル名を使わない(ASCIIのみのため問題自体が起こらない)
+  \item localeを"ja\_JP.eucJP"で運用する。(ja\_JP.eucJPへの変換は動作する)
+  \item 一時的に"ja\_JP.eucJP"で起動してHDDにファイルをコピー後、convmvでファイル名をUTF-8に変換する。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{convmvを使ってみた(1)}
+\begin{commandline}
+$ vim .xinitrc
+# export LANGUAGE='ja_JP.UTF-8'
+# export LC_ALL='ja_JP.UTF-8'
+# export LANG='ja_JP.UTF-8'
+export LANGUAGE='ja_JP.eucJP'
+export LC_ALL='ja_JP.eucJP'
+export LANG='ja_JP.eucJP'
+$ startx
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{convmvを使ってみた(2)}
+\begin{commandline}
+$ sudo mount_msdosfs -L ja_JP.eucJP -D CP932 /dev/da0 /mnt/usb
+$ mkdir ~/usbtmp
+$ cd ~/usbtmp
+$ cp -r /mnt/usb/* ./
+$ convmv -r -f eucjp -t utf8 * --notest
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{convmvを使ってみた(3)}
+\begin{commandline}
+$ vim .xinitrc
+export LANGUAGE='ja_JP.UTF-8'
+xxport LC_ALL='ja_JP.UTF-8'
+export LANG='ja_JP.UTF-8'
+# export LANGUAGE='ja_JP.eucJP'
+# export LC_ALL='ja_JP.eucJP'
+# export LANG='ja_JP.eucJP'
+$ startx
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{結果}
+\begin{itemize}
+  \item "ja\_JP.UTF-8"環境でも回避策ではあるが、FAT32領域の日本語ファイル名を扱うことはできた
+  \item しかし、いつまでも回避策で対応するのは面倒
+  \item mount\_msdosfsでUTF-8への文字コード変換が動作するようになれば問題ない
+  \item 今後、カーネルにパッチを取り込んでビルドできるように試してみます
+\end{itemize}
+\end{frame}
+
+%-----end USB-memory-----------
+
+\begin{frame}[fragile]
+\frametitle{今後の課題}
+\begin{itemize}
+  \item iceweaselがよくフリーズする
+  \item Flashはgnashをinstallすると再生できていたのだけど、今はiceweasel自体がフリーズするので見れない
+  \item VAIO TZの液晶の明るさを変更できない
+  \item 無線LANが使えない
+  \item IS03でテザリングをできるようにしたい
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{終わりに}
+\begin{itemize}
+  \item まだまだ成長し続けるDebian GNU/kFreeBSD
+  \item みなさんのTips紹介をぜひぜひお待ちしております
+  \item オペレーティングシステムの開発をしてみたい方はぜひご参加を！
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{参考文献}
+\begin{itemize}
+\item \url{http://wiki.debian.org/Debian_GNU/kFreeBSD_FAQ}
+\item \url{http://wiki.freebsd.org/ZFSTuningGuide}
+\end{itemize}
+\end{frame}
+
+\end{document}
+%%% Local Variables:
+%%% mode: japanese-latex
+%%% TeX-master: t
+%%% End:
