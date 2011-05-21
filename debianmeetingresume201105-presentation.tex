@@ -127,7 +127,340 @@ Debian の常識、もちろん知ってますよね?
 
 \emtext{Apache2 のモジュールをつくってみた}
 \emtext{Debian on NiftyCloud}
+
 \emtext{Debian/m68k 開発}
+
+\section{aaaa}
+
+\begin{frame}{m68k とは？}
+\begin{minipage}{0.5\hsize}
+
+\begin{itemize}
+\item Motorola 680x0/m68000/68000 の事。省略してm68k。
+\item 32bit で CISC。エンディアンはビッグ。
+\item 今はフリースケール・セミコンダクタによって開発および販売。
+\item Debian に最初にポーティング(hamm)され、最初に脱落した(etch)アーキテクチャ。
+\end{itemize}
+\end{minipage}
+\begin{minipage}{0.4\hsize}
+  \begin{tabular}{|c|c|}
+ \hline
+ メーカ & ハードウェア \\
+ \hline
+   Apple & Macintosh SE \\
+   シャープ & X68000 \\
+   Palm  & Palm Pilot \\ 
+   ATARI & Atari Falcon \\
+   HP & HP 9000 Series 200 \\
+   SUN & Sun-1 \\
+   DEC & VAXstation 100 \\
+   SGI & RIS 1000 \\
+   SEGA & メガドライブ \\
+   SNK & ネオジオ \\
+ \hline
+ \end{tabular}
+\end{minipage}
+\end{frame}
+
+\begin{frame}{Debian/m68k の現状}
+\begin{minipage}{0.7\hsize}
+\begin{itemize}
+\item etch から脱落した後、Thorsten Glaser氏が拾い上げdebian-ports.org上で開発継続中。
+\item ハードウェア（ATARI社のAmigaなど）は入手が難しくなっているので主に
+      エミュレータを使っている。
+\item Debian のbootstrapが行える程度のパッケージはメンテナンスされている。
+\item ちなみに、Debianに再度取り込むことは目標にしていない。Linux/m68kの
+      開発ベースとして生きるみたい。
+\item 開発議論はML（\url{http://lists.debian.org/debian-68k/}）と
+IRC（debian-68k@oftc）で行われている。
+\end{itemize}
+\end{minipage}
+\begin{minipage}{0.2\hsize}
+\includegraphics[width=0.9\hsize]{image201105/dranym.png}
+\end{minipage}
+\end{frame}
+
+\begin{frame}{なぜm68kに手を出してしまったのか}
+\begin{itemize}
+\item Ruby1.9.1 パッケージのバグ \#611691 （m68k がFTBFS）を見つけた。
+\item Ruby コミッタになったのでなんかできないかなぁと。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{開発環境設定方法}
+
+\begin{itemize}
+\item 実機での開発は行われておらず、エミュレータを使って開発。
+\item qemu の 68k は不具合が多いので、Debian では ARAnyM という 68k エミュ
+      レータを使って開発。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{ARAnyM とは}
+
+\begin{minipage}{0.6\hsize}
+\begin{itemize}
+\item ARAnyMはAtari Running on Any Machineの略。
+\item 68040 + MMU + FPU(68882) を実装したエミュレータ。
+\item グラフィックス、ディスクドライブ、CDROM、ネットワークのサポート。
+\item OpenGLを使った高速なグラフィックと4GB のメモリを扱える。
+\end{itemize}
+\end{minipage}
+\begin{minipage}{0.3\hsize}
+\includegraphics[width=0.9\hsize]{image201105/aranym.jpg}
+\end{minipage}
+\end{frame}
+
+\begin{frame}[containsverbatim]{ARAnyM のインストール}
+
+\begin{commandline}
+$ sudo apt-get install aranym p7zip 
+\end{commandline}
+
+\end{frame}
+
+\section{ホスト側の設定}
+
+\begin{frame}[containsverbatim]{カーネルとユーザランドイメージのダウンロード}
+
+Debian m68k の開発に必要なカーネル、ユーザランドイメージのダウンロードし
+ます。
+\begin{commandline}
+$ wget http://debian.nctu.edu.tw/debian-ports/pool-m68k/main \ 
+    /l/linux-2.6/linux-image-2.6.38-2-atari_2.6.38-5_m68k.deb
+$ ar -x linux-image-2.6.38-2-atari_2.6.38-5_m68k.deb
+$ tar -xzf data.tar.gz
+$ ls boot/vmlinuz-2.6.38-2-atari
+-rw-r--r-- 1 iwamatsu iwamatsu 1767311 2011-05-12 00:48 boot/vmlinuz-2.6.38-2-atari
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]
+build-essentail がインストールされたイメージが既にある。
+
+\begin{commandline}
+$ wget http://people.debian.org/~smarenka/aranym/sid/disk.tar.7z
+$ 7zr x -so disk.tar.7z | tar xvf -
+$ ls -l disk.img 
+-rw-r--r-- 1 iwamatsu iwamatsu 10737377280 2011-05-18 00:37 disk.img
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ネットワーク構成}
+
+\begin{center}
+\includegraphics[width=0.8\hsize]{image201105/m68k-aranym-network.eps}
+\end{center}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{uml-utilitiesパッケージのインストール}
+
+ARAnyM では tun を使うので uml-utilities パッケージをインストールする。
+\begin{commandline}
+$ sudo apt-get install uml-utilities
+\end{commandline}
+%$
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{uml-netグループへの追加}
+
+tunおよびARAnyMを使うユーザをuml-netに追加する。
+\begin{commandline}
+$ sudo gpasswd -a iwamatsu uml-net
+\end{commandline}
+%$
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ネットワークの設定}
+
+ホスト側の ネットワークを以下のように設定する。
+\begin{commandline}
+$ cat /etc/network/interfaces
+auto tap0
+iface tap0 inet static
+address 192.168.2.1
+pointopoint 192.168.2.2
+netmask 255.255.255.255
+tunctl_user iwamatsu
+up iptables -t nat -A POSTROUTING -s 192.168.2.2 -j MASQUERADE
+down iptables -t nat -D POSTROUTING -s 192.168.2.2 -j MASQUERADE
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{フォワーディングを有効}
+
+フォワーディングを有効にして、tap0 ネットワークデバイスを上げる。
+\begin{commandline}
+$ sudo sh -c 'echo 1 > /proc/sys/net/ipv4/ip_forward'
+$ sudo ifup tap0
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Aranym の設定}
+
+\begin{commandline}
+$ cat aranym.config
+[GLOBAL]
+FastRAM = 768 # メモリサイズ。単位はMB。
+Floppy = 
+TOS = 
+EmuTOS = 
+AutoGrabMouse = No
+GMTime = Yes 
+
+[LILO]
+# Linux カーネルイメージ
+Kernel = vmlinuz-2.6.38-2-atari 
+# these Args for normal X operation
+# カーネルコマンドライン
+Args = root=/dev/hda1 console=tty debug=par
+
+# these Args for headless
+#Args = root=/dev/hda1 console=nfcon
+
+# ネットワーク設定
+[ETH0]
+Type = bridge
+Tunnel = tap0
+# エミュレータで使う仮想ネットワークデバイスのMacアドレス 
+Mac = XX:XX:XX:XX:XX:XX
+
+[STARTUP]
+GrabMouse = No
+Debugger = No
+
+[IDE0]
+Present = Yes 
+IsCDROM = No
+ByteSwap = No
+ReadOnly = No
+# ディスクイメージ
+Path = disk.img
+Cylinders = 20805
+Heads = 16
+SectorsPerTrack = 63
+ModelName = Master
+
+[VIDEO]
+FullScreen = No
+BootColorDepth = 8 
+VidelRefresh = 1
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Aranym の起動}
+
+\begin{commandline}
+$ aranym-mmu -l -c aranym.config
+\end{commandline}
+
+uname と /proc/cpuinfo:
+\begin{commandline}
+$ uname -a 
+Linux aranym 2.6.38-2-atari #1 Mon May 9 16:39:31 UTC
+ 2011 m68k GNU/Linux
+$ cat /proc/cpuinfo 
+ CPU:68040
+ MMU:68040
+ FPU:68040
+ Clocking:73.5MHz
+ BogoMips:49.04
+ Calibration:245248 loops
+\end{commandline}
+
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ターゲットでの設定}
+
+\begin{itemize}
+\item Debian OS が立ち上がったら、root ユーザでログイン（パスワードは無し）し、
+ネットワーク設定を行う。
+\item 起動時に ARAnyM の仮想ネットワークデバイス（nfeth:nat-feature) を
+eth0 として認識する。
+\item 認識されている場合には、ARAnyM で設定したMACアドレスが eth0 が認識されている。
+
+\begin{commandline}
+# dmesg  | grep eth0
+eth0: nfeth addr:192.168.0.1 (192.168.0.2) HWaddr:XX:XX:XX:XX:XX:XX
+\end{commandline}
+
+\item もしホスト側の設定が間違っている場合、eth0 が存在しない状態になる。
+このような場合には、ホスト側の設定を見直す。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+
+eth0 が認識されているのなら、/etc/network/interfaces と /etc/resolv.conf
+を以下のように変更する。
+
+\begin{commandline}
+# cat /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+address 192.168.2.2
+netmask 255.255.255.0
+gateway 192.168.2.1
+# cat /etc/resolv.conf
+nameserver 192.168.3.1
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ネットワークのチェックと確認}
+
+\begin{commandline}
+# ifup lo
+# ifup eth0
+# ping 192.168.2.1 # gateway へのチェック
+# ping 192.168.3.1 # DNS へのチェック
+# apt-get update   # apt-get update
+# apt-get install debian-ports-archive-keyring
+# apt-get update
+# apt-get dist-upgrade
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{その他開発環境}
+
+エミュレータを使って開発できるのはすごく良いことなのですが、エミュレータ
+だけでは遅いのでクロスツールチェインが欲しくなります。
+Debian でのクロスtoolchainは emdebian プロジェクトが提供しています
+が、m68k のものは提供されていません。
+しかし、amd64 バイナリは Thorsten Glaser 氏が
+以下のapt-line で提供しています。
+
+\begin{commandline}
+deb http://www.freewrt.org/~tg/debs68k/ cross main
+\end{commandline}
+
+\end{frame}
+
+
+\begin{frame}{RubyのFTBFSバグはどうなったのか？}
+
+Debian/m68k の開発環境は構築できましたが、Rubyのバグはどうなったのかとい
+うと、\url{http://redmine.ruby-lang.org/issues/4745}としてバグレポート
+し、r31646でコミットしておきました。
+
+\end{frame}
+
+
 \emtext{月刊PPC64ポーティング}
 
 \begin{frame}{今後のイベント}
@@ -143,7 +476,7 @@ Debian の常識、もちろん知ってますよね?
 
 \begin{frame}{今日の宴会場所}
 
-神保町周辺。
+新宿のどこか。
 
 \end{frame}
 

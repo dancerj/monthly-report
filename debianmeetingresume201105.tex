@@ -355,7 +355,7 @@ Atari のハードウェアがサポートしていたCPUをサポートしています。
 あります。
 
 \subsubsection{ホスト側の設定}
-まず、aranymをインストールします。Debian パッケージになっているのでaptで
+まず、ARAnyMをインストールします。Debian パッケージになっているのでaptで
 簡単にインストールできます。また、後で必要になるパッケージもインストール
 しておきます。
 
@@ -397,17 +397,17 @@ $ ls -l disk.img
 \begin{center}
 \includegraphics[width=0.5\hsize]{image201105/m68k-aranym-network.eps}
 \end{center}
-\caption{aranymのネットワーク構成図}
+\caption{ARAnyMのネットワーク構成図}
 \label{fig:m68k-aranym-network}
 \end{figure}
 
-aranym では tun を使うので uml-utilities パッケージをインストールします。
+今回のARAnyM 環境では tun を使うので uml-utilities パッケージをインストールします。
 \begin{commandline}
 $ sudo apt-get install uml-utilities
 \end{commandline}
 %$
 
-そして、tunおよびaranymを使うユーザをuml-netに追加します。
+そして、tunおよびARAnyMを使うユーザをuml-netに追加します。
 \begin{commandline}
 $ sudo gpasswd -a iwamatsu uml-net
 \end{commandline}
@@ -432,8 +432,8 @@ $ sudo sh -c 'echo 1 > /proc/sys/net/ipv4/ip_forward'
 $ sudo ifup tap0
 \end{commandline}
 
-次に aranym の設定を行います。
-aranym は 特に指定しない場合には {}\~{}/.aranym/config を読み込みます。
+次に ARAnyM の設定を行います。
+ARAnyM は 特に指定しない場合には {}\~{}/.aranym/config を読み込みます。
 \begin{commandline}
 $ cat aranym.config
 [GLOBAL]
@@ -483,18 +483,31 @@ BootColorDepth = 8
 VidelRefresh = 1
 \end{commandline}
 
-以上で設定は終わりなので、aranym を使って、Debian OSを立ち上げます。
+以上で設定は終わりなので、ARAnyM を使って、Debian OSを立ち上げます。
 
 \begin{commandline}
-$ aranym -l -c aranym.config
+$ aranym-mmu -l -c aranym.config
+\end{commandline}
+
+\begin{commandline}
+$ uname -a 
+Linux aranym 2.6.38-2-atari #1 Mon May 9 16:39:31 UTC
+ 2011 m68k GNU/Linux
+$ cat /proc/cpuinfo 
+ CPU:68040
+ MMU:68040
+ FPU:68040
+ Clocking:73.5MHz
+ BogoMips:49.04
+ Calibration:245248 loops
 \end{commandline}
 
 \subsubsection{ターゲットでの設定}
 
 Debian OS が立ち上がったら、root ユーザでログイン（パスワードは無し）し、
 ネットワーク設定を行います。
-起動時に aranym の仮想ネットワークデバイス（nfeth:nat-feature) を
-eth0 として認識します。認識されている場合には、aranym の設定した
+起動時に ARAnyM の仮想ネットワークデバイス（nfeth:nat-feature) を
+eth0 として認識します。認識されている場合にはARAnyM の設定した
 MACアドレスで eth0 が認識されています。
 
 \begin{commandline}
@@ -541,7 +554,7 @@ nameserver 192.168.3.1
 だけでは遅いのでクロスツールチェインが欲しくなります。
 Debian でのクロスtoolchainは emdebian プロジェクトが提供しています
 が、m68k のものは提供されていません。
-amd64 用のバイナリは Thorsten Glaser 氏が
+しかし、amd64 バイナリは Thorsten Glaser 氏が
 以下のapt-line で提供しています。
 
 \begin{commandline}
@@ -551,8 +564,8 @@ deb http://www.freewrt.org/~tg/debs68k/ cross main
 \subsection{RubyのFTBFSバグはどうなったのか？}
 
 Debian/m68k の開発環境は構築できましたが、Rubyのバグはどうなったのかとい
-うと、\url{'http://redmine.ruby-lang.org/issues/4745}としてバグレポート
-し、コミットしておきました。
+うと、\url{http://redmine.ruby-lang.org/issues/4745}としてバグレポート
+し、r31646でコミットしておきました。
 
 %\subsection{まとめ}
 %Debian/m68k はまだ死んでいません。Amiga の入手は難しいですが、Coldfire
