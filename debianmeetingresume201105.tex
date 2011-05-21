@@ -146,14 +146,16 @@
 
 Apache httpd というウェブサーバがあります。おそらく定番と言われるウェブ
 サーバで、多くの人が利用していると思います。ウェブサーバとして多くの機能
-を提供しているApacheですが、モジュールという仕組みで機能拡張出きるように
-なっています。
-今回はApacheモジュールを作ってみることにします。
+を提供しているApacheですが、モジュールという仕組みで機能拡張可能です。
+今回はDebian上でApacheモジュールを作る方法をさぐってみることにします。
 
 \subsection{Apacheモジュールをつくりたいとき}
 
-Apacheモジュールが作りたいときはどういうときでしょうか。
-作りたいと思ったときがつくりどき。
+Apacheモジュールが作りたいときはどういうときでしょうか。作りたいと思った
+ときがつくりどき。cgiでfork する手間が惜しい、インタプリタ言語でインタプ
+リタが走っている時間がもったいない、GCのある言語でときどき反応が悪くなる
+のが気にくわない。いろんな理由があるとおもいますが、C言語でがりがりとウェ
+ブリクエストを処理したいとかそういう要望があるのではないでしょうか。
 
 Apacheモジュールでできることはどういうことでしょうか。Apacheの受け取る入
 力(HTTP Request)から出力(HTTP Response)のほぼ任意の場所にフックとして割り
@@ -245,23 +247,89 @@ $ sudo apxs2 -c -i mod_dancerqps.c
 
 \subsubsection{モジュールを有効にする}
 
-apxs2 コマンドでモジュールを有効にする方法は a2enmodなどのコマンドの存在
-を無視しているようなのでa2enmodなどと整合性のとれるような方法をとります。
+apxs2 コマンドでモジュールを有効にする方法は Debian独自のa2enmodなどのコマンドの存在
+を無視しているようなのでa2enmodなどと整合性のとれるような方法をとるのが
+よいでしょう。
+で、それではDebian的な方法とはなんでしょうか。
 
 \subsubsubsection{Debian way 1}
 
 めんどくさい方法だけどシステム運用者としては便利かもしれない方法。
-a2enmodとかができるよ。
+a2enmodとかができます。
+
+/etc/apache2/mods-available に hoge.conf, hoge.load ファイルを作成します。
+hoge.conf は設定が不要なら不要ですが、httpd.confに書くような内容を記述し
+ます。
+hoge.load には LoadModule行を記述します。
+
+この方法でファイルを作成しておけば、/etc/apache2/mods-enabledディレクト
+リにシンボリックリンクが作成されます。
 
 \subsubsubsection{Debian way 2}
 
-デフォルトでは空のファイルだけど、/etc/apache2/httpd.conf に書き込むとその設定が有効になるよ。
+デフォルトでは空のファイルだけど、/etc/apache2/httpd.conf に書き込むとそ
+の設定が有効になります。
+
+\begin{commandline}
+LoadModule test_module /usr/lib/apache2/modules/mod_test.so
+<Location "/hoge/">
+   SetHandler test
+</Location>
+\end{commandline}
 
 \subsubsubsection{Debian的な方法から乖離しているっぽい方法}
 
 apache をコマンドラインから設定ファイルを指定して起動することができます。
 DebianのApacheは環境変数を設定しないと直接は起動できなくなっているので、
 面倒な手続きが必要になります。
+
+まず、適当にテスト用のhttp.confをでっち上げます。
+
+\begin{commandline}
+Listen 8080
+
+LockFile /home/test/tmp/apache.1.lock
+PidFile /home/test/tmp/apache.1.pid
+
+# log configuration.
+LogFormat "%h %l %u %t \"%r\" %>s %b" common
+CustomLog "/home/test/log/access_log" common
+ErrorLog "/home/test/log/error_log"
+
+# Order, Allow.
+LoadModule authz_host_module /usr/lib/apache2/modules/mod_authz_host.so
+# map from / -> /index.html
+LoadModule dir_module /usr/lib/apache2/modules/mod_dir.so
+DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm
+# .html -> content-type: text/html
+LoadModule mime_module /usr/lib/apache2/modules/mod_mime.so
+TypesConfig /etc/mime.types
+
+# Document root
+DocumentRoot "/home/test/hoge"
+<Directory "/home/test/hoge">
+    Options Indexes FollowSymLinks
+
+    AllowOverride None
+
+    Order allow,deny
+    Allow from all
+
+</Directory>
+
+# Load my custom filter.
+LoadModule dancerqps_module /usr/lib/apache2/modules/mod_dancerqps.so
+SetOutputFilter DANCERQPS
+\end{commandline}
+
+\begin{commandline}
+APACHE_RUN_USER=dancer APACHE_RUN_GROUP=dancer /usr/sbin/apache2 -f $(readlink -f ./httpd.conf) -k restart 
+\end{commandline}
+
+\subsubsection{まとめ}
+
+はじめてApacheモジュールを作成して、インストールして動かすところまでやっ
+てみました。
 
 
 \begin{thebibliography}{}
