@@ -128,6 +128,151 @@ Debian の常識、もちろん知ってますよね?
 }
 
 \emtext{Apache2 のモジュールをつくってみた}
+
+\begin{frame}{Apache2 モジュール入門}
+\begin{itemize}
+ \item apache httpd で動くモジュール
+ \item C言語で実装
+ \item Debianの流儀
+\end{itemize} 
+\end{frame}
+
+\begin{frame}[containsverbatim]{apxs2: テンプレ作成}
+\begin{commandline}
+$ apxs2 -g -n dancerqps
+$ cd dancerqps
+$ ls 
+$ ls
+Makefile  mod_dancerqps.c  modules.mk
+\end{commandline}
+\end{frame}
+
+\begin{frame}{コードを書く}
+ 
+適当にフックを記述
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{apxs: インストール}
+
+コンパイルしてインストール
+ \begin{commandline}
+ $ sudo apxs2 -c -i mod_dancerqps.c
+ \end{commandline}
+\end{frame}
+
+\begin{frame}{実行}
+ 三種類方法があります。
+\begin{itemize}
+ \item Debian way 1 a2enmod
+ \item Debian way 2 手動で設定
+ \item Apache を適当なhttpd.confで起動
+ \item Apache を自前でインストールしなおす　
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{適当なhttpd.conf}
+ \begin{commandline}
+Listen 8080
+
+LockFile /home/test/tmp/apache.1.lock
+PidFile /home/test/tmp/apache.1.pid
+
+# log configuration.
+LogFormat "%h %l %u %t \"%r\" %>s %b" common
+CustomLog "/home/test/log/access_log" common
+ErrorLog "/home/test/log/error_log"
+
+# Order, Allow.
+LoadModule authz_host_module /usr/lib/apache2/modules/mod_authz_host.so
+# map from / -> /index.html
+LoadModule dir_module /usr/lib/apache2/modules/mod_dir.so
+DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm
+# .html -> content-type: text/html
+LoadModule mime_module /usr/lib/apache2/modules/mod_mime.so
+TypesConfig /etc/mime.types
+
+# Document root
+DocumentRoot "/home/test/hoge"
+<Directory "/home/test/hoge">
+    Options Indexes FollowSymLinks
+
+    AllowOverride None
+
+    Order allow,deny
+    Allow from all
+
+</Directory>
+
+# Load my custom filter.
+LoadModule dancerqps_module /usr/lib/apache2/modules/mod_dancerqps.so
+SetOutputFilter DANCERQPS
+ \end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apache 実行}
+\begin{commandline}
+APACHE_RUN_USER=dancer　\
+ APACHE_RUN_GROUP=dancer \
+ /usr/sbin/apache2 -f $(readlink -f ./httpd.conf) -k restart 
+\end{commandline} 
+\end{frame}
+
+\begin{frame}[containsverbatim]{apachebench 使ってみる}
+ \begin{commandline}
+$ /usr/sbin/ab -c 100 -n 100 http://localhost:8080/
+ \end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{apache 実行}
+\begin{commandline}
+$ /usr/sbin/ab -c 100 -n 100 http://localhost:8080/ 
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient).....done
+
+
+Server Software:        Apache/2.2.9
+Server Hostname:        localhost
+Server Port:            8080
+
+Document Path:          /
+Document Length:        44 bytes
+
+Concurrency Level:      100
+Time taken for tests:   0.056 seconds
+Complete requests:      100
+Failed requests:        0
+Write errors:           0
+Total transferred:      29600 bytes
+HTML transferred:       4400 bytes
+Requests per second:    1796.17 [#/sec] (mean)
+Time per request:       55.674 [ms] (mean)
+Time per request:       0.557 [ms] (mean, across all concurrent requests)
+Transfer rate:          519.21 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        7    9   0.5      9      10
+Processing:     9   26   8.9     27      40
+Waiting:        6   26   9.3     27      40
+Total:         16   36   8.9     37      49
+
+Percentage of the requests served within a certain time (ms)
+  50%     37
+  66%     41
+  75%     43
+  80%     45
+  90%     47
+  95%     48
+  98%     49
+  99%     49
+ 100%     49 (longest request)
+\end{commandline} 
+\end{frame}
+
 \emtext{Debian on NiftyCloud}
 
 \emtext{Debian/m68k 開発}

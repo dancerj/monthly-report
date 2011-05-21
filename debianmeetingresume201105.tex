@@ -175,16 +175,25 @@ Debian パッケージのREADME.Debian を見てみましょう。
  \item  apache2ctl / /etc/init.d/apache2 を利用しないと起動とかできない。
  \item  設定ファイルの配置が全然違う。
  \item  a2enmod / a2dismod コマンドが追加されている。
+ \item  apxs コマンドが apxs2 という名前になっている。
 \end{itemize}
 
 \subsection{Apacheモジュールの作成}
 
 普通のApacheモジュールの作成の流れをみてみましょう。
 
+\subsubsection{パッケージの準備}
+
+とりあえず開発環境をインストールしましょう。
+\begin{commandline}
+# apt-get install apache2-threaded-dev
+\end{commandline}
+
 \subsubsection{テンプレート生成}
 
 apxs2 コマンドを利用してテンプレートを作成します。
 モジュール名でディレクトリが作成されます。
+\index{apxs2}
 
 \begin{commandline}
 $ apxs2 -g -n dancerqps
@@ -322,8 +331,66 @@ LoadModule dancerqps_module /usr/lib/apache2/modules/mod_dancerqps.so
 SetOutputFilter DANCERQPS
 \end{commandline}
 
+適当な設定ファイルを指定してApacheを起動してみます。
+
 \begin{commandline}
-APACHE_RUN_USER=dancer APACHE_RUN_GROUP=dancer /usr/sbin/apache2 -f $(readlink -f ./httpd.conf) -k restart 
+APACHE_RUN_USER=dancer　\
+ APACHE_RUN_GROUP=dancer \
+ /usr/sbin/apache2 -f $(readlink -f ./httpd.conf) -k restart 
+\end{commandline}
+% $
+
+\subsubsection{負荷テスト}
+\index{ab}
+
+ab (apachebench) ツールが標準で入っているのでそれで計測します。適当に確
+認しましょう。
+
+\begin{commandline}
+$ /usr/sbin/ab -c 100 -n 100 http://localhost:8080/ 
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking localhost (be patient).....done
+
+
+Server Software:        Apache/2.2.9
+Server Hostname:        localhost
+Server Port:            8080
+
+Document Path:          /
+Document Length:        44 bytes
+
+Concurrency Level:      100
+Time taken for tests:   0.056 seconds
+Complete requests:      100
+Failed requests:        0
+Write errors:           0
+Total transferred:      29600 bytes
+HTML transferred:       4400 bytes
+Requests per second:    1796.17 [#/sec] (mean)
+Time per request:       55.674 [ms] (mean)
+Time per request:       0.557 [ms] (mean, across all concurrent requests)
+Transfer rate:          519.21 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        7    9   0.5      9      10
+Processing:     9   26   8.9     27      40
+Waiting:        6   26   9.3     27      40
+Total:         16   36   8.9     37      49
+
+Percentage of the requests served within a certain time (ms)
+  50%     37
+  66%     41
+  75%     43
+  80%     45
+  90%     47
+  95%     48
+  98%     49
+  99%     49
+ 100%     49 (longest request)
 \end{commandline}
 
 \subsubsection{まとめ}
