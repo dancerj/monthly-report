@@ -140,9 +140,106 @@
 \end{multicols}
 
 %-------------------------------------------------------------------------------
-\dancersection{XXXX}{上川純一}
+\dancersection{Debian JP 定例会議処理系にXSLTを使ってみた}{上川純一}
 %-------------------------------------------------------------------------------
-\index{hoge}
+\index{xsltproc}
+
+\subsection{背景}
+
+Debian勉強会の企画会議はIRCを中心として2006年に開始し、
+Debian JP の定例会議として今も続いています。
+当初は決定事項などについてテキストファイルでまとめるという形をとっていた
+のですが、IRCでより効率よく議論する方法を模索するなか、
+議論しながら議事録を編集するというスタイルで議論をとるためのツールを整備
+しました。
+
+議事録のソースは議長がXMLで記述して、議論の最中は非同期にJavascriptで内
+容が更新されるHTMLファイルを利用します(世間一般ではAJAX的とでもよぶよう
+です)。
+
+IRCでの定例会議の議論の前と後には議事案と議事録をメーリングリストにおくっ
+ています。メーリングリストにメールでなげる際には、テキストフォーマットに
+して送っています。
+
+あと、現在用途がないですが、\LaTeX 経由でPDF形式での出力などもサポートし
+ています。
+
+現在の実装は歴史的な経緯によりXMLの処理系は dancer-xml ライブラリと
+boostを利用したC++のプログラムになっています。
+dancer-xml\cite{dancer-xml} は10年前に若気のいたりで実装したXML風文書のパー
+サーです。一部エンティティーまわりなど真面目に実装していない部分があるた
+め、適切な処理がなされていないことがありますが、僕の好みに空白文字処理は
+チューニングされており快適です。
+
+今回の挑戦は、独自C++コードベースをXSLTにのせ替えてみるという挑戦です。
+
+\subsection{XSLTってどんな言語?}
+
+XSLTはXMLで記述するXML処理言語です。
+
+XSLT企画には1999年に策定されたXSLT 1.0 と、2007年ごろのXSLT 2.0がありま
+す。今回は実装が十分かれているとおもわれる XSLT 1.0 の処理系を採用しまし
+た。
+
+プログラムを書くときにすべき文書としては、XSLT自体の1999年に策定された規
+格\cite{xslt1999}と、XSLTの中で記述できるXPATHの規格\cite{xpath1999}を参
+照するとよいでしょう。
+
+XSLTだけではあまり高度なプログラミングはできないんじゃないかと思われるか
+もしれませんが、関数型言語として十分な機能を提供できる力はあるようです
+\cite{fxslt2003}。
+
+\subsection{Debian で利用可能な XSLT処理系}
+
+Debianで幅広く使われていて安定しているとおもわれるのと、簡単に利用できる
+という理由でxsltproc という処理系を採用しました。
+
+Debian での xsltproc のインストールは簡単
+\begin{commandline}
+$ apt-get install xsltproc
+\end{commandline}
+%$
+
+コマンドラインで以下のように実行すると標準出力に処理済みXMLが出力されます。
+
+\begin{commandline}
+$ xsltproc [スタイルシート] [処理するXMLファイル]
+\end{commandline}
+%$
+
+\subsection{具体例:HTML}
+
+それでは、HTML出力の場合を見てみましょう。
+\url{meetinglog:html.xsl}です。
+
+\subsection{具体例:Text出力}
+
+Text出力の場合もみてみましょう。
+\url{meetinglog:txt.xsl}
+
+\subsection{具体例:\LaTeX}
+
+\LaTeX 出力をみてみましょう。
+\url{meetinglog:latex.xsl}
+
+\subsection{結論}
+
+XSLTを使うことでメンテナンスする行数は少なくなります。
+提供されている機能が少ないため、その中で実現できないものについては難しい
+判断を迫られます。
+
+\begin{thebibliography}{0}
+ \bibitem{fxslt2003} Dimitre Novatchev, ``Functional programming in XSLT
+	 using the FXSL library,'' Extreme Markup Languages 2003.
+ \bibitem{xslt1999} James Clark, ``XSL Transformations (XSLT)
+	 Version 1.0,'' W3C Recommendation 16 November 1999.
+ \bibitem{xpath1999} James Clark, Steve DeRose, ``XML Path Language
+	 (XPath) Version 1.0,'' W3C Recommendation 16 November 1999.
+ \bibitem{dancer-xml} Junichi Uekawa, ``dancer-xml - Simple
+	 non-comformant XML parsing library,'' 2000.
+	 \url{http://www.netfort.gr.jp/~dancer/software/dancer-xml.html}
+\end{thebibliography}
+
 
 %-------------------------------------------------------------------------------
 \dancersection{XXXX}{上川純一}
