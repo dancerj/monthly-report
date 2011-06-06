@@ -211,22 +211,182 @@ $ xsltproc [スタイルシート] [処理するXMLファイル]
 
 それでは、HTML出力の場合を見てみましょう。
 \url{meetinglog:html.xsl}です。
+XML文書からHTML文書を生成するにはそれなりに便利な言語です。
+
+前半のコードをそのまま掲載します。
+これは、XMLドキュメント全体にマッチするルールを記述しはじめるまでの部分
+です。
+XML名前空間として、デフォルトをHTML、xslをxsltの名前空間に割り当てていま
+す。
+
+xml:output で出力形式をHTMLと指定することでXMLヘッダが出力されずに便利で
+す。
+
+\begin{commandline}
+<?xml version="1.0"?>
+<!DOCTYPE xsl:stylesheet>
+<xsl:stylesheet version="1.0"
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  xmlns="http://www.w3.org/1999/xhtml">
+  <xsl:output method="html" />
+  <xsl:template match="/">
+    <html>
+      <head>
+\end{commandline}
+
+他にXSLTの特徴的なところは、value-of　で値をとってきています。XPATH
+の書式で指定していますが、
+\begin{commandline}
+	<h1><xsl:value-of select="meetinglog/head/title"/></h1>
+\end{commandline}
+
+は、XML文書の以下のようなエレメントに入っている値を抽出します。
+\begin{commandline}
+ <meetinglog>
+   <head>
+     <title>タイトル</title>
+   </head>
+ </meetinglog> 
+\end{commandline}
+
+議事録の場合のメインループは、各議事に対しての処理です。
+xslのxsl:for-eachをつかい、XMLのエレメントノードの数だけループします。
+HTMLタグはそのまま出力されますが、もしHTMLのアトリビュートなどをXSLTで生
+成したい場合は、xsl:element を使ってエレメントを生成します。
+
+position()関数は現在のエレメント番号をくれるのでこういう場合に便利です。
+
+\begin{commandline}
+           <xsl:for-each select="meetinglog/body">
+	      <tr>
+		<th>
+		  <xsl:element name="a">
+		    <xsl:attribute name="href">#gian<xsl:value-of select="position()" /></xsl:attribute>
+		  </xsl:element>
+		  議案<xsl:value-of select="position()" />
+		</th>
+		<td class="bodytitle">
+		  <xsl:value-of select="./title" />
+		</td>
+ ....
+ </xsl:for-each> 
+\end{commandline}
 
 \subsection{具体例:Text出力}
 
 Text出力の場合もみてみましょう。
 \url{meetinglog:txt.xsl}
+テキスト出力をしようとしはじめると若干苦しくなってきます。できないわけで
+はないのですが、空白文字の処理のルールを僕がいまいち理解できていないのと、
+コードがそのままテンプレートとして出力されるのでインデンテーションが適切
+にできないのがつらいところです。
+
+xsl:output で出力がテキスト形式であると指定するとXMLヘッダが出力されず便
+利です。
+
+ヘッダ部分で、毎回 xsl:text で改行などを入力するのが面倒なので、ENTITY を
+定義して省略できるようにしています。この記法が正しいのかどうかは不明です。
+
+\begin{commandline}
+<?xml version="1.0"?>
+<!DOCTYPE xsl:stylesheet [
+<!ENTITY space  "<xsl:text xmlns:xsl='http://www.w3.org/1999/XSL/Transform'> </xsl:text>">
+<!ENTITY indent "<xsl:text xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>  </xsl:text>">
+<!ENTITY cr     "<xsl:text xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+</xsl:text>">]>
+  <xsl:stylesheet version="1.0"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns="http://www.w3.org/1999/xhtml">
+  <xsl:output method="text" />
+  <xsl:template match="/">
+    <xsl:text>-----------------------------------------------------------------------
+概要
+-----------------------------------------------------------------------
+\end{commandline}
+
+本文のコアとなる本文の内容ですが、読めたものではないです。
+悩んだところとしては、文章が空白かどうかチェックするのに
+string-length(normalize-space())をつかっていて、それがいまいちただしいの
+かどうか自信がないところ。
+
+\begin{commandline}
+    <xsl:for-each select="meetinglog/body">
+-----------------------------------------------------------------------
+[<xsl:value-of select="position()" />.&space;<xsl:value-of select="./title" />]
+-----------------------------------------------------------------------
+
+目的: &cr;<xsl:value-of select="./aim" />&cr;
+&cr;<xsl:if
+ test="string-length(normalize-space(./previous))>1"
+ >前回までの経緯:&cr;<xsl:value-of select="./previous"
+ disable-output-escaping="yes" />&cr;&cr;</xsl:if>
+<xsl:if test="string-length(normalize-space(./discussed))>1"
+ >議論:&cr;<xsl:value-of select="./discussed"
+ disable-output-escaping="yes" />&cr;&cr;&cr;
+</xsl:if>
+</xsl:for-each>
+\end{commandline}
+
+残念ながらC++で実装していた文字をメールの70文字幅くらいにきれいにまとめ
+るというロジックが欠落しています。めんどくさすぎる。
 
 \subsection{具体例:\LaTeX}
 
 \LaTeX 出力をみてみましょう。
 \url{meetinglog:latex.xsl}
 
+ヘッダ部分はどうぜ\LaTeX{}のヘッダなのと何度もでてきているのでメインループ
+だけ。
+\begin{commandline}
+    <xsl:for-each select="meetinglog/body">
+
+      \discussion{<xsl:value-of select="./title" />}{<xsl:value-of
+ select="./aim" />}{<xsl:value-of
+ select="translate(./previous,'#&amp;','--')"
+ disable-output-escaping="yes" />}{<xsl:value-of
+ select="translate(./discussed,'#&amp;','--')"
+ disable-output-escaping="yes" />}
+    </xsl:for-each>
+\end{commandline}
+
+僕はあまりよむきがおきません。
+
+実装できていない点として、\verb!#<>&!などの文字列をエスケープしないとい
+けないのだけど、全然処理できていないです。
+
+transform()関数があるんだけど、一文字を一文字に置換することしかできなく
+て、使えないのでいろいろと頑張ることになるらしい。
+
+\subsection{仮の定量的な比較}
+
+現状すべての機能をおきかえているわけではないので、妥当な比較ではないです
+が、C++の処理とXSLTのコードの比較をしてみると
+(\ref{tab:xsltcxximplementationdiff})、
+XSLTのほうが行数は少ないことがわかります。
+
+\begin{table}[ht]
+ \caption{lines of code for each implementation}
+ \label{tab:xsltcxximplementationdiff}
+\begin{center}
+  \begin{tabular}{|c|c|c|}
+ \hline
+ & c++ & xslt \\
+ \hline
+ txt & 151 & 53\\
+ html & 157 & 99 \\
+ latex(PDF) & 158 & 87 \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
 \subsection{結論}
 
-XSLTを使うことでメンテナンスする行数は少なくなります。
-提供されている機能が少ないため、その中で実現できないものについては難しい
-判断を迫られます。
+XSLTを使うことでメンテナンスする行数は少なくなります。しかし、XPATH /
+XSLT により提供されている機能が制限されているため、その中で実現できないも
+のについては難しい判断を迫られます。
+
+頑張れば制限は回避できるけどどこまで回避するか、悩ましいところです。
 
 \begin{thebibliography}{0}
  \bibitem{fxslt2003} Dimitre Novatchev, ``Functional programming in XSLT
