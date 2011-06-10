@@ -10,12 +10,12 @@ check: all
 publish: $(RELEASEFILES)
 	# this gives error when I am not the owner of the
 	# file, but fixes all files that I am the owner
-	-ssh alioth.debian.org chmod 664 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/*.pdf
+	-ssh alioth.debian.org chmod 664 :/home/groups/tokyodebian/htdocs/pdf/*.pdf
 
 %.release-stamp: %.pdf
 	# copy PDF file to a temporal location, and fixup permissions, and move to final destination.
-	scp $< alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<.tmp
-	ssh alioth.debian.org "chmod 664 /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<.tmp && mv /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<.tmp /var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/pdf/$<"
+	scp $< alioth.debian.org:/home/groups/tokyodebian/htdocs/pdf/$<.tmp
+	ssh alioth.debian.org "chmod 664 /home/groups/tokyodebian/htdocs/pdf/$<.tmp && mv /home/groups/tokyodebian/htdocs/pdf/$<.tmp /home/groups/tokyodebian/htdocs/pdf/$<"
 	touch $@
 
 %.pdf: %.dvi

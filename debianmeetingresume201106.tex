@@ -1,0 +1,425 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2011 Junichi Uekawa
+%     Copyright (C) 2011 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image201101; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2011}
+\newcommand{\debmtgmonth}{6}
+\newcommand{\debmtgdate}{18}
+% (+ (* (- 2011 2005) 12) 6 -1) started from zero
+\newcommand{\debmtgnumber}{77}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics[width=210mm]{image201003/debsen.eps}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集1: XXXX}}
+
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集2: YYYY}}
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\dancersection{Introduction}{上川 純一}
+
+\begin{multicols}{2}
+ 
+
+ 今月のDebian勉強会へようこそ。これからDebianの世界にあしを踏み入れると
+ いう方も、すでにどっぷりとつかっているという方も、月に一回Debianについ
+ て語りませんか？
+
+ Debian勉強会の目的は下記です。
+
+ \begin{itemize}
+ \item \underline{Debian Developer} (開発者)の育成。
+ \item 日本語での「\underline{開発に関する情報}」を整理してまとめ、アップデートする。
+ \item \underline{場}の提供。
+ \begin{itemize}
+  \item 普段ばらばらな場所にいる人々が face-to-face で出会える場を提供
+	する。
+  \item Debian のためになることを語る場を提供する。
+  \item Debianについて語る場を提供する。
+ \end{itemize}
+ \end{itemize}		
+
+ Debianの勉強会ということで究極的には参加者全員がDebian Packageをがりがり
+ と作るスーパーハッカーになった姿を妄想しています。情報の共有・活用を通し
+ て Debianの今後の能動的な展開への土台として、「場」としての空間を提供す
+ るのが目的です。
+
+\end{multicols}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{事前課題}{岩松 信洋}
+
+今回の事前課題は以下です:
+\begin{enumerate}
+ \item Debian使いとしてウェブサービスに期待することは何ですか？
+\end{enumerate}
+この課題に対して提出いただいた内容は以下です。
+\begin{multicols}{2}
+{\small
+% \input{image201106/prework.tex}
+}
+\end{multicols}
+
+\dancersection{最近のDebian関連のミーティング報告}{岩松 信洋}
+\subsection{東京エリアDebian勉強会76回目報告}
+
+% (query-replace-regexp "<.*?>" "")
+% (query-replace-regexp "^[	 ]\+" "")
+
+
+
+\dancersection{Debian Trivia Quiz}{岩松 信洋}
+
+ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
+題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
+りあいがないので、理解度のテストをします。特に一人だけでは意味がわからな
+いところもあるかも知れません。みんなで一緒に読んでみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.deban.org} や \url{debian-devel@lists.deban.org}に投稿された
+内容とDebian Project Newsからです。
+
+\begin{multicols}{2}
+% \input{image201106/quiz.tex}
+\end{multicols}
+
+%-------------------------------------------------------------------------------
+\dancersection{Debian JP 定例会議処理系にXSLTを使ってみた}{上川純一}
+%-------------------------------------------------------------------------------
+\index{xsltproc}
+
+\subsection{背景}
+
+Debian勉強会の企画会議はIRCを中心として2006年に開始し、Debian JP の定例会
+議として今も続いています。当初は決定事項などについてテキストファイルでま
+とめるという形をとっていました。IRCでより効率よく議論する方法を模索した結
+果、議論しながら議事録を編集するというスタイルが確立し、それを支援するた
+めのツールを整備しました。
+
+議事録のソースは議長がXMLで記述して、議論の最中は非同期にJavascriptで内
+容が更新されるHTMLファイルを利用します(世間一般ではAJAX的とでもよぶよう
+です)。
+
+IRCでの定例会議の議論の前と後には議事案と議事録をメーリングリストにおくっ
+ています。メーリングリストにメールでなげる際には、テキストフォーマットに
+して送っています。
+
+あと、現在用途がないですが、\LaTeX 経由でPDF形式での出力などもサポートし
+ています。
+
+現在の実装は歴史的な経緯によりXMLの処理系は dancer-xml ライブラリと
+boostを利用したC++のプログラムになっています。
+dancer-xml\cite{dancer-xml} は10年前に若気のいたりで実装したXML風文書のパー
+サーです。一部エンティティーまわりなど真面目に実装していない部分があるた
+め、適切な処理がなされていないことがありますが、僕の好みに空白文字処理は
+チューニングされており快適です。
+
+今回の挑戦は、独自C++コードベースをXSLTにのせ替えてみるという挑戦です。
+
+\subsection{XSLTってどんな言語?}
+
+XSLTはXMLで記述するXML処理言語です。
+
+XSLT企画には1999年に策定されたXSLT 1.0 と、2007年ごろのXSLT 2.0があります。
+今回は実装が十分枯れていると思われる XSLT 1.0 の処理系を採用しました。後
+で見たところDebianで利用できるxslt 2.0の実装としては libsaxonb-javaがある
+ようですが、今回は調査していません。
+
+プログラムを書くときにすべき文書としては、XSLT自体の1999年に策定された規
+格\cite{xslt1999}と、XSLTの中で記述できるXPATHの規格\cite{xpath1999}を参
+照するとよいでしょう。
+
+XSLTだけではあまり高度なプログラミングはできないんじゃないかと思われるか
+もしれませんが、関数型言語として十分な機能を提供できる力はあるようです
+\cite{fxslt2003}。
+
+\subsection{Debian で利用可能な XSLT処理系}
+
+Debianで幅広く使われていて安定しているとおもわれるのと、簡単に利用できる
+という理由で処理系として xsltproc を採用しました。
+
+Debian での xsltproc のインストールは簡単
+\begin{commandline}
+$ apt-get install xsltproc
+\end{commandline}
+%$
+
+コマンドラインで以下のように実行すると標準出力に処理済みXMLが出力されます。
+
+\begin{commandline}
+$ xsltproc [スタイルシート] [処理するXMLファイル]
+\end{commandline}
+%$
+
+\subsection{具体例:HTML}
+
+それでは、HTML出力の場合を見てみましょう。
+\url{meetinglog:html.xsl}です。
+XML文書からHTML文書を生成するにはそれなりに便利な言語です。
+
+前半のコードをそのまま掲載します。
+これは、XMLドキュメント全体にマッチするルールを記述しはじめるまでの部分
+です。
+XML名前空間として、デフォルトをHTML、xslをxsltの名前空間に割り当てていま
+す。
+
+xml:output で出力形式をHTMLと指定することでXMLヘッダが出力されずに便利で
+す。
+
+\begin{commandline}
+<?xml version="1.0"?>
+<!DOCTYPE xsl:stylesheet>
+<xsl:stylesheet version="1.0"
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  xmlns="http://www.w3.org/1999/xhtml">
+  <xsl:output method="html" />
+  <xsl:template match="/">
+    <html>
+      <head>
+\end{commandline}
+
+他にXSLTの特徴的なところは、value-of　で値をとってきています。XPATH
+の書式で指定していますが、
+\begin{commandline}
+	<h1><xsl:value-of select="meetinglog/head/title"/></h1>
+\end{commandline}
+
+は、XML文書の以下のようなエレメントに入っている値を抽出します。
+\begin{commandline}
+ <meetinglog>
+   <head>
+     <title>タイトル</title>
+   </head>
+ </meetinglog> 
+\end{commandline}
+
+議事録の場合のメインループは、各議事に対しての処理です。
+xslのxsl:for-eachをつかい、XMLのエレメントノードの数だけループします。
+HTMLタグはそのまま出力されますが、もしHTMLのアトリビュートなどをXSLTで生
+成したい場合は、xsl:element を使ってエレメントを生成します。
+
+position()関数は現在のエレメント番号をくれるのでこういう場合に便利です。
+
+\begin{commandline}
+           <xsl:for-each select="meetinglog/body">
+	      <tr>
+		<th>
+		  <xsl:element name="a">
+		    <xsl:attribute name="href">#gian<xsl:value-of select="position()" /></xsl:attribute>
+		  </xsl:element>
+		  議案<xsl:value-of select="position()" />
+		</th>
+		<td class="bodytitle">
+		  <xsl:value-of select="./title" />
+		</td>
+ ....
+ </xsl:for-each> 
+\end{commandline}
+
+\subsection{具体例:Text出力}
+
+Text出力の場合もみてみましょう。
+\url{meetinglog:txt.xsl}
+テキスト出力をしようとしはじめると若干苦しくなってきます。できないわけで
+はないのですが、空白文字の処理のルールを僕がいまいち理解できていないのと、
+コードがそのままテンプレートとして出力されるのでインデンテーションが適切
+にできないのがつらいところです。
+
+xsl:output で出力がテキスト形式であると指定するとXMLヘッダが出力されず便
+利です。
+
+ヘッダ部分で、毎回 xsl:text で改行などを入力するのが面倒なので、ENTITY を
+定義して省略できるようにしています。この記法が正しいのかどうかは不明です。
+
+\begin{commandline}
+<?xml version="1.0"?>
+<!DOCTYPE xsl:stylesheet [
+<!ENTITY space  "<xsl:text xmlns:xsl='http://www.w3.org/1999/XSL/Transform'> </xsl:text>">
+<!ENTITY indent "<xsl:text xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>  </xsl:text>">
+<!ENTITY cr     "<xsl:text xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+</xsl:text>">]>
+  <xsl:stylesheet version="1.0"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns="http://www.w3.org/1999/xhtml">
+  <xsl:output method="text" />
+  <xsl:template match="/">
+    <xsl:text>-----------------------------------------------------------------------
+概要
+-----------------------------------------------------------------------
+\end{commandline}
+
+本文のコアとなる本文の内容ですが、読めたものではないです。
+悩んだところとしては、文章が空白かどうかチェックするのに
+string-length(normalize-space())をつかっていて、それがいまいちただしいの
+かどうか自信がないところ。
+
+\begin{commandline}
+    <xsl:for-each select="meetinglog/body">
+-----------------------------------------------------------------------
+[<xsl:value-of select="position()" />.&space;<xsl:value-of select="./title" />]
+-----------------------------------------------------------------------
+
+目的: &cr;<xsl:value-of select="./aim" />&cr;
+&cr;<xsl:if
+ test="string-length(normalize-space(./previous))>1"
+ >前回までの経緯:&cr;<xsl:value-of select="./previous"
+ disable-output-escaping="yes" />&cr;&cr;</xsl:if>
+<xsl:if test="string-length(normalize-space(./discussed))>1"
+ >議論:&cr;<xsl:value-of select="./discussed"
+ disable-output-escaping="yes" />&cr;&cr;&cr;
+</xsl:if>
+</xsl:for-each>
+\end{commandline}
+
+残念ながらC++で実装していた文字をメールの70文字幅くらいにきれいにまとめ
+るというロジックが欠落しています。めんどくさすぎる。
+
+\subsection{具体例:\LaTeX}
+
+\LaTeX 出力をみてみましょう。
+\url{meetinglog:latex.xsl}
+
+ヘッダ部分はどうぜ\LaTeX{}のヘッダなのと何度もでてきているのでメインループ
+だけ。
+\begin{commandline}
+    <xsl:for-each select="meetinglog/body">
+
+      \discussion{<xsl:value-of select="./title" />}{<xsl:value-of
+ select="./aim" />}{<xsl:value-of
+ select="translate(./previous,'#&amp;','--')"
+ disable-output-escaping="yes" />}{<xsl:value-of
+ select="translate(./discussed,'#&amp;','--')"
+ disable-output-escaping="yes" />}
+    </xsl:for-each>
+\end{commandline}
+
+個人的な感想ですが、自分で書いておきながら後で読み返す気力が沸きません。
+
+現在実装できていない点として、\LaTeX{}で使えない文字列\verb!#<>&!などの文
+字列のエスケープがあります。今はハイフンに変更してお茶を濁しています。
+
+XPATHには文字列置換のためのtransform()関数がありますが、一文字を一文字に置換
+することしかできません。今回行いたいのは一文字を複数文字に置換することな
+のでそれでは機能が不十分です。
+
+\subsection{仮の定量的な比較}
+
+現状すべての機能をおきかえているわけではないので、妥当な比較ではないです
+が、C++の処理とXSLTのコードの比較をしてみると
+(\ref{tab:xsltcxximplementationdiff})、
+XSLTのほうが行数は少ないことがわかります。
+
+\begin{table}[ht]
+ \caption{lines of code for each implementation}
+ \label{tab:xsltcxximplementationdiff}
+\begin{center}
+  \begin{tabular}{|c|c|c|}
+ \hline
+ & c++ & xslt \\
+ \hline
+ txt & 151 & 53\\
+ html & 157 & 99 \\
+ latex(PDF) & 158 & 87 \\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+\subsection{結論}
+
+XSLTを使うことでメンテナンスする行数は少なくなります。しかし、XPATH /
+XSLT により提供されている機能が制限されているため、その中で実現できないも
+のについては難しい判断を迫られます。
+
+頑張れば制限は回避できるけどどこまで回避するか、悩ましいところです。
+
+\begin{thebibliography}{0}
+ \bibitem{fxslt2003} Dimitre Novatchev, ``Functional programming in XSLT
+	 using the FXSL library,'' Extreme Markup Languages 2003.
+ \bibitem{xslt1999} James Clark, ``XSL Transformations (XSLT)
+	 Version 1.0,'' W3C Recommendation 16 November 1999.
+	 \url{http://www.w3.org/TR/xslt}
+ \bibitem{xpath1999} James Clark, Steve DeRose, ``XML Path Language
+	 (XPath) Version 1.0,'' W3C Recommendation 16 November 1999.
+	 \url{http://www.w3.org/TR/xpath/}
+ \bibitem{dancer-xml} Junichi Uekawa, ``dancer-xml - Simple
+	 non-comformant XML parsing library,'' 2000.
+	 \url{http://www.netfort.gr.jp/~dancer/software/dancer-xml.html}
+\end{thebibliography}
+
+
+%-------------------------------------------------------------------------------
+\dancersection{XXXX}{上川純一}
+%-------------------------------------------------------------------------------
+\index{fuga}
+
+\printindex
+
+\cleartooddpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
