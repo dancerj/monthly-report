@@ -425,9 +425,355 @@ XSLT により提供されている機能が制限されているため、その中で実現しにくい
 
 
 %-------------------------------------------------------------------------------
-\dancersection{sphinx}{前田耕平}
+\dancersection{DebianでSphinxとDoxygenを使ってみた}{前田耕平}
 %-------------------------------------------------------------------------------
 \index{sphinx}
+\index{doxygen}
+
+\subsection{最近の流行りのようです}
+
+Python関連のプロジェクトやエンジニアを中心に最近流行っているようです。
+
+
+\subsubsection{reSTとSphinxの概要}
+
+SphinxはreST(reStructuredText)という軽量マークアップ言語で書いたソースを
+様々なフォーマットのドキュメントに変換・生成するためのツールです。
+出力可能なフォーマットには次のものがあります。
+
+\begin{itemize}
+ \item HTML(Windows HTMLヘルプも含む)
+ \item \LaTeX
+ \item \LaTeX を元にしたPDF
+ \item ePub
+ \item man
+ \item 平文テキスト
+ \item JSON
+\end{itemize}
+
+
+\subsubsection{reSTのサンプル}
+
+試しに、東京エリアDebian勉強会のページをreSTで書くとこんな感じになります。
+
+\begin{commandline}
+========================
+ 東京エリアDebian勉強会
+========================
+
+
+背景
+====
+
+2005年当初、東京近辺で、類似の勉強会は存在していませんでした。
+Debian について語る場所を提供するため、 Debian 勉強会を開催します。 
+この勉強会では毎回事前課題を設定しています。
+その課題を提出することが参加の条件です。 
+参加する方は宴会の都合もありますので、事前に登録してください。 
+また、当日はDebianについての知識に関した簡単な試験を実施するので、
+勉強会の会場には筆記用具を持参ください。
+
+現在、 Debian 勉強会は
+`Debian JP Project <http://www.debian.or.jp/>`_
+のメンバーが Debian JP の公式なイベントとして運営しています。
+
+次回の勉強会
+============
+
+* `2011年6月勉強会(第77回東京エリアDebian勉強会) <2011-06.html>`_
+* `第48回関西Debian勉強会 <http://wiki.debian.org/KansaiDebianMeeting20110626>`_
+* `毎週開催のハックカフェ <hackcafe.html>`_
+(snip)
+\end{commandline}
+
+具体的な書式については、Sphinx-Users.jpのドキュメント\footnote{\url{http://sphinx-users.jp/doc.html}}を参照してください。
+
+\subsection{Sphinxを使うきっかけ}
+
+graphvizのdot言語と似た書式でブロック図を生成できるblockdiagシリーズ
+\footnote{\url{http://blockdiag.com/}}というpythonで書かれたツールがあります。
+最近、岩松さんにスポンサーをお願いして、これらのDebianパッケージ化を行っている
+のですが、これらのSphinx拡張機能(spyhinxcontrib-blockdiagなど)を使うと、
+Sphinxで生成するドキュメントの中にブロック図を埋め込むことができます。
+このblockdiagシリーズが便利なので、Sphinxを使い出したようなものです。
+
+また、仕事では基本的にMS Office、とくにExcelやPowerPointでの文書作成がほとんどなのですが、今期の最初に「もうMS Officeなんてでやってられっかー、Sphinxで作ろうぜ！」と、プロジェクト内で提案して使い始めました。私個人で作る分にはLaTeXでも良いのですが、他の二人はWindowsしか普段触ったことがない上、文書と言えば上述のとおり、ExcelかPowerPoint、という状態で、まったく使ったことがない人にLaTeX文書を作成させるのは敷居が高すぎます。しかし、reST \& Sphinxなら割と簡単に入門できる上、Windowsとの共同作業の環境を整えるのも楽だった、という経緯です。\footnote{Windowsは改めてマンドイと思いました。\url{http://d.hatena.ne.jp/mkouhei/20110521/1305905297}}
+
+\subsection{Debianで使ってみる}
+
+試しに先ほどの東京エリアDebian勉強会のホームページをreSTで書いたものをSphinxで管理してみましょう。
+
+まずはpython-sphinxパッケージをインストールしておきます。
+\begin{commandline}
+$ sudo apt-get install python-sphinx
+\end{commandline}
+
+emacsを使う場合は、python-docutilsパッケージをインストールしておけば、拡張子がrstかrestの場合、rst.elによって自動的にReSTモードになります。
+
+\begin{commandline}
+$ sudo apt-get install python-docutils
+\end{commandline}
+
+Sphinxプロジェクトを作ります。プロジェクト用のディレクトリを作ります。
+
+\begin{commandline}
+$ mkdir tokyodebian
+$ cd tokyodebian
+\end{commandline}
+
+作成したディレクトリに移動して、\texttt{sphinx-quickstart}コマンドを実行します。このコマンドを実行すると対話形式で聞かれます。htmlを生成するので、Project Name, Author name(s), Project Version以外はデフォルトのまま(Enterを押下)で良いでしょう。
+
+\begin{commandline}
+$ sphinx-quickstart 
+\end{commandline}
+
+\begin{table}
+{\footnotesize
+ \caption{sphinx-quickstartの設定項目}\label{tab:sphinx-quickstart}
+  \begin{tabular}{|l|c|c|}
+    \hline
+    設定項目 & デフォルト値 & 設定例 \\
+    \hline
+    Root path for the documentation & . & デフォルト \\
+    Separate source and build directories (y/N) & n & デフォルト \\
+    Name prefix for templates and static dir & \_ & デフォルト \\
+    Project name: & & Tokyo Debian Meeting \\
+    Author name(s) & & Debian JP Project \\
+    Project version & & 1.0 \\
+    Project release & 1.0 & デフォルト \\
+    Source file suffix & .rst & デフォルト \\
+    Name of your master document (without suffix) & index & デフォルト \\
+    Do you want to use the epub builder (y/N) & n & デフォルト \\
+    autodoc: automatically insert docstrings from modules (y/N) & n & デフォルト\\ 
+    doctest: automatically test code snippets in doctest blocks (y/N) & n & デフォルト \\ 
+    intersphinx: link between Sphinx documentation of different projects (y/N) & n & デフォルト \\
+    todo: write ``todo'' entries that can be shown or hidden on build (y/N) & n & デフォルト \\ 
+    coverage: checks for documentation coverage (y/N) & n & デフォルト\\
+    pngmath: include math, rendered as PNG images (y/N) & n & デフォルト \\
+    jsmath: include math, rendered in the browser by JSMath (y/N) & n & デフォルト \\
+    ifconfig: conditional inclusion of content based on config values (y/N) & n & デフォルト\\
+    viewcode: include links to the source code of documented Python objects (y/N) & n & デフォルト \\
+    Create Makefile? (Y/n) & y & デフォルト \\
+    Create Windows command file? (Y/n) & y & デフォルト \\
+    \hline
+  \end{tabular}
+}
+\end{table}
+
+先ほどのtokyodebian.rst(および、hackcafe.rst, 2011-06.rst)をコピーします。
+\begin{commandline}
+$ cp -i ~/*.rst .
+\end{commandline}
+
+自動的に生成されるindex.rstにこれらを追記します。\footnote{拡張子不要です。}
+\begin{commandline}
+$ sensible-editor index.rst
+---
+.. Tokyo Debian Meeting documentation master file, created by
+   sphinx-quickstart on Fri Jun 17 13:39:53 2011.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to Tokyo Debian Meeting's documentation!
+================================================
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+   tokyodebian  ←追加
+   hackcafe  ←追加
+   2011-06  ←追加
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+\end{commandline}
+
+コンパイルします。
+\begin{commandline}
+$ make html
+sphinx-build -b html -d _build/doctrees   . _build/html
+Running Sphinx v1.0.7
+loading pickled environment... done
+building [html]: targets for 4 source files that are out of date
+updating environment: 0 added, 4 changed, 0 removed
+reading sources... [ 25%] 2011-06
+reading sources... [ 50%] hackcafe
+reading sources... [ 75%] index
+reading sources... [100%] tokyodebian
+
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+writing output... [ 25%] 2011-06
+writing output... [ 50%] hackcafe
+writing output... [ 75%] index
+writing output... [100%] tokyodebian
+
+writing additional files... genindex search
+copying static files... done
+dumping search index... done
+dumping object inventory... done
+build succeeded.
+
+Build finished. The HTML pages are in _build/html.
+\end{commandline}
+
+\_build/html/ディレクトリの下にreSTから生成されたHTMLファイルができます。
+
+\subsection{Debianの日本語環境での状況}
+
+HTMLの場合は日本語も問題なく表示できました。他のフォーマットはどうでしょうか。
+結果は下記のとおりです。
+
+\begin{table}[ht]
+ \caption{フォーマット毎のビルド結果}\label{tab:format}
+ \begin{center}
+{\footnotesize
+  \begin{tabular}{|l|c|}
+    \hline
+    フォーマット & 結果 \\
+    \hline
+    html & OK \\
+    epub & OK (ただし、CSSは反映されない)\\
+    text & OK \\
+    man & OK \\
+    latex & OK \\
+    latexpdf & NG \\
+    \hline
+  \end{tabular}
+}
+ \end{center}
+\end{table}
+
+上記のとおり、 \LaTeX からPDFへの生成がうまくできません。
+
+\begin{commandline}
+(snip)
+! PACKAGE INPUTENC ERROR: UNICODE CHAR \U8: NOT SET UP FOR USE WITH LATEX.
+
+SEE THE INPUTENC PACKAGE DOCUMENTATION FOR EXPLANATION.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.119 \chapter{東京エリアDebian勉強会}
+                                              
+?  
+(snip)
+\end{commandline}
+
+これは生成される\LaTeX 文書がUTF-8であるためです。Debian JP Projectでの課題にもなっていますが、現状のDebianの \TeX 系では日本語のUTF-8は未対応です。
+
+また、日本語を使っていなくても、GIFイメージを\texttt{.. image::}で読み込んでいる場合にPDFの生成に失敗するようです。
+
+\subsubsection{rst2pdfを使う方法}
+reSTからPDFへの生成には、 \LaTeX 経由での方法以外に、rst2pdfというツールを使う方法もあります。まず、rst2pdfパッケージをインストールします。
+
+\begin{commandline}
+$ sudo apt-get install rst2pdf
+\end{commandline}
+
+インストール後、先ほど作ったSphinxのプロジェクトディレクトリの直下にconf.pyという設定ファイルがあるので、この中のextensionsに下記を追記します。
+\begin{commandline}
+extensions = ['sphinx.ext.autodoc','rst2pdf.pdfbuilder']
+\end{commandline}
+
+PDFのオプションを追記します。
+\begin{commandline}
+pdf_documents = [
+        ('index',u'TokyoDebianMeeting', u'Tokyo Debian Meeting', u'Debian JP Project'),
+]
+pdf_stylesheets = ['sphinx','kerning','a4','ja']
+pdf_font_path = ['/usr/share/fonts/']
+pdf_language = 'ja_JP'
+\end{commandline}
+
+Makefileに下記を追記します。
+\begin{commandline}
+pdf:
+        $(SPHINXBUILD) -b pdf $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
+        @echo
+        @echo "Build finished. The pdf files are in $(BUILDDIR)/pdf."
+\end{commandline}
+
+ja.jsonファイルを作ります。
+\begin{commandline}
+{
+  "fontsAlias" : {
+    "stdFont": "ttf-japanese-gothic",
+    "stdBold": "ttf-japanese-gothic",
+    "stdItalic": "ttf-japanese-mincho",
+    "stdBoldItalic": "ttf-japanese-mincho",
+    "stdMono": "ttf-japanese-gothic"
+  }
+}
+\end{commandline}
+
+make pdfを実行すると、\_build/pdf/TokyoDebianMeeting.pdfが生成されます。日本語の表示も問題ありません。詳細については、/usr/share/doc/rst2pdf/manual.pdf.gz にマニュアルがあるので、これの「Section 18 Sphinx」のページを参照してください。なお、この場合はmake latexpdfではうまくいかなかったGifファイルの読み込みは問題ありません。
+
+しかし、この方法ではsphinxcontrib.*diagを使うと、ビルドに失敗するという別の問題があります。
+
+\subsection{Doxygenとは}
+
+さて、今回のもう一つのドキュメント生成ツールであるDoxygenについて見てみます。
+Doxygenはソースコードを解析してドキュメントを生成するツールです。対応する言語は
+、
+\begin{itemize}
+  \item C/C++
+  \item Java
+  \item (CorbaおよびMS) Java
+  \item Python
+  \item IDL
+  \item C\#
+  \item Objective-C
+\end{itemize}
+をサポートし、DやPHPも部分的にサポートしています。
+
+生成できるフォーマットは、
+\begin{itemize}
+  \item HTML
+  \item \LaTeX
+  \item RTF (MS-Word)
+  \item PostScript
+  \item PDF
+  \item 圧縮HTML
+  \item man
+\end{itemize}
+があります。
+
+\subsubsection{インストール}
+doxygenパッケージをインストールするだけです。
+
+\begin{commandline}
+$ sudo apt-get install doxygen
+\end{commandline}
+
+
+
+\subsubsection{Sphinxとの違い}
+
+
+
+breathe\footnote{\url{https://github.com/michaeljones/breathe}}というツールを使
+うと、reST/SphinxからDoxygenにデータを渡せるようです。Debianパッケージにはなって
+ません。
+
+\subsection{まとめ}
+
+
+\begin{thebibliography}{0}
+ \bibitem{sphinx2010}  Georg Brandl, Shibukawa Yoshiki(Japanese),
+	 ``Overview - Sphinx v1.0.6 documentation'' 2007-2010.
+	 \url{http://sphinx-users.jp/doc10/}
+\end{thebibliography}
+
 
 %-------------------------------------------------------------------------------
 \dancersection{月刊PPC64ポーティング}{}
