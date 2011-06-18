@@ -1,0 +1,164 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{DebianでSphinxとDoxygenを使ってみた}
+%\subtitle{第75回 2011年6月度}
+\author{まえだこうへい mkouhei@debian.or.jp\\IRC nick: mkouhei}
+\date{2011年6月18日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\section{}
+
+\begin{frame}
+ \frametitle{最近の流行りらしい}
+  \begin{itemize}
+   \item \url{http://sphinx-users.jp/example.html}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{reSTとSphinxの概要}
+ \begin{itemize}
+  \item reST(reStructuredText)から各種フォーマットのドキュメントを生成
+  \item HTML、 \LaTeX 、PDF、ePub、man、平文テキスト、JSONなど
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{Sphinxを使うきっかけ}
+ \begin{itemize}
+  \item 4月の宿題の続き。blockdiagシリーズのパッケージング。
+	\begin{itemize}
+	 \item パッケージング中なう
+	 \item 岩松さんにスポンサー依頼
+	\end{itemize}
+  \item 仕事のプロジェクトでMS Officeの代わりに試験的に導入
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{Debianでつかう}
+ \begin{enumerate}
+  \item sudo apt-get install python-sphinx
+  \item mkdir hoge;cd hoge; sphinx-quickstart
+  \item reSTファイル編集
+  \item make html
+ \end{enumerate}
+\end{frame}
+
+\begin{frame}{日本語環境}
+\begin{table}
+ \begin{center}
+{\scriptsize
+  \begin{tabular}{|l|c|}
+    \hline
+    フォーマット & 結果 \\
+    \hline
+    html & OK \\
+    epub & OK (ただし、CSSは反映されない)\\
+    text & OK \\
+    man & OK \\
+    latex & OK \\
+    latexpdf & NG \\
+    \hline
+  \end{tabular}
+}
+ \end{center}
+\end{table}
+生成される \LaTeX がUTF-8…。\\
+その他にはGifをインクルードするとコケる。
+\end{frame}
+
+\begin{frame}{他の方法でPDFを生成する}
+\begin{enumerate}
+ \item sudo apt-get install rst2pdf
+ \item conf.py編集
+ \item Makefile編集
+ \item スタイルシート(ja.json)作成
+ \item make pdf
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{問題もあり}
+ \begin{itemize}
+  \item *diagシリーズのSphinx拡張を使うと、ビルド失敗する
+ \end{itemize}
+個人的には本末転倒…。
+\end{frame}
+
+\begin{frame}{Doxygen}
+ \begin{itemize}
+  \item ソースコードからドキュメントを生成
+  \item C/C++、Java、Python、C\#、Objective-Cなどに対応
+  \item 生成可能なフォーマット HTML、 \LaTeX 、RTF(MS-Word)、PostScript、PDF、manなど
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{Debianで使ってみる}
+ \begin{enumerate}
+  \item sudo apt-get install doxygen
+  \item cd srctree
+  \item doxygen -g doxygen.conf
+  \item 設定ファイル(doxygen.conf)編集
+  \item doxygen doxygen
+ \end{enumerate}
+\end{frame}
+
+\begin{frame}{Sphinxとの連携}
+ \begin{itemize}
+  \item breatheを使う\\
+	\url{https://github.com/michaeljones/breathe}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{まとめ}
+ \begin{itemize}
+  \item ソースコードからドキュメント生成　: doxygen
+  \item reSTからドキュメント生成 : sphinx
+  \item doxygen ←→　sphinx : breathe
+  \item 宿題がまた増えた
+	\begin{itemize}
+	 \item rst2pdfで*diagが使えない問題
+	 \item breatheのパッケージング
+	\end{itemize}
+ \end{itemize}
+\end{frame}
+
+\end{document}
