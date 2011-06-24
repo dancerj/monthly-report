@@ -484,6 +484,1117 @@ Debian 勉強会も参加していて、セッションはないもののブースの展示が
 
 
 % \clearpage
+%-------------------------------------------------------------------------------
+\dancersection{IPv6 のトンネル接続を試してみた話}{西山和広}
+\label{sec-1}
+\subsection{概要}
+\label{sec-1_1}
+
+今回の話は、プロバイダが IPv6 ネイティブ接続にまだ対応していない状況、つまり
+直接外に繋がるのは IPv4 のみの接続の環境で IPv6 を使う話です。
+\subsection{IPv6 概要}
+\label{sec-1_2}
+\subsubsection{IPv6 とは何か}
+\label{sec-1_2_1}
+
+最近は情報が増えてきているので省略します。
+古い情報だと RFC が更新されていたり廃止されていたりして、
+現状とは合わなくなっているものもあるので注意が必要です。
+\subsubsection{IPv6 の利点と欠点}
+\label{sec-1_2_2}
+
+IPv6 の利点としては以下のようなものが思いつきます。
+
+\begin{itemize}
+\item アドレス空間が広い
+\item 実装が普及している
+\item 機能的な利点はそんなにない
+
+\begin{itemize}
+\item IPsec とか Mobile IP とか IPv4 でも可能
+\end{itemize}
+
+\end{itemize}
+
+
+IPv6 の欠点としては以下のようなものが思いつきます。
+
+\begin{itemize}
+\item IPv4 と互換性がない
+\item まだ広く利用されていない
+
+\begin{itemize}
+\item トラブルの対処方法とかあまりない
+\end{itemize}
+
+\end{itemize}
+\subsubsection{なぜ IPv6 を試そうと思ったか}
+\label{sec-1_2_3}
+
+試し始めてから World IPv6 Day が実施されるなど、状況がどんどん変わっていますが、
+試そうと思った最初の理由は以下のようなものです。
+
+\begin{itemize}
+\item JPNIC の IPv4 アドレスも枯渇したから
+\item おもしろそうだったから
+\item 余裕のあるうちにのんびりとやりたかったから
+
+\begin{itemize}
+\item 必要になってからあわててやりたくない
+\end{itemize}
+
+\end{itemize}
+\subsubsection{IPv6 対応とは}
+\label{sec-1_2_4}
+
+IPv6 対応にはいろいろな状態があると思いますが、今回は以下の種類を考えてみました。
+
+\begin{itemize}
+\item クライアント側
+
+\begin{itemize}
+\item IPv6 のみのサーバに接続できる ( \href{http://ipv6.google.com/}{http://ipv6.google.com/} など)
+\item IPv4 と IPv6 両対応のサーバに IPv6 で接続できる (\href{http://www.kame.net/}{http://www.kame.net/} など)
+\item DNS を IPv6 経由で解決できる (/etc/resolv.conf で nameserver に IPv6 アドレスを設定)
+
+\begin{itemize}
+\item これが出来ないと IPv6 のみに移行できない
+\end{itemize}
+
+\end{itemize}
+
+\item サーバ側
+
+\begin{itemize}
+\item IPv6 アドレス指定で接続できる (グローバル IPv6 アドレス設定)
+\item ホスト名で指定した場合でも IPv6 で接続できる (DNS に AAAA レコード設定)
+\end{itemize}
+
+\end{itemize}
+\subsubsection{IPv6 アドレスの表記}
+\label{sec-1_2_5}
+
+IPv6 アドレスは 128 ビットを 16 ビットごとに「:」で区切って 16 進数で表記します。
+省略表記が RFC 4291 で決まっていますが、省略の仕方で複数の省略表記が可能なので、
+RFC 5952 で推奨表記が決められました。
+
+\begin{itemize}
+\item 例: 2001:0db8:0000:0000:0000:0000:0000:0001
+\item RFC 4291, RFC 5952 のルールで省略表記
+
+\begin{description}
+\item[先頭の 0 を省略] 2001:db8:0:0:0:0:0:1
+\item[0 の連続は 1 回だけ \texttt{::} で省略] 2001:db8::1
+\end{description}
+
+\item 他にはアルファベットは小文字推奨など
+\item IPv4 のネットワークアドレスやサブネットマスクに相当するものは
+  \texttt{2001:db8::/32} の \texttt{/32} のように
+  ネットワークプレフィックスとそのビット長を付けて表記します。
+\end{itemize}
+
+
+\texttt{2001:db8::/32} は例示用 IPv6 アドレス (RFC 3849) になっているなど、
+用途により IP アドレスの範囲が決まっています。(RFC 5156)
+\subsection{トンネル}
+\label{sec-1_3}
+\subsubsection{トンネルの種類}
+\label{sec-1_3_1}
+
+今回試したものは
+
+\begin{itemize}
+\item teredo (RFC 4380)
+\item 6to4 (RFC 3056)
+\item 6rd (RFC 5969)
+\end{itemize}
+
+
+の 3 種類です。
+ISATAP (RFC 5214) など他の方式もありますが、今回の話の対象外です。
+\subsection{teredo}
+\label{sec-1_4}
+\subsubsection{teredo の特徴}
+\label{sec-1_4_1}
+
+teredo は以下の特徴があります。
+
+\begin{itemize}
+\item NAT の中でも使えるトンネル
+\item UDP/IPv4 にカプセル化して通信
+\item クライアントで使うには手軽で簡単
+\item サーバには向かない (仕組みを考えるとたぶん無理)
+\end{itemize}
+
+
+この特徴により NAT の中から IPv6 接続したい人には便利なのですが、
+外部との接続を制限すべき環境では、 firewall などで UDP の
+3544 番ポートへの接続を制限する必要があります。
+\subsubsection{IPv6 アドレス}
+\label{sec-1_4_2}
+
+\begin{itemize}
+\item 接続先でも 2001:0000::/16 のアドレス (省略しない場合 2001:0000: で
+  始まる文字列の IPv6 アドレス) は teredo とわかるので WWWW:WWWW の
+  部分を逆引きするなどの対処が可能です。
+\item 2001:0000:XXXX:XXXX:YYYY:ZZZZ:WWWW:WWWW の形式
+
+\begin{itemize}
+\item XXXX:XXXX は Teredo サーバの IPv4 アドレスを 16 進数にしたもの
+\item YYYY は NAT の種類などのフラグ
+\item ZZZZ はクライアントの外部 UDP ポート番号を変換したもの
+\item WWWW:WWWW は Teredo クライアントの外部 IPv4 アドレスを変換したもの
+\end{itemize}
+
+\end{itemize}
+\subsubsection{使い方}
+\label{sec-1_4_3}
+
+\begin{itemize}
+\item Windows は XP 以降で対応しています。
+\item Debian では miredo パッケージをインストールするだけで teredo で接続できます。
+
+\begin{itemize}
+\item 自動で起動
+\item /etc/miredo.conf で設定
+\item デフォルトの ServerAddress の teredo-debian.remlab.net はフランス
+    なので、アメリカにある teredo.ipv6.microsoft.com に変更した方が
+    良いかもしれません
+\end{itemize}
+
+\end{itemize}
+\subsubsection{接続確認}
+\label{sec-1_4_4}
+
+/sbin/ifconfig で teredo の存在を確認します。
+
+\begin{verbatim}
+$ /sbin/ifconfig teredo
+teredo    Link encap:不明なネット  ハードウェアアドレス 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00
+          inet6アドレス: fe80::ffff:ffff:ffff/64 範囲:リンク
+          inet6アドレス: 2001:0:4137:9e76:34c1:f58:XXXX:XXXX/32 範囲:グローバル
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1280  メトリック:1
+          RXパケット:0 エラー:0 損失:0 オーバラン:0 フレーム:0
+          TXパケット:3 エラー:0 損失:0 オーバラン:0 キャリア:0
+      衝突(Collisions):0 TXキュー長:500
+          RXバイト:0 (0.0 B)  TXバイト:144 (144.0 B)
+$
+\end{verbatim}
+
+接続に成功しているとき、ログ (/var/log/syslog) に以下のように出ます。
+
+\begin{verbatim}
+miredo[4105]: Starting...
+miredo[4107]: New Teredo address/MTU
+miredo[4107]: Teredo pseudo-tunnel started
+miredo[4107]:  (address: 2001:0:4137:9e76:34c1:f58:XXXX:XXXX, MTU: 1280)
+\end{verbatim}
+\subsection{6to4}
+\label{sec-1_5}
+\subsubsection{6to4 の特徴}
+\label{sec-1_5_1}
+
+6to4 はグローバル IPv4 アドレスが必要ですが、申し込みなどをしなくても誰でも自由に使えます。
+
+トンネルの方法として、プロトコル 41 (TCP や UDP ではない) でカプセル化して IPv4 で通信します。
+(他の主なプロトコルの番号は ICMP: 1, TCP: 6, UDP: 17 でその層のプロトコルを使用しています。)
+
+anycast で自動的に近いリレールータを経由 (192.88.99.1) します。
+\subsubsection{6to4 の問題点}
+\label{sec-1_5_2}
+
+6to4 には以下のような問題点があるため、廃止が検討されています。
+
+\begin{itemize}
+\item 往復の経路は基本的に異なる
+\item 通信経路が把握できないし制御もできない
+\item トラブルがおきると対処が困難
+\end{itemize}
+\subsubsection{IPv6 アドレス}
+\label{sec-1_5_3}
+
+接続先でも 2002::/16 のアドレス (2002: で始まる文字列の IPv6 アドレス) は
+6to4 とわかるので、アクセスログ解析などでは xxx.yyy.zzz.www
+を逆引きするなどの対処が可能です。
+
+\begin{description}
+\item 2002:XXYY:ZZWW::/48 が使用可能
+
+\begin{itemize}
+\item XXYYZZWW は IPv4 アドレスの xxx.yyy.zzz.www を 16 進数にしたもの
+\end{itemize}
+
+\item 2002:XXYY:ZZWW:VVVV::/64 を LAN に割り当てるなどの使い方が可能
+  (VVVV は任意の値)
+\end{description}
+\subsubsection{使い方}
+\label{sec-1_5_4}
+
+基本的には「/etc/network/interfaces」で設定するだけで使えます。
+
+6to4によるIPv6接続(Linux編) $\ll$ さくらインターネット研究所
+\href{http://research.sakura.ad.jp/2010/12/27/tunnel-6to4-linux/}{http://research.sakura.ad.jp/2010/12/27/tunnel-6to4-linux/}
+などを参考にして設定します。
+
+以下は会社のマシンで設定したときの例です。
+
+まず 6to4 のアドレスを計算します。
+
+\begin{verbatim}
+$ printf "2002:%02x%02x:%02x%02x::1\n" 220 218 54 201
+2002:dcda:36c9::1
+\end{verbatim}
+
+次に tun6to4 という iface の設定を追加します。
+
+\begin{verbatim}
+$ sudoedit /etc/network/interfaces
+auto tun6to4
+iface tun6to4 inet6 v4tunnel
+address 2002:dcda:36c9::1
+netmask 16
+gateway ::192.88.99.1
+local 220.218.54.201
+endpoint any
+ttl 64
+\end{verbatim}
+
+最後に「sudo ifup tun6to4」で有効にします。
+「auto tun6to4」も設定しているので、再起動でも有効になるはずです。
+\subsubsection{接続確認}
+\label{sec-1_5_5}
+
+/sbin/ifconfig で tun6to4 を確認します。
+
+\begin{verbatim}
+$ /sbin/ifconfig tun6to4
+tun6to4   Link encap:IPv6-in-IPv4
+          inet6アドレス: 2002:dcda:36c9::1/16 範囲:グローバル
+          inet6アドレス: ::220.218.54.201/128 範囲:Compat
+          UP RUNNING NOARP  MTU:1480  メトリック:1
+          RXパケット:55939508 エラー:0 損失:0 オーバラン:0 フレーム:0
+          TXパケット:84141144 エラー:1175 損失:0 オーバラン:0 キャリア:886
+      衝突(Collisions):0 TXキュー長:0
+          RXバイト:5470501110 (5.0 GiB)  TXバイト:88417369465 (82.3 GiB)
+
+$
+\end{verbatim}
+\subsection{6rd}
+\label{sec-1_6}
+\subsubsection{6rd の特徴}
+\label{sec-1_6_1}
+
+\begin{itemize}
+\item 6to4 と同様にリレールータを経由
+\item リレールータはプロバイダが用意
+\item プレフィックスもプロバイダのものになる
+\item teredo や 6to4 と違って IPv4 の方が優先されるということがない
+\end{itemize}
+\subsubsection{使い方}
+\label{sec-1_6_2}
+
+squeeze のカーネル 2.6.32 は 6rd に対応していないバージョンなので、
+バックポートカーネルをインストールします。
+backports の apt-line を適切に設定した後、
+「sudo aptitude install -t squeeze-backports linux-image-2.6.38-bpo.2-amd64」
+でインストールします。
+依存関係で linux-base も更新されるようです。
+
+6rdによるIPv6接続(概要編) $\ll$ さくらインターネット研究所
+\href{http://research.sakura.ad.jp/2011/01/05/tunnel-6rd-intro/}{http://research.sakura.ad.jp/2011/01/05/tunnel-6rd-intro/}
+を参考にして「/etc/network/interfaces」に設定します。
+
+以下はさくらの VPS で squeeze にしているマシンで設定した例です。
+
+まず 6rd のアドレスを計算します。
+
+\begin{verbatim}
+$ printf "2001:55c:%02x%02x:%02x%02x::1\n" 49 212 40 201
+2001:55c:31d4:28c9::1
+$
+\end{verbatim}
+
+次に tun6rd という iface の設定を追加します。
+
+\begin{verbatim}
+$ sudoedit /etc/network/interfaces
+auto tun6rd
+iface tun6rd inet6 v4tunnel
+  address 2001:e41:31d4:28c9::1
+  netmask 32
+  local 49.212.40.201
+  endpoint any
+  gateway ::61.211.224.125
+  ttl 64
+  up ip tunnel 6rd dev tun6rd 6rd-prefix 2001:e41::/32
+  up ip link set mtu 1280 dev tun6rd
+\end{verbatim}
+
+最後に「sudo ifup tun6rd」で有効にします。
+「auto tun6rd」も設定しているので、再起動でも有効になるはずです。
+\subsubsection{接続確認}
+\label{sec-1_6_3}
+
+/sbin/ifconfig で tun6rd を確認します。
+
+\begin{verbatim}
+$ /sbin/ifconfig tun6rd
+tun6rd    Link encap:IPv6-in-IPv4
+          inet6 addr: 2001:e41:31d4:28c9::1/32 Scope:Global
+          inet6 addr: ::49.212.40.201/128 Scope:Compat
+          UP RUNNING NOARP  MTU:1280  Metric:1
+          RX packets:16336 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:21361 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:1854845 (1.7 MiB)  TX bytes:6845907 (6.5 MiB)
+
+$
+\end{verbatim}
+\subsection{6to4 ルータ}
+\label{sec-1_7}
+\subsubsection{IPv6 ルータとは}
+\label{sec-1_7_1}
+
+\begin{itemize}
+\item ネットワークプレフィックスや有効期限を広告 (RA (Router Advertisement): ルータ広告)
+\item RA を受け取った端末が IPv6 アドレスを生成して自動設定 (RFC 4862)
+\item RA によるステートレスアドレス自動設定 (SLAAC)
+
+\begin{itemize}
+\item 端末がネットワークに繋がると RS (Router Solicitation: ルータ要請) を
+    「ff02::2」(全ルータアドレスあてのマルチキャスト) に送信
+\item ルータが RA を「ff02::1」(全ノードアドレスあてのマルチキャスト) に送信
+\item RA のプレフィックスを使って IPv6 アドレス生成
+\item 重複アドレス検出 (DAD) して問題なければ利用開始
+\end{itemize}
+
+\item IPv4 の DHCP と違って RA の送信元をデフォルトルートとして自動設定
+\item DNS 設定配布は別途考える必要あり
+
+\begin{itemize}
+\item DNS の設定は今のところ別途 DHCPv6 を使うのが無難?
+\item RA の RDNSS というオプション (RFC 6106) は使われていない?
+\end{itemize}
+
+\end{itemize}
+
+
+DNS 設定についてはすぐにはわからなかったので、
+今回は IPv4 の DNS をそのまま使うことにして、
+IPv6 の DNS サーバ設定はしませんでした。
+
+セキュリティ問題も関係しているので、このあたりの仕様は
+まだ更新される可能性が高いです。
+\subsubsection{LAN 側 IPv6 アドレス設定}
+\label{sec-1_7_2}
+
+まず LAN 側に設定するネットワークプレフィックスを決めます。
+
+今回は 6to4 により \texttt{2002:dcda:36c9::/48} が自由に使えます。
+その中から JPNIC の枯渇の日の 4 月 15 日を埋め込んで
+\texttt{2002:dcda:36c9:415::/64} を使うことにしました。
+
+ルータ広告を送信する iface には固定の IPv6 アドレスが必須のようなので、
+今回はわかりやすいように先頭の \texttt{2002:dcda:36c9:415::1} を設定しました。
+
+ネットワーク設定全体としては以下のようにしました。
+
+\begin{verbatim}
+$ cat /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+allow-hotplug eth0
+iface eth0 inet static
+address 192.168.0.2
+netmask 255.255.255.0
+iface eth0 inet6 static
+address 2002:dcda:36c9:415::1
+netmask 64
+
+allow-hotplug eth1
+iface eth1 inet static
+address 220.218.54.201
+netmask 255.255.255.240
+gateway 220.218.54.193
+
+auto tun6to4
+iface tun6to4 inet6 v4tunnel
+address 2002:dcda:36c9::1
+netmask 16
+gateway ::192.88.99.1
+local 220.218.54.201
+endpoint any
+ttl 64
+$
+\end{verbatim}
+\subsubsection{radvd}
+\label{sec-1_7_3}
+
+radvd は RA (ルータ広告) を送信するデーモンです。
+
+インストールしただけでは自動起動しないので、
+\texttt{/usr/share/doc/radvd/README.Debian} を参考にして設定して
+起動します。
+
+\begin{verbatim}
+$ sudo /etc/init.d/radvd start
+Starting radvd:
+* /etc/radvd.conf does not exist or is empty.
+* See /usr/share/doc/radvd/README.Debian
+* radvd will *not* be started.
+$
+\end{verbatim}
+
+まず README.Debian などを参考にして/etc/sysctl.d/ipv6.conf を作成しました。
+再起動前に反映させるには「sudo sysctl -p /etc/sysctl.d/ipv6.conf」です。
+
+\begin{verbatim}
+$ cat /etc/sysctl.d/ipv6.conf
+net.ipv6.conf.all.accept_ra=0
+net.ipv6.conf.all.forwarding=1
+\end{verbatim}
+
+/etc/radvd.conf は/usr/share/doc/radvd/examples/radvd.conf.exampleを参考にして以下のように設定しました。
+
+グローバル IP アドレスから一意に決まるものをわざわざ書くのは嫌だったので、
+prefix の先頭は「0:0:0」にして「Base6to4Interface eth1;」で自動設定するようにしています。
+
+\begin{verbatim}
+$ cat /etc/radvd.conf
+interface eth0
+{
+        AdvSendAdvert on;
+        MinRtrAdvInterval 3;
+        MaxRtrAdvInterval 10;
+        AdvDefaultPreference low;
+        AdvHomeAgentFlag off;
+        prefix 0:0:0:0415::/64
+        {
+                AdvOnLink on;
+                AdvAutonomous on;
+                AdvRouterAddr off;
+                Base6to4Interface eth1;
+                AdvPreferredLifetime 120;
+                AdvValidLifetime 300;
+        };
+};
+\end{verbatim}
+
+後は「sudo /etc/init.d/radvd start」してLAN 内のマシンにグローバル IPv6 アドレスが
+割り振られることを確認したり \href{http://ipv6.google.com/}{http://ipv6.google.com/} が表示できることを確認したりします。
+\subsubsection{libvirt に IPv6 設定}
+\label{sec-1_7_4}
+
+この libvirt の設定だけ Debian squeeze ではなく Ubuntu 11.04 (natty) で確認しています。
+
+「virsh net-edit default」で network 要素直下に「$<$ip family='ipv6'
+address='2002:dcda:36c9:415::1' prefix='64' /$>$」のように設定を追加しま
+す。普通は「$<$/network$>$」の行の直前に追加すれば良いと思います。
+
+試した環境では一度保存すると以下のように2行になってしまいましたが、XML
+的にはほぼ同じなので気にしなくても良いと思います。
+
+\begin{verbatim}
+<ip family='ipv6' address='2002:dcda:36c9:415::1' prefix='64'>
+</ip>
+\end{verbatim}
+
+全体的な例は \href{http://libvirt.org/formatnetwork.html}{http://libvirt.org/formatnetwork.html} を参考にしてください。
+
+これだけで自動的に virbr0 に「2002:dcda:36c9:415::1/64」のアドレスが振られたり radvd が起動したりします。
+\subsection{プライバシ拡張アドレス}
+\label{sec-1_8}
+
+RA によるステートレスアドレス自動設定 (SLAAC) で
+現状の Linux の実装などでは MAC アドレスを元にした
+アドレスになります。
+(MAC アドレスを 1 ビット変更して FF FE を真ん中に入れる)
+
+そのため、接続する IPv6 ネットワークが変わって
+prefix が違っても接続元マシンが特定できる可能性が
+あります。
+
+その対策として、プライバシ拡張アドレス (RFC 3041) の機能を
+有効にすればランダムな値から IPv6 アドレスが生成される
+ようになります。
+
+実際の設定については試していないので紹介しておくだけにします。
+
+\begin{itemize}
+\item Ubuntu Linuxで匿名アドレス(RFC3041)を有効にする \href{http://dr.slump.jp/IPv6/rfc3041/}{http://dr.slump.jp/IPv6/rfc3041/}
+
+\begin{itemize}
+\item 例: \texttt{sysctl -w net.ipv6.conf.eth0.use\_tempaddr=2}
+\end{itemize}
+
+\item 高木浩光＠自宅の日記 - MacユーザはIPv6を切るか \texttt{net.inet6.ip6.use\_tempaddr=1} の設定を \href{http://takagi-hiromitsu.jp/diary/20080730.html}{http://takagi-hiromitsu.jp/diary/20080730.html}
+\item iPhone、RFC3041 (IPv6 プライバシ拡張) に対応 - Kenichi Maehashi's Blog \href{http://blog.kenichimaehashi.com/?article=13044202150}{http://blog.kenichimaehashi.com/?article=13044202150}
+
+\begin{itemize}
+\item iOS 4.3 のセキュリティコンテンツについて \href{http://support.apple.com/kb/HT4564?viewlocale=ja_JP&locale=ja_JP}{http://support.apple.com/kb/HT4564?viewlocale=ja\_JP\&locale=ja\_JP}
+\end{itemize}
+
+\end{itemize}
+\subsection{firewall}
+\label{sec-1_9}
+\subsubsection{注意点}
+\label{sec-1_9_1}
+
+IPv6 ではルータではない一般のノードでも
+ユニキャストアドレスやループバックアドレス以外に、
+リンクローカルアドレスやマルチキャストアドレスなど
+複数の IPv6 アドレスを持つので、
+firewall の設定に IPv4 より注意が必要です。
+
+IPv4 で OP25B などの設定をしている場合は
+teredo などが抜け穴にならないように注意が必要です。
+\subsection{ip6tables-apply}
+\label{sec-1_10}
+
+\begin{itemize}
+\item iptables パッケージに入っている ip6tables-restore をリモートからでも
+  安全に実行できるようにするものです。
+\item タイムアウトするまでに y を入力しなかったら元のルールに戻してくれるので、
+  設定をミスして ssh の接続が遮断されるルールにしようとしてしまっても安全です。
+\item /usr/sbin/iptables-apply で /etc/network/iptables を適用できるのと
+  同様に /usr/sbin/ip6tables-apply で /etc/network/ip6tables を
+  適用できます。
+\item 起動時にも適用するには「/sbin/ip6tables-restore $<$ /etc/network/ip6tables」
+  をどこかで実行する必要があります。
+\item たとえば以下のように lo の pre-up で実行します。
+\end{itemize}
+
+
+\begin{verbatim}
+iface lo inet loopback
+ pre-up /sbin/iptables-restore < /etc/network/iptables
+ pre-up /sbin/ip6tables-restore < /etc/network/ip6tables
+\end{verbatim}
+\subsection{ufw}
+\label{sec-1_11}
+
+\begin{itemize}
+\item Uncomplicated FireWall の略
+
+\begin{itemize}
+\item Ubuntu FireWall ではない
+\end{itemize}
+
+\item sudo ufw allow OpenSSH や sudo ufw allow 80/tcp などのように
+  簡単に使える iptables のラッパー
+\end{itemize}
+\subsubsection{ufw の設定ファイル}
+\label{sec-1_11_1}
+
+/etc/default/ufw で基本的な設定をして、
+ufw コマンドでその他の設定をして、
+before\{,6\}.rules で特殊な設定をするということに
+なります。
+
+\begin{itemize}
+\item /etc/default/ufw
+
+\begin{itemize}
+\item デフォルトのポリシーなどを設定
+\end{itemize}
+
+\item /etc/ufw/ufw.conf
+
+\begin{itemize}
+\item 「ufw enable」や「ufw disable」などの設定が保存されている
+\end{itemize}
+
+\item /lib/ufw/user\{,6\}.rules
+
+\begin{itemize}
+\item ufw allow などでの設定を保存
+\item なぜか /lib 以下にある
+\end{itemize}
+
+\item /etc/ufw/before\{,6\}.rules
+
+\begin{itemize}
+\item 必要なら編集
+\item ポートフォワーディングなどの nat テーブルの設定は
+    ufw コマンドでは出来ないので、このファイルで設定
+\end{itemize}
+
+\end{itemize}
+\subsubsection{/etc/default/ufw}
+\label{sec-1_11_2}
+
+\begin{itemize}
+\item IPV6=yes で IPv6 も有効にする
+\item IPV6=yes にする前に設定した ufw allow は IPv4 のみのまま
+\item IPv6 でも許可するには sudo ufw allow 22/tcp などを実行し直す
+\item from や to で IPv4 アドレスや IPv6 アドレスを指定すれば個別の設定も
+  可能 (例: ufw allow in on virbr0 proto udp from 0.0.0.0/0 port 68 to
+  0.0.0.0/0 port 67)
+\end{itemize}
+
+
+こまめに「sudo ufw status」で確認するとわかりやすいです。
+IPv6 でも許可できていれば以下のように (v6) の行があります。
+
+たとえば IPV6=no のときに「sudo ufw allow OpenSSH」で許可していて、
+IPV6=yes にしてから IPv6 でも許可した場合は以下のようになります。
+
+\begin{verbatim}
+$ sudo ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+OpenSSH                    ALLOW       Anywhere
+
+$ sudo ufw allow OpenSSH
+Skipping adding existing rule
+Rule added (v6)
+$ sudo ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+OpenSSH                    ALLOW       Anywhere
+OpenSSH (v6)               ALLOW       Anywhere (v6)
+
+$
+\end{verbatim}
+\subsubsection{/etc/ufw/before\{,6\}.rules}
+\label{sec-1_11_3}
+
+/etc/default/ufw で DEFAULT$_{\mathrm{OUTPUT}}$$_{\mathrm{POLICY}}$ を REJECT にした場合は
+ufw\{,6\}-before-input と同様の icmp などの許可を
+ufw\{,6\}-before-output にする必要がありました。
+
+before.rules の ICMP の設定として
+
+\begin{verbatim}
+# ok icmp codes
+-A ufw-before-input -p icmp --icmp-type destination-unreachable -j ACCEPT
+-A ufw-before-input -p icmp --icmp-type source-quench -j ACCEPT
+-A ufw-before-input -p icmp --icmp-type time-exceeded -j ACCEPT
+-A ufw-before-input -p icmp --icmp-type parameter-problem -j ACCEPT
+-A ufw-before-input -p icmp --icmp-type echo-request -j ACCEPT
+\end{verbatim}
+
+の下に
+
+\begin{verbatim}
+-A ufw-before-output -p icmp --icmp-type destination-unreachable -j ACCEPT
+-A ufw-before-output -p icmp --icmp-type source-quench -j ACCEPT
+-A ufw-before-output -p icmp --icmp-type time-exceeded -j ACCEPT
+-A ufw-before-output -p icmp --icmp-type parameter-problem -j ACCEPT
+-A ufw-before-output -p icmp --icmp-type echo-request -j ACCEPT
+\end{verbatim}
+
+を追加しました。
+
+before6.rules の ICMPv6 の設定として
+
+\begin{verbatim}
+# for stateless autoconfiguration (restrict NDP messages to hop limit of 255)
+-A ufw6-before-input -p icmpv6 --icmpv6-type neighbor-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type neighbor-advertisement -m hl --hl-eq 255 -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type router-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type router-advertisement -m hl --hl-eq 255 -j ACCEPT
+\end{verbatim}
+
+\begin{verbatim}
+# ok icmp codes
+-A ufw6-before-input -p icmpv6 --icmpv6-type destination-unreachable -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type packet-too-big -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type time-exceeded -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type parameter-problem -j ACCEPT
+-A ufw6-before-input -p icmpv6 --icmpv6-type echo-request -j ACCEPT
+\end{verbatim}
+
+の下にそれぞれ
+
+\begin{verbatim}
+-A ufw6-before-output -p icmpv6 --icmpv6-type neighbor-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type neighbor-advertisement -m hl --hl-eq 255 -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type router-solicitation -m hl --hl-eq 255 -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type router-advertisement -m hl --hl-eq 255 -j ACCEPT
+\end{verbatim}
+
+\begin{verbatim}
+-A ufw6-before-output -p icmpv6 --icmpv6-type destination-unreachable -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type packet-too-big -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type time-exceeded -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type parameter-problem -j ACCEPT
+-A ufw6-before-output -p icmpv6 --icmpv6-type echo-request -j ACCEPT
+\end{verbatim}
+
+を追加しました。
+
+
+MULTICAST は 5353/udp のみ許可の設定になっていますが、
+何か問題があれば変更します。
+
+before.rules の MULTICAST 設定変更例としては
+
+\begin{verbatim}
+# allow MULTICAST mDNS for service discovery (be sure the MULTICAST line above
+# is uncommented)
+-A ufw-before-input -p udp -d 224.0.0.251 --dport 5353 -j ACCEPT
+\end{verbatim}
+
+となっているのを以下に変更します。
+
+\begin{verbatim}
+# allow MULTICAST, be sure the MULTICAST line above is uncommented
+-A ufw-before-input -s 224.0.0.0/4 -j ACCEPT
+-A ufw-before-output -d 224.0.0.0/4 -j ACCEPT
+\end{verbatim}
+
+上記のように ICMPv6 は許可しているので、
+before6.rules の変更は通常は必要ないと思います。
+\subsection{tcp wrapper の設定例}
+\label{sec-1_12}
+
+localhost と libvirt のデフォルトの LAN と
+今回設定した 6to4 経由の接続のみ許可する場合は
+以下のようになります。
+
+\begin{itemize}
+\item /etc/hosts.deny で「ALL: ALL」と設定
+\item /etc/hosts.allow で以下のように設定
+\end{itemize}
+
+
+\begin{verbatim}
+sshd: 127.0.0.1 [::1]
+sshd: 192.168.122.0/24
+sshd: [2002:dcda:36c9:415::]/64
+\end{verbatim}
+\subsection{サーバ}
+\label{sec-1_13}
+\subsubsection{サーバ一般}
+\label{sec-1_13_1}
+
+\texttt{netstat -lnt} で確認して tcp6 でも LISTEN していれば IPv6 対応しています。
+
+\begin{verbatim}
+$ netstat -lnt | grep ':22 '
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
+tcp6       0      0 :::22                   :::*                    LISTEN
+$
+\end{verbatim}
+\subsubsection{OpenSSH}
+\label{sec-1_13_2}
+
+\begin{itemize}
+\item 少なくとも以下の設定が IPv6 対応に影響します。
+
+\begin{itemize}
+\item /etc/ssh/sshd$_{\mathrm{config}}$
+
+\begin{itemize}
+\item ListenAddress
+\item AllowUsers user@ipaddr の ipaddr 部分
+\end{itemize}
+
+\item tcp wrapper
+\item ip6tables
+\end{itemize}
+
+\end{itemize}
+\subsubsection{Apache2}
+\label{sec-1_13_3}
+
+一部の VirtualHost を IPv6 対応環境に移動しましたが、
+IP アドレスに依存する設定をしていなかったので、何も問題はありませんでした。
+\subsubsection{munin}
+\label{sec-1_13_4}
+
+munin が使っているライブラリが IPv6 に対応していないという理由で
+munin も IPv6 に対応していませんでした。
+\subsection{トラブルシューティング}
+\label{sec-1_14}
+\subsubsection{ping6 で最初のパケットだけ時間がかかる}
+\label{sec-1_14_1}
+
+\begin{itemize}
+\item トンネル接続の場合はそういうもの
+\end{itemize}
+\subsubsection{ping6 でパケットロスが多い}
+\label{sec-1_14_2}
+
+libvirt で libvirt で自動起動される radvd とは別に
+自分で radvd を起動してしまうとping6 での確認のときに
+packet loss が 70\% 以上になるなどわかりにくいトラブルになりました。
+
+そのときに「radvd[\ldots{}]: our AdvValidLifetime on eth0 for \ldots{} doesn't
+agree with \ldots{}」のようなログが出ていて、調べると
+\href{http://www.wiggy.net/texts/ipv6-howto/}{http://www.wiggy.net/texts/ipv6-howto/} に radvd のようなルータ広告 (RA)
+するデーモンが複数動いている場合におきる問題だということがわかったので、
+libvirt で自動起動されているradvd が存在するのを確認し、手動で起動して
+いた方の radvd を止めることで解決しました。
+\subsubsection{ifconfig で teredo がない}
+\label{sec-1_14_3}
+
+\begin{itemize}
+\item miredo のログ (/var/log/syslog) で原因を調べます。
+\item firewall で塞がれていないか確認します。
+\item NAT の種類によっては繋らないかもしれません
+
+\begin{itemize}
+\item 以前のバージョンだと NAT の種類によっては「Unsupported symmetric
+    NAT detected.」で繋らないことがありましたが、今の squeeze に入っている
+    miredo 1.2.3-1 では対応しているように見えます。
+\item VMware などで NAT の段数を増やすと繋がったことがあります。
+\end{itemize}
+
+\end{itemize}
+\subsubsection{亀が踊らない}
+\label{sec-1_14_4}
+
+\begin{itemize}
+\item \href{http://www.kame.net/}{http://www.kame.net/} で亀が踊らないときの原因の調べ方
+\item IPv6 で接続可能か?
+
+\begin{itemize}
+\item \href{http://ipv6.google.com/}{http://ipv6.google.com/} が表示できるか?
+
+\begin{itemize}
+\item ipv6 は AAAA のみ設定されている
+\item 表示できなければ、そもそも IPv6 で外と繋っていない可能性が高い
+\end{itemize}
+
+\item 詳細は \href{http://test-ipv6.com/}{http://test-ipv6.com/} や \href{http://test-ipv6.jp/}{http://test-ipv6.jp/} でテストする
+\end{itemize}
+
+\item getaddrinfo(3) を調べる
+
+\begin{itemize}
+\item 繋がっていれば、次に getaddrinfo(3) で IPv6 が優先されているかを調べます。
+\end{itemize}
+
+\end{itemize}
+\begin{itemize}
+
+\item getaddrinfo(3) の例: IPv6 優先\\
+\label{sec-1_14_4_1}%
+こういう結果が返ってくれば IPv6 で繋るはずです。
+
+\begin{verbatim}
+$ getent ahosts www.kame.net
+2001:200:dff:fff1:216:3eff:feb1:44d7 STREAM orange.kame.net
+2001:200:dff:fff1:216:3eff:feb1:44d7 DGRAM
+2001:200:dff:fff1:216:3eff:feb1:44d7 RAW
+203.178.141.194 STREAM
+203.178.141.194 DGRAM
+203.178.141.194 RAW
+\end{verbatim}
+
+
+\item getaddrinfo(3) の例: IPv4 のみ\\
+\label{sec-1_14_4_2}%
+以下のように A と AAAA が設定されているはずなのに
+A レコードの情報しか返ってこない場合は、
+プロバイダが ``filter-aaaa-on-v4'' の設定をしていて
+フィルタされているのかもしれないので、
+常用はお勧めしませんが
+Google Public DNS (8.8.8.8, 8.8.4.4) を
+使えば回避できるかもしれません。
+
+\begin{verbatim}
+$ getent ahosts www.kame.net
+203.178.141.194 STREAM orange.kame.net
+203.178.141.194 DGRAM
+203.178.141.194 RAW
+$
+\end{verbatim}
+
+
+\item getaddrinfo(3) の例: IPv4 優先\\
+\label{sec-1_14_4_3}%
+以下のような出力の場合は
+teredo や 6to4 よりも IPv4 が優先されている (RFC 3484)
+のが原因です。
+ipv6.google.com のように IPv6 のみのサイトに接続するときだけ
+teredo や 6to4 の IPv6 接続が使われるようになっています。
+
+\begin{verbatim}
+$ getent ahosts www.kame.net
+203.178.141.194 STREAM orange.kame.net
+203.178.141.194 DGRAM
+203.178.141.194 RAW
+2001:200:dff:fff1:216:3eff:feb1:44d7 STREAM
+2001:200:dff:fff1:216:3eff:feb1:44d7 DGRAM
+2001:200:dff:fff1:216:3eff:feb1:44d7 RAW
+$
+\end{verbatim}
+
+RFC になっているようにこの挙動の方が望ましいので、
+/etc/gai.conf で設定可能ですが、一時的に変更するだけにして
+試した後は戻すべきです。
+
+Windows は netsh でポリシーテーブルを変更すれば良いそうです。
+\href{http://www.tokyo6to4.net/index.php/6to4%E3%81%AE%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95#.E3.83.9D.E3.83.AA.E3.82.B7.E3.83.BC.E3.83.86.E3.83.BC.E3.83.96.E3.83.AB.E3.81.AE.E7.B7.A8.E9.9B.86.E6.96.B9.E6.B3.95}{http://www.tokyo6to4.net/index.php/6to4\%E3\%81\%AE\%E5\%88\%A9\%E7\%94\%A8\%E6\%96\%B9\%E6\%B3\%95\#.E3.83.9D.E3.83.AA.E3.82.B7.E3.83.BC.E3.83.86.E3.83.BC.E3.83.96.E3.83.AB.E3.81.AE.E7.B7.A8.E9.9B.86.E6.96.B9.E6.B3.95}
+
+
+\item gai.conf の設定\\
+\label{sec-1_14_4_4}%
+\href{http://slashdot.jp/~ohhara/journal/519278}{http://slashdot.jp/\~ohhara/journal/519278} を参考にして
+teredo で接続している場合は
+/etc/gai.conf に「label 2001:0::/32   1」と設定すると
+亀が踊りました。
+試した後は忘れずに設定を戻しておきましょう。
+
+RFC 3484 に関連する設定として ip addrlabel もありますが、
+今回は変更しなくても大丈夫でした。
+
+デフォルトの設定は以下のようにすべてコメントで書かれていました。
+
+\begin{verbatim}
+#label ::1/128       0
+#label ::/0          1
+#label 2002::/16     2
+#label ::/96         3
+#label ::ffff:0:0/96 4
+#label fec0::/10     5
+#label fc00::/7      6
+#label 2001:0::/32   7
+\end{verbatim}
+
+teredo の場合は以下のように変更しました。
+
+\begin{verbatim}
+label ::1/128       0
+label ::/0          1
+label 2002::/16     2
+label ::/96         3
+label ::ffff:0:0/96 4
+label fec0::/10     5
+label fc00::/7      6
+label 2001:0::/32   1
+\end{verbatim}
+
+6to4 で接続している場合は同様に 2002::/16 を 1 にすると亀が踊りました。
+
+\begin{verbatim}
+label ::1/128       0
+label ::/0          1
+label 2002::/16     1
+label ::/96         3
+label ::ffff:0:0/96 4
+label fec0::/10     5
+label fc00::/7      6
+label 2001:0::/32   7
+\end{verbatim}
+
+glibc のリゾルバの設定ファイルになるため、
+プロセスの起動時のみ読み込まれているようで、
+設定の反映にはブラウザの再起動が必要でした。
+
+glibc の設定ファイルなので静的リンクされていて
+glibc を使わないバイナリなどは影響を受けないと
+思います。
+
+\end{itemize} % ends low level
+\subsubsection{端末は IPv6 対応なのに IPv6 のサイトに繋がらない}
+\label{sec-1_14_5}
+
+WPAD (Web Proxy Auto-Discovery Protocol) で設定していた proxy が
+IPv6 対応していないサーバで動いていたために繋がらないということが
+ありました。
+\subsubsection{一部のサイトへのアクセスが遅い・繋がらない}
+\label{sec-1_14_6}
+
+\begin{itemize}
+\item IPv6 から IPv4 へのフォールバックに時間がかかっている可能性がある
+
+\begin{itemize}
+\item IPv6 経由で繋がらない原因を調べる
+\item サーバ側で AAAA を登録しているのにサーバが止まっている (A の方では動いている) ということもあるらしい
+
+\begin{itemize}
+\item 根本的な対処はサーバ側でしてもらうしかない
+\end{itemize}
+
+\end{itemize}
+
+\item Opera で何度かリロードしないと bit.ly など短縮URLの一部を展開しなくなったということがあったらしい
+
+\begin{itemize}
+\item \href{http://togetter.com/li/146832}{http://togetter.com/li/146832}
+\item IPv6 を無効にしたら直ったという話
+\end{itemize}
+
+\end{itemize}
+\subsubsection{何も変えていないのに繋がらなくなった}
+\label{sec-1_14_7}
+
+\begin{itemize}
+\item 上流の問題かもしれないので確認
+
+\begin{itemize}
+\item メンテナンス中ではないか
+
+\begin{itemize}
+\item 「昨日の「さくらの6rd」接続不良ですが、弊社のIPv6バックボーン側でメンテナンスが実施されていたようです。」
+      \href{https://twitter.com/jq6xze_1/status/83335591873351680}{https://twitter.com/jq6xze\_1/status/83335591873351680}
+\end{itemize}
+
+\item radvd が止まっていないか
+
+\begin{itemize}
+\item 止まっていれば起動
+\end{itemize}
+
+\item 不正な RA が送信されていないか
+
+\begin{itemize}
+\item 不正な RA を送信しているルータを探して対処
+\item Windows の ICS (インターネット接続の共有) が原因になることがあるらしい
+\item 意図的に不正な RA が送信されていると対処は困難 (IPv4 の ARP spoofing に似た問題になる)
+\item RFC 6105 (IPv6 Router Advertisement Guard) や RFC 3971 (SEcure Neighbor Discovery (SEND)) などで対処
+\end{itemize}
+
+\item 6to4 が廃止されてリレールータ消滅?
+
+\begin{itemize}
+\item すぐにはなさそうですが、将来的には可能性がありそうです
+\end{itemize}
+
+\item teredo サーバ停止?
+
+\begin{itemize}
+\item teredo で最初に接続する teredo サーバが停止していないか
+\item teredo サーバへの接続が firewall などで止められていないか
+\end{itemize}
+
+\end{itemize}
+
+\end{itemize}
+\subsubsection{短いと通信できるのに長いと通信出来ない}
+\label{sec-1_14_8}
+
+\begin{itemize}
+\item MTU 問題ではないか
+\end{itemize}
+\subsection{まとめ}
+\label{sec-1_15}
+
+\begin{itemize}
+\item IPv6 接続はクライアントとして試すだけなら簡単でした。
+\item サーバも openssh や apache2 なら問題は起きにくいようです。
+\item munin や proxy など問題がなさそうと思っていたところで問題が起きることもあります。
+\item IPv6 の仕様は更新され続けていて、セキュリティ問題も
+  まだまだこれからのようなので、引き続き最新の情報を
+  追いかけていく必要がありそうです。
+\end{itemize}
+\subsection{参考}
+\label{sec-1_16}
+
+\begin{itemize}
+\item 今からはじめるIPv6 〜プロトコル基礎編〜 \href{http://www.nic.ad.jp/ja/materials/iw/2010/proceedings/s2/iw2010-s2-01.pdf}{http://www.nic.ad.jp/ja/materials/iw/2010/proceedings/s2/iw2010-s2-01.pdf}
+\item 絶対わかる！IPv4枯渇対策＆IPv6移行超入門 ISBN 978-4-8222-6769-8
+\end{itemize}
+
 % %-------------------------------------------------------------------------------
 % \dancersection{ハッカーに一歩近づく Tips：vi 編}{山下康成}
 
