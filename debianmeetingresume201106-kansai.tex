@@ -1758,18 +1758,60 @@ fi
   % sudo aptitude install git-buildpackage
 \end{commandline}
 Recommends に {\tt{pristine-tar}} と {\tt{cowbuilder}} があります。これらもインストールしておくと良いでしょう。
-{\tt{cowbuilder}}に関しては、先月の水野さんの資料を参照のこと。
+{\tt{cowbuilder}}に関しては、先月の水野さんの資料を参照して下さい。
+{\tt{pristine-tar}} については後述。
 
+\subsubsection{パッケージのリポジトリへの追加}
 
+Git なので、リポジトリの作成とか面倒な事はありません。
+既存のパッケージの Git リポジトリ作成には {\tt{git-import-dsc}} を使用します。
+\begin{commandline}
+  % apt-get source rabbit
+  % git-import-dsc --pristine-tar rabbit_0.9.2-3.dsc
+  gbp:info: No git repository found, creating one.
+  Initialized empty Git repository in /home/uwabami/Downloads/rabbit/.git/
+  gbp:info: Tag upstream/0.9.2 not found, importing Upstream tarball
+  /usr/bin/pristine-tar: committed rabbit_0.9.2.orig.tar.gz.delta to branch pristine-tar
+  gbp:info: Version '0.9.2-3' imported under 'rabbit'
+\end{commandline}
+この際に {\tt{--pristine-tar}} オプションをつけることを推奨します。
+また、これまでのバージョンの {\tt{.dsc}} ファイルと {\tt{.orig.tar.gz}}ファイルがある場合には
+{\tt{git-import-dscs}} コマンドを使うと良いでしょう。tag を良きにはからってくれます。
+
+さて、これで{\tt{rabbit}}という Git リポジトリが作成されました。実際に中を見てみましょう。
+\begin{commandline}
+  % cd rabbit
+  % git branch
+  * master                    <-- debian/ 入りのフルソース
+    pristine-tar              <-- orig.tar.{gz,bz2} のバイナリデルタ
+    upstream                  <-- debian/ 無し(upstream)のソース
+  % git tag
+  debian/0.9.2-3
+  upstream/0.9.2
+\end{commandline}
+ブランチの意味は上記の通りです。{\tt{git-import-dscs}} を使うと、バージョ
+ンに応じて tag が沢山並んでいると思います。{\tt{master}},
+{\tt{upstream}} ブランチの意味はわかりやすいと思います
+が、{\tt{pristine-tar}}はちょっと特殊です。このブランチには、import され
+る前の .tar.gz(もしくは.bz2)のバイナリデルタのみがコミットされてい
+て、{\tt{git-buildpackage}}が走るタイミングで、{\tt{upstream}}ブランチ、
+もしくは {\tt{upstream/バージョン番号}}タグから、元々
+の orig.tar.{gz,bz2}を生成します。
+
+...以下、当日/後日補完予定。
 
 \clearpage
 %-------------------------------------------------------------------------------
 \dancersection{今後の予定}{Debian JP}
 
-\subsection{第49回関西 Debian 勉強会}
-6 月の関西 Debian 勉強会は、6 月 26 日に、福島区民センターで開催されます。
-佐々木さんによる git-buildpackage を使った debian パッケージの作成、他一本で
-お送りする予定ですので、皆さん奮ってご参加ください。
+\subsection{第49回関西 Debian 勉強会in OSC 2011 Kansai\@Kyoto }
+
+7 月の関西 Debian 勉強会は、7 月 16 日に、オープンソースカンファレン
+ス Kansai\@Kyoto においてセッションとして開催します。
+セッションの時間帯が 10:00 - 10:50 なので、みなさま頑張って早起きしましょう。
+
+今の所、「Debian: Squeeze, Wheezy, and Sid 」という玉虫色のお題にしていま
+す(つまり...ゲフンゲフン)。話者は佐々木の予定です。
 
 ところで、最近、関西 Debian 勉強会の開催日程を日曜ではなく土曜にしたい、
 という声を聞くことが多いのですが、皆さんはいかがでしょうか。といった内容で
