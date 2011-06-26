@@ -1,18 +1,22 @@
 #!/bin/bash
 
-# requires EUC-JP locale to run this shell script.
-LC_ALL=ja_JP.EUC-JP
+# requires UTF-8 locale to run this shell script.
+if [ "$(locale charmap)" != "UTF-8" ]; then
+    echo 'changing locale to UTF-8'
+    export LC_ALL=ja_JP.UTF-8
+    exec /bin/bash "$0" "$@"
+fi;
 
-if ! which lgrep; then
+if ! which lgrep > /dev/null; then
     echo 'ERROR: Please install lgrep from lv package'
 fi
 
 # Debain -> Debian
-# ÅìµşDebianÊÙ¶¯²ñ -> Åìµş¥¨¥ê¥¢DebianÊÙ¶¯²ñ
-# ¶çÆÉÅÀ¤Ï¡Ö¡£¡¢¡×¤ò»È¤¤¡¢¡Ö¡¥¡¤¡×¤Ï»È¤ï¤Ê¤¤¡£
+# æ±äº¬Debianå‹‰å¼·ä¼š -> æ±äº¬ã‚¨ãƒªã‚¢Debianå‹‰å¼·ä¼š
+# å¥èª­ç‚¹ã¯ã€Œã€‚ã€ã€ã‚’ä½¿ã„ã€ã€Œï¼ï¼Œã€ã¯ä½¿ã‚ãªã„ã€‚
 
-if lgrep -i -n \
-    'debain\|¡¥\|¡¤\|ÅìµşDebianÊÙ¶¯²ñ' \
+if lgrep -Ij -Ku8 -Ou8 -i -n \
+    'debain\|ï¼\|ï¼Œ\|æ±äº¬Debianå‹‰å¼·ä¼š' \
     /dev/null "$@"  ; then
     echo 'ERROR: lgrep for wrong keyword failed. Please check.'
     exit 1
