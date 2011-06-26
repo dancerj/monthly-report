@@ -1677,6 +1677,7 @@ svn-inject のオプションの詳細は man を見てもらうとして、ここでは
 実際に {\tt{svn-work/trunk/hello}} に移動して、パッケージを作成してみます。
 \begin{commandline}
   % cd svn-work/trunk/hello
+  % sudo apt-get build-dep hello
   % svn-buildpackage
   Complete layout information:
           trunkDir=/home/uwabami/svn-work/trunk/hello
@@ -1791,14 +1792,122 @@ Git なので、リポジトリの作成とか面倒な事はありません。
 \end{commandline}
 ブランチの意味は上記の通りです。{\tt{git-import-dscs}} を使うと、バージョ
 ンに応じて tag が沢山並んでいると思います。{\tt{master}},
-{\tt{upstream}} ブランチの意味はわかりやすいと思います
-が、{\tt{pristine-tar}}はちょっと特殊です。このブランチには、import され
-る前の .tar.gz(もしくは.bz2)のバイナリデルタのみがコミットされてい
-て、{\tt{git-buildpackage}}が走るタイミングで、{\tt{upstream}}ブランチ、
-もしくは {\tt{upstream/バージョン番号}}タグから、元々
-の orig.tar.{gz,bz2}を生成します。
 
-...以下、当日/後日補完予定。
+{\tt{pristine-tar}}はちょっと特殊です。
+このブランチには、import される前の .tar.gz(もしくは.bz2)のバイナリデルタのみがコミットされています。
+{\tt{git-buildpackage}} を実行すると {\tt{upstream}}ブランチ、もしくは {\tt{upstream/バージョン番号}}タグから、
+元々の {\tt{orig.tar.\{gz,bz2\}}}を生成します。
+{\tt{pristine-tar}}ブランチのバイナリデルタが無いと(圧縮率が違ったりして)元々の upstream のソースを正しく生成できなかったりします。
+
+\subsubsection{パッケージのビルド}
+では、パッケージをビルドしてみましょう。
+\begin{commandline}
+  % sudo apt-get build-dep rabbit
+  % cd rabbit
+  % git-buildpackage
+  ...
+  ...
+  Successfully signed dsc and changes files
+\end{commandline}
+ちなみに{\tt{notify-send}}コマンドがあると、git-buildpackage の結果を通知してくれます。
+
+あとは通常通り{\tt{debian/}} 以下を更新していき、リリース毎にタグをつけたり、適当に branch を切って作業していきます。
+また(Subversionのところでは紹介しませんでしたが) {\tt{git-dch}} コマンドによって、
+Git のコミットログから {\tt{debian/changelog}} を生成することができます(コミットログの最初の行しか生かされませんので、粒度の小さいコミットが求められます)。
+
+\subsubsection{New upstream release}
+
+upstream で新しいリリースが出た場合には {\tt{git-import-orig}} で新しい {\tt{.orig.tar.\{gz,bz2\}}}を取り込みます。
+\begin{commandline}
+  % uscan --download
+  rabbit: Newer version (0.9.3) available on remote site:
+    http://rabbit-shockers.org/download/rabbit-0.9.3.tar.gz
+    (local version is 0.9.2)
+  rabbit: Successfully downloaded updated package rabbit-0.9.3.tar.gz
+      and symlinked rabbit_0.9.3.orig.tar.gz to it
+  % git-import-orig --pristine-tar ../rabbit_0.9.3.orig.tar.gz
+  What is the upstream version? [0.9.3]
+  gbp:info: Importing '../rabbit_0.9.3.orig.tar.gz' to branch 'upstream'...
+  gbp:info: Source package is rabbit
+  gbp:info: Upstream version is 0.9.3
+  /usr/bin/pristine-tar: committed rabbit_0.9.3.orig.tar.gz.delta to branch pristine-tar
+  gbp:info: Merging to 'master'
+  ...
+  gbp:info: Successfully imported version 0.9.3 of ../rabbit_0.9.3.orig.tar.gz
+\end{commandline}
+既存の master と自動的に merge が行なわれますので、適宜修正してきます。
+
+\subsubsection{patch-queue ブランチ?}
+
+source format 3.0 (quilt) では, upstream への変更点を {\tt{quilt}} を用い
+てパッチで管理します。通常通り {\tt{quilt}} を用いてパッチを作成(もしく
+は debuild が走ったさいにパッチとして抽出)するのでも良いのですが、
+折角なので{\tt{git format-patch}}でパッチを生成する方法について述べてみます。
+
+{\tt{git-buildpackage}} には {\tt{gbp-pq}}というコマンドが提供されています。pq は patch-queue の略です。
+先ず、現時点で debian/patches 以下にあるパッチを {\tt{patch-queue}} ブランチへ登録します。
+\begin{commandline}
+  % quilt pop -a
+  % gbp-pq import
+\end{commandline}
+この時点で、{\tt{master}} ブランチから {\tt{patch-queue/master}} ブランチへ切り代わります。
+debian/patches 以下にあったパッチがファイル一つ毎に一つのコミットとして登録されます。
+適宜 rebase するなどして、パッチをマージしたり削除したりしていきます。
+パッチの修正が終わったら
+\begin{commandline}
+  % git checkout master
+  % gbp-pq export
+\end{commandline}
+で、{\tt{patch-queue/master}} のコミットがそれぞれパッチとして debian/patches 以下に置かれます。
+あとは
+\begin{commandline}
+  % quilt push -a
+  % git-buildpackge
+\end{commandline}
+で ok です。
+この方式の利点は、個々のパッチが追跡しやすくなること、{\tt{git format-patch}}の出力結果なので、
+upstream が Git を用いている場合には upstream に投げ易くなること、でしょうか\footnote{とはいえ、毎度 quilt pop/push -a するのも面倒かしらん}?
+
+ちなみに、{\tt{git-buildpackage}}のオプションには{\tt{--git-debian-branch=}}がありますので、
+\begin{commandline}
+  % git-buildpackage --git-debian-branch=patch-queue/master
+\end{commandline}
+とすると、パッチが当たった(quilt push -a)状態の tree を用いてパッケージ作成ができます。
+
+\subsubsection{リモートリポジトリとのやりとり}
+
+適宜 git clone/push/fetch すれば良いと思いますが
+\begin{enumerate}
+\item {\tt{pristine-tar}}, {\tt{upstream}} ブランチ、{\tt{upstream/バージョン番号}}タグは必ず push する
+\end{enumerate}
+に気をつけましょう。
+また、リモートリポジトリから
+{\tt{git-buildpackage}} 用に clone するための{\tt{gbp-clone}}コマンドも用意されています。
+
+他にも upstream が Git を使用していると、結構幸せになれます。
+git remote で、upstream の Git リポジトリの master や、特定の tag とこちらの upstream を紐付けておくと、
+単一のリポジトリで全て作業を行なえたりします。
+
+\subsubsection{Tips?}
+佐々木は以下を alias に登録しています。
+\begin{commandline}
+if [ -f /usr/bin/git-buildpackage ]; then
+  alias git-b="git-buildpackage --git-ignore-new --git-builder='debuild -rfakeroot -i.git -I.git -sa -k891D7E07'"
+  alias git-bc="git-buildpackage --git-ignore-new --git-builder='git-pbuilder'"
+  alias git-bct="git-buildpackage --git-ignore-new --git-tag --git-builder='git-pbuilder'"
+  alias git-bcl="git-buildpackage --git-ignore-new --git-builder='git-pbuilder-local'"
+fi
+\end{commandline}
+
+...以下、当日\& 後日補足予定...
+
+\subsection{最後に}
+
+以上、簡単に svn-buildpackage, git-buildpackage についてお話しました。
+実際にパッケージを作成する際には、共同作業者との合意や Team Policy によって、それなりにルールがありますのでそれを参考にして下さい。
+
+また、結局 {git,svn}-buildpackage で multiple upstream を使用する場合の方法論とかはちゃんと調べられませんでした。
+結構需要ありそうなんですけれどね。bzr-buildpackage はその辺上手く動作するらしいので、山下 尊也さんの発表を期待して待つ事にします。
 
 \clearpage
 %-------------------------------------------------------------------------------
