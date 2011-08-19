@@ -182,16 +182,180 @@ Debconf
 pristine-tarでorig.tar.gzを管理し、git-buildpackageでパッケージをビルド
 し、dpkg-source v3 を使ったパッケージの作成の流れについて紹介します。
 
-
 %-------------------------------------------------------------------------------
-\dancersection{XXXX}{上川純一}
+\dancersection{スポンサーアップロード}{岩松 信洋}
 %-------------------------------------------------------------------------------
-\index{fuga}
+\label{sec:sponsorupload}
+\index{sponsor upload}
 
+\subsection{はじめに}
+%* Debian Developers
+%* Debian Maintainers (DM)
+% Sponsored maintainers
+
+Debian にパッケージをアップロードする場合、誰でもアップロードできるわけではなく
+限られた人しかアップロードできません。
+アップロードできるのはDebian Developer(以下、DD)とDebian Maintainer（以下、DM）
+だけです。また、DM はアップロードする際に制限があります。
+
+
+%この制限にはパッケージが新しく追加されること、
+%
+%- 制限を書く
+
+ 
+DDではない人が、メンテナンスしているパッケージをアップロード
+する場合には、DD に頼んでアップロードしてもらう必要があります。
+パッケージを代理でアップロードする人をスポンサーといい、アップロードする行為を
+スポンサーアップロードといいます。
+パッケージメンテナに変わってパッケージをアップロードするので、パッケージに対して
+責任が問われる作業です。
+なので、アップロードするパッケージの内容や、パッケージメンテナについてある程度知
+っておく必要があります。
+スポンサーはパッケージのチェック等を行ったりパッケージ内容に対して助言をす
+るので、mentor（助言する人）といった方がわかりやすいかもしれません。 
+このパッケージチェックの過程は DD や DM
+になる場合に優位に働く場合があります。DDやDMになる時には既存のDDに支持者になって
+もらう必要があるのですが、この場合スポンサーに支持者担ってもらうように依頼すると、
+しっかりした内容の支持内容を提供してくれるはずです。
+
+では、スポンサーがどのようにしてパッケージをスポンサーアップロードするのか
+説明します。
+
+\begin{figure}[ht]
+ \begin{center}
+  \includegraphics[width=0.8\hsize]{image201108/sponsor0.png}
+ \end{center}
+\label{fig:sponsor0}\caption{パッケージアップロード}
+\end{figure}
+
+\subsection{チェックする内容}
+
+スポンサーはパッケージをチェックする前と後にチェックする内容があります。
+ここでは私が行っているチェック内容を紹介します。
+
+
+\subsubsection{パッケージをチェックする前のチェック}
+
+スポンサーをするパッケージメンテナの方に以下の内容を確認しています。
+
+\begin{itemize}
+\item Web of Trust に入っているか。
+\item DDやDMへの意欲はあるか。
+\item Debian 新メンテナーガイド\footnote{\url{http://www.debian.org/doc/manuals/maint-guide/}} を読んだか。
+\item DFSG \footnote{\url{http://www.debian.org/social_contract.ja.html}} を読んだか。
+\item Debian Policy\footnote{\url{http://www.debian.org/doc/debian-policy/}} を読んだか。
+\item Debian Reference \footnote{\url{http://www.debian.org/doc/manuals/developers-reference/}}を読んだ。
+\end{itemize}
+
+たまに、誰もスポンサーする人がいないようなのでスポンサーする場合があります。
+
+\subsubsection{パッケージのチェック}
+実際のパッケージのチェックは以下になります。
+
+\begin{itemize}
+
+\item ライセンスの確認
+
+ソフトウェアのライセンスがDFSGに合致するライセンスか、
+ライセンスが debian/copuright に書かれているか確認します。
+この確認には devscripts パッケージに含まれる licensecheck を使うことが多いです。
+
+また、最近ではdebian/copyright のフォーマットには、
+DEP5\footnote{http://dep.debian.net/deps/dep5/}に対応しているか確認しています。
+仮に不明な場合には上流開発者に問い合わせるようにメンテナにお願いします。
+
+\item orig.tar.gz の確認
+
+オリジナルのtarボールと一緒か、オリジナルのソースコードに
+変な改変をしていないかを確認します。
+
+\item 最新のパッケージングのルールに合っているかの確認。
+
+例えば、使っているプログラミング言語向けのパッケージングサポートツールが新しくなっていたり、
+パッケージングポリシーが決まっている場合があります。できるだけ新しいパッケージングのルールに
+合わせるようにします。
+
+\item debian/control ファイルの確認
+
+依存関係、パッケージの説明、各セクションの確認を行います。
+
+\item debian/rules の確認
+
+シンプルな構成になっているか、ポリシーに違反していないかの確認。
+
+\item pbuilder を使ったパッケージビルドの確認
+
+最新unstable ディストリビューションでパッケージがビルドできるか確認します。
+lintian によるチェックや、ビルドに必要なパッケージが依存関係から漏れていないか
+確認することができます。
+この時に使うツールは pbuilder\footnote{\url{http://packages.qa.debian.org/p/pbuilder.html}}(cowbuilder\footnote{\url{http://packages.qa.debian.org/c/cowdancer.html}})と、
+sbuild\footnote{\url{http://packages.qa.debian.org/s/sbuild.html}} です。
+手元でビルドしてアップロードする場合には pbuilder を使っています。
+スポンサーをしているパッケージは定期的にビルドの確認を行うようにしており、
+これには sbuild を使っています。
+
+\item lintianを使ったポリシーとパッケージングミスの確認
+
+パッケージが Debian ポリシー に準拠しているか簡単に確認するには
+lintian\footnote{\url{http://packages.qa.debian.org/l/lintian.html}} を使います。
+これはDebian ポリシー の他に Debian パッケージのよくある間違いに関してチェックしてくれます。
+
+\item メンテナスクリプト(preinst、postinst、prerm、postrm、コンフィグ)の確認
+
+これらは動くのか。
+
+\item オリジナルのtarボールとの差分の確認
+
+diff.gz の内容を確認します。
+作成されたパッチは上流開発者に送ってあるか、パッチはDEP3に対応しているか、確認します。
+
+\item パッケージはインストール、アンインストールの確認
+
+パッケージはできても、インストールできない場合やアンインストールできない場合があります。
+またパッケージが動作しない場合もあります。このような問題
+がないか確認するために、
+piuparts\footnote{\url{http://packages.qa.debian.org/p/piuparts.html}} を使ってインストール、アンインストールのチェックと、実際にインストールしてみて動作するか確認をします。
+
+\end{itemize}
+
+
+\subsubsection{その他}
+その他、スポンサーによっては以下のような理由でスポンサーしてくれない場合があるようです。
+注意しましょう。
+
+\begin{itemize}
+
+\item スポンサーをUploaderに入れることを要求される場合がある。
+
+これは、パッケージメンテナの代わりにパッケージをアップロードする場合に有効です。
+先に説明したように、パッケージのメンテナンスの責任はスポンサーにもあるのためです。
+
+\item パッケージング用のツールを要求される場合がある。
+
+例えばスポンサーによっては、パッケージにcdbs を使っている場合、debhelper を使うように言われる場合があるようです。
+
+\item \url{http://mentors.debian.net} を使わない場合はスポンサーをしない。
+
+信頼できる以外にアップロードされたソースパッケージは信頼しないというポリシーのようです。
+
+\item 自分のしらないプログラミング言語で書かれたパッケージはスポンサーをしない。
+
+\end{itemize}
+
+また、\url{http://wiki.debian.org/SponsorChecklist}
+に実際にスポンサーしている人の方針が纏められています。
+
+\subsection{アップロード}
+アップロードには、dput や dupload パッケージを使います。
+実装が異なるだけで、基本的な機能は揃っているのでどちらでも使い方は同じです。
+
+\subsection{まとめ}
+スポンサーアップロードは大変なので、さっさとDMかDDがになりましょう。
 
 \dancersection{Debian Conference 2011参加報告}{岩松 信洋}
 \label{sec:debconfreportsummary}
-\index{Debconf2009}
+\index{Debconf2011}
 \index{Debconf}
 
 \subsection{Debconfとは}
