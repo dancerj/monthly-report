@@ -1421,6 +1421,153 @@ OSチームなどにDebian Developer が数名いて、彼らが手伝ってくれる、
 
 \subsection{次回のDebconf}
 次回のDebconfは１３回目になります。で開催される予定です。
+
+%------------------------------------------------------------------------------
+\dancersection{LT: aufsbuilder - cowbuilderにたたかいをいどむ}{やまだ}
+%------------------------------------------------------------------------------
+
+\subsection{やってみた}
+数年前にaufsがマイブームだった時、
+\begin{quote}
+\Large{これでaufsbuilder書いたらcowbuilerに勝てるんじゃね？}
+\end{quote}
+と思ってやってみたものの、僅差ながら負けてお蔵入りしていた
+aufsbuilderがこのほど勝利したので報告します。
+
+\subsection{つくりかた}
+実は pbuilder は chroot 環境に任意の場所を指定することができ、
+
+\begin{commandline}
+pbuilder $PBCMD --no-targz --buildplace ＜適当なchroot先＞
+\end{commandline}
+
+と呼び出してやるだけで、よろしくビルドしてくれます。なので、
+これを呼び出す前にテンプレート用chroot環境に書き込み用使い捨て
+フォルダをラップしたaufs chrootを作ってやればいいわけです。
+
+以下コード：
+\begin{commandline}
+#!/bin/sh -e
+
+: ${PB_BASE=/var/cache/pbuilder}
+: ${PB_WORK=/var/cache/pbuilder/build}
+
+usage() {
+  P=$(basename $0)
+  test $# -gt 0 && echo $@ >&2
+  cat <<EOF 1>&2
+$P - pbuilder wrapper with aufs-wrapped chroot
+Usage: $P ...pbuilder-args...
+Note:
+- You need to define PB_BASE and PB_WORK
+- For base chroot tree, \$PB_BASE/\$ARCH-\$DIST.cow/ will be used.
+- For actual work tree, \$PB_WORK/\$\$/ will be used.
+- Default: PB_BASE=$PB_BASE, PB_WORK=$PB_WORK
+EOF
+  exit 1
+}
+
+# pass all args to pbuilder (0 args == help)
+test $# -gt 0 || usage
+test $# -gt 0 && PBCMD="$1"; shift
+test $# -gt 0 && PBARG="$@"
+
+# prepare env
+: ${DIST:=sid}
+: ${ARCH:=$(dpkg-architecture -qDEB_HOST_ARCH)}
+export ARCH DIST
+
+MT="$PB_WORK/$$"
+RW="$PB_WORK/$$/rw"
+AD="$PB_BASE/$DIST-$ARCH"
+RO="$PB_BASE/$DIST-$ARCH.cow"
+
+# sanity check
+test -d "$MT" && usage "ERROR: Workdir already exists: $MT"
+test -d "$RW" && usage "ERROR: Workdir already exists: $RW"
+test -d "$RO" || usage "ERROR: Missing template: $RO"
+
+# register cleanup hook
+trap "
+$DEBUG umount -lf '$MT/var/cache/apt' '$MT' && $DEBUG rm -fr '$MT'
+" 0 1 2 3 4 6 7 8 11 15
+
+# prepare chroot tree
+$DEBUG mkdir -p "$RW" "$AD/aptcache"
+$DEBUG mount -t aufs -o "br:$RW:$RO=ro" none "$MT"
+$DEBUG mount --rbind "$AD/aptcache" "$MT/var/cache/apt"
+
+# run pbuilder
+$DEBUG pbuilder $PBCMD --aptcache "" --no-targz --buildplace "$MT" "$@"
+\end{commandline}
+
+\subsection{たたかってみる}
+
+pbuilderとcowbuilderの関係同様、aufsbuilderもpbuilder互換なので
+そのまま
+
+\begin{commandline}
+$ PDEBUILD_PBUILDER=aufsbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+\end{commandline}
+
+としてビルドするだけです。では、比較してみましょう。
+
+まずは素のpbuilder：
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ time sudo ARCH=i386 DIST=sid \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+$ time sudo ARCH=i386 DIST=sid \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+    0m44.76s real     0m21.50s user     0m13.62s system
+\end{commandline}
+
+続いてcowbuilder：
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+    0m33.17s real     0m20.42s user     0m8.84s system
+\end{commandline}
+
+そしてaufsbuilder:
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=aufsbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=aufsbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+    0m29.41s real     0m18.46s user     0m8.17s system
+\end{commandline}
+
+前回は何回やっても数秒差で負け続けたので、逆転できて嬉しい。
+たぶんLKMLの小人さん達が頑張ってくれたおかげmOm
+
+\subsection{まとめ}
+aufsを使ったcowbuilderを作ってみました。
+以前作った時はどうやっても勝てなかったのに、いつのまにか
+速くなっていて嬉しい。
+
+\subsection{だがしかし・・・}
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ debuild --no-lintian -us -uc -Tclean
+$ time git-buildpackage --git-builder=''DEB_CFLAGS_APPEND=-m32 debuild -ai386''
+...
+$ time git-buildpackage --git-builder=''DEB_CFLAGS_APPEND=-m32 debuild -ai386''
+    0m13.95s real     0m12.17s user     0m4.74s system
+\end{commandline}
+ネイティブビルド、やっぱり速い。しかもlintianとdebsign時間まで入ってるし。
+
 \clearpage
 
 \printindex
