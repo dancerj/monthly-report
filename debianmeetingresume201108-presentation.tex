@@ -134,8 +134,261 @@ Debian の常識、もちろん知ってますよね?
 
 \emtext{はじめてのapt}
 \emtext{パッケージ作成AtoZ 作りながらのQ\&A}
+
 \emtext{パッケージを作ったら Sponsor Upload}
+
+\begin{frame}{はじめに}
+
+\begin{itemize}
+\item Debian にパッケージをアップロードする場合、誰でもアップロードできるわけではなく
+限られた人しかアップロードできない。
+
+\item アップロードできるのはDebian Developer(以下、DD)とDebian Maintainer（以下、DM）
+だけ。また、DM はアップロードする際に制限がある。
+
+\end{itemize}
+
+
+%\begin{figure}[ht]
+ \begin{center}
+  \includegraphics[width=1.0\hsize]{image201108/sponsor0.png}
+ \end{center}
+%\label{fig:sponsor0}\caption{パッケージアップロード}
+%\end{figure}
+
+
+\end{frame}
+
+\begin{frame}
+
+\begin{itemize}[<+->]
+\item DDではない人が、メンテナンスしているパッケージをアップロード
+したい場合には、DD に頼んでアップロードしてもらう必要がある。
+
+\item パッケージを代理でアップロードする人をスポンサー。
+\item アップロードする行為をスポンサーアップロード。
+
+\item パッケージメンテナに変わってパッケージをアップロードするので、パッケージに対して
+責任が問われる作業。
+\item スポンサーはパッケージのチェック等を行ったりパッケージ内容に対して助言をす
+る（mentor）。 
+\item このパッケージチェックの過程は DD や DMになる場合に優位に働く場合がある、
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{スポンサーアップロードするときに確認する内容}
+
+\begin{itemize}
+\item パッケージメンテナに「アップロードして！」と言われてすぐにアップロードできるものではない。 
+\item スポンサーはアップロードするパッケージメンテナとパッケージを
+確認する必要があります。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{パッケージをチェックする前のチェック}
+
+スポンサーをするパッケージメンテナの方に以下の内容を確認しています。
+
+\begin{itemize}[<+->]
+\item Web of Trust（WOT） に入っているか。
+\item DDやDMへの意欲はあるか。
+\item Debian 新メンテナーガイドを読んだか。
+\item DFSG を読んだか。
+\item Debian Policy を読んだか。
+\item Debian Reference を読んだか。
+\end{itemize}
+
+%これ以外にも、たまに誰もスポンサーする人がいないようなのでスポンサーする場合があります。
+\end{frame}
+
+\begin{frame}{パッケージのチェック}
+
+\begin{itemize}[<+->]
+
+\item ライセンスの確認
+
+ソフトウェアのライセンスがDFSGに合致するライセンスか、ライセンスが debian/copuright に書かれているか確認します。
+この確認には devscripts パッケージに含まれる licensecheck を使うことが多いです。
+
+\item orig.tar.gz の確認
+
+オリジナルのtarボールと一緒か、オリジナルのソースコードに
+変な改変をしていないかを確認します。
+
+\item 最新のパッケージングのルールに合っているかの確認。
+
+例えば、使っているプログラミング言語向けのパッケージングサポートツールが新しくなっていたり、
+パッケージングポリシーが決まっている場合があります。できるだけ新しいパッケージングのルールに
+合わせるようにします。
+
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{パッケージのチェック}
+
+\begin{itemize}[<+->]
+
+
+\item debian/control ファイルの確認
+
+依存関係、パッケージの説明、各セクションの確認を行います。
+
+\item debian/rules の確認
+
+シンプルな構成になっているか、ポリシーに違反していないかの確認。
+
+\item pbuilder を使ったパッケージビルドの確認
+
+pbuilder / cowbuilder /  sbuilder を使って、最新unstable ディストリビューションでパッケージがビルドできるか確認します。
+lintian によるチェックや、ビルドに必要なパッケージが依存関係から漏れていないか
+確認することができます。
+
+\item lintianを使ったポリシーとパッケージングミスの確認
+
+パッケージが Debian ポリシー に準拠しているか簡単に確認するには
+lintian\footnote{\url{http://packages.qa.debian.org/l/lintian.html}} を使います。
+これはDebian ポリシー の他に Debian パッケージのよくある間違いに関してチェックしてくれます。
+
+
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{パッケージのチェック}
+
+\begin{itemize}[<+->]
+
+
+\item メンテナスクリプト(preinst、postinst、prerm、postrm、コンフィグ)の確認
+\item オリジナルの tar ボールとの差分の確認
+
+diff.gz の内容を確認します。
+作成されたパッチは上流開発者に送ってあるか、パッチはDEP3
+\footnote{\url{http://dep.debian.net/deps/dep3/}}
+に対応しているか、確認します。
+
+\item パッケージのインストール、アンインストールの確認
+
+パッケージはできても、インストールできない場合やアンインストールできない場合があります。
+またパッケージが動作しない場合もあります。このような問題
+がないか確認するために、
+piuparts\footnote{\url{http://packages.qa.debian.org/p/piuparts.html}} を使ってインストール、アンインストールのチェックと、実際にインストールしてみて動作するか確認をします。
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}{その他}
+その他、スポンサーによっては以下のような理由でスポンサーしてくれない場合があるようです。
+注意しましょう。
+
+\begin{itemize}
+
+\item スポンサーをUploaderに入れることを要求される場合がある。
+\item パッケージング用のツールを要求される場合がある。
+\item \url{http://mentors.debian.net} を使わない場合はスポンサーをしない。
+\item 自分の知らないプログラミング言語で書かれたパッケージはスポンサーをしない。
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+
+また、\url{http://wiki.debian.org/SponsorChecklist}
+に実際にスポンサーしている人の方針が纏められています。
+\end{frame}
+
+\begin{frame}{アップロード}
+アップロードには、dput や dupload パッケージを使います。
+実装が異なるだけで、基本的な機能は揃っているのでどちらでも使い方は同じです。
+\end{frame}
+
+\begin{frame}{まとめ}
+以上のようにスポンサーになることはとても大変なので、メンテナの方はさっさとDMかDDがになりましょう。
+\end{frame}
+
+
 \emtext{Debconf 11 レポート}
+
+\begin{frame}{開催場所}
+\begin{itemize}
+\item 開催場所は ボスニア・ヘルツェゴビナのバニャルカ州。
+\item 日本から直行便がないので、周辺の国でトランジットしてクロアチア経由で入国。
+\item 所要時間は約15時間。
+\item バニャルカ州の完全サポート。
+\item 参加者は約400名。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{会場}
+
+会場は、バニャ・ルカの施設であるBanski Dvor カルチャーセンターで行われ
+た。会場内で使用された施設は以下の通りである。
+
+\includegraphics[width=0.8\hsize]{image201108/debconf11_venue1.jpg}
+\end{frame}
+
+\begin{frame}{会場}
+\includegraphics[width=0.8\hsize]{image201108/debconf11_venue2.jpg}
+\end{frame}
+
+\begin{frame}{Auditorium} 
+メイン用。400人ほど入ることができる。\\
+\includegraphics[width=0.8\hsize]{image201108/debconf11_main.jpg}
+\end{frame}
+
+\begin{frame}{Round room} 
+サブ会場。50人ほど入ることができる。\\
+\includegraphics[width=0.8\hsize]{image201108/debconf11_room2.jpg}
+\end{frame}
+
+\begin{frame}{meeting room}
+BOF 用。30人ほど入ることができる。
+\includegraphics[width=0.8\hsize]{image201108/debconf11_meetingroom.jpg}
+\end{frame}
+
+\begin{frame}{Hacklab1}
+Hacklab はハック専用の部屋。\\
+\includegraphics[width=0.8\hsize]{image201108/debconf11_hacklab1.jpg}
+\end{frame}
+
+
+\begin{frame}{Hacklab2}
+\includegraphics[width=0.8\hsize]{image201108/debconf11_hacklab2.jpg}
+\end{frame}
+
+
+\begin{frame}{スケジュール}
+
+24日のDebian Day で Debian Conference は開幕し、30日まで毎日いろいろな予
+定が組まれた。
+27日だけはカンファレンス参加者で Day Trip を実施した。
+
+\end{frame}
+
+\begin{frame}{主となった議論}
+
+\begin{itemize}
+\item multiarch のサポート
+\item クロスコンパイルパッケージのサポート体制をどうするかの議論
+\item Debian ブートストラップシステム
+\item FTP master チームによる New queue 0 宣言
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{次回のDebconf}
+
+次回は北米のXXXである。
+
+\end{frame}
+
+
 
 \emtext{今後のイベント}
 \begin{frame}{今後のイベント}
