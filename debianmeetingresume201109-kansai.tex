@@ -205,7 +205,172 @@ State: installed
 
 \clearpage
 %------------------------------------------------------------------------------
-\dancersection{vcs-buildpackage $\sim$bzrの場合$\sim$}{山下尊也さん}
+\dancersection{vcs-buildpackage $\sim$bzrの場合$\sim$}{山下尊也}
+
+\subsection{はじめに}
+
+あなたは、vcs を使っていますか？
+分散型バージョン管理システムが注目されるようになった頃から、
+Linuxカーネルなどでも用いられており、開発スピードの早いGitを使っている方
+が多い気がします。
+はてなブックマーク\footnote{\url{http://b.hatena.ne.jp/}}などを見ていて
+も、上位の記事になるのはGitばかりで、Bazaar使いとしてはとても悲しくなります。
+
+私は、日々様々なファイルを扱っていますが、それらは Bazaar(bzr:バザー) を
+使って管理しています\footnote{Bazaarを用いるようになった理由は、ファイル名が
+Unicode 文字列で管理されていたからです。}。
+そのためか、パッケージもBazaarを用いて管理していましたが、最初のうちは
+適当に自分のリポジトリを作成し管理していました。
+なんだか無理やりパッケージの管理をしていたため、他の手法を探していると、
+bzr-builddeb があったので、それ以来bzr-builddebを使って管理しています。
+
+\subsection{bzr-builddebの基本}
+
+まずは、パッケージのインストールをしてみましょう。
+
+\begin{commandline}
+ $ sudo aptitude update
+ $ sudo aptitude install bzr-builddeb
+\end{commandline}
+
+lenny では 0.95、squeeze では 2.4.2、sid では 2.7.8がインストール
+されます。
+
+\begin{commandline}
+ $ dpkg -L bzr-builddeb  | grep bin
+/usr/bin
+/usr/bin/bzr-buildpackage
+ $ bzr-buildpackage --help
+Purpose: Builds a Debian package from a branch.
+Usage:   bzr builddeb [BRANCH_OR_BUILD_OPTIONS...]
+
+Options:
+...[snip]
+\end{commandline}
+
+ヘルプに書かれている通り、ブランチからDebianパッケージを生成することを目
+的としたコマンドです。
+
+\subsection{bzr-builddebで選択できるモード}
+
+bzr-buildpackageでは、さまざまなモードがあらかじめ用意されています。
+パッケージのメンテナが使いたいスタイルに応じて、モードを選択することがで
+きます。
+
+\begin{figure}
+ \begin{center}
+  \includegraphics[width=0.7\hsize]{image201109/bzr-builddeb-selectmode.eps}
+ \end{center}
+ \caption{bzr-builddebでのモードの選択}
+ \label{bzr-select-mode}
+\end{figure}
+
+\fgref{bzr-select-mode}に示すのは、メンテナのスタイルに応じた
+モードの選択肢です。
+
+\begin{description}
+ \item[Q1] 管理したいパッケージは
+	    native package\footnote{Debian固有のパッケージ。また
+	    は、ローカルでの使用のためだけに、メンテナンスしているソース
+	    ファイルを含むパッケージ。例えば、debootstrapや
+	    debian-el,debian-archive-keyringなど}ですか？
+ \item[Q2] あなたがアップストリームメンテナーか？
+ \item[Q3] debian/ ディレクトリ以下だけを保管したいのか？
+ \item[Q4] パッケージ作業するときに、ブランチを分けて作業したいか？
+\end{description}
+
+\subsection{Normal modeを用いたパッケージの管理}
+
+
+
+\subsection{Merge modeを用いたパッケージの管理}
+
+Merge modeはNormal modeに比べて少し複雑な作業が必要になってきます。
+コマンドなども整備されていませんが、debianディレクトリ以下だけを
+リポジトリに管理することができるため、同じようなファイルが散らばらないと
+いう利点もあります。
+また、共同で作業するときなどは、ファイルサイズを抑えることができます。
+
+\begin{commandline}
+ $ mkdir ~/src-debian/
+ $ bzr init-repo ~/src-debian/twittering-mode
+ $ cd ~/src-debian/twittering-mode
+ $ bzr init unstable
+ $ cd unstable
+ $ mkdir .bzr-builddeb/
+ $ echo -e '[BUILDDEB]\nmerge = True' > .bzr-builddeb/default.conf
+ $ bzr add .bzr-builddeb/default.conf
+\end{commandline}
+
+本来、アップストリームから新しいバージョンが出た際は、\verb|uupdate|を用います
+が、\verb|bzr-buildpackage| では対応していないため、
+バージョン番号を指定してあげる必要があります。
+\footnote{uupdateすると、ファイルが展開され、debianディレクトリがコピー
+され、新しいバージョンへと、changelogなどが更新されます。しかし、Merge
+modeでは、debianディレクトリを別の場所で管理しているため、Bazaarの履歴が
+受け継がれません。}
+
+\begin{commandline}
+ $ dch -v 2.0.0+git20110905-1
+[snip]
+ $ bzr builddeb
+ $ ../dput debexpo twittering-mode_2.0.0+git20110905-1_amd64.changes
+ $ bzr ci -m "New upstream version 2.0.0+git20110905"
+\end{commandline}
+
+処理を見ると、
+\verb&~/src-debian/twittering-mode/build-area&
+にて \verb|debuild| の作業が行われています。
+
+また、backports向けにパッケージを作る際は、backports専用のbranchを
+作成して、そこで作業しています。
+
+\begin{commandline}
+ $ cd ~/src-debian/twittering-mode
+ $ bzr branch unstable bpo
+ $ cd bpo
+ $ bzr bd-do "dch --bpo"
+[snip]
+ $ bzr builddeb
+[snip]
+ $ ls -1 ../*bpo*
+../auto-install-el_1.53-1~bpo60+1.debian.tar.gz
+../auto-install-el_1.53-1~bpo60+1.dsc
+../auto-install-el_1.53-1~bpo60+1_all.deb
+../auto-install-el_1.53-1~bpo60+1_amd64.build
+../auto-install-el_1.53-1~bpo60+1_amd64.changes
+\end{commandline}
+
+既存のパッケージをMerge modeに移行する場合は、
+リポジトリを作成し、debianディレクトリをコピーすれば良いでしょう。
+
+\begin{commandline}
+ $ mkdir ~/src-debian/
+ $ bzr init-repo ~/src-debian/twittering-mode
+ $ cd ~/src-debian/twittering-mode
+
+ $ apt-get source twittering-mode
+
+ $ bzr init unstable
+
+ $ cp -r twittering-mode-2.0.0+git20110905/debian ~/src-debian/twittering-mode/unstable
+
+ $ cd unstable
+ $ mkdir .bzr-builddeb/
+ $ echo -e '[BUILDDEB]\nmerge = True' > .bzr-builddeb/default.conf
+ $ bzr add .bzr-builddeb/default.conf
+
+ $ bzr add .
+ $ bzr ci -m "initial commit"
+ $ bzr builddeb
+\end{commandline}
+
+
+\verb|bzr bd-do|を使うと、build-area
+に一時的にコピーを行い、\verb|dpatch| などのコマンドを使用することができ
+るようです\footnote{未検証}。
+
+
 
 
 \clearpage
