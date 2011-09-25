@@ -638,10 +638,405 @@ Merge modeはNormal modeに比べて少し複雑な作業が必要になってきます。
  $ debuild -rfakeroot -us -uc
  $ bzr bd -- -us -uc
 \end{commandline}
-
+%$
 \clearpage
 %------------------------------------------------------------------------------
 \dancersection{vcs-buildpackage $\sim$Gitの場合(again)$\sim$}{佐々木洋平さん}
+
+
+
+\subsection*{はじめに}
+\label{sec-1}
+\subsubsection*{話の枕}
+\label{sec-1-1}
+
+
+山下さんの bzr 編に引い続き、
+ここでは佐々木が Git を用いて
+Debian パッケージを作成する場合についてまとめます。
+前々回(2011年06月, 第48回)でも \texttt{git-buildpackage}
+について(簡単に)触れましたが、
+その後ちゃんと調べたら、幾つかコマンドが新しく追加されていたりしました。
+ですので、前々回の復習も兼ねて
+「Git を使って Debian パッケージを作成/管理するお話」をしてみたいと思います。
+\subsubsection*{前提とする知識と目的}
+\label{sec-1-2}
+
+
+とはいえ、パッケージング全てについて触れる事はできませんので、ここでは
+\begin{itemize}
+\item source package についてのある程度の知識
+\item Git に関して, 特に tag と branch についてのある程度の知識
+\end{itemize}
+があることを前提としています。
+最後に参考文献していますので、
+適宜参照して下さい、もしくは質問して下さい。
+
+\subsubsection*{パッケージ作成作業(復習)}
+\label{sec-1-3}
+
+通常、パッケージ作成は
+
+\begin{enumerate}
+\item upstream のソースを取得
+\item (場合によっては) non-free な部分を除いたりして、
+\item \texttt{./debian} ディレクトリ以下を作成/更新して、
+\item 場合によっては upstream のソースにパッチを当てて、
+\item ソース/バイナリ パッケージをビルド
+\end{enumerate}
+
+という事を行ないます。これらの作業を VCS で管理します。
+
+\subsubsection*{典型的なリポジトリレイアウト}
+\label{sec-1-4}
+
+前回お話した \texttt{git-import-dsc} で
+既存のソースパッケージを import したり、
+\texttt{debcheckout} で Git で管理されているパッケージを
+checkout すると、
+多くの場合、リポジトリは以下の様になります。
+\begin{commandline}
+  $ git branch
+  * master             <-- debian/ 入りのフルソース
+    pristine-tar       <-- orig.tar.{gz,bz2} のバイナリデルタ
+    upstream           <-- debian/ 無し(upstream)のソース
+\end{commandline}
+%$
+ここで \texttt{git-buildpackage} を実行すると、
+パッケージのビルドが始まります。
+今日は\textbf{この状態に持って行くまで}の話にフォーカスしてみます。
+
+\subsection*{upstream ソースを import するには?}
+\label{sec-2}
+\subsubsection*{upstream ソースを import するには?}
+\label{sec-2-1}
+
+upstream のソースを持ってきて、
+Git リポジトリを作成することを考えると、
+\begin{itemize}
+\item simple な場合
+  \begin{enumerate}
+  \item tarball を展開して import
+  \item upstream の VCS を import
+  \end{enumerate}
+\item 調整が必要な場合
+  \begin{itemize}
+  \item non-dfsg-free な部分を削除してから import
+  \end{itemize}
+\end{itemize}
+...でしょうか?
+
+注意すべきは \texttt{pristiner-tar} を用いること、です。
+
+\subsubsection*{pristine-tar ?}
+\label{sec-2-2}
+
+gzip の圧縮率の違いなどから、
+\texttt{upstream}ブランチから生成された .tar.gz は upstream の配布物と異なる事があります。
+\texttt{pristine-tar} によって、
+upstream の tarball を import する際にバイナリデルタを保存しておくことで、
+\texttt{upstream} ブランチから tarball(\texttt{.orig.tar.gz}) を生成する際に、
+checksum の等しい tarball を生成することができます。
+
+このバイナリデルタは \texttt{pristine-tar} ブランチに保存されます。
+もし忘れた場合には
+\begin{commandline}
+  $ pristine-tar commit foobar.tar.gz [upstream の tag]
+  $ pristine-tar checkout ../foobar.tar.gz
+\end{commandline}
+の様にして後からコミットできますが、
+最初に import する際に忘れずにバイナリデルタを保存しておくのが良いでしょう。
+\texttt{git-import-orig} コマンドにはオプションとして \texttt{--pristine-tar}があります。
+ごく稀に上手くバイナリデルタを生成できない tarball がある(らしい)ですが...
+
+\subsubsection*{upstream の VCS から import する}
+\label{sec-2-3}
+
+注意すべきは \textbf{tarballも必ず import すること} でしょうか?
+これは、履歴とともにバイナリデルタを保持するために必要な作業です。
+
+また、リリースされている tarball は Tag が打たれている(もしくはそれに類するコミットがある)ハズなので、
+履歴を適宜修正すると upstream のコミットを patch として管理しやすくなります。
+
+\subsubsection*{upstream の VCS から import する(1)}
+\label{sec-2-4}
+
+幸運にも upstream が Git だったら
+
+\begin{commandline}
+$ git remote add upstream-repos [url]
+$ git fetch upstream-repos
+$ git co upstream && git merge upstream-repos
+\end{commandline}
+%$
+で ok です。
+
+\subsubsection*{upstream の VCS から import する(2)}
+\label{sec-2-5}
+
+Subversion の場合は \texttt{git-svn} を用います。
+毎度 rebase しながら作業することになるので、大変面倒ですが...%
+\footnote{もっと良い方法ありませんかね?}
+
+\begin{itemize}
+\item Subversion: 初回
+\end{itemize}
+\begin{commandline}
+$ git-svn init [url]
+$ git svn fetch
+$ git log ref/remotes/git-svn
+$ git checkout -b upstream refs/remotes/git-svn
+$ git push origin upstream:upstream
+\end{commandline}
+%$
+\begin{itemize}
+\item Subversion: 二回目以降
+\end{itemize}
+\begin{commandline}
+$ git config --remove-section svn-remote.svn 1>/dev/null 2>&1
+$ git svn init [url]
+$ git show-ref origin/upstream > \
+   `git rev-parse-git-dir`/refs/remotes/git-svn
+\end{commandline}
+%$
+
+\subsubsection*{tarball を import するツール}
+
+以下では, tarball を import するコマンド群についてまとめておきます。
+
+\label{sec-2-6}
+\paragraph{\texttt{git-import-orig}}
+\label{sec-2-6-1}
+\begin{itemize}
+\item \texttt{git-buildpackage} パッケージで提供
+  \begin{itemize}
+  \item simple に tarball を import
+  \item (Optionつければ) pristine-tar も実行
+  \item (あれば)現状の master ブランチへ自動で merge して
+  \item タグも打ってくれる
+  \end{itemize}
+\item 一番 simple
+  \begin{itemize}
+  \item 必要な事は全てやってくれるので, これで十分な事が多い。
+  \end{itemize}
+\end{itemize}
+\label{sec-2-6-2}
+
+\label{sec-2-7}
+\paragraph{\texttt{git-dpm import-new-upstream}}
+\label{sec-2-7-1}
+
+\begin{itemize}
+\item \texttt{git-dpm}: git Debian package manager
+\item 動作は git-import-orig とほぼ同じ
+\item VCS の履歴との対応や \texttt{patch-queue}ブランチ(後述)の生成/管理もしてくれる
+\end{itemize}
+
+\subsubsection*{調整が必要な場合(1)}
+\label{sec-2-8}
+
+upstream の配布物に non-dfsg-free な部分があったりして調整が必要な場合は
+\begin{itemize}
+\item upstream ブランチで non-dfsg-free な部分を削除/調整
+\item new upstream version として merge/commit
+\item tarball として repack した後に import/タグ打ち
+\end{itemize}
+なんて事をします。例えば
+
+\begin{commandline}
+$ git checkout upstream
+$ git merge -s recursive -X theirs [upstream tag]
+\end{commandline}
+
+もしくは
+
+\begin{commandline}
+$ git status -s | egrep '^(DU|UA| U|UD)' | cut -c4- | \
+    xargs git rm --ignore-unmatch DUMMY$$
+$ git commit
+\end{commandline}
+
+とか?
+
+uscan に repack 用の hook script を使っているなら、それを実行したのち
+tarball として import する、の方が楽かもしれません。
+
+
+\subsection*{\texttt{./debian} をガシガシ書く/修正する}
+\label{sec-3}
+
+まあこれは良いですよね?
+\begin{commandline}
+  $ git branch
+  * master
+    pristine-tar
+    upstream
+\end{commandline}
+%$
+
+\begin{itemize}
+\item upstream のソースは全て Git リポジトリの\texttt{upstream} ブランチ
+\item \texttt{./debian} での変更は \texttt{master} ブランチで
+  \begin{itemize}
+  \item 全ての変更は \texttt{master} 内で行なう
+  \item 何をしたのかは \texttt{git log} で容易に追跡できる
+  \item patch も作成しやすい
+  \end{itemize}
+\end{itemize}
+となります。Happy Hacking!!
+
+\subsection*{patch を扱うには?}
+
+source format 3.0 (quilt) では、
+upstream への変更点を {\tt{quilt}} を用いてパッチで管理します。
+
+\label{sec-4}
+\subsubsection*{単純な方法}
+\label{sec-4-1}
+
+Git の事は忘れて quilt だけでパッチを作成
+(もしくは debuild が走った際にパッチとして抽出)する、です。
+
+複雑な事は何もありませんが、VCS の恩恵を受けることもありません。
+
+\subsubsection*{git を使う場合(1)}
+\label{sec-4-2}
+
+逆に quilt を忘れて Git だけで patch を管理する方法です。
+debuild 等で patch を生成し, {./debian/patches/} 以下を
+git で管理します。
+%
+まあ VCS っぽく管理するなら
+1 パッチ/1コミットとして手動で管理するのでしょうか?
+%
+\subsubsection*{patch ブランチで}
+\label{sec-4-3}
+
+パッチ\textbf{だけ}を track するための branch を用意して、
+1パッチ/1ブランチ or 1パッチ/1コミットとして管理します。
+注意すべきは
+\begin{itemize}
+\item quilt への export を行なうには
+  コミット履歴が\textbf{綺麗}でないといけない
+  \begin{itemize}
+  \item 1 パッチ/1コミット
+  \item squash !! squash !! squash !!
+  \end{itemize}
+\item 今のところ 1-way rebase なので、upstream の更新をする度に
+  作業が必要。
+\end{itemize}
+
+以下, 幾つかのコマンドについて述べます。
+
+\label{sec-4-5}
+\paragraph{topgit: a Git patch queue manager}
+\label{sec-4-5-1}
+
+\begin{itemize}
+\item コミット履歴をブランチで管理
+\item パッチ間の依存関係も管理
+\item 便利だけど, やりすぎな気もしないでもない
+\item \texttt{patch-queue} ブランチから quilt へ export したパッチは
+  \texttt{master} ブランチにコミットしておく必要がある
+\end{itemize}
+
+\paragraph{gbp-pq}
+\label{sec-4-7-1}
+
+\begin{itemize}
+\item \texttt{git-buildpackage} で提供
+\item \texttt{git format-patch} の wrapper
+\item 1パッチ/1コミット, として patch を生成/取り込み
+\item \texttt{master} を rebase して使う
+\end{itemize}
+\label{sec-4-7-2}
+\begin{commandline}
+$ git checkout master ; git branch -D patch-queue
+$ quilt pop -a
+$ gbp-pq import
+ ... 作業 ...
+$ git checkout master ; gbp-pq export
+\end{commandline}
+
+\paragraph{git-dpm}
+\label{sec-4-8-1}
+
+\begin{itemize}
+\item パッチは一つのブランチで管理
+\item 1パッチ/1コミット
+\item パッチは \texttt{master} ブランチに merge されたままで管理
+\item パッチが当たった \texttt{upstream} ブランチを rebase
+\item プライベートブランチの SHA1 ハッシュを
+      \texttt{./debian/.git-dpm} に保存
+\end{itemize}
+\label{sec-4-9}
+\paragraph{gitpkg の quilt export hook}
+\label{sec-4-9-1}
+
+\begin{itemize}
+\item 1パッチ/1コミット, などという制限は無い
+\item \texttt{debian/source/git-patches} に設定を書く
+\end{itemize}
+    \begin{commandline}
+    upstream/[UPSTREAM_REF]...patche-queue1/[DEBIAN_REF1]
+    upstream/[UPSTREAM_REF2]...topic1/[DEBIAN_REF2]
+    \end{commandline}
+\begin{itemize}
+\item パッチはコミットされない
+\item tag は再生成される
+\end{itemize}
+
+\subsection*{source package の生成}
+\label{sec-5}
+
+\label{sec-5-1}
+\paragraph{git-dpm}
+\label{sec-5-1-1}
+
+\begin{itemize}
+\item ビルド用の特定のコマンドは無い(\texttt{dpkg-source -b} とか)
+\end{itemize}
+\paragraph{gitpkg}
+\label{sec-5-1-2}
+
+\begin{itemize}
+\item pristine-tar, \texttt{upstream} ブランチから tarball を生成し
+      source package をビルド
+\end{itemize}
+\paragraph{git-buildpackage}
+\label{sec-5-1-3}
+
+\begin{itemize}
+\item default. バイナリパッケージも作成する
+\item \texttt{git-pbuilder}: pbuilder/cowbuilder を呼び出せる
+\item タグを打ったり.
+\end{itemize}
+\subsection*{まとめ(?)}
+\label{sec-6}
+
+いろいろコマンドが増えてきましたが、結局のところ
+\texttt{git-buildpackage} が一番簡単/便利/移行コストも低い、
+という印象です。workflow が他の vcs-buildpackage と似ているから、
+でしょうか。
+
+また git-dpm/gitpkg は
+workflow/patch-queue の自由度は高い(けれど, 複雑になりがち)、
+な印象を受けます。
+
+git-dpm パッケージは提供するコマンドが多くて、
+\begin{itemize}
+  \item コマンドが多くて, ちょっと敷居が高い(かも)
+  \item 一番「git らしく」作業できる(らしい)
+\end{itemize}
+ですね。また、
+\begin{itemize}
+\item gitpkg
+  \begin{itemize}
+  \item hook での拡張/カスタマイズが容易.
+  \item リポジトリのレイアウトも固定されていない
+  \end{itemize}
+\end{itemize}
+です。
 
 
 \clearpage
@@ -662,8 +1057,10 @@ Merge modeはNormal modeに比べて少し複雑な作業が必要になってきます。
 
 % 冊子にするために, 4 の倍数にする必要がある.
 % そのための調整
-%\dancersection{メモ}{}
-%\mbox{}\newpage
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+\mbox{}\newpage
 
 \printindex
 % \cleartooddpage
