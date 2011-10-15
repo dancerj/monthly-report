@@ -49,7 +49,7 @@
 \hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
 
 % ここはアップデートすること
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集1: XXXX}}
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集1: HaskellとDebianの辛くて甘い関係}}
 
 \rotatebox{10}{\fontsize{32}{32} {\gt 特集2: YYYY}}
 
@@ -140,9 +140,615 @@
 \end{multicols}
 
 %-------------------------------------------------------------------------------
-\dancersection{XXXX}{上川純一}
+\dancersection{HaskellとDebianの辛くて甘い関係}{岡部究}
 %-------------------------------------------------------------------------------
-\index{hoge}
+\index{haskell}
+
+\subsection{Haskellというプログラミング言語}
+
+Haskell \footnote{\url{http://haskell.org/}}
+というプログラミング言語をご存知でしょうか。
+Haskellは関数型言語の一種で以下のような特徴があります。
+(以下の意見はHaskell初心者である筆者の偏見や間違いを多量に含んでいます)
+
+\begin{itemize}
+\item 静的型付け
+
+暗黙の型変換とかそんなことは起きません。
+また多くのエラーをコンパイル時に検出することができます。
+Haskellでプログラミングをしていると視野角が狭くなる気分になると思います。
+型で守られることによって「考慮に入れておくべき前提」のコード範囲が小さくなり、
+そしてインターフェイスに用いている型について「本当にこれがふさわしいのか？」
+と考えることになります。
+もっと簡単に言うと「型による設計」をHaskellでは行ないます。
+
+\item 型推論
+
+型をすべて書く必要がないという利点もありますが、
+型推論がないと綺麗に表現できないこともあります。
+個人的には、関数自体には型を書いて、関数の内部での型は省略することが行儀が
+良いと思います。
+
+\item パターンマッチ
+
+ifやcase文で場合分けを記述するよりもはるかに柔軟な場合分けができます。
+アルゴリズムの記述とはある種場合分けの繰り返しとも言えるので、
+この場合分けを型で記述できると、わかりやすく簡潔になります。
+
+\item 遅延評価
+
+諸刃の剣ですが、無限リストを作れたり、破壊的なデータ構造を用いなくても計算量を
+少なくすることができます。
+正格性フラグを使うことで遅延評価を部分ごとに抑制することもできます。
+
+\item コンパイルして実行
+
+ローカルでコンパイルすれば、配布先にはHaskellがインストールされていなくても
+OKです。要は単なる実行バイナリになります。
+またrunhaskellコマンドでコンパイルせずに実行することもできます。
+
+\item 読みやすく、書きやすい文法
+
+本当です!
+もし型を使っても不足なケースではTemplate Haskell
+\footnote{\url{http://www.kotha.net/ghcguide_ja/latest/template-haskell.html}}
+を使えばコンパイル時にメタプログラミングをすることもできます。
+個人的には見た目があまりにかわりすぎてしまうので、邪悪なのではないかと
+思っていますが。。。まぁ使いどころに気をつけましょう。
+
+\end{itemize}
+
+どうでしょう。わくわくしますよね!
+さっそく使ってみましょう。なぁにDebianなら簡単です。
+haskell-platformパッケージをインストールすればHaskellコンパイラであるghcと
+その基本ライブラリ群が使えるようになります。
+Rubyのirbコマンドや、Pythonのpythonコマンドに似たghciコマンドという
+インタラクティブなHaskell評価コマンドも使えるようになります。
+
+\begin{commandline}
+# Debian sidを使っていることを前提にしています
+$ sudo apt-get install haskell-platform
+$ rehash
+$ ghci
+GHCi, version 7.0.4: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Prelude> print $ fmap (foldr (++) "" . flip replicate "hoge") [1..3]
+["hoge","hogehoge","hogehogehoge"]
+\end{commandline}
+
+\subsection{cabalによるパッケージ管理}
+
+先程インストールしたhaskell-platformというのはHaskell言語における
+標準ライブラリで、GUIフレームワークとかWebアプリケーションフレームワーク
+などは入っていません。(OpenGLはなぜか入ってますけれど)
+それじゃあHaskellで書かれた最新のライブラリやプログラムを使おう、
+と思いますよね。
+Haskellで書かれたプログラムの多くはHackage
+\footnote{\url{http://hackage.haskell.org/}}
+というサイトに登録されています。
+そう。PerlのCPANや、RubyのgemにあたるものがHaskellにも用意されているのです。
+
+一個ずつtar玉をダウンロードしてコンパイルするのでしょうか？
+いいえ大丈夫です。cabal
+\footnote{\url{http://www.haskell.org/cabal/} 正確なプログラム名はcabal-install。Cabalはライブラリの名前。ちょっとややこしいです。}
+というコマンドがあります。
+このcabalコマンドはHackageの依存関係を考えて所望のプログラムを
+インストールできるすぐれものです。
+
+Debianの場合以下の手順で任意のHackageをインストールできます。
+
+\begin{commandline}
+$ sudo apt-get install cabal-install # haskell-platformをインストールすれば自動でインストールされるので本当は不要です
+$ rehash
+$ cabal update
+$ cabal install パッケージ名
+\end{commandline}
+
+\subsection{でもcabalには色々不都合が、、、}
+
+もしcabalコマンドを長期にわたって使ったことがある方であれば体験していると
+思うのですが、cabalコマンドはパッケージのインストールはできてもパッケージの更新
+をすることができません。
+
+Rubyのgemを思い出してみましょう。
+
+\begin{commandline}
+$ sudo gem update
+$ sudo gem install earchquake
+# 月日は流れ、、、そしてある日、、、
+$ sudo gem update
+# これで以前インストールいしたearchquakeパッケージは依存ライブラリを含めて最新版になるはず
+\end{commandline}
+
+ところがcabalの場合、筆者は以下のような不具合によく直面していました。
+
+\begin{commandline}
+$ cabal update # これはローカルのHackageデータベースを更新するだけ
+$ cabal install yesod
+# インストール完了
+# これで色々開発したりして、、、楽しい月日は流れる
+# 後日yesodを最新版に更新しようと思いたつ
+$ cabal upgrade
+cabal: Use the 'cabal install' command instead of 'cabal upgrade'.
+You can install the latest version of a package using 'cabal install'. The
+'cabal upgrade' command has been removed because people found it confusing and
+it often led to broken packages.
+If you want the old upgrade behaviour then use the install command with the
+--upgrade-dependencies flag (but check first with --dry-run to see what would
+happen). This will try to pick the latest versions of all dependencies, rather
+than the usual behaviour of trying to pick installed versions of all
+dependencies. If you do use --upgrade-dependencies, it is recommended that you
+do not upgrade core packages (e.g. by using appropriate --constraint= flags).
+# なにこれーーーーー
+$ cabal install yesod # しょうがない、必要なパッケージだけ更新しよう
+# なぜかyesodが動作しなかったり、そもそも依存関係をcabalが自動解決しない、、、
+# とりあえずcabalでインストールしたHackageを全部消そう。。。
+$ rm -rf ~/.ghc ~/.cabal
+$ cabal update
+$ cabal install yesod
+# さっきのyesodのバグが再現しない。ふつーに動いとる。なぜだーーー!？
+\end{commandline}
+
+あれれ。インストールした時は問題なかったの何が起きたのでしょう。
+どうやらこのような不具合が起きるのは筆者だけではなく、
+多くのHaskell開発者も同様のようです。
+どの開発者も本質的にはcabalの環境をマッサラ(rm -rf .cabal .ghc)にしてから再インストールして凌いでいるようです。。。
+
+\subsection{cabalをパッケージシステムとして使うことの問題点}
+
+どうしてこんなことが起きてしまうのでしょう？
+それはcabalのしくみとHackage作者達の文化に問題があります。
+
+\subsubsection{Hackage作成の文化的問題}
+
+まずは例としてyesodパッケージの情報を覗いてみましょう。
+
+\begin{commandline}
+$ cabal info yesod
+* yesod            (program and library)
+    Synopsis:      Creation of type-safe, RESTful web applications.
+    Versions available: 0.6.7, 0.7.2, 0.7.3, 0.8.0, 0.8.1, 0.8.2, 0.8.2.1,
+                        0.9.1, 0.9.1.1 (and 35 others)
+    Versions installed: [ Not installed ]
+    Homepage:      http://www.yesodweb.com/
+--snip--
+    Source repo:   git://github.com/yesodweb/yesod.git
+    Executables:   yesod
+    Flags:         ghc7
+    Dependencies:  yesod-core >=0.9.1.1 && <0.10, yesod-auth ==0.7.*,
+                   yesod-json ==0.2.*, yesod-persistent ==0.2.*,
+                   yesod-form ==0.3.*, monad-control ==0.2.*,
+                   transformers ==0.2.*, wai ==0.4.*, wai-extra >=0.4.1 && <0.5,
+                   hamlet ==0.10.*, shakespeare-js ==0.10.*,
+                   shakespeare-css ==0.10.*, warp ==0.4.*, blaze-html ==0.4.*,
+                   base >=4.3 && <5, base >=4 && <4.3, base >=4 && <4.3,
+                   base >=4.3 && <5, process -any, blaze-builder >=0.2 && <0.4,
+                   http-types >=0.6.1 && <0.7, attoparsec-text >=0.8.5 && <0.9,
+                   containers >=0.2 && <0.5, unix-compat >=0.2 && <0.4,
+                   Cabal >=1.8 && <1.13, directory >=1.0 && <1.2,
+                   template-haskell -any, time >=1.1.4 && <1.3,
+                   bytestring ==0.9.*, text ==0.11.*, parsec >=2.1 && <4
+    Cached:        No
+    Modules:
+        Yesod
+\end{commandline}
+
+まず見てとれるのが、''Versions available''行です。
+yesodパッケージはHackageDBに複数のバージョンが登録されているのがわかります。
+もう一つ気になるのは''Dependencies''行です。
+textやbytestringなどの基本的のパッケージに対してA.Bの桁までバージョンを指定しています。
+Debianパッケージのほとんどは、
+依存は同ソースパッケージから生成されたものについてはバージョン番号を完全に指定、
+他パッケージへの依存は下限バージョン指定、
+となっているのとは対照的です。
+
+このバージョン指定のポリシーはどこからやってきたかというと、
+Hackageのバージョン番号のポリシー文書
+\footnote{\url{http://www.haskell.org/haskellwiki/Package_versioning_policy}}
+からです。
+おおざっぱに引用すると以下のような規則です。
+Haskageのバージョン番号が仮にA.B.C.Xと表わされる場合、、、
+
+\begin{enumerate}
+ \item エントリの削除、エントリの型やデータ型定義やクラスの変更、インスタンスの追加/削除、importの変更、他パッケージの新たなバージョンへの依存。のような場合にはA.Bバージョンを上げるべき。
+ \item 上記に該当せず、新たなバインディング、型、クラス、モジュールがインターフェイスに追加された場合にはA.Bバージョンは同値のままでも良いがCバージョンを上げるべき。
+ \item そうでない場合、A.B.Cは同値のままでも良い。Xなどそれより桁が下のバージョンを上げるままでも良い。
+\end{enumerate}
+
+この規則を守ると、自分の依存しているHackageのAPIが削除されないように期待するためには''bytestring ==0.9.*''のように指定してくなるわけです。
+ところが、この指定方法によってcabalコマンドが依存関係の解決に混乱することがあるようです。
+
+\subsubsection{cabalの実装上の問題}
+先のHaskellImplementorsWorkshop/2011にて新しいcabalの依存解決のしくみが発表されました。
+\footnote{\url{http://www.haskell.org/haskellwiki/HaskellImplementorsWorkshop/2011/Loeh}}
+この中のスライド
+\footnote{\url{http://www.haskell.org/wikiupload/b/b4/HIW2011-Talk-Loeh.pdf}}
+で現状のcabalの問題点が説明されています。
+
+上記スライドから引用して説明します。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=10cm]{image201110/cabal-1.png}
+  \end{center}
+  \label{fig:cabal-1}\caption{Hackage DB上でB-1パッケージがAに依存している場合}
+\end{figure}
+
+まず上図のようにHackage DBでB-1パッケージがAパッケージに依存している場合を
+考えます。この時B-1はAのバージョンについて特に指定していないとします。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=10cm]{image201110/cabal-2.png}
+  \end{center}
+  \label{fig:cabal-2}\caption{B-1とA-1をインストール}
+\end{figure}
+
+このようなHackage DBからB-1をインストールするとAパッケージの最新バージョン
+であるA-1も一緒にインストールされます。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=10cm]{image201110/cabal-3.png}
+  \end{center}
+  \label{fig:cabal-3}\caption{そしてさらにB-1に依存したHackage群をインストール}
+\end{figure}
+
+そうして、このような環境にさらにC-1を含むB-1依存したHackage群をインストール
+します。ここで、Bに依存しているC-1はローカルではB-1に紐づけられています。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=10cm]{image201110/cabal-4.png}
+  \end{center}
+  \label{fig:cabal-4}\caption{A-2に依存しているD-1をインストールしようと試みる}
+\end{figure}
+
+ここでHackage DBからD-1をインストールしてみましょう。
+D-1はHackage DB上(上図右)ではA-2とB-1にバージョン指定で依存しています。
+ローカルにはA-1とB-1がインストールされています。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=10cm]{image201110/cabal-5.png}
+  \end{center}
+  \label{fig:cabal-5}\caption{cabalはD-1をインストールにあたってA-2もインストールしようとする}
+\end{figure}
+
+このままローカルにインストールされているA-1とB-1を無変更でD-1をインストール
+することはできません。そこで、cabalはインストール計画をたて、
+A-1のかわりにA-2をインストールしようとします。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=10cm]{image201110/cabal-6.png}
+  \end{center}
+  \label{fig:cabal-6}\caption{D-1は正常にインストールされたが、B-1に依存していたHackage群は依存が壊れてしまう}
+\end{figure}
+
+A-2,B-1,D-1についてcabalはインストール/更新を完了しました。
+しかし、B-1に依存していたHackageについては再コンパイルは行ないません。
+当然B-1に依存していたHackageは依存が壊れたまま放置されてしまうことになります。
+
+この問題は依存解決する際のインストール計画の際にバックトラックが行なわれない
+ためです。B-1を再インストールするのであれば、それに依存したHackage(C-1など)
+も再インストールすべきだったのです。
+もちろんHaskellコミュニティではこの問題を認識しており、その解決のために
+新しいソルバを実装しています。
+\footnote{\url{http://darcs.haskell.org/cabal-branches/cabal-modular-solver}}
+近い将来に本家cabalに取り込まれることでしょう。
+
+\subsubsection{Hackageが依存する環境についてcabalコマンドは面倒をみてくれない}
+
+cairo
+\footnote{\url{http://hackage.haskell.org/package/cairo}}
+のようにC言語に依存するHackageについてはcabalコマンドは面倒を見てくれません。
+Debianパッケージlibcairo2-devが入っていない環境で
+cairo Hackageをcabalコマンドを使ってインストールしようとしても、
+(当然)コンパイルエラーによってインストールに失敗します。
+
+そもそもDebianではHaskell以外の部分のパッケージはDebianパッケージ(deb)によって管理されています。
+cabalコマンドはOSに依存していないので、(当然)apt-getを呼び出すわけにもいきません。
+\footnote{\url{http://packages.debian.org/ja/sid/auto-apt}
+を使ってcabalコマンド実行の裏でDebianパッケージを自動インストールする手はあるかもしれませんね ;-)}
+
+\subsubsection{Hackage群全てを最新バージョンでインストールできないかもしれない}
+
+yesod \footnote{\url{http://hackage.haskell.org/package/yesod}}
+,hakyll \footnote{\url{http://hackage.haskell.org/package/hakyll}}
+,hamlet \footnote{\url{http://hackage.haskell.org/package/hamlet}}
+の3つのHackageを例に説明します。
+この問題はyesod-0.9.2, hakyll-3.2.0.8, hamlet-0.10.2のバージョン間で生じていました。(現在は解消されています)
+
+まずそれぞれのHackageについて依存を見てみましょう。
+
+\begin{commandline}
+$ cabal info yesod-0.9.2
+* yesod-0.9.2            (program and library)
+--snip--
+    Dependencies:  yesod-core >=0.9.1.1 && <0.10, yesod-auth ==0.7.*,
+--snip--
+                   hamlet ==0.10.*, shakespeare-js ==0.10.*,
+--snip--
+$ cabal info hakyll-3.2.0.8
+* hakyll-3.2.0.8           (library)
+--snip--
+    Dependencies:  base ==4.*, binary >=0.5 && <1.0, blaze-html >=0.4 && <0.6,
+--snip--
+                   filepath >=1.0 && <2.0, hamlet >=0.7 && <0.9,
+\end{commandline}
+
+あれ？yesod-0.9.2はhamlet-0.10.*に依存しているのにhakyll-3.2.0.8は
+hamlet-0.7.*もしくはhamlet-0.8.*に依存しています。
+確かに表面上問題はありません。この状態でもyesodとhakyllの両方をインストール
+することはできます。しかしもしhakyllとyesod両方のライブラリを使いたいプログラム
+を作りたくなった場合にはどうしたら良いのでしょう？
+hakyllはローカルでWebサーバを起動してプレビューする機能を持っています。
+たまたまhakyllはこのWebサーバのエンジンとしてsnap
+\footnote{\url{http://hackage.haskell.org/package/snap}}
+を使っていたから良かったもののyesodを使っていたら、古いyesodの機能
+しか使えないところです。
+
+どうしてこんな状態でHackageが放置されていたのでしょう？
+やる気がないのでしょうか？いえいえそんなことはありません。
+今度はhamletについて調べてみましょう。
+
+\begin{commandline}
+# hamlet-0.8.2.1のModuleリスト
+Text
+  Text.Cassius
+  Text.Coffee
+  Text.Hamlet
+    Text.Hamlet.NonPoly
+    Text.Hamlet.RT
+  Text.Julius
+  Text.Lucius
+  Text.Romeo
+  Text.Shakespeare
+
+# hamlet-0.9.0のModuleリスト
+Text
+  Text.Cassius
+  Text.Coffee
+  Text.Hamlet
+  Text.Julius
+  Text.Lucius
+  Text.Romeo
+  Text.Shakespeare
+\end{commandline}
+
+あれ？APIに変更があるようです。ここで注目したいのはText.Hamlet.RTモジュールが
+消滅していることです。
+嫌な予感がします。hakyllのソースコード
+\footnote{\url{https://github.com/jaspervdj/hakyll/blob/master/src/Hakyll/Web/Template/Read/Hamlet.hs}}
+を見てみましょう。
+
+\begin{commandline}
+-- | Read templates in the hamlet format
+--
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Hakyll.Web.Template.Read.Hamlet
+    ( readHamletTemplate
+    , readHamletTemplateWith
+    ) where
+
+import Text.Hamlet (HamletSettings, defaultHamletSettings)
+import Text.Hamlet.RT
+
+import Hakyll.Web.Template.Internal
+--snip--
+\end{commandline}
+
+あーhakyllのコンパイルにはText.Hamlet.RTモジュールが必須なんですね。
+これでは新しいhamletを使うことができない訳です。
+
+Hackage作者が自由に依存Hackageのバージョンを選択可能である以上、
+このようなHackage群全体の不整合は避けられません。
+
+\subsection{HackageをDebianパッケージ化する}
+
+cabalを使ってDebianパッケージと同等のレベルで
+パッケージ管理をするのは現状では難しいことがわかりました。
+それにapt-getでライブラリ環境が整うのはDebianユーザとしてうれしいですよね。
+そこで、自分の良く使うHackageはDebianパッケージ化してDebian本体に
+登録してしまうのはいかがでしょうか。
+実はHackageをDebianパッケージ化するのはすごく簡単です。
+cabal-debian \footnote{\url{http://hackage.haskell.org/package/debian}}
+というまんまの名前のコマンドがあります。
+さっそくやってみましょう!
+
+例題としてHCWiid
+\footnote{Wiiリモコンからイベントを拾うためのライブラリ
+  \url{http://hackage.haskell.org/package/hcwiid}}
+をDebianパッケージ化してみます。
+まずHackageのDebianパッケージ化に必要なhaskell-debian-utils,
+haskell-devscriptsをapt-get installしましょう。
+
+\begin{commandline}
+$ sudo apt-get install haskell-debian-utils haskell-devscripts
+$ rehash
+\end{commandline}
+
+hackageをダウンロードして解凍したら、ディレクトリに移動しておもむろにcabal-debianコマンドを使います。
+
+\begin{commandline}
+$ wget http://hackage.haskell.org/packages/archive/hcwiid/0.0.1/hcwiid-0.0.1.tar.gz
+$ tar xfz hcwiid-0.0.1.tar.gz
+$ cd hcwiid-0.0.1/
+$ cabal-debian --debianize --ghc --maintainer="Kiwamu Okabe <kiwamu@debian.or.jp>"
+$ ls debian
+changelog  compat  control  copyright  rules*
+$ debuild -rfakeroot -us -uc
+--snip--
+ dpkg-genchanges  >../haskell-hcwiid_0.0.1-1~hackage1_amd64.changes
+dpkg-genchanges: including full source code in upload
+ dpkg-source --after-build hcwiid-0.0.1
+dpkg-buildpackage: full upload; Debian-native package (full source is included)
+Now running lintian...
+W: haskell-hcwiid source: native-package-with-dash-version
+W: haskell-hcwiid source: out-of-date-standards-version 3.9.1 (current is 3.9.2)
+E: libghc-hcwiid-dev: copyright-file-contains-full-gpl-license
+E: libghc-hcwiid-dev: copyright-should-refer-to-common-license-file-for-lgpl
+E: libghc-hcwiid-dev: description-contains-tabs
+E: libghc-hcwiid-prof: copyright-file-contains-full-gpl-license
+E: libghc-hcwiid-prof: copyright-should-refer-to-common-license-file-for-lgpl
+E: libghc-hcwiid-prof: description-contains-tabs
+E: libghc-hcwiid-doc: copyright-file-contains-full-gpl-license
+E: libghc-hcwiid-doc: copyright-should-refer-to-common-license-file-for-lgpl
+E: libghc-hcwiid-doc: description-contains-tabs
+Finished running lintian.
+$ ls ../*hcwiid*deb
+../libghc-hcwiid-dev_0.0.1-1~hackage1_amd64.deb
+../libghc-hcwiid-doc_0.0.1-1~hackage1_all.deb
+../libghc-hcwiid-prof_0.0.1-1~hackage1_amd64.deb
+\end{commandline}
+
+なんかあっさりDebianパッケージができちゃいました。
+lintianがなんか言ってますが、
+あまり深刻なものではないのでとりあえずインストールしてみましょう。
+
+\begin{commandline}
+$ sudo dpkg -i ../libghc-hcwiid-dev_0.0.1-1\~hackage1_amd64.deb ../libghc-hcwiid-doc_0.0.1-1\~hackage1_all.deb ../libghc-hcwiid-prof_0.0.1-1\~hackage1_amd64.deb
+$ cd ~/
+$ rm -rf .ghc .cabal
+# これでcabalでインストールしたパッケージは一切使っていないはずです
+$ ghc-pkg list|grep hcwiid
+    hcwiid-0.0.1
+# Hackageはインストール済みのようです
+# hcwiidライブラリを使ってみましょう
+$ vi Test.hs
+module Main where
+
+import Prelude
+import Control.Monad
+import System.CWiid
+import System.Posix.Unistd
+
+main :: IO ()
+main = do
+  putStrLn "Put Wiimote in discoverable mode now (press 1+2)..."
+  (Just wm) <- cwiidOpen
+  putStrLn "found!"
+  _ <- cwiidSetLed wm
+  _ <- cwiidSetRptMode wm
+  _ <- forever $ do _ <- usleep 300000
+                    cwiidGetBtnState wm >>= print
+  return () -- not reach
+$ ghc --make Test.hs
+[1 of 1] Compiling Main             ( Test.hs, Test.o )
+Linking Test ...
+$ ./Test
+Put Wiimote in discoverable mode now (press 1+2)...
+\end{commandline}
+
+なんて簡単なんでしょう!簡単なHackageならcabal-debianコマンドを使えば
+Debianパッケージ化が完了してしまうようです。
+しかも下記3つのライブラリに分割してくれています。やった!
+
+\begin{itemize}
+ \item libghc-HOGE-dev  - 通常使用するライブラリ
+ \item libghc-HOGE-doc  - Haddockで生成されたAPIドキュメント
+ \item libghc-HOGE-prof - プロファイラ対応ライブラリ
+\end{itemize}
+
+\subsection{haskell-debian-utilsのしくみ}
+
+cabal-debianでのDebianパッケージ化はどのようなしくみなのでしょうか。
+さきほど作ったhcwiidパッケージのdebian/rulesファイルを見てみましょう。
+
+\begin{commandline}
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/hlibrary.mk
+
+# How to install an extra file into the documentation package
+#binary-fixup/libghc-hcwiid-doc::
+#       echo "Some informative text" > debian/libghc-hcwiid-doc/usr/share/doc/libghc-hcwiid-doc/AnExtraDocFile
+\end{commandline}
+
+なんということでしょう。内容がないです。。。
+これはhlibrary.mkファイルに秘密があるに相違ありません。
+全部を読まずにまずはlibghc-HOGE-devのbuildターゲットとその近辺をhlibrary.mk
+から抜き出してみましょう。
+
+\begin{commandline}
+DEB_SETUP_BIN_NAME ?= debian/hlibrary.setup
+BUILD_GHC := $(DEB_SETUP_BIN_NAME) build
+
+$(DEB_SETUP_BIN_NAME):
+        if test ! -e Setup.lhs -a ! -e Setup.hs; then echo "No setup script found!"; exit 1; fi
+        for setup in Setup.lhs Setup.hs; do if test -e $$setup; then ghc --make $$setup -o $(DEB_SETUP_BIN_NAME); \
+          exit 0; fi; done
+
+build/libghc-$(CABAL_PACKAGE)-prof build/libghc-$(CABAL_PACKAGE)-dev:: build-ghc-stamp
+
+build-ghc-stamp: dist-ghc
+        $(BUILD_GHC) --builddir=dist-ghc
+        touch build-ghc-stamp
+\end{commandline}
+
+なるほど。libghc-HOGE-devをbuildしようとすると、
+まずSetup.lhsもしくはSetup.hsをghcを使ってコンパイルしてdebian/hlibrary.setup
+コマンドを作成するようです。
+そうして作ったdebian/hlibrary.setupコマンドを使って
+"debian/hlibrary.setup build --builddir=dist-ghc"
+のようにしてdist-ghcディレクトリ上でHackageをコンパイルするんですね。
+
+ちょっと脱線しますが、
+このビルドプロセスはcabalが普段やっていることと全く同じです。
+cabalはインストール対象のHackageを取得/展開したら、まずこのSetup.hsを
+ghcでコンパイルして、そのコンパイルした結果できた実行バイナリを
+本当のビルダ/インストーラとして使います。
+普段使っている/usr/bin/cabalコマンドは"cabal-install"と呼ばれています。
+そして、Setup.hsを書くために必要なライブラリを"Cabal"と呼びます。
+ややこしいですね。。。
+
+ではlibghc-HOGE-devのinstallはどうなっているのでしょうか？
+
+\begin{commandline}
+debian/tmp-inst-ghc: $(DEB_SETUP_BIN_NAME) dist-ghc
+	$(DEB_SETUP_BIN_NAME) copy --builddir=dist-ghc --destdir=debian/tmp-inst-ghc
+
+install/libghc-$(CABAL_PACKAGE)-dev:: debian/tmp-inst-ghc debian/extra-depends
+	cd debian/tmp-inst-ghc ; find usr/lib/haskell-packages/ghc/lib/ \
+		\( ! -name "*_p.a" ! -name "*.p_hi" \) \
+		-exec install -Dm 644 '{}' ../$(notdir $@)/'{}' ';'
+	pkg_config=`$(DEB_SETUP_BIN_NAME) register --builddir=dist-ghc --gen-pkg-config | sed -r 's,.*: ,,'`; \
+		$(if $(HASKELL_HIDE_PACKAGES),sed -i 's/^exposed: True$$/exposed: False/' $$pkg_config;) \
+		install -Dm 644 $$pkg_config debian/$(notdir $@)/var/lib/ghc/package.conf.d/$$pkg_config; \
+		rm -f $$pkg_config
+	if [ 'z$(DEB_GHC_EXTRA_PACKAGES)' != 'z' ] ; then \
+		echo '$(DEB_GHC_EXTRA_PACKAGES)' > \
+                debian/$(notdir $@)/usr/lib/haskell-packages/ghc/lib/$(CABAL_PACKAGE)-$(CABAL_VERSION)/extra-packages ; \
+	fi
+	dh_haskell_provides -p$(notdir $@)
+	dh_haskell_depends -p$(notdir $@)
+	dh_haskell_shlibdeps -p$(notdir $@)
+\end{commandline}
+
+ちょっとわかりにくいですが、パッケージ化の後半はDebian流儀の詳細なので
+踏みこまずに解釈すると、
+まずlibghc-HOGE-devをinstallしようとすると、debian/tmp-inst-ghcターゲット
+が呼び出されて
+"debian/hlibrary.setup copy --builddir=dist-ghc --destdir=debian/tmp-inst-ghc"
+のようなコマンドが実行されて、dist-ghcでコンパイルした内容が
+debian/tmp-inst-ghc以下にインストールされます。
+あとは、Debianの流儀にのっとってdebian/tmp-inst-ghc以下のファイル群を
+パッケージ化するだけです。
+パッケージ化対象のHackageが依存しているHackageも
+dh\_haskell\_shlibdepsでちゃんと検出してくれるみたいです。 :)
+
+\subsection{作ったパッケージをDebianに登録するには}
+
+せっかく作ったHackageです。自分だけで使っているのはもったいないです。
+Debian本家に登録して皆に使ってもらいましょう!
+Debian本家に登録しておけばめぐりめぐってUbuntuにも登録されるかもしれませんよ？
+
+Debianパッケージ化されたHackage群はdarcsでバージョン管理されています。
+
+xxxxx pkg-haskellやらdarcsの話やら
 
 %-------------------------------------------------------------------------------
 \dancersection{XXXX}{上川純一}
