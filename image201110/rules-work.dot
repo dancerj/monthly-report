@@ -1,0 +1,48 @@
+// dot -Teps rules-work.dot > rules-work.eps
+// dot -Tpng rules-work.dot > rules-work.png
+digraph rules {
+env [label="環境構築", shape=box];
+clean [label="不要なファイルの削除 / clean ", shape=box, group = 1];
+build [label="ソフトウェアのビルド / build ", shape=box, group = 1];
+binary [label="パッケージの構築 / binary, binary-*", shape=box, group = 1];
+changes [label=".changes ファイルの作成", shape=box, group = 1];
+sign [label=".changes, .dsc へのサイン", shape=box, group = 1];
+
+dh_testdir_2[label="dh_testdir", group = 2];
+dh_auto_clean[group = 2];
+dh_clean[group = 2];
+
+dh_testdir_3 [label="dh_testdir", group = 3];
+dh_auto_configure_3 [label="dh_auto_configure", group = 3];
+dh_auto_build_3 [label="dh_auto_build", group = 3];
+dh_auto_test_3 [label="dh_auto_test", group = 3];
+
+other_h [label=".....", group = 4];
+//dh_testdir_4 [label="dh_testdir", group = 4];
+//dh_auto_configure_4 [label="dh_auto_configure", group = 4];
+//dh_auto_build_4 [label="dh_auto_build", group = 4];
+//dh_auto_test_4 [label="dh_auto_test", group = 4];
+dh_testroot [group = 4];
+dh_prep [group = 4];
+dh_installdirs [group = 4];
+dh_auto_install [group = 4];
+other_t [label=".....", group = 4];
+
+env -> clean -> build -> binary -> changes -> sign;
+clean -> dh_testdir_2;
+dh_testdir_2 -> dh_auto_clean -> dh_clean;
+dh_clean -> clean;
+
+build -> dh_testdir_3;
+dh_testdir_3 -> dh_auto_configure_3 -> dh_auto_build_3 -> dh_auto_test_3;
+dh_auto_test_3 -> build;
+
+//binary -> dh_testdir_4;
+//dh_testdir_4 -> dh_auto_configure_4 -> dh_auto_build_4 -> dh_auto_test_4 -> dh_testroot;
+binary -> other_h -> dh_testroot -> dh_prep -> dh_installdirs -> dh_auto_install -> other_t;
+other_t -> binary;
+
+{rank = same; clean; dh_testdir_2};
+{rank = same; build; dh_testdir_3};
+{rank = same; binary; other_h};
+}
