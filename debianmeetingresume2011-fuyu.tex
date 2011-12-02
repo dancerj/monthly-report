@@ -40,7 +40,8 @@
 \usepackage{monthlyreport}
 \usepackage[dvips]{xy} % for advi workaround. Bug #452044
 %\usepackage{wrapfig}
-%\usepackage{supertabular}
+%\usepackage{supertabular} %\usepackage{tikz}と干渉?
+
 % 今回限りのコマンド for 201108 kansai
 \definecolor{debianred}{rgb}{.780,.000,.211} % 199,0,54
 \definecolor{debianblue}{rgb}{0,.208,.780} % 0,53,199
@@ -60,21 +61,7 @@
 \lstset{basicstyle=\ttfamily}
 \usepackage{tikz}
 \usetikzlibrary{decorations.pathreplacing}
-% FIXME 上記2行を有効化すると下記エラーとなる
-%%%(/usr/share/texmf/tex/latex/pgf/utilities/pgffor.sty
-%%%(/usr/share/texmf/tex/generic/pgf/utilities/pgffor.code.tex))
-%%%(/usr/share/texmf/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex
-%%%(/usr/share/texmf/tex/generic/pgf/libraries/pgflibraryplothandlers.code.tex)
-%%%! No room for a new \dimen .
-%%%\ch@ck ...\else \errmessage {No room for a new #3}
-%%%                                                  \fi 
-%%%l.26 \newdimen\tikz@lastysaved
-%%%                              
-%%%No pages of output.
-%%%Transcript written on debianmeetingresume2011-fuyu.log.
 \newcommand{\seprule}{\vspace*{-0.5em}\centerline{\rule{\linewidth}{0.3pt}}\vspace*{-0.5em}}
-
-
 % 今回限りのコマンド for 201108 kansai
 
 
@@ -199,6 +186,525 @@
  \end{itemize}
 
  それでは、楽しい一時をお楽しみ下さい。
+
+% 201110 tokyo
+\dancersection{Debian とはなにか？}{岩松信洋}
+%-------------------------------------------------------------------------------
+\index{debian}
+
+今回はDebian勉強会を筑波大学さんで行うということで、たぶんLinuxやUbuntu、
+Fedoraという言葉は知っているけど、
+Debianは知らないって方がいると思います。
+簡単にDebianとは何なのかを簡単に説明します。
+
+\subsection{Debianとは？}
+
+Debian Project の略称、またはDebian OSそのものを指す場合があります。
+フリーかつオープンなOSを作る完全ボランティアベースのプロジェクトです。
+歴史が長く保守的なLinuxディストリビューションの一つです。
+
+公式開発者は約1000名。非公式な開発者やパッケージメンテナ、翻訳者などを入れると
+5000名以上になります。世界のいたるところに開発者がいて、日本では約30名ほど公式
+開発者が活動しています。また、日本の開発者が集まって活動している Debian JP Project
+もあり、日本でのDebian環境のサポート、開発者育成、ユーザサポートなどを行なっています。
+
+オープンソース・ライセンスの要件の定義（The Open Source Definition(OSD)）は
+DebianのDebianフリーソフトウェアガイドラインをベースとしたものです。
+
+\subsection{特徴}
+
+\subsubsection{フリーなソフトウェアで構成されている}
+Debian プロジェクトはフリーソフトウェアを強く支持しています。
+ソフトウェアには、いくつもの違ったライセンスが使われるので、 
+Debian フリーソフトウェアガイドライン (DFSG) を作って、 
+何をもってフリーソフトウェアと言えるのかの妥当な定義をしています。 
+
+\begin{itemize}
+\item 何台のマシンにもソフトウェアをインストールしても良い。
+\item 何人の人がソフトウェアを同時に使用しても良い。
+\item 何個でもソフトウェアのコピーを作ってもいいし、それを誰にあげても構わない。(フリーもしくはオープンな再配布)
+\item ソフトウェアの改変に対する制約が無い。(特定の通告を変えない事を除く)
+\item そのソフトウェアを配布や売る事に対する制約が無い。
+\end{itemize}
+
+Debian の「main」ディストリビューションには、DFSG に適合したソフト
+ウェアしか 入れる事を許されていません。
+\footnote{http://www.debian.org/intro/free.ja.html より}
+
+とはいっても、フリーではないアプリケーション
+を使いたいユーザもいるので、そのようなユーザのためにcontrib、non-free 
+といったパッケージセクションを作って、できるだけ提供できるようにしています。
+
+\subsubsection{オープンな開発をしている}
+完全ボランティアの団体なので、特定の企業の力によってDebianの
+方針が変更されたりすることがありません。
+バグや議論経過なども全て公開されており、プロジェクトの方針等
+はDebian公式開発者の選挙によって決まります。
+
+\subsubsection{バイナリベースのディストリビューション}
+ディストリビューションにはバイナリベースとソースベースの2種類があります。
+前者は既にコンパイルされたパッケージを提供するディストリビューションで、
+Debian や Redhat、Ubuntuなどがあります。
+既にコンパイルされているので、直ぐに使うことができますが、一定のルールに
+よって最適化されているため、
+使っているCPU向けに最適化されているとは限りません。しかし、同じアーキテク
+チャならどの環境でも同じ問題が再現する
+可能性があり、問題の共有が容易になります。
+自分で使うソフトウェアは自分でコンパイルするというディストリビューションで、
+代表的なものとしてGentooがあります。
+パケージにはソースコードはなく、コンパイルに必要な簡単なスクリプトがパッケー
+ジに同梱されています。
+このスクリプトで定義されている場所からソースコードをダウンロードし、コンパイルします。
+これは自分に合わせたソフトウェアに最適化できるという利点があります。そのかわり
+ソフトウェアを使うには時間がかかり、
+問題があった場合でも他の環境では再現しにくいというデメリットもあります。
+
+\subsubsection{豊富なパッケージ数}
+
+Debianは多くのパッケージを提供しており、現在約3万パッケージのパッケージが利用可能です。
+他のディストリビューションは、Gentooが15000パッケージ、Ubuntuだと10000パッケージ
+\footnote{main と Universe がありますが、基本的にUbuntu側のサポートありなのはmainのみ。} 
+ほどあります。
+Debian の変態的なところは、各アーキテクチャで同じバージョンのバイナリを
+提供している事です。
+リリース対象になっているアーキテクチャでパッケージが動作しない場合、ポーティング
+を行い、開発元に取り込むように提案します。
+
+%Gentoo? 約１５０００。あんなのビルドできるかわからないものも多くあるのでだめだろ。
+%Ubuntu? main だけだと５０００ぐらい？Universe とかありますが、基本的にUbuntu側のサポートはなし。
+
+\subsubsection{ポリシーに基づいたパッケージ}
+Debian で提供されているパッケージは Debian Pocilyという
+パッケージングポリシーに基づいて作成されています。
+このポリシーは厳格に決められており、違反しているパッケージ
+はDebianにインストールされません。
+
+\subsubsection{強力なパッケージングシステム}
+Debianでは パッケージングシステムに dpkg というアプリケーションを使っており、deb という拡張子
+がついたパッケージファイルをインストール、アンインストールします。
+パッケージの依存関係管理がしっかりされており、depends（依存）、recommends（推奨）、
+suggests（提案） などの項目によってコントロールしています。
+パッケージマネージャのAPT (Advanced Package Tool) によって、インストールしたいパッケージに
+依存しているパッケージがインストールされます。アンインストールも同様です。
+
+\subsubsection{アップデートが容易}
+Debian は約2年毎に安定版がリリースされます。Debian は 
+前回のバージョンからのアップデートをサポートしています。
+例えば、2007年にリリースされた 4.0 から、最新版の 6.0 にアップデートするには、
+4.0、5.0、6.0 と順にアップデートすることによって可能です。
+
+\subsubsection{豊富なサポートCPUアーキテクチャ}
+現時点で正式サポートCPUアーキテクチャは11、次期リリースに向けてサポート
+準備中が 10 あります。
+サーバからPC、組み込みCPUまでサポートしています。
+新しいCPUアーキテクチャをサポートするためのインフラもあるので、何がサポートしたいCPUが
+ある人、debian-ports プロジェクトに連絡するとインフラを提供してくれるかもしれません。
+
+
+\begin{minipage}[t]{0.5\hsize}
+
+現在サポートしているアーキテクチャ。
+\begin{itemize}
+  \item amd64
+  \item armel
+  \item hurd-i386
+  \item i386
+  \item ia64
+  \item kfreebsd-amd64
+  \item kfreebsd-i386
+  \item mips
+  \item mipsel
+  \item powerpc
+  \item s390
+  \item sparc
+\end{itemize}
+
+\end{minipage}
+\begin{minipage}[t]{0.5\hsize}
+
+サポート予定のアーキテクチャ
+\begin{itemize}
+  \item alpha
+  \item armhf
+  \item avr32
+  \item hppa
+  \item m68k
+  \item powerpcspe
+  \item s390x
+  \item sh4
+  \item sparc64
+\end{itemize}
+
+\end{minipage}
+
+\subsubsection{Linux以外のカーネルもサポートする}
+
+LinuxをカーネルとしたOS、Debian GNU/Linux だけではなく、
+FreeBSDのカーネルを使ったOS Debian GNU/kFreeBSD 
+も提供しています。
+Debian 開発者の中にはGNU Hurd, Minix, NetBSD カーネルを
+ベースにした Debian を開発している人もいます。
+
+\subsubsection{他のOSSプロジェクトと関連が強い}
+
+Debian開発者と各OSS開発者が兼務していることが多く、他のOSS
+プロジェクトと結び付きが強いです。パッケージメンテナ＝開発元の開発者
+ということが多いのが特徴です。自分の作ったソフトウェアをDebianに入れたい人が
+多いようです。
+また、大抵のDebian開発者は複数のプロジェクトに顔を出しているので、更にプロ
+ジェクト間の結びつきが強いです。
+
+\subsubsection{派生しているディストリビューションの多さ}
+いままで説明した特徴によって、Debianから派生したディストリビューションが多く
+あります。
+有名なところでは、UbuntuやKnoppix、Vyatta （VPN/ネットワークファイアウォール）
+などがあります。
+現時点で129以上の派生ディストリビューション
+\footnote{http://distrowatch.com/dwres.php?resource=independence 参照}
+があり、Debianの live CD システムを使った小さい
+ディストリビューションを入れるともっと多くなります。
+また派生として分散させているだけでなく、派生したディストリビューションの
+成果を本家であるDebianに取り組む仕組みもあります。
+ちなみに2番目に多いのはFedoraベースの 63 です。
+
+\subsection{まとめ}
+
+\begin{itemize}
+\item フリーである。
+\item オープンな開発プロジェクトである。
+\item 世界規模のボランティアベースのプロジェクトである。
+\item バイナリベースのディストリビューションで、サポートしているパッケージ数が多い。
+\item サポートしているアーキテクチャが多い。
+\item Linux カーネルだけをサポートしていない。
+\item 派生しているディストリビューションが多い。
+\end{itemize}
+
+\subsection{んで、どういう風に使えばいいの？}
+
+個人的な見解ですと、
+
+\begin{itemize}
+\item 開発に使いたいなら、Debian か Gentoo。
+
+アップストリームに近い位置にいるためです。
+パッチなどがディストリビューション開発者経由で取り込まれやすい。
+
+\item デスクトップやノートPCで使いたいなら Ubuntu。いろいろデスクトップとか弄りたいなら、DebianかGentoo。
+
+2ch とかニコニコ動画みる程度なら Ubuntu で十分だと思います。もちろん Debian でも問題ありません。
+プログラムを最適化したいとか、「Gnomeとかイラネ！他のデスクトップ環境が欲しい」という人なら、Debian かGentooをお薦めします。
+
+\item サーバで使いたいなら、Debian。
+
+無駄なものがインストールされてないから。
+
+\end{itemize}
+です。
+
+ぜひDebianを使って、フィードバックをください。
+そして開発に興味がある人は開発に参加してみてください。手取り足取り教えます。
+みんなでDebianを良いものにしていきましょう。
+
+% 201110 kansai
+%------------------------------------------------------------------------------
+\dancersection{翻訳で Debian に貢献しよう}{八津尾 雄介}
+
+\subsection{はじめに}
+Debian を利用する以上, 英語との付き合いは避けて通れない問題だと思います. 英語の
+文章を読むのが苦にならない人から, エラーメッセージさえ読む努力を放棄する人まで, 
+様々だとは思いますが, もっと英語ができればと思う事が誰でも少なからずあると思い
+ます.
+
+私は英語と付き合う第一歩として, 翻訳をおすすめします. 翻訳というと特殊技術だとか自
+分には無理と身構えてしまう人も多いかもしれませんが, それほど敷居の高い作業ではあ
+りません.
+
+辞書と基本文法の知識さえあれば誰でもできる作業ですし, どうしても意味がとれない箇
+所はメーリングリストなどへ投げれば誰かが答えてくるでしょう. ついでに Debian の知
+識も身につくので, Debian Maintainer や Debian Developer を目指している人にとって
+うってつけの自習教材ではないでしょうか？
+
+オープンソースコミュニティ全体に言えることだと思いますが, 翻訳者の数は圧倒的に少
+ないのが現状です.その主たる原因を私なりに分析してみました. 
+\begin{itemize}
+	\item 読める人は訳さない
+	\item 読めない人も訳さない
+	\item 時間も手間もかかる地道な作業
+	\item 貢献に対する見返りがあまりない(なかった)
+	\footnote{パッケージ作業以外でのDebian への貢献を認める決議がなされました}
+\end{itemize}
+
+DDP\footnote{Abbr. Debian Documentation Project: http://www.debian.org/doc/ddp}に
+はまだ翻訳されていない文章がたくさんあります. 翻訳をしながら Debian について学び,
+ 貢献し, そして英語力の向上に役立ててみませんか？
+
+\subsection{翻訳メモリとは}
+翻訳とは一般的に, 時間も手間もかかる地道な作業なわけですが, それをある程度軽減して
+くれるのが翻訳メモリツールです.翻訳メモリとは, 原文と翻訳文のペアをデータベース化
+したもので, 翻訳メモリツールは翻訳メモリから一致率の高い文章をサジェストする翻訳
+支援ソフトです.翻訳メモリツールを指して翻訳メモリということもあります.
+
+翻訳メモリはいわば実用文例集のようなもので, 機械翻訳とは根本的に違います.注意した
+いのは, 翻訳メモリを作るのは訳者自身だということです. 翻訳メモリツールが参照する
+のはあくまで, あなたが （もしくはメモリの提供元が) 過去に訳した文章であり, それに
+ついての正確さは一切保証されていません.
+
+\subsubsection{翻訳メモリを使うと何が嬉しいのか}
+では, 翻訳メモリを利用することで得られるメリットとは何でしょうか.
+\begin{itemize}
+	\item 膨大な訳文を蓄積し使い回す事により作業効率が一気に高まる(作業の効率化)
+	\item 複数人で翻訳作業を行う際の文体や訳語の微妙な違いを少なくする事ができる
+	      (一定品質の保持)
+	\item PO形式ではない場合でも原文の変更に追従しやすくなる(保守性の向上)
+\end{itemize}
+
+職業翻訳では翻訳メモリが広く利用されています. 翻訳家は業界標準の翻訳メモリである
+ Trados などの利用率が高いようです. 一方, Debian で利用可能な翻訳支援ツールは
+ poedit や gtranslator, OmegaT. webベースであれば Google Translator Toolkit など
+があります. どれも翻訳メモリを使用するツールです. 
+
+\subsection{OmegaTとは}
+OmegaT とは先述の通りオープンソースで利用可能な翻訳メモリで, Java で開発されて
+おりクロスプラットフォームです. 翻訳メモリには LISA\footnote{abbr. Localization 
+Industry Standarts Assosiation = ローカライゼーション産業の標準化団体} 
+が標準化している TMX\footnote{abbr. Translation Memory eXchange} というオープンな
+XML を採用しており, Trados や SDLX をはじめとした他ツール間で翻訳メモリを相互運用
+できます.
+
+OmegaT では同梱版の Java を使うように推奨されていますが Debian でもパッケージを
+提供しており, apt からインストールすることも可能です.
+
+\paragraph{OmegaTの(一般的に言われる)良い点}
+\begin{itemize}
+	\item オープンソース
+	\item コミュニティが活発
+	\item 業界標準の TMX を使っている
+	\item Windows的 (あるいはGnome的) な操作性
+\end{itemize}
+
+\paragraph{OmegaTの(私から見て)ダメな点}
+\begin{itemize}
+	\item 起動が遅い(=Java)
+	\item Look and Feelが残念(=Java)
+	\item ショートカットキーとニモニックが致命的にまずい
+	\item hjklで移動できない ← 重要
+\end{itemize}
+
+という事で Java で開発されているという点と, vim じゃないという点以外は特に不満は
+ありません. しかしながら, マウス操作を強制されるというのはあまり気持の良いもので
+はありませんね.
+
+\subsection{OmegaTの使い方}
+ここでは, apt から Debian パッケージをインストールしたものとして話を進めていきた
+いと思います. Debian Squeeze での現在のバージョンは 1.8.1 ですが皆さんは Wheezy 
+あるいは Sid を使っているはずですので(?) 2.3.0 前提で進めたいと思います.
+基本的な使い方についてはお手軽スタートガイドを読めばわかりますのでここでは割愛し
+ます.
+
+\subsubsection{ファイルフォーマットについて}
+
+OmegaT は次のフォーマットをサポートしています.
+\begin{itemize}
+	\item OpenDocument や OpenOffice.org
+	\item プレーンテキスト
+	\item .poファイル
+	\item XHTML, HTML
+	\item Microsoft Open XML
+	\item 字幕ファイル(SRT)
+	\item Android リソース
+	\item LaTeX
+	\item 他多数
+\end{itemize}
+
+\paragraph{サポート外のファイルを訳すには}
+DebianDoc-SGML の利用は廃止にむかっているもののまだまだ sgml のドキュメントが存在
+します. sgml は OmegaT によってサポートされていない形式です.\footnote{Java で利用
+可能なオープンのパーサが無いという理由らしい}
+OmegaT はサポートしない形式のファイルを翻訳対象のファイルに加えようとしても無視し
+ます.では, OmegaT でサポートされないフォーマットのファイルを訳すにはどうすれば良
+いでしょうか？
+
+とりあえず訳したいという場合にはファイルの拡張子を OmegaT でサポートされているフ
+ァイルの拡張子にしてしまえば訳すことができます. ただし, タグ付きの文書の場合は 
+タグの扱いに注意をしなければなりません. とりあえず *.txt にしておくというのが正
+解のような気がします.
+
+Debian 的な方法としては Gettext PO 形式に変換して翻訳するという方法がありますが,
+ OmegaT 的にやろうと思うのであれば, ファイルフィルターを利用して近いフォーマット
+として認識させる方法が良いでしょう.
+例えば sgml を xhtml として読み込ませたい場合, "設定" から "ファイルフィルター" 
+を選択し, XHTML を選択した状態で "編集" をクリックします. それから "追加" をクリ
+ックして "*.sgml" を "原文ファイルの構成名" へ追加します. こうする事で sgml ファ
+イルが翻訳対象のファイルとして追加可能になります.
+
+残念ながら独自のファイル定義を追加できるわけでは無いので, 今のところは拡張子を変
+更して対応する場合と大きな違いはありません. ただ, 例にあるような sgml などのタグ
+付きのファイルを編集する場合, タグの挿入などの便利な機能を使えるようなるので txt
+ で扱うよりも少し楽になるはずです.
+
+\subsubsection{分節化規則を変更する}
+分節化された文章を見てみると, 中途半端な箇所で切られてしまっているような場合が
+ままあります. 特にタグ付きの文章をプレーンテキストとして読み込ませると思わぬ所
+で分節化されてしまいます. そのような自体に対処したり, ユーザーの好みに柔軟に対応
+する為に, 分節化の規則をカスタマイズする事が可能です.
+
+分節化の設定は "設定" の "分節化規則" から行えます. 分節化規則の定義は Java で
+サポートされている正規表現を使用します. 
+
+この分節化規則は慎重に取り扱うべきでしょう. 途中で規則を変更してしまえばメモリの
+一致率を下げる原因となるからです. 分節化規則は良く考えられて作られているので, 最
+初はデフォルトのまま使用し, もし不満があれば何度が試験的な短めのドキュメントでテ
+ストしながら徐々に自分の好みに合わせていけば良いでしょう. いきなり長文の翻訳に適
+用してしまうと, 思わぬ不都合が起きた場合の対処が非常に面倒です.
+
+\subsubsection{用語集を作成する}
+
+用語集：グロッサリ は プロジェクトフォルダ内の glossary に置きます. (デフォルト
+設定)翻訳中にでくわした用語をグロッサリへ登録しておけば訳語に統一感を持たせる事が
+できます. 例えば "upstream" を訳す際に "開発元" とすべきか, "上流" とすべきか "ア
+ップストリーム" とすべきかといったような事や "コンピュータ" と表記するか "コンピ
+ューター" と長音を省略せず表記するかといったような曖昧になりやすい事は下読みの段
+階でピックアップしグロッサリにしておくと良いでしょう.\footnote{一括で置換する手
+法を使う人にとっては不要ですね…でも将来の為に作っておくと良いですよ}言うまでもな
+く, 複数人で訳す場合はこれを共有すべきですね. Debian を デビアン と表記しないなど
+"訳さない" 単語を登録しておくのも有効です.
+
+グロッサリは OmegaT で直接編集はできません.\footnote{顧客からグロッサリを渡され
+るような事があるので, 訳者が勝手に編集できないようにする配慮だと思われます}
+作成/編集/メンテにはテキストエディタを使いましょう.
+
+Debian JP では対訳表というのを作っていて(?)\footnote{私の知る限りでは放置中です} 
+OmegaT で利用できる形式にしてあるものも一応あります.\footnote{\url{http://w
+ww.debian.or.jp/community/translate/}参照} とりあえずはこれを用語集として放り込ん
+でおいても良いでしょう.
+
+OmegaT のヘルプには何故か長々と OpenOffice を使ったグロッサリの作成方法が書かれて
+います. グロッサリの元データが表計算ソフトで作られていたりワープロソフトで作ら
+れていたりしないのであれば, テキストエディタで作った方が楽だと思います.
+
+グロッサリのフォーマットは
+\begin{commandline}
+翻訳対象の言語[TAB]日本語[TAB]説明や注記
+\end{commandline}
+です. グロッサリのファイルは プロジェクトで使用しているものと同じエンコードで
+保存し, ファイル名は "*.tab" とします. 私は面倒なので全て UTF-8 にし, グロッサ
+リは "*.utf8" にしています.
+
+実際にグロッサリを作成してみます. 例えばこんなファイルを作ってみましょう.
+
+\begin{commandline}
+Debian (tab) Debian
+maintainer (tab) メンテナ
+computer (tab) コンピュータ (tab) 長音省略
+upstream (tab) 開発元 (tab) アップストリーム 上流 は避ける	
+Debian developer (tab) Debian 開発者
+\end{commandline}
+
+上記の例でわかるように, ソートされている必要は無いようです. これを OmegaT のプロ
+ジェクトフォルダ内の glossary に配置します. 翻訳中の分節が含む完全一致した単語を
+全て, 用語集ペインに表示します. 
+グロッサリは完全一致している必要があり, 活用形はピックアップできません. 
+例えば
+\begin{quote}
+Debian [tab] Debian
+\end{quote}
+があった場合, Debian's は ピックアップできません. ケースセンシティブではないので
+debian は表示されます. このあたりの挙動を理解しながら良く使われる活用 - 例えば
+上記の "Debian's" など - もある程度網羅すると良さそうです. 
+
+グロッサリに辞書ファイルを登録する事も可能ですが, 分節中の単語全てをリストアップ
+し, まともな辞書であれば用語集ペインが溢れ返ってしまう上, 上記の通り活用まではカ
+バーできない為あまりおすすめできません. 
+
+グロッサリは, 例えば "debian.utf8" ".utf8" など, 大雑把でもジャンル
+分けしておいた方が再利用しやすくなります.
+
+
+\subsubsection{辞書について}
+実は私は OmegaT の辞書を使った事がありません. 普段は wine 上の PDIC で 英辞郎
+を利用するか, 手元の電子辞書を使います. OmegaT では StarDict 形式の辞書ファイル
+をサポートしていて, tab 区切りになっている辞書ファイルであれば stardicttools で
+簡単に変換できます. せっかくなので英辞郎の辞書ファイルを StarDict の形式に変換
+し使用してみましたが, 私の欲しい感じではありませんでした. 今後に期待です.
+
+\subsection{翻訳メモリを活用する}
+OmegaT では翻訳メモリを複数箇所に保持しています.
+
+\paragraph{project/omegat フォルダ内}
+\begin{itemize}
+	\item{project\_save.tmx}
+\end{itemize}
+このフォルダ内には tmx ファイルのバックアップが作成されます. 翻訳作業を開始して
+からの全ての分節が保存されています. プロジェクトとして実際に読み込まれているの
+がこれです.
+
+\paragraph{project/ 内}
+\begin{itemize}
+	\item{*\_omegat.tmx}
+	\item{*\_level1.tmx}
+	\item{*\_level2.tmx}
+\end{itemize}
+target ファイル生成時の source ファイルの内容に対応した翻訳メモリが作成されます.
+それぞれのファイルフォーマットには微妙な差異があり, 用途によってわかれています.
+level1 は文書情報のみが含まれています.
+level2 は OmegaT 特有の情報が tmx タグ として保存されるので level2 の翻訳メモリ
+に対応したアプリケーションでの利用が可能です.
+omegat は OmegaT 特有のフォーマットなので他のアプリケーションからは利用できません.
+
+\paragraph{project/tm フォルダ内}
+過去のプロジェクトからメモリを流用したい時はこのフォルダに配置します. level1, level2
+あるいは omegat のいづれかのファイルをいくつでも置いておく事が可能です.
+
+翻訳メモリの内部を覗いでみましょう. フォーマットによって違いはありますが, だいたい
+こんな風になっています.
+\begin{verbatim}
+	<tu>
+		<tuv lang="lang1">
+			<seg>lang1の分節</seg>
+		</tuv>
+	</tu>
+	<tu>
+		<tuv lang="lang2">
+			<seg>lang2の分節</seg>
+		<tuv>
+	</tu>
+\end{verbatim}
+
+OmegaT のプロジェクトフォルダでは /source 内へのファイル配置は基本的に自由です. こ
+のフォルダ内で "securing-howto" や "maint-guide" のように文書毎のフォルダを作り
+管理するという方法がおすすめです. こうする事によって, いちいちマージやファイル
+移動をしなくても用語集や翻訳メモリを共通で使えるようになります.
+
+問題は翻訳メモリのサイズとソースファイルの量ですが, 試しに DDP からチェックアウトし
+てきたファイルのうち, 不正なファイルだとエラーで弾かれるものを除き, 全てプロジェ
+クトフォルダに放り込んでみました.
+私が確認した限りでは問題なく動作していましたが, 読み込みに時間がかかるので同一
+プロジェクトで扱うファイルは常識的な数に留めておく事が賢明です.
+
+\subsubsection{機械翻訳を利用する}
+機械翻訳はまだまだ使い物になりません. しかし, 短い文章の翻訳精度は向上しつつあり,
+場合によっては て に を は を修正すればそのまま使えるような文章ができあがるような
+場合もあります. うまく訳せない長目の文章でも, 特定の単語の意味がわからない場合な
+どは有効な手段です. 別段必要な機能だとは思えませんが, あくまでも参考程度に利用す
+るのであれば良いと思います.
+
+\subsubsection{翻訳へ参加する}
+翻訳を始めようと思ったら, まず Debian JP Documentation メーリングリストへ参加しま
+しょう. 詳しくは \url{http://www.debian.or.jp/community/ml/openml.html} を参照する
+か, 会場のスタッフへ尋ねてみてください. きっとあなたの世界が広がりますよ.
+
+
+\subsection{まとめ}
+現在勉強会当日の朝4時ですので, そろそろまとめに入らせて頂きます. OmegaT は数ある
+翻訳メモリの中でもフリーで汎用性が高く, プロフェッショナルユースにも十分利用でき
+るソフトウェアです.
+
+翻訳作業全てを OmegaT で行う事を強制する事は望ましくありませんが, せめて翻訳メモ
+リの使用を強く推奨し, コミュニティの資産としてメモリを蓄積できれば今後の翻訳作業
+が加速する事は間違いありません.
+
+また, 翻訳者の中にはマウスの操作を嫌う人が相当数いますので[要出典]是非ショートカ
+ットキーのカスタマイズとニーモニックキーを採用して欲しいと思います.
 
 % 201106 tokyo
 %-------------------------------------------------------------------------------
@@ -470,7 +976,7 @@ XSLT により提供されている機能が制限されているため、その中で実現しにくい
 	 \url{http://www.netfort.gr.jp/~dancer/software/dancer-xml.html}
 \end{thebibliography}
 
-
+% 201106 tokyo
 %-------------------------------------------------------------------------------
 \dancersection{DebianでSphinxとDoxygenを使ってみた}{まえだこうへい}
 %-------------------------------------------------------------------------------
@@ -1935,1634 +2441,841 @@ IPv6 対応していないサーバで動いていたために繋がらないということが
  \bibitem{ipv4kokatsu} 絶対わかる！IPv4枯渇対策＆IPv6移行超入門 ISBN 978-4-8222-6769-8
 \end{thebibliography}
 
+% 201110 tokyo
 %-------------------------------------------------------------------------------
-\dancersection{vcs-buildpackage $\sim$git,svn編$\sim$}{佐々木 洋平}
+\dancersection{HaskellとDebianの辛くて甘い関係}{岡部究}
 %-------------------------------------------------------------------------------
+\index{haskell}
 
-\subsection{始めに}
+\subsection{Haskellというプログラミング言語}
 
-今日のお題は、
-パッケージ作成に Git や Subversion を使用するソフトウェアである、
-{\tt{git-buildpackage}}と{\tt{svn-buildpackage}}です。
-自分の抱えている野良パッケージの多くが Ruby 関連だったこともあって、
-PkgRubyExtras に参加したところ、
-パッケージ管理を Subversion から Git へ移行するタイミングだった様で、
-(幸か不幸か)両 VCS を使用してのパッケージ作成を体験しました%
-\footnote{自分一人だったら絶対 Git で作業するんですけれどね}。
+Haskell \footnote{\url{http://haskell.org/}}
+というプログラミング言語をご存知でしょうか。
+Haskellは関数型言語の一種で以下のような特徴があります。(以下の意見はHaskell初心者である筆者の偏見や間違いを多量に含んでいます)
 
-そこで覚えたツールの使い方とか、実際に作業する際のハマり所とかについて簡単に紹介できたら良いな、とか思います。
-とはいえ、実際にはコラボする人々(=チーム)毎に work flow があるので、あまり一般論は言えない訳ですけれど。
-
-\subsection{バージョン管理?}
-
-バージョン管理システム(VCS)についてはほとんど説明しませんが、簡単に。
-
-VCS を使った事のない人に VCS の利点を説明する時、佐々木は良く「良い感じのバックアップ」という言い方をしています。
-例えば
 \begin{itemize}
-\item 過去の変更履歴を残しておける
-\item 過去の任意の状態に簡単に戻せる
-\item 過去にどんな変更を行なったか、を把握しやすくする(ログをきちんと書いておく必要はありますが)
+\item 静的型付け
+
+暗黙の型変換とかそんなことは起きません。
+また多くのエラーをコンパイル時に検出することができます。
+Haskellでプログラミングをしていると視野角が狭くなる気分になると思います。
+型で守られることによって「考慮に入れておくべき前提」のコード範囲が小さくなり、
+そしてインターフェイスに用いている型について「本当にこれがふさわしいのか？」
+と考えることになります。
+もっと簡単に言うと「型による設計」をHaskellでは行います。
+
+\item 型推論
+
+型をすべて書く必要がないという利点もありますが、
+型推論がないと綺麗に表現できないこともあります。
+個人的には、関数自体には型を書いて、関数の内部での型は省略することが行儀が
+良いと思います。
+
+\item パターンマッチ
+
+\texttt{if}や\texttt{case}文で場合分けを記述するよりもはるかに柔軟な場合分けができます。
+アルゴリズムの記述とはある種場合分けの繰り返しとも言えるので、
+この場合分けを型で記述できると、わかりやすく簡潔になります。
+
+\item 遅延評価
+
+諸刃の剣ですが、無限リストを作れたり、破壊的なデータ構造を用いなくても計算量を
+少なくすることができます。
+正格性フラグを使うことで遅延評価を部分ごとに抑制することもできます。
+
+\item コンパイルして実行
+
+ローカルでコンパイルすれば、配布先にはHaskellがインストールされていなくても
+OKです。要は単なる実行バイナリになります。
+また\texttt{runhaskell}コマンドでコンパイルせずに実行することもできます。
+
+\item 読みやすく、書きやすい文法
+
+本当です!
+もし型を使っても不足なケースではTemplate Haskell
+\footnote{\url{http://www.kotha.net/ghcguide_ja/latest/template-haskell.html}}
+を使えばコンパイル時にメタプログラミングをすることもできます。
+個人的には見た目があまりにかわりすぎてしまうので、邪悪なのではないかと
+思っていますが。。。まぁ使いどころに気をつけましょう。
+
 \end{itemize}
 
-また、複数人で開発を進めている時には、同じファイルに同じ様な変更を加えている場合、
-最後に保存した人の変更だけが残ってしまい(上書きされてしまい)、それ以外の変更が失なわれてしまいます。
-VCS を使っていると、同じファイルへの変更は「衝突」として検出されるので、こういった事態を防ぐ事ができます。
+どうでしょう。わくわくしますよね!
+さっそく使ってみましょう。なぁにDebianなら簡単です。\footnote{ここではDebian Sidを使っていることを前提にしています。}
+haskell-platformパッケージをインストールすればHaskellコンパイラであるghcと
+その基本ライブラリ群が使えるようになります。
+Rubyのirbコマンドや、Pythonのpythonコマンドに似たghciコマンドという
+インタラクティブなHaskell評価コマンドも使えるようになります。
 
-さらに、特定のバージョンに名前をつけておき(tag と言います)そのバージョンへの変更を行なったり、新機能の開発を本番の開発と分離して進めて(本番が main line と呼ばれるのに対して、branch を分ける、branch を切る、と言います)、完成した後で本番の開発に統合したりできます。
+\begin{commandline}
+$ sudo apt-get install haskell-platform
+$ rehash
+$ ghci
+GHCi, version 7.0.4: http://www.haskell.org/ghc/  :? for help
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Prelude> print $ fmap (foldr (++) "" . flip replicate "hoge") [1..3]
+["hoge","hogehoge","hogehogehoge"]
+\end{commandline}
 
-Subversion と Git は、それぞれ「集中型VCS」と「分散型VCS」の代表です。
-集中型 VCS では単一のリポジトリ(データ置き場)を開発者全員が参照し作業するのに対して、
-分散型 VCS では、各人が個別にリポジトリを持ち、各々のデータを適宜同期を取って作業を進めます。
-最近は分散型 VCS(DVCS と言ったりします)がトレンドですね%
-\footnote{集中型VCS としては CVS なんかもありますが、今更 CVS ってのは止めた方が良いと思います。また DVCS としたは Git 以外に darcs, bzr, Mercurial なんかがあります。bzr についてはそのうち山下 尊也さんが語ってくれると思います}。
+\subsection{cabalによるパッケージ管理}
 
-\subsection{パッケージのバージョン管理?}
+先程インストールしたhaskell-platformというのはHaskell言語における
+標準ライブラリで、GUIフレームワークとかWebアプリケーションフレームワーク
+などは入っていません。(OpenGLはなぜか入ってますけれど)
+それじゃあHaskellで書かれた最新のライブラリやプログラムを使おう、
+と思いますよね。
+Haskellで書かれたプログラムの多くはHackage
+\footnote{\url{http://hackage.haskell.org/}}
+というサイトに登録されています。
+そう。PerlのCPANや、RubyのgemにあたるものがHaskellにも用意されているのです。
 
-さて、「パッケージのバージョン管理」って何をしているのでしょうか?
-Debian パッケージを「バージョン管理」する目的は幾つかありますが、
-例えば
-\begin{itemize}
-\item 履歴の管理。
-  パッケージの変更点は debian/changelog に書かれます(書きます)が、
-  実際にファイル自体を参照できると大変便利です。
-\item stable に含まれたパッケージにタグを付けておく。
-  \begin{itemize}
-  \item セキュリティ対応などを、そのタグから派生するブランチで対応する
-  \end{itemize}
-\item 複数人でのパッケージメンテ/チームでのパッケージメンテ作業の環境を容易に構築できる
-\item upstream が VCS を使用している場合の連携が簡単になる(かも)
-\end{itemize}
-...でしょうか。
+一個ずつtar玉をダウンロードしてコンパイルするのでしょうか？
+いいえ大丈夫です。\texttt{cabal}
+\footnote{\url{http://www.haskell.org/cabal/} 正確なプログラム名はcabal-install。Cabalはライブラリの名前。ちょっとややこしいです。}
+というコマンドがあります。
+この\texttt{cabal}コマンドはHackageの依存関係を考えて所望のプログラムを
+インストールできるすぐれものです。
 
-\subsection{何を管理するの?}
-Debian のソースパッケージは、source format 3.0 では以下のファイル群で構成されます:
-\begin{description}
-\item[.orig.tar.{\it{ext}}]　\\
-  upstream のソース。複数のソースからなる場合には基本となるソースにこの名
-  前をつける。{\it{ext}}は圧縮の拡張子であ
-  り、{\tt{gz}}, {\tt{bz2}}, {\tt{xz}} が使用可能。
-\item[.orig-{\it{component}}.tar.{\it{ext}}] 　\\
-  upstream が複数のソースから構成される場合のファイル
-  名。{\tt{dpkg-source -x パッケージ名.dsc}}などで展開するとファイルの中
-  身は {\tt{component/}}以下の展開される。
-\item[.debian.tar.{\it{ext}}]　\\
-  {\tt{debian/}} デイレクトリの中身
-\item[.dsc]　\\
-  パッケージの情報。上記ファイル群のハッシュなどを記載している。
-\end{description}
-パッケージを VCS で管理する場合、
+Debianの場合、以下の手順で任意のHackageをインストールできます。
+
+\begin{commandline}
+$ sudo apt-get install cabal-install # haskell-platformをインストールすれば自動でインストールされるので本当は不要です
+$ rehash
+$ cabal update
+$ cabal install パッケージ名
+\end{commandline}
+
+\subsection{でもcabalには色々不都合が、、、}
+
+もし\texttt{cabal}コマンドを長期にわたって使ったことがある方であれば体験していると
+思うのですが、cabalコマンドはパッケージのインストールはできてもパッケージの更新
+をすることができません。
+
+Rubyのgemを思い出してみましょう。
+
+\begin{commandline}
+$ sudo gem update
+$ sudo gem install earchquake
+# 月日は流れ、、、そしてある日、、、
+$ sudo gem update
+# これで以前インストールいしたearchquakeパッケージは依存ライブラリを含めて最新版になるはず
+\end{commandline}
+
+ところがcabalの場合、筆者は以下のような不具合によく直面していました。
+
+\begin{commandline}
+$ cabal update # これはローカルのHackageデータベースを更新するだけ
+$ cabal install yesod # 実行後、インストール完了
+\end{commandline}
+これで色々開発したりして、、、楽しい月日は流れます。後日yesodを最新版に更新しようと思いたちました。
+
+\begin{commandline}
+$ cabal upgrade
+cabal: Use the 'cabal install' command instead of 'cabal upgrade'.
+You can install the latest version of a package using 'cabal install'. The
+'cabal upgrade' command has been removed because people found it confusing and
+it often led to broken packages.
+If you want the old upgrade behaviour then use the install command with the
+--upgrade-dependencies flag (but check first with --dry-run to see what would
+happen). This will try to pick the latest versions of all dependencies, rather
+than the usual behaviour of trying to pick installed versions of all
+dependencies. If you do use --upgrade-dependencies, it is recommended that you
+do not upgrade core packages (e.g. by using appropriate --constraint= flags).
+\end{commandline}
+
+なにこれーーーーーしょうがない、必要なパッケージだけ更新しましょう
+\begin{commandline}
+$ cabal install yesod # しかしなぜかyesodが動作しなかったり、そもそも依存関係をcabalが自動解決しない、、、
+# とりあえずcabalでインストールしたHackageを全部消そう。。。
+$ rm -rf ~/.ghc ~/.cabal
+$ cabal update
+$ cabal install yesod　# さっきのyesodのバグが再現しない。ふつーに動いとる。なぜだーーー!？
+\end{commandline}
+
+あれれ。インストールした時は問題なかったの何が起きたのでしょう。
+どうやらこのような不具合が起きるのは筆者だけではなく、
+多くのHaskell開発者も同様のようです。
+どの開発者も本質的にはcabalの環境をマッサラ(\texttt{rm -rf .cabal .ghc})にしてから再インストールして凌いでいるようです。。。
+
+\subsection{cabalをパッケージシステムとして使うことの問題点}
+
+どうしてこんなことが起きてしまうのでしょう？
+それはcabalのしくみとHackage作者達の文化に問題があります。
+
+\subsubsection{Hackage作成の文化的問題}
+
+まずは例としてyesodパッケージの情報を覗いてみましょう。
+
+\begin{commandline}
+$ cabal info yesod
+* yesod            (program and library)
+    Synopsis:      Creation of type-safe, RESTful web applications.
+    Versions available: 0.6.7, 0.7.2, 0.7.3, 0.8.0, 0.8.1, 0.8.2, 0.8.2.1,
+                        0.9.1, 0.9.1.1 (and 35 others)
+    Versions installed: [ Not installed ]
+    Homepage:      http://www.yesodweb.com/
+--snip--
+    Source repo:   git://github.com/yesodweb/yesod.git
+    Executables:   yesod
+    Flags:         ghc7
+    Dependencies:  yesod-core >=0.9.1.1 && <0.10, yesod-auth ==0.7.*,
+                   yesod-json ==0.2.*, yesod-persistent ==0.2.*,
+                   yesod-form ==0.3.*, monad-control ==0.2.*,
+                   transformers ==0.2.*, wai ==0.4.*, wai-extra >=0.4.1 && <0.5,
+                   hamlet ==0.10.*, shakespeare-js ==0.10.*,
+                   shakespeare-css ==0.10.*, warp ==0.4.*, blaze-html ==0.4.*,
+                   base >=4.3 && <5, base >=4 && <4.3, base >=4 && <4.3,
+                   base >=4.3 && <5, process -any, blaze-builder >=0.2 && <0.4,
+                   http-types >=0.6.1 && <0.7, attoparsec-text >=0.8.5 && <0.9,
+                   containers >=0.2 && <0.5, unix-compat >=0.2 && <0.4,
+                   Cabal >=1.8 && <1.13, directory >=1.0 && <1.2,
+                   template-haskell -any, time >=1.1.4 && <1.3,
+                   bytestring ==0.9.*, text ==0.11.*, parsec >=2.1 && <4
+    Cached:        No
+    Modules:
+        Yesod
+\end{commandline}
+
+まず見てとれるのが、''Versions available''行です。
+yesodパッケージはHackageDBに複数のバージョンが登録されているのがわかります。
+もう一つ気になるのは''Dependencies''行です。
+textやbytestringなどの基本的のパッケージに対してA.Bの桁までバージョンを指定しています。
+Debianパッケージのほとんどは、
+依存は同ソースパッケージから生成されたものについてはバージョン番号を完全に指定、
+他パッケージへの依存は下限バージョン指定、
+となっているのとは対照的です。
+
+このバージョン指定のポリシーはどこからやってきたかというと、
+Hackageのバージョン番号のポリシー文書
+\footnote{\url{http://www.haskell.org/haskellwiki/Package\_versioning\_policy}}
+からです。
+おおざっぱに引用すると以下のような規則です。
+Haskageのバージョン番号が仮にA.B.C.Xと表わされる場合、、、
+
 \begin{enumerate}
-\item {\tt{.orig.tar.{\it{ext}}}}
-\item {\tt{.debian.tar.{\it{ext}}}}
+ \item エントリの削除、エントリの型やデータ型定義やクラスの変更、インスタンスの追加/削除、importの変更、他パッケージの新たなバージョンへの依存。のような場合にはA.Bバージョンを上げるべき
+ \item 上記に該当せず、新たなバインディング、型、クラス、モジュールがインターフェイスに追加された場合にはA.Bバージョンは同値のままでも良いがCバージョンを上げるべき
+ \item そうでない場合、A.B.Cは同値のままでも良い。Xなどそれより桁が下のバージョンを上げるままでも良い
 \end{enumerate}
-のバージョンを管理することになります。
 
-\subsection{どうするの?: svn-buildpackage 編}
+この規則を守ると、自分の依存しているHackageのAPIが削除されないように期待するためには''bytestring ==0.9.*''のように指定してくなるわけです。
+ところが、この指定方法によってcabalコマンドが依存関係の解決に混乱することがあるようです。
 
-では実際にどうやっているのでしょうか?
-ここでは GNU Hello を例に、svn-buildpackage を使った場合について簡単に述べてみます。
-なお、佐々木は既に svn-buildpackage をあまり使っていないので、
-Git はまだ良くわからないけれど Subversion ならわかる、 という人向けのお話です。
+\subsubsection{cabalの実装上の問題}
+先のHaskellImplementorsWorkshop/2011にて新しいcabalの依存解決のしくみが発表されました。
+\footnote{\url{http://www.haskell.org/haskellwiki/HaskellImplementorsWorkshop/2011/Loeh}}
+この中のスライド
+\footnote{\url{http://www.haskell.org/wikiupload/b/b4/HIW2011-Talk-Loeh.pdf}}
+で現状のcabalの問題点が説明されています。
 
-\subsubsection{インストール}
-\begin{commandline}
-  % sudo aptitude install svn-buildpackage
-\end{commandline}
-
-\subsubsection{パッケージをリポジトリに追加する}
-
-一度適当なパッケージを作成してみましょう。 ここでは GNU hello のパッケージが作成できたとします。
-横着したい人は{\tt{apt-get source hello}}でも良いでしょう。
-
-テストのために簡単なリポジトリを作成します。ここでは {\tt{~/Work/svn/}} 以下にリポジトリを作成します。
-\begin{commandline}
-  % svnadmin create ~/Work/svn/
-  % svn mkdir file:///home/uwabami/Work/svn/trunk -m "create trunk"
-  % svn mkdir file:///home/uwabami/Work/svn/tags -m "create tags"
-  % svn mkdir file:///home/uwabami/Work/svn/branches -m "create branches"
-  % svn ls file:///home/uwabami/Work/svn
-  branches/
-  tags/
-  trunk/
-\end{commandline}
-次に、作成したパッケージをリポジトリに追加します。追加するコマンドは {\tt{svn-inject}} です。
-\begin{commandline}
-  % svn-inject -l 2 -o -c 0 hello_2.7-1.dsc file:///home/uwabami/Work/svn
-\end{commandline}
-svn-inject のオプションの詳細は man を見てもらうとして、ここでは
-\begin{commandline}
-      -l
-          Layout type.
-          1 (default) means package/{trunk,tags,branches,...} scheme,
-          2 means the {trunk,tags,branches,...}/package scheme.
-      -o
-          Only keep modified files under SVN control (including the debian/ directory),
-          track only parts of upstream branch
-
-       -c number
-          Checkout nothing (0), trunk directory (1) or everything (2) when
-          the work is done.
-\end{commandline}
-を用いています. 単一のパッケージを単一のリポジトリで管理する場合には {\tt{-l 1}} が良いでしょう.
-
-\subsubsection{パッケージのビルド}
-
-{\tt{svn-inject}}が終わったので、リポジトリからファイルを取得してみます。
-\begin{commandline}
-  % svn checkout file:///home/uwabami/Work/svn/trunk svn-work
-  A    trunk/hello
-  A    trunk/hello/debian
-  A    trunk/hello/debian/control
-  A    trunk/hello/debian/source
-  A    trunk/hello/debian/source/format
-  ...
-\end{commandline}
-ここでは {\tt{svn-work}} にファイルをチェックアウトしました。
-実際に {\tt{svn-work/trunk/hello}} に移動して、パッケージを作成してみます。
-\begin{commandline}
-  % cd svn-work/trunk/hello
-  % sudo apt-get build-dep hello
-  % svn-buildpackage
-  Complete layout information:
-          trunkDir=/home/uwabami/svn-work/trunk/hello
-          trunkUrl=file:///home/uwabami/Work/svn/trunk/hello
-  dpkg-checkbuilddeps
-  Orig tarball not found (expected ../tarballs/hello_2.7.orig.tar.gz)
-  mergeWithUpstream mode detected, looking for ../tarballs/hello_2.7.orig.tar.gz
-  I: mergeWithUpstream property set, looking for upstream source tarball...
-  E: Could not find the upstream source file! (should be ../tarballs/hello_2.7.orig.tar.gz)
-\end{commandline}
-...転びました。
-{\tt{svn-buildpackage}}では、
-パッケージ作成時の一時ディレクトリ({\tt{build-area}})と
-upstream のソースの保管場所({\tt{tarballs}})の存在を仮定しています。
-これを準備しましょう(ちなみに{\tt{svn-buildpackage}}は失敗しました時点で、これらのディレクトリが既に作成されています)。
-\begin{commandline}
-  % cd ..
-  % ls
-  build-area/  hello/  tarballs/
-  % cd hello
-  % uscan --download-current-version --destdir=../tarballs/
-\end{commandline}
-{\tt{watch}}ファイルがきちんと書かれている/書けていると、{\tt{uscan}}一発で良いので楽です。
-ではもう一度パッケージをビルドしてみます。
-\begin{commandline}
-  % svn-buildpackage
-  Complete layout information:
-        buildArea=/home/uwabami/svn-work/trunk/build-area
-        origDir=/home/uwabami/svn-work/trunk/tarballs
-        trunkDir=/home/uwabami/svn-work/trunk/hello
-        trunkUrl=file:///home/uwabami/Work/svn/trunk/hello
-  ...
-  dpkg-deb: `../hello_2.7-1_amd64.deb' にパッケージ `hello' を構築しています。
-  signfile hello_2.7-1.dsc
-  gpg: “Santiago Vila <sanvila@debian.org>”をとばします: 秘密鍵が得られません
-  gpg: [stdin]: clearsign failed: 秘密鍵が得られません
-
-  dpkg-genchanges  >../hello_2.7-1_amd64.changes
-  dpkg-genchanges: including full source code in upload
-  dpkg-source --after-build hello-2.7
-  dpkg-buildpackage: full upload (original source is included)
-  dpkg-buildpackage: warning: Failed to sign .dsc and .changes file
-  Command 'dpkg-buildpackage' failed in '/home/uwabami/svn-work/trunk/build-area/hello-2.7',
-  how to continue now? [Qri?]: ignore
-\end{commandline}
-最後の gpg sign で止まっていますので i(ignore)で終わらせましょう。どうやら上手くできたみたいですね。
-あとは、通常通り debian/ 以下を更新していき、リリース時(dput/dupload時)に
-タグを付けたり、branch を切ってメンテしたりしてきます。
-
-\subsubsection{new upstream release}
-
-upstream で新しいパッケージがリリースされた時には {\tt{svn-upgrade}} コマ
-ンドを使って、新しいソースを登録します。とはいえ、今回やった様
-に {\tt{debian}} ディレクトリのみを管理している場合に
-は、uscan の download 先を見て、適宜更新していくだけで良いでしょう。
-
-\subsubsection{tips?}
-
-佐々木は以下のコマンドを alias として登録しています。
-svn-pbuilder は cowbuilder 呼び出しのための wrapper スクリプトです.
-\begin{commandline}
-if [ -f /usr/bin/svn-buildpackage ]; then
-  alias svn-b="svn-buildpackage -rfakeroot -us -uc --svn-ignore --svn-lintian --svn-dont-clean"
-  alias svn-bc="svn-buildpackage --svn-builder='svn-pbuilder' --svn-lintian --svn-dont-clean"
-  alias svn-bct="svn-buildpackage --svn-builder='svn-pbuilder' --svn-lintian --svn-tag --svn-retag --svn-dont-clean"
-  alias svn-bcl="svn-buildpackage --svn-builder='svn-pbuilder-local' --svn-lintian --svn-dont-clean"
-fi
-\end{commandline}
-
-\subsection{どうするの?: git-buildpackage 編}
-
-以下では既存のパッケージとし
-て {\tt{rabbit}}\footnote{{\tt{http://rabbit-shockers.org/}}} の更新作業
-を例に、git-buildpackage を使った作業を述べてみます。
-
-\subsubsection{インストール}
-
-\begin{commandline}
-  % sudo aptitude install git-buildpackage
-\end{commandline}
-Recommends に {\tt{pristine-tar}} と {\tt{cowbuilder}} があります。これらもインストールしておくと良いでしょう。
-{\tt{cowbuilder}}に関しては、先月の水野さんの資料を参照して下さい。
-{\tt{pristine-tar}} については後述。
-
-\subsubsection{パッケージのリポジトリへの追加}
-
-Git なので、リポジトリの作成とか面倒な事はありません。
-既存のパッケージの Git リポジトリ作成には {\tt{git-import-dsc}} を使用します。
-\begin{commandline}
-  % apt-get source rabbit
-  % git-import-dsc --pristine-tar rabbit_0.9.2-3.dsc
-  gbp:info: No git repository found, creating one.
-  Initialized empty Git repository in /home/uwabami/Downloads/rabbit/.git/
-  gbp:info: Tag upstream/0.9.2 not found, importing Upstream tarball
-  /usr/bin/pristine-tar: committed rabbit_0.9.2.orig.tar.gz.delta to branch pristine-tar
-  gbp:info: Version '0.9.2-3' imported under 'rabbit'
-\end{commandline}
-この際に {\tt{--pristine-tar}} オプションをつけることを推奨します。
-また、これまでのバージョンの {\tt{.dsc}} ファイルと {\tt{.orig.tar.gz}}ファイルがある場合には
-{\tt{git-import-dscs}} コマンドを使うと良いでしょう。tag を良きにはからってくれます。
-
-さて、これで{\tt{rabbit}}という Git リポジトリが作成されました。実際に中を見てみましょう。
-\begin{commandline}
-  % cd rabbit
-  % git branch
-  * master                    <-- debian/ 入りのフルソース
-    pristine-tar              <-- orig.tar.{gz,bz2} のバイナリデルタ
-    upstream                  <-- debian/ 無し(upstream)のソース
-  % git tag
-  debian/0.9.2-3
-  upstream/0.9.2
-\end{commandline}
-ブランチの意味は上記の通りです。{\tt{git-import-dscs}} を使うと、バージョ
-ンに応じて tag が沢山並んでいると思います。{\tt{master}},
-
-{\tt{pristine-tar}}はちょっと特殊です。
-このブランチには、import される前の .tar.gz(もしくは.bz2)のバイナリデルタのみがコミットされています。
-{\tt{git-buildpackage}} を実行すると {\tt{upstream}}ブランチ、もしくは {\tt{upstream/バージョン番号}}タグから、
-元々の {\tt{orig.tar.\{gz,bz2\}}}を生成します。
-{\tt{pristine-tar}}ブランチのバイナリデルタが無いと(圧縮率が違ったりして)元々の upstream のソースを正しく生成できなかったりします。
-
-\subsubsection{パッケージのビルド}
-では、パッケージをビルドしてみましょう。
-\begin{commandline}
-  % sudo apt-get build-dep rabbit
-  % cd rabbit
-  % git-buildpackage
-  ...
-  ...
-  Successfully signed dsc and changes files
-\end{commandline}
-ちなみに{\tt{notify-send}}コマンドがあると、git-buildpackage の結果を通知してくれます。
-
-あとは通常通り{\tt{debian/}} 以下を更新していき、リリース毎にタグをつけたり、適当に branch を切って作業していきます。
-また(Subversionのところでは紹介しませんでしたが) {\tt{git-dch}} コマンドによって、
-Git のコミットログから {\tt{debian/changelog}} を生成することができます(コミットログの最初の行しか生かされませんので、粒度の小さいコミットが求められます)。
-
-\subsubsection{New upstream release}
-
-upstream で新しいリリースが出た場合には {\tt{git-import-orig}} で新しい {\tt{.orig.tar.\{gz,bz2\}}}を取り込みます。
-\begin{commandline}
-  % uscan --download
-  rabbit: Newer version (0.9.3) available on remote site:
-    http://rabbit-shockers.org/download/rabbit-0.9.3.tar.gz
-    (local version is 0.9.2)
-  rabbit: Successfully downloaded updated package rabbit-0.9.3.tar.gz
-      and symlinked rabbit_0.9.3.orig.tar.gz to it
-  % git-import-orig --pristine-tar ../rabbit_0.9.3.orig.tar.gz
-  What is the upstream version? [0.9.3]
-  gbp:info: Importing '../rabbit_0.9.3.orig.tar.gz' to branch 'upstream'...
-  gbp:info: Source package is rabbit
-  gbp:info: Upstream version is 0.9.3
-  /usr/bin/pristine-tar: committed rabbit_0.9.3.orig.tar.gz.delta to branch pristine-tar
-  gbp:info: Merging to 'master'
-  ...
-  gbp:info: Successfully imported version 0.9.3 of ../rabbit_0.9.3.orig.tar.gz
-\end{commandline}
-既存の master と自動的に merge が行なわれますので、適宜修正してきます。
-
-\subsubsection{patch-queue ブランチ?}
-
-source format 3.0 (quilt) では, upstream への変更点を {\tt{quilt}} を用い
-てパッチで管理します。通常通り {\tt{quilt}} を用いてパッチを作成(もしく
-は debuild が走ったさいにパッチとして抽出)するのでも良いのですが、
-折角なので{\tt{git format-patch}}でパッチを生成する方法について述べてみます。
-
-{\tt{git-buildpackage}} には {\tt{gbp-pq}}というコマンドが提供されています。pq は patch-queue の略です。
-先ず、現時点で debian/patches 以下にあるパッチを {\tt{patch-queue}} ブランチへ登録します。
-\begin{commandline}
-  % quilt pop -a
-  % gbp-pq import
-\end{commandline}
-この時点で、{\tt{master}} ブランチから {\tt{patch-queue/master}} ブランチへ切り代わります。
-debian/patches 以下にあったパッチがファイル一つ毎に一つのコミットとして登録されます。
-適宜 rebase するなどして、パッチをマージしたり削除したりしていきます。
-パッチの修正が終わったら
-\begin{commandline}
-  % git checkout master
-  % gbp-pq export
-\end{commandline}
-で、{\tt{patch-queue/master}} のコミットがそれぞれパッチとして debian/patches 以下に置かれます。
-あとは
-\begin{commandline}
-  % quilt push -a
-  % git-buildpackge
-\end{commandline}
-で ok です。
-この方式の利点は、個々のパッチが追跡しやすくなること、{\tt{git format-patch}}の出力結果なので、
-upstream が Git を用いている場合には upstream に投げ易くなること、でしょうか\footnote{とはいえ、毎度 quilt pop/push -a するのも面倒かしらん}?
-
-ちなみに、{\tt{git-buildpackage}}のオプションには{\tt{--git-debian-branch=}}がありますので、
-\begin{commandline}
-  % git-buildpackage --git-debian-branch=patch-queue/master
-\end{commandline}
-とすると、パッチが当たった(quilt push -a)状態の tree を用いてパッケージ作成ができます。
-
-\subsubsection{リモートリポジトリとのやりとり}
-
-適宜 git clone/push/fetch すれば良いと思いますが
-\begin{enumerate}
-\item {\tt{pristine-tar}}, {\tt{upstream}} ブランチ、{\tt{upstream/バージョン番号}}タグは必ず push する
-\end{enumerate}
-に気をつけましょう。
-また、リモートリポジトリから
-{\tt{git-buildpackage}} 用に clone するための{\tt{gbp-clone}}コマンドも用意されています。
-
-他にも upstream が Git を使用していると、結構幸せになれます。
-git remote で、upstream の Git リポジトリの master や、特定の tag とこちらの upstream を紐付けておくと、
-単一のリポジトリで全て作業を行なえたりします。
-
-\subsubsection{Tips?}
-佐々木は以下を alias に登録しています。
-\begin{commandline}
-if [ -f /usr/bin/git-buildpackage ]; then
-  alias git-b="git-buildpackage --git-ignore-new --git-builder='debuild -rfakeroot -i.git -I.git -sa -k891D7E07'"
-  alias git-bc="git-buildpackage --git-ignore-new --git-builder='git-pbuilder'"
-  alias git-bct="git-buildpackage --git-ignore-new --git-tag --git-builder='git-pbuilder'"
-  alias git-bcl="git-buildpackage --git-ignore-new --git-builder='git-pbuilder-local'"
-fi
-\end{commandline}
-
-%...以下、当日\& 後日補足予定...
-
-\subsection{最後に}
-
-以上、簡単に svn-buildpackage, git-buildpackage についてお話しました。
-実際にパッケージを作成する際には、共同作業者との合意や Team Policy によって、それなりにルールがありますのでそれを参考にして下さい。
-
-また、結局 {git,svn}-buildpackage で multiple upstream を使用する場合の方法論とかはちゃんと調べられませんでした。
-結構需要ありそうなんですけれどね。bzr-buildpackage はその辺上手く動作するらしいので、山下 尊也さんの発表を期待して待つ事にします。
-
-% 201107 tokyo Debconfのため資料無し
-% 201107 kansai Debconfのため資料無し
-
-% 201108 tokyo
-\dancersection{パッケージビルド七転八倒 - rulesからgit-buildpackageまで}{やまだ}
-%------------------------------------------------------------------------------
-
-\subsection{はじめに}
-Debianパッケージを作成しようとして、関連するコマンドの層の厚さに
-戸惑ってしまった人はいないでしょうか？本稿はパッケージビルドを
-rules ベースから git-buildpackage まで一歩づつ発展させることで、
-関わってくるコマンドチェインへの理解を深めようと書いてみました。
-
-ところで、今回の内容は「パッケージビルド方法の紹介・講習」ではなく、
-
-\begin{quote}
-\Large{自分の手順を晒し、講評を貰って自分の糧とする}
-\end{quote}
-
-というのを目しています。要するに
-
-\begin{quote}
-\Large{色々やってこういう手順になった、何かもやもや}
-\end{quote}
-
-とコメントしてもらう逆講習セッションとなります。ですので、晒している
-手順の中では失敗した過程や引っかかった内容と疑問もそのまま書いています。
-毎日の迷路での迷いぶりをぜひお楽しみ下さい。
-
-別の方法でできている人は、別記事で手順をぜひ晒してみて下さい！
-
-\subsection{ビルド０日目}
-
-今回の題材は cocot です。これはターミナル側の対応エンコーディングと
-実行コマンドの入出力エンコーディングが一致しない場合に
-
-\begin{commandline}
-cocot -t UTF-8 -p EUC-JP program-with-euc-jp-only-support ...
-\end{commandline}
-
-のように実行するとUTF-8対応コマンドのように使えるというスグレモノなのですが、
-今回の話題とは特に関係ないので紹介はこれくらいにします。
-
-０日目の今日は、まずソースのDebianパッケージ化を行います。
-
-\begin{commandline}
-$ cd /d/src/
-$ git-clone git://github.com/vmi/cocot # ソースはgit公開のみ
-$ cd cocot
-$ dh_make -c bsd
-For dh_make to find the package name and version, the current directory
-needs to be in the format of <package>-<version>. 以下略
-\end{commandline}
-
-早速エラーとなりました。これはソースフォルダの形式が
-
-\begin{commandline}
-<package>-<version>/
-\end{commandline}
-
-とバージョン情報を含むことが期待されているためです。が、git clone の
-フォルダにバージョン名をつけて運用するというのはイマイチです。さらに、
-これから自分が作りこむ debian/ 以下も git 管理したい訳なので、
-上の名前でコピーを作って作業するのもしっくりこない。
-
-なので、フォルダ名と関係なく開発・ビルドできる環境を作るために、
-従わずにこうします（しました）：
-
-\begin{commandline}
-$ dh_make -c bsd -n -p cocot_20100903 # --native --packagename を追加
-Type of package: single binary, indep binary, multiple binary,
-                 library, kernel module, kernel patch or cdbs?
-[s/i/m/l/k/n/b] s <- 今回は cocot 単品なので single binary
-...
-Done. Please edit the files in the debian/ subdirectory now. cocot
-uses a configure script, so you probably don't have to edit the Makefiles.
-$
-\end{commandline}
-
-そして作られた debian/ フォルダ以下のサンプルファイルを削除・編集します。
-最終的に
-
-\begin{commandline}
-$ ls debian/
-total 44
-4 README         4 changelog  4 compat   4 copyright  4 manpages  4 source/
-4 README.source  4 cocot.1    4 control  4 docs       4 rules*
-\end{commandline}
-
-と整理して、ビルド準備が整いました。
-
-\subsection{ビルド１日目 - はじめの一歩}
-
-それではまずは最もシンプルなビルド形態から。これは Makefile に
-なっている debian/rules で binary ターゲットを実行するだけです：
-
-\begin{commandline}
-$ fakeroot ./debian/rules binary
-dh binary
-...
-dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
-$ ls -d ../cocot*
- 4 ../cocot/  20 ../cocot_20100903-1_amd64.deb
-\end{commandline}
-
-バイナリパッケージだけなら、これで終わりです。簡単ですね。
-fakerootはパッケージ中のファイル所有者が root になるように
-併用されるものです。
-
-しかし、このパッケージはDebian品質にはなっていません。
-
-\begin{itemize}
-\item 生成されたバイナリパッケージは署名されていない
-\item ソースパッケージは生成すらされていない
-\item 構成が Debian Policy に準拠しているか未テスト
-\end{itemize}
-
-などの問題があるためです。これらは署名なら gpg、ソースパッケージ
-生成なら tar/diff/etc（はさすがに原始的過ぎるので普通は dpkg-source）、
-構成テストなら lintian があるわけですが、手動でやっていては面倒なので
-一括実行するツールが整備されているわけです。
-
-\subsection{ビルド２日目 - dpkg-buildpackage と lintian}
-
-というわけで、「バイナリのみ、しかも未署名未テスト」の状態を
-脱するため、debian/rules の直接実行ではなく、ビルドツールを使った
-パッケージビルドに進みます。
-
-使う道具は dpkg-buildpackage です。何はともあれまず実行：
-
-\begin{commandline}
-$ dpkg-buildpackage -b # まずは binary-only ビルド
-...
-dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
- dpkg-genchanges -b >../cocot_20100903-1_amd64.changes
-dpkg-genchanges: binary-only upload - not including any source code
- signfile cocot_20100903-1_amd64.changes
-...
-$ ls -d ../cocot*
- 4 ../cocot/                          20 ../cocot_20100903-1_amd64.deb
- 4 ../cocot_20100903-1_amd64.changes
-\end{commandline}
-
-今度は deb に加えて changes も生成されました。ちゃんと署名しているのも
-確認できますね。changes は主にパッケージリポジトリで deb を管理するために
-使われるもので、（バイナリ）アップロードの際は deb と changes をペアで
-リポジトリにコピーします。
-
-ちなみに、上では構成テストはされていません。これは dpkg-buildpackage は
-パッケージ生成に特化しているためです。
-
-\begin{commandline}
-$ lintian ../cocot_20100903-1_amd64.changes
-W: cocot: new-package-should-close-itp-bug
-\end{commandline}
-
-dpkg-buildpackage を使う場合はこのように別途テストします。出てくる
-エラーメッセージはタグ名になっており、-i オプションで詳細解説を
-表示させたり、また、lintian.debian.org でも同様に細かく知ることができます。
-
-ただ、何が警告されているかは詳しく書かれていても、直し方の例などがなく、
-解釈に悩むこともあります。「よくある失敗と直し方」のような情報を
-付けられればと、lintian/l.d.oの表示の横にコメント領域を作りたくなります。
-
-ここまでが、バイナリのみ配布する場合の（最小限の）ビルド手順になります。
-
-\subsection{ビルド３日目 - dpkg-buildpackage と git とソースパッケージ}
-
-さて、ここまでソースパッケージの生成はしていませんでした。
-これは今回の設定が
-
-\begin{quote}
-\Large{普通の git ツリーで Debian package を作る}
-\end{quote}
-
-のため、tarball の場合には存在しない .git/ フォルダの扱いを
-考慮する必要があるためです。要は、ソースパッケージから .git
-フォルダは外したい訳です。
-
-このあたりの問題を完全に解決し git との親和性を高くするのが
-後述の git-buildpackage なのですが、それを使うまでは以下のような方法で
-対処していました：
-
-\begin{commandline}
-$ git-branch upstream # 素のソース保存用ブランチを作っておく
-$ git-checkout master # debian/ コミの自分の開発用ブランチを master にする
-$ git-add debian/     # debian/ を追加
-$ git-commit -a       #
-\end{commandline}
-
-このように素のソースツリーと Debian 化した自分の開発用ツリーで
-ブランチを分けた上で、
-
-\begin{commandline}
-$ git-archive --prefix=cocot-20100903/ upstream \
-| gzip > ../cocot_20100903.orig.tar.gz
-\end{commandline}
-
-などとして素のソースツリーのみの orig.tar を生成できます。後は
-
-\begin{commandline}
-$ dpkg-buildpackage -S # ソースパッケージのみビルド
-...
-dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.dsc
- signfile cocot_20100903-1.dsc
- ...
- signfile cocot_20100903-1_source.changes
-
-$ ls -d ../cocot*
-  4 ../cocot/                            4 ../cocot_20100903-1_source.changes
-  4 ../cocot_20100903-1.debian.tar.gz  216 ../cocot_20100903.orig.tar.gz
-  4 ../cocot_20100903-1.dsc
-\end{commandline}
-
-で完成します。署名もされていますね。ちなみに、テストもできます：
-
-\begin{commandline}
-$ lintian ../cocot_20100903-1_source.changes
-$
-\end{commandline}
-
-意味があるかは不明ですが・・・。
-
-とにかく、これでソースパッケージも生成できるようになったので、
-
-\begin{commandline}
-$ git-archive --prefix=cocot-20100903/ upstream \
-| gzip > ../cocot_20100903.orig.tar.gz
-$ dpkg-buildpackage  # 無指定なので dpkg-buildpackage -b -S の両方する
-\end{commandline}
-
-でようやくdebian.orgに出せるようなまっとうなパッケージビルドに
-届いたことになります。
-
-\subsection{ビルド４日目 - debuildの存在意義に疑問を持つ}
-
-ここまで ./debian/rules、dpkg-buildpackage とビルド方法を
-経てきましたが、次はその更に上位のコマンドとなる debuild を
-使ってみます。
-
-debuildのdpkg-buildpackageに対する優位性は
-
-\begin{itemize}
-\item コマンド名が短くて楽
-\item lintianも実行してくれるので楽
-\item 署名に debsign や debrsign を使うことができ、柔軟
-\begin{itemize}
-\item 例：\~{}/.gnupg/ のある生活環境と、パッケージビルドする作業環境が別サーバなど
-\end{itemize}
-\end{itemize}
-
-というあたりだと思われます。
-
-\begin{quote}
-\Large{コマンドチェインを長くする程の価値があるか、微妙}
-\end{quote}
-
-という感想を捨てきれませんが、この更に上位のコマンド群は debuild を
-呼ぶので、地位は安泰と思われます。
-
-何はともあれ実行：
-
-\begin{commandline}
-$ git-archive --prefix=cocot-20100903/ upstream \
-| gzip > ../cocot_20100903.orig.tar.gz
-$ debuild
-...
-dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.dsc
-...
-dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
- dpkg-genchanges  >../cocot_20100903-1_amd64.changes
-...
-Now running lintian...
-W: cocot: new-package-should-close-itp-bug
-Finished running lintian.
-Now signing changes and any dsc files...
- signfile cocot_20100903-1.dsc Taisuke Yamada <tai@rakugaki.org>
- ...
- signfile cocot_20100903-1_amd64.changes Taisuke Yamada <tai@rakugaki.org>
-...
-Successfully signed dsc and changes files
-$
-\end{commandline}
-
-たしかに dpkg-buildpackage よりは少し楽ではあるのですが・・・
-
-\subsection{ビルド５日目 - git-buildpackage - git と Debian の幸せな結婚}
-
-さて、いよいよ git-buildpackage にまでやってきました。これまでは
-
-\begin{commandline}
-$ git-archive --prefix=cocot-20100903/ upstream \
-| gzip > ../cocot_20100903.orig.tar.gz
-$ debuild
-\end{commandline}
-
-のように orig.tar は自分で用意してから debuild などを呼んで
-いたのですが、git-buildpackage はこの手順を統合します。
-
-\begin{itemize}
-\item ブランチAは素のソース管理用で、これを元に orig.tar を生成できる
-\item ブランチBはDebian化されたツリーで、これを使ってビルドする
-\end{itemize}
-
-という構成を理解して処理してくれる形です。この他にもビルド完了時に
-タグを打ってくれたり（--git-tag）、細かい機能が色々あります。
-
-何はともあれ実行：
-
-\begin{commandline}
-$ git-buildpackage --git-upstream-branch=upstream --git-debian-branch=master
-...
-cocot_20100903.orig.tar.gz does not exist, creating from 'upstream'
- dpkg-buildpackage -rfakeroot -D -us -uc -i -I
- ...
-$ ls -d ../cocot*
-  4 ../cocot/                            4 ../cocot_20100903-1_amd64.changes
-  8 ../cocot_20100903-1.debian.tar.gz   20 ../cocot_20100903-1_amd64.deb
-  4 ../cocot_20100903-1.dsc            208 ../cocot_20100903.orig.tar.gz
- 12 ../cocot_20100903-1_amd64.build
-\end{commandline}
-
-キタ！以降は dpkg-buildpackage を呼んでいる通り、これまでと同じです。
-
-で、上では引数を長々と書いていますが、使うブランチ名がデフォルトで
-upstream/masterなので、そのようにgitリポジトリを運用していれば
-
-\begin{commandline}
-$ git-buildpackage
-\end{commandline}
-
-のみでビルド完了になります。
-
-\subsection{ビルド６日目 - pbuilder - えっ、私のビルド、・・・動かない？}
-
-ここまで各種ビルド方法をやってきて、git-buildpackage で一里塚に
-到達した感がありますが、
-
-\begin{quote}
-\Large{そのパッケージ、本当に他の環境で使えますか？}
-\end{quote}
-
-という点が実はまだ甘いままです。
-
-\begin{itemize}
-\item パッケージメンテナの環境にしかない非互換のライブラリ
-\item パッケージメンテナの環境にしかないカスタマイズされたビルドツール
-\end{itemize}
-
-こういったものに依存するバイナリやビルドプロセスが残っていると、
-折角アップロードしたパッケージもただのゴミファイルになってしまいます。
-
-これをクリアするためのツールが pbuilder です。これは
-
-\begin{itemize}
-\item 独立した deboostrap 環境を作り、
-\item その中にパッケージファイルをコピーして、
-\item 最後に chroot してビルド
-\end{itemize}
-
-をすることで、パッケージメンテナの環境に依存するビルドミスを撲滅します。
-
-まずは実行：
-
-\begin{commandline}
-# まずは普通にgit-buildpackageでビルド
-$ git-buildpackage
-$ ls -d ../cocot*
-  4 ../cocot/                            4 ../cocot_20100903-1_amd64.changes
-  8 ../cocot_20100903-1.debian.tar.gz   20 ../cocot_20100903-1_amd64.deb
-  4 ../cocot_20100903-1.dsc            208 ../cocot_20100903.orig.tar.gz
- 12 ../cocot_20100903-1_amd64.build
-
-# 完成物をpbuilder環境内でリビルド。chrootが絡むのでroot権限が必要
-$ sudo pbuilder --create # 初回のみ行う（中でdebootstrapする）
-$ sudo pbuilder --update # 次回からは更新の上、処理に入る
-$ sudo pbuilder --build ../cocot_20100903-1.dsc
-...
-I: extracting base tarball [/var/cache/pbuilder/sid-amd64/base.tgz]
-...
-I: Copying source file
-I: copying [../cocot_20100903-1.dsc]
-I: copying [../cocot_20100903.orig.tar.gz]
-I: copying [../cocot_20100903-1.debian.tar.gz]
-...
-dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.dsc
-...
-dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
- dpkg-genchanges  >../cocot_20100903-1_amd64.changes
-...
-\end{commandline}
-
-このように、chroot環境内でリビルドを試みて、ビルドできることの検証と
-正しいバイナリの生成を行います。
-
-このようにpbuilderは頑健なパッケージ作成のためにお勧めのツールですが、
-いくつか欠点もあります。
-
-\begin{itemize}
-\item 大掛かりになるため遅い
-\item root権限が必要になる
-\item lintian が自動実行されない
-\item 署名処理も自動実行されない
-\end{itemize}
-
-本質的に解決が難しい部分もあるので、普段はdebuild/git-buildpackageを
-使い、最終チェックにpbuilderといった使い分けをしています。また、欠点を
-カバーするための上位ツール群も登場しています。
-
-\subsection{ビルド７日目 - pdebuildでダイレクトビルド}
-
-前回は
-
-\begin{itemize}
-\item ソースツリーから git-buildpackage が debuild でビルド
-\item ビルド結果中のソースパッケージを元に pbuilder がリビルド
-\end{itemize}
-
-という２段階実行になっていましたが、考えてみると
-
-\begin{quote}
-\Large{それなら最初からchroot環境にソース置いてビルドすれば？}
-\end{quote}
-
-という疑問が浮かびます。これを実現するのがpdebuildです。正確には
-
-\begin{quote}
-\Large{pdebuild に debuild と同じ CLI I/F を持たせ、入れ替える}
-\end{quote}
-
-ことで、git-buildpackage が .git/ の処理をした後で、後は最初から
-pdebuild にビルドさせる方式です。pdebuildはオプションでdebsignも
-呼び出してくれるので、そこも統合できます。上の方でdebuildの
-存在意義に疑問を持っていましたが、このあたりの処理I/Fの基準化という
-意味合いもあるのでしょうか？
-
-\begin{commandline}
-$ sudo pbuilder --create # 初回のみ行う（中でdebootstrapする）
-$ sudo pbuilder --update # 次回からは更新の上、以下続行
-$ git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
-...
-cocot_20100903.orig.tar.gz does not exist, creating from 'upstream'
-...
-dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.dsc
- dpkg-genchanges -S >../cocot_20100903-1_source.changes
-...
-I: extracting base tarball [/var/cache/pbuilder/sid-amd64/base.tgz]
-...最後にdebsignも呼び出される...
-signfile /d/src/cocot_20100903-1.dsc Taisuke Yamada <tai@rakugaki.org>
-...
-signfile /d/src/cocot_20100903-1_amd64.changes Taisuke Yamada <tai@rakugaki.org>
-...
-\end{commandline}
-
-再び git ツリーからのパッケージビルドをほぼ一括でやれるようになりました。
-ちなみに root 権限が一見不要に見えますがそんなはずもなく、pdebuild は
-デフォルトで sudo -E を使って内部で pbuilder を昇格させて処理しています。
-
-なお、Debian Planet 調べでは git-pbuilder なる更に上位のラッパーが
-開発途上の模様です。このコマンド階層はどこまで深くなるのか・・・
-
-\subsection{ビルド８日目 - cowbuilder - 高速pbuilderでビルド最終形へ}
-
-前回で git と pbuilder の統合が果たされましたが、pbuilder の
-欠点はまだそのまま残っています。この決定を軽減するのが cowbuilder です。
-
-\begin{itemize}
-\item ベースの debootstrap 環境を tar.gz で保持せず展開状態で管理する
-\item 上記をビルド環境として展開する際、コピーではなくハードリンクを用いる
-\begin{itemize}
-\item さらに、書き込みはトラップして、ベース環境に書き戻されないよう保護する
-\end{itemize}
-\end{itemize}
-
-という手法で、処理時間を劇的に短縮します。
-
-\begin{commandline}
-$ sudo cowbuilder --create # 初回のみ行う
-$ sudo cowbuilder --update # 次回からは更新処理をしてから続行
-$ PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
-...
-dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
-dpkg-source: info: building cocot in cocot_20100903-1.dsc
- dpkg-genchanges -S >../cocot_20100903-1_source.changes
-...
--> Copying COW directory
-...以降はpbuilderがchroot/COW環境下でビルドを行う...
-\end{commandline}
-
-使い勝手はほとんど同一で
-
-\begin{itemize}
-\item pbuilder を使うところを cowbuilder とする
-\item pdebuild が cowbuilder を使うよう PDEBUILD\_PBUILDER=cowbuilder と定義する
-\end{itemize}
-
-のみで倍速近くになるため、非常に有用です。
-
-この形が、現在のパッケージビルド方法の最終形になるようです。
-しかし本稿はまだ続きます。
-
-\subsection{ビルド９日目 - i386 on amd64}
-
-上の git-buildpackage + pdebuild + cowbuilder でビルド手順としては
-ようやく完成を見ました。しかし、
-
-\begin{quote}
-\Large{ネイティブビルドだけで、いいんですか？}
-\end{quote}
-
-という課題があります。
-
-アップロードすればそのうち i386 や他アーキテクチャ用のパッケージも
-出来てくる訳ですが、自分で使う自分のパッケージなら、自分でビルドも
-してしまいたいものです。アーキテクチャ依存バグを潰すこともできます。
-
-まずは、より簡易な i386 on amd64 ビルドを見てみましょう。
-これは gcc レベルでは
-
-\begin{itemize}
-\item gcc を gcc -m32 で呼ぶ
-\item 依存ライブラリがあれば、それの i386 build 版も用意しておく
-\end{itemize}
-
-で済みますが、これをパッケージビルド内でする方法は意外に悩みました。
-バイナリがi386なのにパッケージ名がamd64だったり、その逆が起こったり・・・
-
-というわけで、各ビルドツールレベルでの指定方法をまとめてみました：
-
-\begin{commandline}
-# debian/rules レベルの場合
-CFLAGS=-m32 \
-linux32 dpkg-architecture -ai386 -c fakeroot ./debian/rules binary
-
-# dpkg-buildpackage レベルの場合
-DEB_CFLAGS_APPEND=-m32 linux32 dpkg-buildpackage -ai386
-
-# debuild レベルの場合
-DEB_CFLAGS_APPEND=-m32 linux32 debuild -ai386
-
-# git-buildpackage レベルの場合
-git-buildpackage \
---git-builder="DEB_CFLAGS_APPEND=-m32 linux32 debuild -ai386"
-\end{commandline}
-
-CFLAGSの指定方法が途中で変わるのは、dpkg-* 系のツールは
-ビルドオプションは dpkg-buildflags が供給するものを使うためです。
-
-アーキテクチャ指定については、dpkg-architecture が出力する
-DEB\_(BUILD\_HOST)\_* 変数で処理する形が標準で、linux32 の
-エミュレーション（uname(3)の結果をいじるだけ）は実質的に意味が
-なくなっています。が、お守り代わりでまだ付けたり付けなかったり。
-
-Debian Policyのどこかに
-
-\begin{quote}
-\Large{告知：linux32はもうobsoleteです}
-\end{quote}
-
-と書いてあったりしないのかな・・・？
-
-\subsection{ビルド１０日目 - cross-build on amd64}
-
-今回は ARM や MIPS などのツールチェインがまったく別の場合の
-クロスパッケージビルドです。cocot については使う予定は
-ないのですが、通信系のツールなどではたまに自分でビルドして
-欲しくなります。
-
-実は i386 on amd64 より、まったく別のアーキテクチャ向けの
-ビルドをする方が簡単です。
-
-\begin{commandline}
-# debian/rules レベルの場合
-dpkg-architecture -aarmel -c fakeroot ./debian/rules binary
-
-# dpkg-buildpackage レベルの場合
-dpkg-buildpackage -aarmel
-
-# debuild レベルの場合
-debuild -aarmel
-
-# git-buildpackage レベルの場合
-git-buildpackage --git-builder="debuild -amipsel"
-\end{commandline}
-
-当然クロスコンパイラや依存ライブラリのクロス版が入っていることが
-前提となりますが、Debianの場合はapt-crossがこのためにあり、容易に
-環境を作ることができます。
-
-\subsection{ビルド１１日目 - i386 build on amd64 pbuilder}
-
-ここまでのクロスビルドはコンパイラのモード切替やクロスコンパイラで
-行っていましたが、pbuilder でもできるのでしょうか？
-
-答は「できる」で、むしろchroot環境でのビルドは、その環境下での
-ネイティブビルドとも言えるので更に単純です。ただし、debootstrap の
-処理の都合上、こちらは i386/amd64 の方が other/amd64 より楽です。
-
-まずは i386 on amd64 pbuilder から：
-
-\begin{commandline}
-$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
-$ sudo -E pbuilder --create # 最初の一度だけ行う環境構築
-$ sudo -E pbuilder --update # 二回目からは更新だけ行う
-$ git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
-\end{commandline}
-
-微妙に DIST=sid ARCH=i386 と DISTRIBUTION=sid ARCHITECTURE=i386 と
-同じ事を二重に指定しているのが不審ですが、これは pbuilder と
-pdebuild で ARCH/DIST 情報の伝達・参照方法が異なるためです。なお、
-マニュアルでは
-
-\begin{commandline}
-pbuilder --architecture arch --distribution dist
-pdebuild --architecture arch
-\end{commandline}
-
-というのがありますが、これは現状あまり有効ではありません（この辺り
-もやもやしている）。環境変数の方がコマンドチェインを下っても有効に
-なっていやすいので、現在は環境変数べったりに倒してます。
-
-高速化で cowbuilder を組込む場合、pbuilderrc に追加が必要な点のみ
-要注意でしたが、ビルド自体は変数設定を１つ増やすだけで済みます：
-
-\begin{commandline}
-$ vi /etc/pbuilderrc
-...
-# for cowbuilder
-BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.cow
-...
-$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
-$ sudo -E cowbuilder --create
-$ sudo -E cowbuilder --update
-$ PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
-\end{commandline}
-
-\subsection{ビルド１２日目 - cross build on amd64 pbuilder}
-
-だんだん話も終わりに近づいてきました。今度はi386ではない
-他アーキテクチャのビルドをpbuilder/cowbuilder on amd64で行ってみます。
-
-他アーキテクチャを扱う上で面倒な点は以下の２つです：
-
-\begin{itemize}
-\item debootstrapが一発でchroot環境を構築できない
-\item chroot環境内のバイナリはamd64環境で直接実行できない
-\end{itemize}
-
-これはいずれもchroot環境さえ作れればいいので、一番手っ取り早い方法は
-qemu-*-staticエミュレータを使ってdebootstrapしてしまうことです：
-
-\begin{commandline}
-$ cd /var/cache/pbuilder/
-$ sudo debootstrap --variant=buildd --include=apt,cowdancer \
---foreign --arch armel sid sid-armel.cow http://localhost:9999/debian
-...
-$ sudo cp /usr/bin/qemu-arm-static sid-armel.cow/usr/bin/
-$ sudo chroot sid-armel.cow /debootstrap/debootstrap --second-stage
-...
-I: Base system installed successfully.
-
-# 上の --second-stage 実行でクリアされてしまうsources.listを再補充
-$ sudo tee sid-armel.cow/etc/apt/sources.list.d/local.list
-deb http://127.0.0.1:9999/debian sid main
-^D
-$ sudo chroot sid-armel.cow apt-get update
-\end{commandline}
-
-これは欠点として pbuilder/cowbuilder --create で作った環境ほど
-パッケージ構成が最適化されていないようですが、これで
-
-\begin{commandline}
-$ export DIST=sid ARCH=armel DISTRIBUTION=sid ARCHITECTURE=armel
-$ sudo -E cowbuilder --create
-$ sudo -E cowbuilder --update
-$ PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
-\end{commandline}
-
-とアーキテクチャを問わず同一手順でビルドできるようになりました。
-
-もっとも、qemu-user-static は確実に動作するとは限らないので、
-アーキテクチャによって動くような、動かないようなという面は
-あります（MIPSですら実は動かないことも…）。
-
-もし cowbuilder ではなく pbuilder で実行する必要があるならば、
-単に tarball にして sid-armel/base.tgz に置けば転用できます：
-
-\begin{commandline}
-$ sudo mkdir sid-armel
-$ cd sid-armel.cow
-$ sudo tar zcf ../sid-armel/base.tgz *
-\end{commandline}
-
-なお、http://localhost:9999/debian/ は approx で立てている
-キャッシングプロキシですが、設定が簡便なのと効果絶大なためオススメです。
-
-\subsection{ビルド１３日目 - cross build on amd64 pbuilder, better}
-
-前回は他アーキテクチャ用の chroot 環境を手動 debootstrap で作りましたが、
-pbuilder/cowbuilder の生成する環境とは差が出てしまうため、やはり通常の
-
-\begin{commandline}
-pbuilder/cowbuilder --create
-\end{commandline}
-
-で生成したい所です。そこで、クロス環境もコマンド一回で構築できる
-debootstrap-crossを用意して、
-
-\begin{commandline}
-pbuilder/cowbuilder --create --debootstrap /usr/local/bin/debootstrap-cross
-\end{commandline}
-
-と呼び出してみましょう。スクリプトは単純で、以下の通りです：
-
-\begin{commandline}
-#!/bin/sh
-
-archfix() {
-  case "$1" in
-  armel) echo arm;;
-  amd64) echo x86_64;;
-  *)     echo $1;;
-  esac
-}
-
-scanarg() {
-  while [ $# -gt 0 ]; do
-  case "$1" in
-  --arch=)
-    ARCH=${$1##--arch=};;
-  unstable|testing|stable|oldstable|sid|wheezy|squeeze|lenny)
-    set -- "$@"; SUITE=$1; TARGET=$2; MIRROR=$3; SCRIPT=$4; break;;
-  esac
-  shift
-  done
-
-  : ${ARCH:=$(dpkg-architecture -qDEB_HOST_ARCH)}
-  : ${SUITE:=sid}
-  : ${TARGET:=.}
-  : ${MIRROR:=http://127.0.0.1:9999/debian}
-}
-
-scanarg "$@"
-
-if dpkg-architecture -e$ARCH; then
-  debootstrap "$@"
-elif dpkg-architecture -eamd64 && [ $ARCH = i386 ]; then
-  debootstrap "$@"
-else
-  debootstrap --foreign "$@"
-  cp "/usr/bin/qemu-$(archfix $ARCH)-static" "$TARGET/usr/bin/"
-  chroot "$TARGET" /debootstrap/debootstrap --second-stage
-  #echo $MIRROR > "$TARGET/etc/apt/sources.list.d/local.list"
-  #chroot "$TARGET" apt-get update
-fi
-\end{commandline}
-
-これはamd64上でamd64/i386環境を構築するケースも
-２段インストールしない本来の形で処理できるので、/etc/pbuilderrc に
-
-\begin{commandline}
-DEBOOTSTRAP=/usr/local/bin/debootstrap-cross
-\end{commandline}
-
-と書くことで、再び手順は
-
-\begin{commandline}
-$ vi /etc/pbuilderrc
-...
-# for cowbuilder
-BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.cow
-DEBOOTSTRAP=/usr/local/bin/debootstrap-cross
-...
-$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
-$ sudo -E cowbuilder --create
-$ sudo -E cowbuilder --update
-$ PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
-$ lintian ../mypackage*.deb
-\end{commandline}
-
-とアーキテクチャを問わず同様となります。
-
-\subsection{ビルド１４日目 - 大統一ビルドの失敗 - pbuilder に lintian 統合}
-
-ここまで、素の debian/rules ビルドから一歩ずつ進めて、
-
-\begin{quote}
-debian/rules
-$\rightarrow$ +dpkg-buildpackage
-$\rightarrow$ +debuild
-$\rightarrow$ +git-buildpackage
-$\rightarrow$ +pbuilder
-$\rightarrow$ +pdebuild
-$\rightarrow$ +cowbuilder
-$\rightarrow$ +i386 build support
-$\rightarrow$ +generic cross build support
-\end{quote}
-
-と１つずつ機能を組み込んできました。しかし、pbuilder 以降はlintianが
-統合から外れている事に気付かれているでしょうか？
-
-これには理由がある（と思われる）のですが、組み込み自体は実は可能です。
-pbuilder（そしてそれを利用している cowbuilder）にはフック機能があり、
-各種処理の前後で任意のスクリプトでフックできます。
-
-実は既に /usr/share/doc/pbuilder/examples/ に用意されているのですが、
-これを利用してビルド完了直後に lintian を呼んでみましょう。
-
-\begin{commandline}
-$ mkdir /t/pbhook/
-$ cp /usr/share/doc/pbuilder/examples/B90lintian /t/pbhook/
-$ PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder="pdebuild \
---buildresult .. --auto-debsign -- --hookdir /t/pbhook"
-...
-I: user script /d/cache/pbuilder/build/cow.13001/tmp/hooks/B90lintian starting
-...
-Get:19 http://127.0.0.1/debian/ sid/main lintian all 2.5.2 [617 kB]
-...
-Setting up lintian (2.5.2) ...
-Generating en_US.UTF-8 locale for internal Lintian use....
-+++ lintian output +++
-W: cocot: new-package-should-close-itp-bug
-...
-+++ end of lintian output +++
-I: user script /d/cache/pbuilder/build/cow.13001/tmp/hooks/B90lintian finished
-...
-\end{commandline}
-
-これでビルド+署名+検証を完全実行するビルド手順の大統一が再び果たされました。
-
-・・・が、やってみると判るのですが、ネイティブビルドなら
-まだしも、クロスビルドの時にエミュレータ上でlintianを実行するのは
-正直遅いです。上の Generating locale ... の辺りでかなりぐんにゃり。
-
-結局、餅は餅屋で
-
-\begin{itemize}
-\item テストビルドをネイティブのdebuild環境でやりつつlintianも連動実行
-\item 最終的なクリーンビルド・バイナリ生成はpbuilder環境
-\item 署名はせずに、アップロードまたは独自リポジトリ設置のタイミングで実行
-\end{itemize}
-
-と、むしろ統一しないほうがいい、というのが結論です。
-
-\begin{quote}
-\Large{ここまで引っ張っておいてそれが結論か！}
-\end{quote}
-
-どうぞ皆様は同じ過ちは犯されませんように・・・
-
-\subsection{まとめ}
-
-今回は debian/rules による単純な（といっても、この中身は debhelper という
-別の闇が控えてます・・・）ビルドから始めて、git-buildpackage での git 統合、
-さらに pbuilder/cowbuilder でのクリーンビルド、そしてさらにクロスビルドまで
-含んでの手順統一を行ってきました。
-
-すべてを勘案した、現在のビルドの最終形はこうなっています：
-
-\begin{commandline}
-=== /etc/pbuilderrc ===
-...
-# for cowbuilder
-PDEBUILD_PBUILDER=cowbuilder
-if echo $SUDO_COMMAND | grep -q qemubuilder; then
-  BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.qemu
-else
-  BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.cow
-fi
-  
-# このコマンドの内容はビルド１３日目を参照
-DEBOOTSTRAP=/usr/local/bin/debootstrap-cross
-...
-\end{commandline}
-
-この設定でマルチアーキテクチャ対応の pbuilder/cowbuilder 環境が
-整うので、後は
-
-\begin{commandline}
-$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
-$ sudo -E cowbuilder --update # たまに行っておく。初回だけ --create になる
-$ git-buildpackage --git-builder="pdebuild --buildresult .."
-$ lintian ../$(basename $PWD)*.deb
-$ debsign ../$(basename $PWD)*.changes ../$(basename $PWD)*.dsc
-\end{commandline}
-
-を実行、という形に落ち着いています。
-
-この先には qemubuilder という大物や、アップロード/野良リポジトリ運営との
-統合などがテーマとしてまだあるのですが、今日の所はこれくらいで締めさせて
-頂きます。それでは
-
-\begin{quote}
-\Large{Happy Building!}
-\end{quote}
-
-%-------------------------------------------------------------------------------
-\dancersection{パッケージを作ったらスポンサーアップロード}{岩松 信洋}
-%-------------------------------------------------------------------------------
-\label{sec:sponsorupload}
-\index{sponsor upload}
-
-\subsection{はじめに}
-%* Debian Developers
-%* Debian Maintainers (DM)
-% Sponsored maintainers
-
-Debian にパッケージをアップロードする場合、誰でもアップロードできるわけではなく
-限られた人しかアップロードできません。
-アップロードできるのはDebian Developer(以下、DD)とDebian Maintainer（以下、DM）
-だけです。また、DM はアップロードする際に制限があります。
-
-
-%この制限にはパッケージが新しく追加されること、
-%
-%- 制限を書く
-
- 
-DDではない人が、メンテナンスしているパッケージをアップロード
-する場合には、DD に頼んでアップロードしてもらう必要があります。
-パッケージを代理でアップロードする人をスポンサーといい、アップロードする行為を
-スポンサーアップロードといいます。
-パッケージメンテナに変わってパッケージをアップロードするので、パッケージに対して
-責任が問われる作業です。
-よって、アップロードするパッケージの内容やパッケージメンテナについてある程度知
-っておく必要があります。
-スポンサーはパッケージのチェック等を行ったりパッケージ内容に対して助言をす
-るので、mentor（助言する人）といった方がわかりやすいかもしれません。 
-このパッケージチェックの過程は DD や DM
-になる場合に優位に働く場合があります。DDやDMになる時には既存のDDに支持者になって
-もらう必要があるのですが、この場合スポンサーに支持者担ってもらうように依頼すると、
-しっかりした内容の支持内容を提供してくれるはずです。
-
-では、スポンサーがどのようにしてパッケージをスポンサーアップロードするのか
-説明します。
+上記スライドから引用して説明します。
 
 \begin{figure}[ht]
- \begin{center}
-  \includegraphics[width=0.8\hsize]{image201108/sponsor0.png}
- \end{center}
-\label{fig:sponsor0}\caption{パッケージアップロード}
+  \begin{center}
+    \includegraphics[height=5cm]{image201110/cabal-1.png}
+  \end{center}
+  \label{fig:cabal-1}\caption{Hackage DB上でB-1パッケージがAに依存している場合}
 \end{figure}
 
-\subsection{スポンサーアップロードするときに確認する内容}
+まず上図のようにHackage DBでB-1パッケージがAパッケージに依存している場合を
+考えます。この時B-1はAのバージョンについて特に指定していないとします。
 
-パッケージメンテナに「アップロードして！」と言われてはいはいと 
-アップロードしてしまうと変なパッケージがDebianのパッケージ
-リポジトリに入ることになり、いろいろ問題が起きてしまいます。
-よって、スポンサーはアップロードするパッケージメンテナとパッケージを
-確認する必要があります。
-スポンサーは確認する前と後にチェックする内容があります。スポンサーによって内容が異なりますが、
-ここでは私が行っているチェック内容を紹介します。
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[height=5cm]{image201110/cabal-2.png}
+  \end{center}
+  \label{fig:cabal-2}\caption{B-1とA-1をインストール}
+\end{figure}
 
-\subsubsection{パッケージをチェックする前のチェック}
+このようなHackage DBからB-1をインストールするとAパッケージの最新バージョン
+であるA-1も一緒にインストールされます。
 
-スポンサーをするパッケージメンテナの方に以下の内容を確認しています。
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[height=5cm]{image201110/cabal-3.png}
+  \end{center}
+  \label{fig:cabal-3}\caption{そしてさらにB-1に依存したHackage群をインストール}
+\end{figure}
+
+そうして、このような環境にさらにC-1を含むB-1依存したHackage群をインストール
+します。ここで、Bに依存しているC-1はローカルではB-1に紐づけられています。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[height=5cm]{image201110/cabal-4.png}
+  \end{center}
+  \label{fig:cabal-4}\caption{A-2に依存しているD-1をインストールしようと試みる}
+\end{figure}
+
+ここでHackage DBからD-1をインストールしてみましょう。
+D-1はHackage DB上(上図右)ではA-2とB-1にバージョン指定で依存しています。
+ローカルにはA-1とB-1がインストールされています。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[height=5cm]{image201110/cabal-5.png}
+  \end{center}
+  \label{fig:cabal-5}\caption{cabalはD-1をインストールにあたってA-2もインストールしようとする}
+\end{figure}
+
+このままローカルにインストールされているA-1とB-1を無変更でD-1をインストール
+することはできません。そこで、cabalはインストール計画をたて、
+A-1のかわりにA-2をインストールしようとします。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[height=5cm]{image201110/cabal-6.png}
+  \end{center}
+  \label{fig:cabal-6}\caption{D-1は正常にインストールされたが、B-1に依存していたHackage群は依存が壊れてしまう}
+\end{figure}
+
+A-2,B-1,D-1について\texttt{cabal}はインストール/更新を完了しました。
+しかし、B-1に依存していたHackageについては再コンパイルは行ないません。
+当然B-1に依存していたHackageは依存が壊れたまま放置されてしまうことになります。
+
+
+この問題は依存解決する際のインストール計画の際にバックトラックが行なわれない
+ためです。B-1を再インストールするのであれば、それに依存したHackage(C-1など)
+も再インストールすべきだったのです。
+もちろんHaskellコミュニティではこの問題を認識しており、その解決のために
+新しいソルバを実装しています。
+\footnote{\url{http://darcs.haskell.org/cabal-branches/cabal-modular-solver}}
+近い将来に本家\texttt{cabal}に取り込まれることでしょう。
+
+\subsubsection{Hackageが依存する環境についてcabalコマンドは面倒をみてくれない}
+
+cairo
+\footnote{\url{http://hackage.haskell.org/package/cairo}}
+のようにC言語に依存するHackageについてはcabalコマンドは面倒を見てくれません。
+Debianパッケージlibcairo2-devが入っていない環境で
+cairo Hackageを\texttt{cabal}コマンドを使ってインストールしようとしても、
+(当然)コンパイルエラーによってインストールに失敗します。
+
+そもそもDebianではHaskell以外の部分のパッケージはDebianパッケージ(deb)によって管理されています。
+cabalコマンドはOSに依存していないので、(当然)apt-getを呼び出すわけにもいきません。
+\footnote{\url{http://packages.debian.org/ja/sid/auto-apt}
+を使ってcabalコマンド実行の裏でDebianパッケージを自動インストールする手はあるかもしれませんね ;-)}
+
+\subsubsection{Hackage群全てを最新バージョンでインストールできないかもしれない}
+
+yesod \footnote{\url{http://hackage.haskell.org/package/yesod}}
+,hakyll \footnote{\url{http://hackage.haskell.org/package/hakyll}}
+,hamlet \footnote{\url{http://hackage.haskell.org/package/hamlet}}
+の3つのHackageを例に説明します。
+この問題はyesod-0.9.2, hakyll-3.2.0.8, hamlet-0.10.2のバージョン間で生じていました。(現在は解消されています)
+
+まずそれぞれのHackageについて依存を見てみましょう。
+
+\begin{commandline}
+$ cabal info yesod-0.9.2
+* yesod-0.9.2            (program and library)
+--snip--
+    Dependencies:  yesod-core >=0.9.1.1 && <0.10, yesod-auth ==0.7.*,
+--snip--
+                   hamlet ==0.10.*, shakespeare-js ==0.10.*,
+--snip--
+$ cabal info hakyll-3.2.0.8
+* hakyll-3.2.0.8           (library)
+--snip--
+    Dependencies:  base ==4.*, binary >=0.5 && <1.0, blaze-html >=0.4 && <0.6,
+--snip--
+                   filepath >=1.0 && <2.0, hamlet >=0.7 && <0.9,
+\end{commandline}
+
+あれ？yesod-0.9.2はhamlet-0.10.*に依存しているのにhakyll-3.2.0.8は
+hamlet-0.7.*もしくはhamlet-0.8.*に依存しています。
+確かに表面上問題はありません。この状態でもyesodとhakyllの両方をインストール
+することはできます。しかしもしhakyllとyesod両方のライブラリを使いたいプログラム
+を作りたくなった場合にはどうしたら良いのでしょう？
+hakyllはローカルでWebサーバを起動してプレビューする機能を持っています。
+たまたまhakyllはこのWebサーバのエンジンとしてsnap
+\footnote{\url{http://hackage.haskell.org/package/snap}}
+を使っていたから良かったもののyesodを使っていたら、古いyesodの機能
+しか使えないところです。
+
+どうしてこんな状態でHackageが放置されていたのでしょう？
+やる気がないのでしょうか？いえいえそんなことはありません。
+今度はhamletについて調べてみましょう。
+
+\begin{multicols}{2}
+hamlet-0.8.2.1のModuleリスト
+\begin{commandline}
+Text
+  Text.Cassius
+  Text.Coffee
+  Text.Hamlet
+    Text.Hamlet.NonPoly
+    Text.Hamlet.RT
+  Text.Julius
+  Text.Lucius
+  Text.Romeo
+  Text.Shakespeare
+\end{commandline}
+\columnbreak
+hamlet-0.9.0のModuleリスト
+\begin{commandline}
+Text
+  Text.Cassius
+  Text.Coffee
+  Text.Hamlet
+  Text.Julius
+  Text.Lucius
+  Text.Romeo
+  Text.Shakespeare
+\end{commandline}
+\end{multicols}
+
+あれ？APIに変更があるようです。ここで注目したいのはText.Hamlet.RTモジュールが
+消滅していることです。
+嫌な予感がします。hakyllのソースコード
+\footnote{\url{https://github.com/jaspervdj/hakyll/blob/master/src/Hakyll/Web/Template/Read/Hamlet.hs}}
+を見てみましょう。
+
+\begin{commandline}
+-- | Read templates in the hamlet format
+--
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Hakyll.Web.Template.Read.Hamlet
+    ( readHamletTemplate
+    , readHamletTemplateWith
+    ) where
+
+import Text.Hamlet (HamletSettings, defaultHamletSettings)
+import Text.Hamlet.RT
+
+import Hakyll.Web.Template.Internal
+--snip--
+\end{commandline}
+
+あーhakyllのコンパイルにはText.Hamlet.RTモジュールが必須なんですね。
+これでは新しいhamletを使うことができない訳です。
+
+Hackage作者が自由に依存Hackageのバージョンを選択可能である以上、
+このようなHackage群全体の不整合は避けられません。
+
+\subsection{HackageをDebianパッケージ化する}
+
+cabalを使ってDebianパッケージと同等のレベルで
+パッケージ管理をするのは現状では難しいことがわかりました。
+それにapt-getでライブラリ環境が整うのはDebianユーザとしてうれしいですよね。
+そこで、自分の良く使うHackageはDebianパッケージ化してDebian本体に
+登録してしまうのはいかがでしょうか。
+実はHackageをDebianパッケージ化するのはすごく簡単です。
+\texttt{cabal-debian}というまんまの名前のコマンドがあります。\footnote{\url{http://hackage.haskell.org/package/debian}}
+さっそくやってみましょう!
+
+例題としてHCWiid
+\footnote{Wiiリモコンからイベントを拾うためのライブラリ
+  \url{http://hackage.haskell.org/package/hcwiid}}
+をDebianパッケージ化してみます。
+まずHackageのDebianパッケージ化に必要なhaskell-debian-utils,
+haskell-devscriptsをapt-get installしましょう。
+
+\begin{commandline}
+$ sudo apt-get install haskell-debian-utils haskell-devscripts
+$ rehash
+\end{commandline}
+
+hackageをダウンロードして解凍したら、ディレクトリに移動しておもむろに\texttt{cabal-debian}コマンドを使います。
+
+\begin{commandline}
+$ wget http://hackage.haskell.org/packages/archive/hcwiid/0.0.1/hcwiid-0.0.1.tar.gz
+$ tar xfz hcwiid-0.0.1.tar.gz
+$ cd hcwiid-0.0.1/
+$ cabal-debian --debianize --ghc --maintainer="Kiwamu Okabe <kiwamu@debian.or.jp>"
+$ ls debian
+changelog  compat  control  copyright  rules*
+$ debuild -rfakeroot -us -uc
+--snip--
+ dpkg-genchanges  >../haskell-hcwiid_0.0.1-1~hackage1_amd64.changes
+dpkg-genchanges: including full source code in upload
+ dpkg-source --after-build hcwiid-0.0.1
+dpkg-buildpackage: full upload; Debian-native package (full source is included)
+Now running lintian...
+W: haskell-hcwiid source: native-package-with-dash-version
+W: haskell-hcwiid source: out-of-date-standards-version 3.9.1 (current is 3.9.2)
+E: libghc-hcwiid-dev: copyright-file-contains-full-gpl-license
+E: libghc-hcwiid-dev: copyright-should-refer-to-common-license-file-for-lgpl
+E: libghc-hcwiid-dev: description-contains-tabs
+E: libghc-hcwiid-prof: copyright-file-contains-full-gpl-license
+E: libghc-hcwiid-prof: copyright-should-refer-to-common-license-file-for-lgpl
+E: libghc-hcwiid-prof: description-contains-tabs
+E: libghc-hcwiid-doc: copyright-file-contains-full-gpl-license
+E: libghc-hcwiid-doc: copyright-should-refer-to-common-license-file-for-lgpl
+E: libghc-hcwiid-doc: description-contains-tabs
+Finished running lintian.
+$ ls ../*hcwiid*deb
+../libghc-hcwiid-dev_0.0.1-1~hackage1_amd64.deb
+../libghc-hcwiid-doc_0.0.1-1~hackage1_all.deb
+../libghc-hcwiid-prof_0.0.1-1~hackage1_amd64.deb
+\end{commandline}
+
+なんかあっさりDebianパッケージができちゃいました。
+lintianがなんか言ってますが、
+あまり深刻なものではないのでとりあえずインストールしてみましょう。
+
+\begin{commandline}
+$ sudo dpkg -i ../libghc-hcwiid-dev_0.0.1-1\~hackage1_amd64.deb \
+../libghc-hcwiid-doc_0.0.1-1\~hackage1_all.deb ../libghc-hcwiid-prof_0.0.1-1\~hackage1_amd64.deb
+$ cd ~/
+$ rm -rf .ghc .cabal # これでcabalでインストールしたパッケージは一切使っていないはずです
+$ ghc-pkg list|grep hcwiid
+    hcwiid-0.0.1
+\end{commandline}
+Hackageはインストール済みのようです。hcwiidライブラリを使ってみましょう。
+
+Test.hs
+\begin{commandline}
+module Main where
+
+import Prelude
+import Control.Monad
+import System.CWiid
+import System.Posix.Unistd
+
+main :: IO ()
+main = do
+  putStrLn "Put Wiimote in discoverable mode now (press 1+2)..."
+  (Just wm) <- cwiidOpen
+  putStrLn "found!"
+  _ <- cwiidSetLed wm
+  _ <- cwiidSetRptMode wm
+  _ <- forever $ do _ <- usleep 300000
+                    cwiidGetBtnState wm >>= print
+  return () -- not reach
+$ ghc --make Test.hs
+[1 of 1] Compiling Main             ( Test.hs, Test.o )
+Linking Test ...
+$ ./Test
+Put Wiimote in discoverable mode now (press 1+2)...
+\end{commandline}
+
+なんて簡単なんでしょう!簡単なHackageならcabal-debianコマンドを使えば
+Debianパッケージ化が完了してしまうようです。
+しかも下記3つのライブラリに分割してくれています。やった!
 
 \begin{itemize}
-\item Web of Trust（WOT） に入っているか。
-
-GPGの鍵チェックを行います。WOT に入ってない場合には近くにいるDDにキーサインしてもらうように
-依頼しています。
-
-\item DDやDMへの意欲はあるか。
-
-ただパッケージメンテナになるのもいいのですが、私を含めたスポンサーの多くは、
-メンテナには最終的に DDになってもらって、Debianの開発に参加して欲しいと思っている
-と思います。よって、パッケージメンテナの次のステップについて考えているか、確認しています。
-私はDDやDMになりたくないからといって、スポンサーにならないことはないです。
-
-\item Debian 新メンテナーガイド\footnote{\url{http://www.debian.org/doc/manuals/maint-guide/}} を読んだか。
-\item DFSG \footnote{\url{http://www.debian.org/social_contract.ja.html}} を読んだか。
-\item Debian Policy\footnote{\url{http://www.debian.org/doc/debian-policy/}} を読んだか。
-\item Debian Reference \footnote{\url{http://www.debian.org/doc/manuals/developers-reference/}}を読んだか。
-
-これらは読んでおくべきドキュメント類です。読んでないと話
-にならないので、まず読んである程度理解してもらうようにしています。
-
+ \item libghc-HOGE-dev  - 通常使用するライブラリ
+ \item libghc-HOGE-doc  - Haddockで生成されたAPIドキュメント
+ \item libghc-HOGE-prof - プロファイラ対応ライブラリ
 \end{itemize}
 
-これ以外にも、たまに誰もスポンサーする人がいないようなのでスポンサーする場合があります。
+\subsection{haskell-debian-utilsのしくみ}
 
-\subsubsection{パッケージのチェック}
+cabal-debianでのDebianパッケージ化はどのようなしくみなのでしょうか。
+さきほど作ったhcwiidパッケージのdebian/rulesファイルを見てみましょう。
 
-次に実際のパッケージのチェックを行います。
-内容は以下になります。
+\begin{commandline}
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/hlibrary.mk
+
+# How to install an extra file into the documentation package
+#binary-fixup/libghc-hcwiid-doc::
+#       echo "Some informative text" > debian/libghc-hcwiid-doc/usr/share/doc/libghc-hcwiid-doc/AnExtraDocFile
+\end{commandline}
+
+なんということでしょう。内容がありません。。。
+これはhlibrary.mkファイルに秘密があるに相違ありません。
+全部を読まずにまずはlibghc-HOGE-devのbuildターゲットとその近辺をhlibrary.mk
+から抜き出してみましょう。
+
+\begin{commandline}
+DEB_SETUP_BIN_NAME ?= debian/hlibrary.setup
+BUILD_GHC := $(DEB_SETUP_BIN_NAME) build
+
+$(DEB_SETUP_BIN_NAME):
+        if test ! -e Setup.lhs -a ! -e Setup.hs; then echo "No setup script found!"; exit 1; fi
+        for setup in Setup.lhs Setup.hs; do if test -e $$setup; then ghc --make $$setup -o $(DEB_SETUP_BIN_NAME); \
+          exit 0; fi; done
+
+build/libghc-$(CABAL_PACKAGE)-prof build/libghc-$(CABAL_PACKAGE)-dev:: build-ghc-stamp
+
+build-ghc-stamp: dist-ghc
+        $(BUILD_GHC) --builddir=dist-ghc
+        touch build-ghc-stamp
+\end{commandline}
+
+なるほど。libghc-HOGE-devをbuildしようとすると、
+まずSetup.lhsもしくはSetup.hsをghcを使ってコンパイルして\texttt{debian/hlibrary.setup}
+コマンドを作成するようです。
+そうして作ったdebian/hlibrary.setupコマンドを使って
+"debian/hlibrary.setup build --builddir=dist-ghc"
+のようにしてdist-ghcディレクトリ上でHackageをコンパイルするんですね。
+
+ちょっと脱線しますが、
+このビルドプロセスはcabalが普段やっていることと全く同じです。
+cabalはインストール対象のHackageを取得/展開したら、まずこのSetup.hsを
+ghcでコンパイルして、そのコンパイルした結果できた実行バイナリを
+本当のビルダ/インストーラとして使います。
+普段使っている/usr/bin/cabalコマンドは"cabal-install"と呼ばれています。
+そして、Setup.hsを書くために必要なライブラリを"Cabal"と呼びます。
+ややこしいですね。。。
+
+ではlibghc-HOGE-devのinstallはどうなっているのでしょうか？
+
+\begin{commandline}
+debian/tmp-inst-ghc: $(DEB_SETUP_BIN_NAME) dist-ghc
+	$(DEB_SETUP_BIN_NAME) copy --builddir=dist-ghc --destdir=debian/tmp-inst-ghc
+
+install/libghc-$(CABAL_PACKAGE)-dev:: debian/tmp-inst-ghc debian/extra-depends
+	cd debian/tmp-inst-ghc ; find usr/lib/haskell-packages/ghc/lib/ \
+		\( ! -name "*_p.a" ! -name "*.p_hi" \) \
+		-exec install -Dm 644 '{}' ../$(notdir $@)/'{}' ';'
+	pkg_config=`$(DEB_SETUP_BIN_NAME) register --builddir=dist-ghc --gen-pkg-config | sed -r 's,.*: ,,'`; \
+		$(if $(HASKELL_HIDE_PACKAGES),sed -i 's/^exposed: True$$/exposed: False/' $$pkg_config;) \
+		install -Dm 644 $$pkg_config debian/$(notdir $@)/var/lib/ghc/package.conf.d/$$pkg_config; \
+		rm -f $$pkg_config
+	if [ 'z$(DEB_GHC_EXTRA_PACKAGES)' != 'z' ] ; then \
+		echo '$(DEB_GHC_EXTRA_PACKAGES)' > \
+                debian/$(notdir $@)/usr/lib/haskell-packages/ghc/lib/$(CABAL_PACKAGE)-$(CABAL_VERSION)/extra-packages ; \
+	fi
+	dh_haskell_provides -p$(notdir $@)
+	dh_haskell_depends -p$(notdir $@)
+	dh_haskell_shlibdeps -p$(notdir $@)
+\end{commandline}
+
+ちょっとわかりにくいですが、パッケージ化の後半はDebian流儀の詳細なので
+踏みこまずに解釈すると、
+まずlibghc-HOGE-devをinstallしようとすると、debian/tmp-inst-ghcターゲット
+が呼び出されて
+"debian/hlibrary.setup copy --builddir=dist-ghc --destdir=debian/tmp-inst-ghc"
+のようなコマンドが実行されて、dist-ghcでコンパイルした内容が
+debian/tmp-inst-ghc以下にインストールされます。
+あとは、Debianの流儀にのっとってdebian/tmp-inst-ghc以下のファイル群を
+パッケージ化するだけです。
+パッケージ化対象のHackageが依存しているHackageも
+dh\_haskell\_shlibdepsでちゃんと検出してくれるみたいです。 :)
+
+\subsection{作ったパッケージをDebianに登録するには}
+
+せっかく作ったHackageです。自分だけで使っているのはもったいないです。
+Debian本家に登録して皆に使ってもらいましょう!
+Debian本家に登録しておけばめぐりめぐってUbuntuにも登録されるかもしれませんよ？
+
+%その秘技はプレゼン資料の方でこっそり、あなただけに、紹介します。 ;)
+
+% 201110 kansai
+\dancersection{Emacs, Vim の拡張機能で学ぶ Debian パッケージ}{西田孝三}
+
+\subsection{はじめに}
+
+パッケージメンテナになることでDebianに関わりたいと思われている方は多いのではないでしょうか。
+もしあなたがEmacs, Vimのユーザであればこれらの機能拡張でパッケージを作成するところから始めて
+みるのはどうでしょうか。
+理由は、
+\begin{itemize}
+ \item アーキテクチャに依存しない
+ \item コンパイルは不要 (Emacsの場合バイトコンパイルがありますが)
+\end{itemize}
+などから比較的簡単と思われるためです。
+
+ここでは大きく分けて下記のことを行い、まずは簡単なDebianパッケージを自分で作成できるようにな
+るまでを目的としています。
 
 \begin{itemize}
-
-\item ライセンスの確認
-
-ソフトウェアのライセンスがDFSGに合致するライセンスか、
-ライセンスが debian/copuright に書かれているか確認します。
-この確認には devscripts パッケージに含まれる licensecheck を使うことが多いです。
-
-また、最近ではdebian/copyright のフォーマットには、
-DEP5
-\footnote{\url{http://dep.debian.net/deps/dep5/}}
-に対応しているか確認しています。
-仮に不明な場合には上流開発者に問い合わせるようにメンテナにお願いします。
-
-\item orig.tar.gz の確認
-
-オリジナルのtarボールと一緒か、オリジナルのソースコードに
-変な改変をしていないかを確認します。
-
-\item 最新のパッケージングのルールに合っているかの確認。
-
-例えば、使っているプログラミング言語向けのパッケージングサポートツールが新しくなっていたり、
-パッケージングポリシーが決まっている場合があります。できるだけ新しいパッケージングのルールに
-合わせるようにします。
-
-\item debian/control ファイルの確認
-
-依存関係、パッケージの説明、各セクションの確認を行います。
-
-\item debian/rules の確認
-
-シンプルな構成になっているか、ポリシーに違反していないかの確認。
-
-\item pbuilder を使ったパッケージビルドの確認
-
-最新unstable ディストリビューションでパッケージがビルドできるか確認します。
-lintian によるチェックや、ビルドに必要なパッケージが依存関係から漏れていないか
-確認することができます。
-この時に使うツールは pbuilder\footnote{\url{http://packages.qa.debian.org/p/pbuilder.html}}(cowbuilder\footnote{\url{http://packages.qa.debian.org/c/cowdancer.html}})と、
-sbuild\footnote{\url{http://packages.qa.debian.org/s/sbuild.html}} です。
-手元でビルドしてアップロードする場合には pbuilder を使っています。
-スポンサーをしているパッケージは定期的にビルドの確認を行うようにしており、
-これには sbuild を使っています。
-
-\item lintianを使ったポリシーとパッケージングミスの確認
-
-パッケージが Debian ポリシー に準拠しているか簡単に確認するには
-lintian\footnote{\url{http://packages.qa.debian.org/l/lintian.html}} を使います。
-これはDebian ポリシー の他に Debian パッケージのよくある間違いに関してチェックしてくれます。
-
-\item メンテナスクリプト(preinst、postinst、prerm、postrm、コンフィグ)の確認
-
-これらは動くのか、必要なものなのかをチェックします。
-
-\item オリジナルの tar ボールとの差分の確認
-
-diff.gz の内容を確認します。
-作成されたパッチは上流開発者に送ってあるか、パッチはDEP3
-\footnote{\url{http://dep.debian.net/deps/dep3/}}
-に対応しているか、確認します。
-
-\item パッケージのインストール、アンインストール、動作確認
-
-パッケージはできても、インストールできない場合やアンインストールできない場合があります。
-またパッケージが動作しない場合もあります。このような問題
-がないか確認するために、
-piuparts\footnote{\url{http://packages.qa.debian.org/p/piuparts.html}} を使ってインストール、アンインストールのチェックと、実際にインストールしてみて動作するか確認をします。
-
+  \item EmacsのDebianパッケージ
+    \begin{itemize}
+      \item 既存のDebianパッケージの構成を知り再構成を行う
+      \item 独自のDebianパッケージを作成する
+    \end{itemize}
+  \item VimのDebianパッケージ
+    \begin{itemize}
+      \item 既存のDebianパッケージの構成を知る
+    \end{itemize}
 \end{itemize}
 
-\subsubsection{その他}
-その他、スポンサーによっては以下のような理由でスポンサーしてくれない場合があるようです。
-注意しましょう。
+Vimでは構成だけを学び、独自のDebianパッケージの作成を行いません。その理由は後に説明します。
+それではEmacsの既存のDebianパッケージの構成を知り再構成を行うところから始めましょう。
+
+\subsection{EmacsのDebianパッケージ}
+
+\subsubsection{Emacsの既存Debianパッケージのソース取得と再構成}
+
+ここでは前回の関西Debian勉強会で発表されていた山下尊也さんがメンテナンスをされている
+auto-install-elのパッケージのソースを取得し、再構成を行います。
+
+\begin{commandline}
+ $ mkdir tmp; cd tmp
+ $ apt-get source auto-install-el
+ $ ls auto-install-el-1.48
+\end{commandline}
+
+これでtmpディレクトリ内にauto-install-elのソース(バージョン1.48)が取得できているはずです。
+ソース内容を確認することは保留し、いきなりDebianパッケージを作ってみましょう。
+
+\begin{commandline}
+ $ cd auto-install-el-1.48
+ $ debuild -us -uc
+ $ ls ..
+\end{commandline}
+
+これでdebuildをしたディレクトリのひとつ上にauto-installのDebianパッケージができます。
+それではこのDebianパッケージをインストールしてみましょう。
+
+\begin{commandline}
+ $ cd ..
+ $ sudo dpkg -i auto-instlal-el_1.48-1_all.deb
+ $ aptitude show auto-install-el
+\end{commandline}
+
+これでauto-install-elがインストールされたことがわかります。
+それではうまく使えるかどうかEmacsで確認してみましょう。
+
+\begin{commandline}
+ $ emacs -nw
+ M-x load-library
+ auto-install
+ auto-install-from-emacswiki
+ grep-edit.el
+\end{commandline}
+
+これで ~/.emacs.d/auto-install/ 下にgrep-edit.el(elc)がインストールされていることが
+確認できます。
+
+それでは保留していたソースの構成の確認に戻りましょう。
+が、その前にもう一つ別のディレクトリにauto-install-elのソースを取得しましょう。
+というのはdebuild後にはいくつかのファイルが生成されているからです。
+2つのソースディレクトリを比較することでこれらのファイルが確認できます。
+詳細はご自身でご確認ください。
+
+\begin{commandline}
+ $ cd; mkdir auto-install-el
+ $ cd auto-install-el; apt-get source auto-install-el
+\end{commandline}
+
+それではdebuildする前のauto-install-el-1.48内のファイル構成を見てみましょう。
+auto-install.elというファイルとdebianというディレクトリがあります。
+このことからEmacsの拡張機能のDebianパッケージを作るには
 
 \begin{itemize}
-
-\item スポンサーをUploaderに入れることを要求される場合がある。
-
-これは、パッケージメンテナの代わりにパッケージをアップロードする場合に有効です。
-先に説明したように、パッケージのメンテナンスの責任はスポンサーにもあるのためです。
-
-\item パッケージング用のツールを要求される場合がある。
-
-例えばスポンサーによっては、パッケージにcdbs を使っている場合、debhelper を使うように言われる場合があるようです。
-
-\item \url{http://mentors.debian.net} を使わない場合はスポンサーをしない。
-
-信頼できる以外にアップロードされたソースパッケージは信頼しないというポリシーのようです。
-
-\item 自分の知らないプログラミング言語で書かれたパッケージはスポンサーをしない。
-
+ \item Emacsの拡張機能にバージョン名を加えた名前のディレクトリを作り
+ \item その下にEmacs Lispとdebianというディレクトリを作ればよい
 \end{itemize}
 
-また、\url{http://wiki.debian.org/SponsorChecklist}
-に実際にスポンサーしている人の方針が纏められています。
+ということがわかります。それではこれをまだDebianパッケージが作られていないEmacs
+の拡張機能に対して行っていきましょう。
 
-\subsection{アップロード}
-アップロードには、dput や dupload パッケージを使います。
-実装が異なるだけで、基本的な機能は揃っているのでどちらでも使い方は同じです。
+\subsubsection{Emacsの新規Debianパッケージの作成}
 
-\subsection{まとめ}
-以上のようにスポンサーになることはとても大変なので、メンテナの方はさっさとDMかDDがになりましょう。
-
-%------------------------------------------------------------------------------
-\dancersection{aufsbuilder - cowbuilderにたたかいをいどむ}{やまだ}
-%------------------------------------------------------------------------------
-
-\subsection{やってみた}
-数年前にaufsがマイブームだった時、
-\begin{quote}
-\Large{これでaufsbuilder書いたらcowbuilerに勝てるんじゃね？}
-\end{quote}
-と思ってやってみたものの、僅差ながら負けてお蔵入りしていた
-aufsbuilderがこのほど勝利したので報告します。
-
-\subsection{つくりかた}
-実は pbuilder は chroot 環境に任意の場所を指定することができ、
+今回は青田直大さんによるtwinstall.elのパッケージを作ってみましょう。
+これはtwittering-modeというEmacs用twitterクライアントの機能を使って、
+auto-install.elでインストールしたEmacs Lisp名をつぶやくものです。
+現時点ではIDが1300477のgist(https://gist.github.com/1300477)から取得できます。
 
 \begin{commandline}
-pbuilder $PBCMD --no-targz --buildplace ＜適当なchroot先＞
+ $ tar zxvf gist1300477.tar.gz
+ $ mv gist1300477 twinstall-el-0.1
+ $ tar czvf twinstall-el-0.1.tar.gz twinstall-el-0.1
+ $ cd twinstall-el-0.1
+ $ cat >>~/.bashrc <<EOF
+  DEBEMAIL=''your.email.address@example.org''
+  DEBFULLNAME=''Firstname Lastname''
+  export DEBEMAIL DEBFULLNAME
+  EOF
+ $ . ~/.bashrc
+ $ dh_make -f ../twinstall-el-0.1.tar.gz
 \end{commandline}
 
-と呼び出してやるだけで、よろしくビルドしてくれます。なので、
-これを呼び出す前にテンプレート用chroot環境に書き込み用使い捨て
-フォルダをラップしたaufs chrootを作ってやればいいわけです。
+次にどのような種類のパッケージを作るか聞かれるのでsingleのsにしenterを押します。
+するとdebianディレクトリとその下に各種設定ファイルの雛形が生成されます。
+多くのファイルができあがりますが、auto-install-elと同じものがあればよいので対応す
+るファイルは削除し、後はauto-install-elを真似てファイル内容を変更していきましょう。
+(変更せずにこの段階でdebuildを行っても一応パッケージはできます。)
+それでは各ファイルの説明をします。
 
-以下コード：
+\clearpage
+
+\paragraph{\texttt{README.Debian}}
+  \begin{itemize}
+    \item DebianパッケージのREADME
+    \item 必須ではない?
+  \end{itemize}
+
+\paragraph{\texttt{changelog}}
+  \begin{itemize}
+    \item 必須のファイル
+    \item Debianのポリシーで規定された書式
+  \end{itemize}
+
+\paragraph{\texttt{compat}}
+  \begin{itemize}
+    \item わかりませんでした!
+    \item 作られた雛形のままにしましょう
+  \end{itemize}
+
+\paragraph{\texttt{control}}
+  \begin{itemize}
+    \item 必須のファイル
+    \item aptitudeなどのパッケージ管理ツールが利用する情報
+    \item Debianのポリシーで規定された書式
+    \item twinstall.elはauto-installとtwittering-modeに依存している。Depends:に追加
+  \end{itemize}
+
+\paragraph{\texttt{copyright}}
+  \begin{itemize}
+    \item 必須のファイル
+    \item upstreamソースに関する著作権やライセンスなどの情報を書く
+    \item Debianのポリシーで規定された書式
+  \end{itemize}
+
+\paragraph{\texttt{dirs}}
+  \begin{itemize}
+    \item ファイルをインストールするディレクトリを書く
+    \item 前述ディレクトリのパスのトップの/は書かない
+  \end{itemize}
+
+\paragraph{\texttt{emacsen-install, emacsen-remove}}
+  \begin{itemize}
+    \item install, uninstall時に行う処理をやってくれるシェルスクリプト
+  \end{itemize}
+
+\paragraph{\texttt{emacsen-startup}}
+  \begin{itemize}
+    \item elispのインストールディレクトリにdirsで書いたインストール先をEmacsのload-pathに追加してくれるelisp
+    \item これ自体は/etc/emacs/site-start.d/に50'パッケージ名'.elという名でインストールされる
+  \end{itemize}
+
+\paragraph{\texttt{rules}}
+  \begin{itemize}
+    \item 必須のファイル
+    \item パッケージを作成するために使うルールを書く
+    \item まずはとりあえず人様のものを真似る
+  \end{itemize}
+
+\paragraph{\texttt{source}}
+  \begin{itemize}
+    \item わかりませんでした!
+    \item 作られた雛形のままにしましょう
+  \end{itemize}
+
 \begin{commandline}
-#!/bin/sh -e
-
-: ${PB_BASE=/var/cache/pbuilder}
-: ${PB_WORK=/var/cache/pbuilder/build}
-
-usage() {
-  P=$(basename $0)
-  test $# -gt 0 && echo $@ >&2
-  cat <<EOF 1>&2
-$P - pbuilder wrapper with aufs-wrapped chroot
-Usage: $P ...pbuilder-args...
-Note:
-- You need to define PB_BASE and PB_WORK
-- For base chroot tree, \$PB_BASE/\$ARCH-\$DIST.cow/ will be used.
-- For actual work tree, \$PB_WORK/\$\$/ will be used.
-- Default: PB_BASE=$PB_BASE, PB_WORK=$PB_WORK
-EOF
-  exit 1
-}
-
-# pass all args to pbuilder (0 args == help)
-test $# -gt 0 || usage
-test $# -gt 0 && PBCMD="$1"; shift
-test $# -gt 0 && PBARG="$@"
-
-# prepare env
-: ${DIST:=sid}
-: ${ARCH:=$(dpkg-architecture -qDEB_HOST_ARCH)}
-export ARCH DIST
-
-MT="$PB_WORK/$$"
-RW="$PB_WORK/$$/rw"
-AD="$PB_BASE/$DIST-$ARCH"
-RO="$PB_BASE/$DIST-$ARCH.cow"
-
-# sanity check
-test -d "$MT" && usage "ERROR: Workdir already exists: $MT"
-test -d "$RW" && usage "ERROR: Workdir already exists: $RW"
-test -d "$RO" || usage "ERROR: Missing template: $RO"
-
-# register cleanup hook
-trap "
-$DEBUG umount -lf '$MT/var/cache/apt' '$MT' && $DEBUG rm -fr '$MT'
-" 0 1 2 3 4 6 7 8 11 15
-
-# prepare chroot tree
-$DEBUG mkdir -p "$RW" "$AD/aptcache"
-$DEBUG mount -t aufs -o "br:$RW:$RO=ro" none "$MT"
-$DEBUG mount --rbind "$AD/aptcache" "$MT/var/cache/apt"
-
-# run pbuilder
-$DEBUG pbuilder $PBCMD --aptcache "" --no-targz --buildplace "$MT" "$@"
+ $ debuild -us -uc
+ $ cd ..
+ $ sudo dpkg -i twinstall-el_0.1-1_all.deb
 \end{commandline}
 
-\subsection{たたかってみる}
+controlのDepends以外はauto-install-elを真似て新規パッケージに応じた情報に置き換えることでtwinstallのDebianパッケージが出来ます。
+後はこのDebianパッケージを公開する必要があるかを考え、ライセンスなどを学び、公開に必要な次のステップへ進んでください。
+もちろんコンパイルが必要なパッケージ作成へとレベルアップするのもよいでしょう。
 
-pbuilderとcowbuilderの関係同様、aufsbuilderもpbuilder互換なので
-そのまま
+\subsection{Vimの既存パッケージのソース取得}
+
+Vimの拡張機能のDebianパッケージはEmacsと比較すると数は少なく、あまりパッケージを作るモチベーションが得られなさそうです。
+そのためVimに関してはパッケージ作成までは行いません。
+実際にRails用のVim scriptパッケージのソースを取得しその内容をみてみましょう。
 
 \begin{commandline}
-$ PDEBUILD_PBUILDER=aufsbuilder \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
+ $ apt-get source vim-rails
 \end{commandline}
 
-としてビルドするだけです。では、比較してみましょう。
-
-まずは素のpbuilder：
-\begin{commandline}
-$ sudo rm ../cocot_20100903-1*
-$ time sudo ARCH=i386 DIST=sid \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
-...
-$ time sudo ARCH=i386 DIST=sid \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
-...
-    0m44.76s real     0m21.50s user     0m13.62s system
-\end{commandline}
-
-続いてcowbuilder：
-\begin{commandline}
-$ sudo rm ../cocot_20100903-1*
-$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
-...
-$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=cowbuilder \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
-...
-    0m33.17s real     0m20.42s user     0m8.84s system
-\end{commandline}
-
-そしてaufsbuilder:
-\begin{commandline}
-$ sudo rm ../cocot_20100903-1*
-$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=aufsbuilder \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
-...
-$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=aufsbuilder \
-git-buildpackage --git-builder=''pdebuild --buildresult ..''
-...
-    0m29.41s real     0m18.46s user     0m8.17s system
-\end{commandline}
-
-前回は何回やっても数秒差で負け続けたので、逆転できて嬉しい。
-たぶんLKMLの小人さん達が頑張ってくれたおかげmOm
-
-\subsection{まとめ}
-aufsを使ったcowbuilderを作ってみました。
-以前作った時はどうやっても勝てなかったのに、いつのまにか
-速くなっていて嬉しい。
-
-\subsection{だがしかし・・・}
-\begin{commandline}
-$ sudo rm ../cocot_20100903-1*
-$ debuild --no-lintian -us -uc -Tclean
-$ time git-buildpackage --git-builder=''DEB_CFLAGS_APPEND=-m32 debuild -ai386''
-...
-$ time git-buildpackage --git-builder=''DEB_CFLAGS_APPEND=-m32 debuild -ai386''
-    0m13.95s real     0m12.17s user     0m4.74s system
-\end{commandline}
-ネイティブビルド、やっぱり速い。しかもlintianとdebsign時間まで入ってるし。
+これで取得できるソースのREADME.Debianとcontrolを見るとvim-addon-managerというパッケージを使いvim-addonsというコマンドで
+vim-railsを使用可能にするということを行なっていることがわかります。
+これではDebianのパッケージマネージャーとVimのaddon-managerでmanagerを2つ用いていることになり、あまり良いこととは思えません。
+現在のVimユーザの多くはvim-addon-managerよりbundleやneobundleといったVim scriptで書かれたmanagerを用いており、これらの完成
+度が高いためDebianのパッケージは不要なのかもしれません。
 
 % 201108 kansai
 \dancersection{モダンな Debian パッケージ作成入門}{佐々木洋平さん}
@@ -4612,7 +4325,878 @@ Vcs-Svn: svn://svn.debian.org/pkg-perl/trunk/libwww-perl
   \item Feedback: \href{mailto:lucas@debian.org}{\textbf{\texttt{lucas@debian.org}}}
   \end{itemize}
 
-% 201109 tokyo debian温泉のため無し
+% 201110 tokyo
+%-------------------------------------------------------------------------------
+\dancersection{月刊 debhelper 第1回}{岩松 信洋}
+%-------------------------------------------------------------------------------
+\index{debhelper}
+
+\subsection{debhelper とは何か？}
+
+Debian パッケージを作成する時、パッケージに必要なファイルのチェック、
+コンパイル前の設定、コンパイルなど様々な処理を行う必要があります。
+Debianパッケージでは debian/rules という GNU Make のmakefile に各処理
+を記述するのですが、細かい処理をひとつづつ書いていくと膨大な量になります。
+
+またコードの量が多くなるとバグも多くなり、パッケージ作成時に問題が起きた
+ときに修正するのは大変です。
+これらの処理を機能毎にまとめ、使いやすくした機能を提供しているパッケージ
+として debhelper があります。他にも同様のツールがいくつかありますが、
+１番使われているのがこの debhelper です。
+Debian パッケージをメンテナンスしている人にとって debhelper の知識が必須と
+言ってもいいでしょう。
+
+ちなみにdebhelper は Debian 開発者の Joey Hess 氏\footnote{Wikiエンジンのikiwiki, 
+ディストリビューションのパッケージ間変換ツールである alien の開発者として有名。}
+によって開発/メンテナンスされ、最新のバージョンは 8.9.8 となっています。
+
+\subsection{月刊 debhelperとは？}
+先にも説明したように、Debian パッケージをメンテナンスしている人にとって 
+debhelper の知識が必須となっています。
+debhelper がどのような機能を提供して、それらをどのように使えばいいのか、
+どのように使われているのか、理解しておく必要があります。
+現時点で debhelper では59個のコマンド（dh\_で始まるコマンド）が提供されており、
+全部理解するのは難しいでしょう。また、debhelper に収録されていない debhelper サポートツール
+を含めると100個ほどになります。
+日頃Debianの開発を行なっている人でも「ああ、こんな機能があるのだ」と思うことがあるぐらいです。
+更にdebhelper 7 からコマンドがいくつか増え、debian/rules ファイルが以下のように記述
+できるようになりました。
+
+これだけでは何をやっているのかさっぱり分かりません。
+細かい指定を行いたい場合、どのようにしたらいいのかすらわからない状態です。
+
+そこで debhelper で提供されているコマンドの動きと使い方を毎月数個づつ
+紹介し、Debian勉強会参加者でパッケージ作成の理解を深める企画、「月刊 debhelper」
+を企画しました。
+全て理解した頃には、皆 Debian パッケージメンテナになっているかもしれません。
+ヒャッハー！
+
+\begin{multicols}{2}
+
+\begin{commandline}
+debhelper 6:
+#!/usr/bin/make -f
+
+build: build-stamp
+build-stamp:
+    dh_testdir
+    $(MAKE)
+    touch $@
+
+clean:
+    dh_testdir
+    dh_testroot
+    $(MAKE) clean
+    dh_clean
+
+install: build
+    dh_testdir
+    dh_testroot
+    dh_clean -k
+
+binary-indep:
+
+binary-arch: build install
+    dh_testdir
+    dh_testroot
+    dh_installchangelogs ChangeLog
+    dh_installd
+.....
+\end{commandline}
+\columnbreak
+\begin{commandline}
+debhelper 7:
+#!/usr/bin/make -f
+%:
+        dh $@
+\end{commandline}
+\end{multicols}
+% $
+
+\subsection{debian パッケージ構築、全体の流れ}
+
+いきなり個々のコマンド説明をしてもよくわからないので、パッケージ作成の全体の
+流れとどのようなコマンドが呼び出されるのか説明します。
+Debian パッケージが作成される簡単流れは以下の通りで、
+図にすると図\ref{fig:rules-work}のようになります。
+
+\begin{enumerate}
+\item パッケージビルド環境を構築する
+
+実際にビルドを始める前に、まずはビルドのための環境を構築する必要があります。
+ここでは、ソースコードの展開、パッケージ構築依存のチェック等を行います。
+
+\item 不要なファイルを削除する\\
+次にパッケージに不要なファイルを削除します。 
+例えば、前に行われたパッケージビルドで生成されたファイルがある場合はそれを削除して、 
+ソースが展開された常に同じ状態からビルドできるようにします。 
+
+これは debian/rules ファイルの {\bf clean} ターゲットで行われ、このターゲットは
+「不要なファイルを削除する」ことを目的とするように Debian Policy で定められています。
+
+また clean ターゲットでは、以下の dehhelper コマンドが実行されます。
+\begin{commandline}
+dh_testdir -> dh_auto_clean -> dh_clean
+\end{commandline}
+
+\item  バイナリパッケージに格納するファイルをビルドする
+
+次にソースコードからバイナリをビルドします。ここではconfigure などを使った
+コンパイル前の設定、コンパイラを使った実行ファイルの作成、ドキュメントの変
+換などがおこなわれます。
+
+これは debian/rules ファイルの {\bf build} ターゲットで行われ、このターゲットは
+「プログラムの設定、コンパイルやデータの変換」ことを目的とするように Debian Policy で
+定められています。
+
+また build ターゲットでは、以下の dehhelper コマンドが実行されます。
+\begin{commandline}
+dh_testdir -> dh_auto_configure -> dh_auto_build -> dh_auto_test
+\end{commandline}
+
+\item ビルドしたファイルをバイナリパッケージにまとめる
+
+必要なファイルをすべてビルド完了した後、それらを適切なパーミッションで
+適切な場所に配置し、バイナリパッケージにまとめます。 
+
+ここでは、debian/tmpを/(ルート)と見なしてソフトウェア全体の
+インストール (「仮インストール」) を行い、 その上でdebian/tmp 内の各ファイルを適切に
+debian/バイナリパッケージ名に振り分け、 最後にdebian/バイナリパッケージ名をそれぞれ
+バイナリパッケージ化する、という流れで行います。 debian/バイナリパッケージ名 を
+バイナリパッケージ化する際には、各ファイルのパーミッションの設定やファイルの圧縮など、
+行わなければならないことや、推奨されていることが多数あります。 
+
+これは debian/rules ファイルの {\bf binary、binary-arch、 binary-indep} 
+ターゲットで行われ、このターゲットは
+「バイナリパッケージとしてまとめる」ことを目的とするように Debian Policy で
+定められています。
+
+また binary、binary-arch、 binary-indep ターゲットでは、以下の dehhelper コマンドが実行されます。
+\begin{commandline}
+dh_testdir -> dh_auto_configure -> dh_auto_build -> dh_auto_test -> dh_testroot
+-> dh_prep -> dh_installdirs -> dh_auto_install -> dh_install -> dh_installdocs
+-> dh_installchangelogs -> dh_installexamples -> dh_installman -> dh_installcatalogs
+-> dh_installcron -> dh_installdebconf -> dh_installemacsen -> dh_installifupdown
+-> dh_installinfo -> dh_pysupport -> dh_installinit -> dh_installmenu -> dh_installmime
+-> dh_installmodules -> dh_installlogcheck -> dh_installlogrotate -> dh_installpam
+-> dh_installppp -> dh_installudev -> dh_installwm -> dh_installxfonts -> dh_installgsettings
+-> dh_bugfiles -> dh_ucf -> dh_lintian -> dh_gconf -> dh_icons -> dh_perl -> dh_usrlocal
+-> dh_link -> dh_compress -> dh_fixperms -> dh_strip -> dh_makeshlibs -> dh_shlibdeps
+-> dh_installdeb -> dh_gencontrol -> dh_md5sums -> dh_builddeb
+\end{commandline}
+
+\item .changesファイルを作成する
+
+パッケージが作成されたら、そのパッケージの.changelog ファイルを作成します。
+このファイルの作成には dpkg-genchanges コマンドが使われます。
+このコマンドは debhelper のコマンドではありません。
+\item パッケージに署名する
+
+必須ではありませんが、パッケージができたら.dscファイルと.changes ファイルに
+GPG/PGPを使って署名をします。この署名には debsign コマンドを使います。
+このコマンドは debhelper のコマンドではありません。
+\end{enumerate}
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[height=10cm]{image201110/rules-work.png}
+  \end{center}
+  \label{fig:rules-work}\caption{各処理とdebhelperコマンドの関係図}
+\end{figure}
+
+\subsection{その他 debhelper の重要な機能}
+
+\subsubsection{環境にあわせたシーケンス情報を読み込む}
+debhelper は特定の言語や環境に合わせたシーケンスを定義し、
+読み込ませることによって、makefile 内で利用できるターゲットとコマンドを増やすことができます。
+例えば、パッチ管理ツールである quilt を使ったターゲットは debhelper には含まれていません。
+使いたい場合には、{\bf --with}オプションを使って指定します。
+
+\begin{commandline}
+%:
+        dh $@ --with quilt
+\end{commandline}
+指定することによって、\bf{dh\_quilt\_patch}が利用できるようになります。
+
+\subsubsection{各 debhelper コマンドの動きを変更する}
+上記で説明しように、debhelper では各ターゲットと各コマンドの動作が予め決められています。
+これらを変更するには各コマンド用のターゲットに対して動作を記述します。
+このターゲットは {\bf override\_各debhelper コマンド}となっており、dh\_auto\_configure
+（決められた値で自動的に configure を実行するためのコマンド）の場合には以下のように使います。
+
+\begin{commandline}
+override_dh_auto_configure:
+    dh_auto_configure -- --enable-foo
+\end{commandline}
+
+\subsection{今月のコマンド : dh\_testdir}
+
+\subsubsection{概要}
+
+パッケージビルドを行うときに正しいディレクトリにいるかチェックします。
+
+\subsubsection{使い方}
+
+dh\_testdir コマンドはカレントディレクトリに debian/control があることに
+よって正しいディレクトリにいるかチェックをしています。
+dh\_testdir はほとんどのターゲットから利用されます。ちゃんと debian パッケージ
+をビルドできる場所にいるかチェックするためです。
+
+
+\begin{commandline}
+$ mkdir foo
+$ cd foo
+$ dh_testdir
+dh_testdir: cannot read debian/control: そのようなファイルやディレクトリはありません
+echo $?
+2
+$ mkdir debian
+$ touch debian/control
+$ dh_testdir
+$ echo $?
+0
+\end{commandline}
+%$
+
+引数としてファイルパスを指定することができます。
+ファイルパスを指定した場合には、指定したファイルによってチェックが行われます。
+
+\begin{commandline}
+$ touch moo
+$ dh_testdir moo
+$ echo $?
+0
+\end{commandline}
+%$
+
+\subsection{今月のコマンド : dh\_bugfiles}
+
+\subsubsection{概要}
+
+dh\_bugfiles コマンドは バグレポートに必要なファイルをパッケージに
+格納します。
+バグレポートに使うファイルは script、control、presubj の3つがあり、
+debian/bug ディレクトリに格納されている必要があります。
+各ファイルの用途を以下に説明します。
+
+\begin{itemize}
+\item script
+
+バグレポート用のスクリプトです。
+バグレポートを行うためのツールreportbugs 等でレポート作成時に呼び出し、
+結果をバグレポートの一部として追記します。
+例えば、X.Orgのドライバ群は /usr/share/bug/xserver-xorg-core/script 
+にシンボリックリングを張ったファイルをバイナリパッケージ内に持ちます。
+このスクリプトでは、reportbug を実行した環境のカーネルバージョンや 
+dmesg, xorg のログなどが自動的に出力されるようになっています。
+
+\item control
+
+controlファイルは指定したコマンドの結果をバグレポートの一部として出力します。
+コマンドには以下の4つがあります。
+
+\begin{itemize}
+\item package-status
+指定したパッケージのステータス（インストール状態、バージョン）を
+バグレポートに追加します。
+
+\begin{commandline}
+設定例:
+/usr/share/bug/mutt/control package-status: mutt mutt-patched mutt-dbg
+\end{commandline}
+
+\item report-with
+指定したパッケージ情報をバグレポートに追加します。
+
+\begin{commandline}
+設定例:
+/usr/share/bug/xorg/control report-with: xserver-xorg
+\end{commandline}
+
+\item Send-To
+Debian BTS以外に自動的にが行われるメールアドレスを設定します。
+
+\begin{commandline}
+Send-To: foo@example.org
+\end{commandline}
+
+\item Submit-As:
+一つのパッケージにレポートが行われるようにコントールする
+以下のように設定した場合、linux-image-3.0.0-2-amd64 にバグレポート
+した場合には linux-2.6 に行われるように自動的に変更されます。
+
+\begin{commandline}
+control:Submit-As: linux-2.6
+\end{commandline}
+\end{itemize}
+
+\item presubj
+
+レポートする前の警告文を出すために使います。
+例えば、gnupg パッケージの場合にはこのファイルに
+\begin{commandline}
+Please consider reading /usr/share/doc/gnupg/README.BUGS.Debian before
+sending a bug report. Maybe you'll find your problem there.
+\end{commandline}
+と書くことによって、バグレポートを送る前に /usr/share/doc/gnupg/README.BUGS.Debian 
+を参照するよう、誘導しています。
+
+reportbug を使って、gnupg パッケージにバグレポートしようとしたとき、以下のような
+メッセージが表示されます。
+\begin{commandline}
+Please consider reading /usr/share/doc/gnupg/README.BUGS.Debian before
+sending a bug report. Maybe you'll find your problem there.
+
+
+(You may need to press 'q' to exit your pager and continue using
+reportbug at this point.)
+\end{commandline}
+
+\end{itemize}
+
+これらのファイルは一つだけでもかまいません。
+
+\subsubsection{使い方}
+
+このコマンドは install ターゲットで使用します。
+
+\begin{commandline}
+install:
+    ....
+    dh_bugfiles
+    ....
+\end{commandline}
+
+%\subsection{次の発表者}
+%次の発表者は 勉強会で発表します。選ばれた人、おめでとうございます。
+%頑張ってください。
+
+% 201108 tokyo
+%------------------------------------------------------------------------------
+\dancersection{aufsbuilder - cowbuilderにたたかいをいどむ}{やまだ}
+%------------------------------------------------------------------------------
+
+\subsection{やってみた}
+数年前にaufsがマイブームだった時、
+\begin{quote}
+\Large{これでaufsbuilder書いたらcowbuilerに勝てるんじゃね？}
+\end{quote}
+と思ってやってみたものの、僅差ながら負けてお蔵入りしていた
+aufsbuilderがこのほど勝利したので報告します。
+
+\subsection{つくりかた}
+実は pbuilder は chroot 環境に任意の場所を指定することができ、
+
+\begin{commandline}
+pbuilder $PBCMD --no-targz --buildplace ＜適当なchroot先＞
+\end{commandline}
+
+と呼び出してやるだけで、よろしくビルドしてくれます。なので、
+これを呼び出す前にテンプレート用chroot環境に書き込み用使い捨て
+フォルダをラップしたaufs chrootを作ってやればいいわけです。
+
+以下コード：
+\begin{commandline}
+#!/bin/sh -e
+
+: ${PB_BASE=/var/cache/pbuilder}
+: ${PB_WORK=/var/cache/pbuilder/build}
+
+usage() {
+  P=$(basename $0)
+  test $# -gt 0 && echo $@ >&2
+  cat <<EOF 1>&2
+$P - pbuilder wrapper with aufs-wrapped chroot
+Usage: $P ...pbuilder-args...
+Note:
+- You need to define PB_BASE and PB_WORK
+- For base chroot tree, \$PB_BASE/\$ARCH-\$DIST.cow/ will be used.
+- For actual work tree, \$PB_WORK/\$\$/ will be used.
+- Default: PB_BASE=$PB_BASE, PB_WORK=$PB_WORK
+EOF
+  exit 1
+}
+
+# pass all args to pbuilder (0 args == help)
+test $# -gt 0 || usage
+test $# -gt 0 && PBCMD="$1"; shift
+test $# -gt 0 && PBARG="$@"
+
+# prepare env
+: ${DIST:=sid}
+: ${ARCH:=$(dpkg-architecture -qDEB_HOST_ARCH)}
+export ARCH DIST
+
+MT="$PB_WORK/$$"
+RW="$PB_WORK/$$/rw"
+AD="$PB_BASE/$DIST-$ARCH"
+RO="$PB_BASE/$DIST-$ARCH.cow"
+
+# sanity check
+test -d "$MT" && usage "ERROR: Workdir already exists: $MT"
+test -d "$RW" && usage "ERROR: Workdir already exists: $RW"
+test -d "$RO" || usage "ERROR: Missing template: $RO"
+
+# register cleanup hook
+trap "
+$DEBUG umount -lf '$MT/var/cache/apt' '$MT' && $DEBUG rm -fr '$MT'
+" 0 1 2 3 4 6 7 8 11 15
+
+# prepare chroot tree
+$DEBUG mkdir -p "$RW" "$AD/aptcache"
+$DEBUG mount -t aufs -o "br:$RW:$RO=ro" none "$MT"
+$DEBUG mount --rbind "$AD/aptcache" "$MT/var/cache/apt"
+
+# run pbuilder
+$DEBUG pbuilder $PBCMD --aptcache "" --no-targz --buildplace "$MT" "$@"
+\end{commandline}
+
+\subsection{たたかってみる}
+
+pbuilderとcowbuilderの関係同様、aufsbuilderもpbuilder互換なので
+そのまま
+
+\begin{commandline}
+$ PDEBUILD_PBUILDER=aufsbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+\end{commandline}
+
+としてビルドするだけです。では、比較してみましょう。
+
+まずは素のpbuilder：
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ time sudo ARCH=i386 DIST=sid \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+$ time sudo ARCH=i386 DIST=sid \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+    0m44.76s real     0m21.50s user     0m13.62s system
+\end{commandline}
+
+続いてcowbuilder：
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+    0m33.17s real     0m20.42s user     0m8.84s system
+\end{commandline}
+
+そしてaufsbuilder:
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=aufsbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+$ time sudo ARCH=i386 DIST=sid PDEBUILD_PBUILDER=aufsbuilder \
+git-buildpackage --git-builder=''pdebuild --buildresult ..''
+...
+    0m29.41s real     0m18.46s user     0m8.17s system
+\end{commandline}
+
+前回は何回やっても数秒差で負け続けたので、逆転できて嬉しい。
+たぶんLKMLの小人さん達が頑張ってくれたおかげmOm
+
+\subsection{まとめ}
+aufsを使ったcowbuilderを作ってみました。
+以前作った時はどうやっても勝てなかったのに、いつのまにか
+速くなっていて嬉しい。
+
+\subsection{だがしかし・・・}
+\begin{commandline}
+$ sudo rm ../cocot_20100903-1*
+$ debuild --no-lintian -us -uc -Tclean
+$ time git-buildpackage --git-builder=''DEB_CFLAGS_APPEND=-m32 debuild -ai386''
+...
+$ time git-buildpackage --git-builder=''DEB_CFLAGS_APPEND=-m32 debuild -ai386''
+    0m13.95s real     0m12.17s user     0m4.74s system
+\end{commandline}
+ネイティブビルド、やっぱり速い。しかもlintianとdebsign時間まで入ってるし。
+
+% 201106 kansai
+%-------------------------------------------------------------------------------
+\dancersection{vcs-buildpackage $\sim$git,svn編$\sim$}{佐々木 洋平}
+%-------------------------------------------------------------------------------
+
+\subsection{始めに}
+
+今日のお題は、
+パッケージ作成に Git や Subversion を使用するソフトウェアである、
+{\tt{git-buildpackage}}と{\tt{svn-buildpackage}}です。
+自分の抱えている野良パッケージの多くが Ruby 関連だったこともあって、
+PkgRubyExtras に参加したところ、
+パッケージ管理を Subversion から Git へ移行するタイミングだった様で、
+(幸か不幸か)両 VCS を使用してのパッケージ作成を体験しました%
+\footnote{自分一人だったら絶対 Git で作業するんですけれどね}。
+
+そこで覚えたツールの使い方とか、実際に作業する際のハマり所とかについて簡単に紹介できたら良いな、とか思います。
+とはいえ、実際にはコラボする人々(=チーム)毎に work flow があるので、あまり一般論は言えない訳ですけれど。
+
+\subsection{バージョン管理?}
+
+バージョン管理システム(VCS)についてはほとんど説明しませんが、簡単に。
+
+VCS を使った事のない人に VCS の利点を説明する時、佐々木は良く「良い感じのバックアップ」という言い方をしています。
+例えば
+\begin{itemize}
+\item 過去の変更履歴を残しておける
+\item 過去の任意の状態に簡単に戻せる
+\item 過去にどんな変更を行なったか、を把握しやすくする(ログをきちんと書いておく必要はありますが)
+\end{itemize}
+
+また、複数人で開発を進めている時には、同じファイルに同じ様な変更を加えている場合、
+最後に保存した人の変更だけが残ってしまい(上書きされてしまい)、それ以外の変更が失なわれてしまいます。
+VCS を使っていると、同じファイルへの変更は「衝突」として検出されるので、こういった事態を防ぐ事ができます。
+
+さらに、特定のバージョンに名前をつけておき(tag と言います)そのバージョンへの変更を行なったり、新機能の開発を本番の開発と分離して進めて(本番が main line と呼ばれるのに対して、branch を分ける、branch を切る、と言います)、完成した後で本番の開発に統合したりできます。
+
+Subversion と Git は、それぞれ「集中型VCS」と「分散型VCS」の代表です。
+集中型 VCS では単一のリポジトリ(データ置き場)を開発者全員が参照し作業するのに対して、
+分散型 VCS では、各人が個別にリポジトリを持ち、各々のデータを適宜同期を取って作業を進めます。
+最近は分散型 VCS(DVCS と言ったりします)がトレンドですね%
+\footnote{集中型VCS としては CVS なんかもありますが、今更 CVS ってのは止めた方が良いと思います。また DVCS としたは Git 以外に darcs, bzr, Mercurial なんかがあります。bzr についてはそのうち山下 尊也さんが語ってくれると思います}。
+
+\subsection{パッケージのバージョン管理?}
+
+さて、「パッケージのバージョン管理」って何をしているのでしょうか?
+Debian パッケージを「バージョン管理」する目的は幾つかありますが、
+例えば
+\begin{itemize}
+\item 履歴の管理。
+  パッケージの変更点は debian/changelog に書かれます(書きます)が、
+  実際にファイル自体を参照できると大変便利です。
+\item stable に含まれたパッケージにタグを付けておく。
+  \begin{itemize}
+  \item セキュリティ対応などを、そのタグから派生するブランチで対応する
+  \end{itemize}
+\item 複数人でのパッケージメンテ/チームでのパッケージメンテ作業の環境を容易に構築できる
+\item upstream が VCS を使用している場合の連携が簡単になる(かも)
+\end{itemize}
+...でしょうか。
+
+\subsection{何を管理するの?}
+Debian のソースパッケージは、source format 3.0 では以下のファイル群で構成されます:
+\begin{description}
+\item[.orig.tar.{\it{ext}}]　\\
+  upstream のソース。複数のソースからなる場合には基本となるソースにこの名
+  前をつける。{\it{ext}}は圧縮の拡張子であ
+  り、{\tt{gz}}, {\tt{bz2}}, {\tt{xz}} が使用可能。
+\item[.orig-{\it{component}}.tar.{\it{ext}}] 　\\
+  upstream が複数のソースから構成される場合のファイル
+  名。{\tt{dpkg-source -x パッケージ名.dsc}}などで展開するとファイルの中
+  身は {\tt{component/}}以下の展開される。
+\item[.debian.tar.{\it{ext}}]　\\
+  {\tt{debian/}} デイレクトリの中身
+\item[.dsc]　\\
+  パッケージの情報。上記ファイル群のハッシュなどを記載している。
+\end{description}
+パッケージを VCS で管理する場合、
+\begin{enumerate}
+\item {\tt{.orig.tar.{\it{ext}}}}
+\item {\tt{.debian.tar.{\it{ext}}}}
+\end{enumerate}
+のバージョンを管理することになります。
+
+\subsection{どうするの?: svn-buildpackage 編}
+
+では実際にどうやっているのでしょうか?
+ここでは GNU Hello を例に、svn-buildpackage を使った場合について簡単に述べてみます。
+なお、佐々木は既に svn-buildpackage をあまり使っていないので、
+Git はまだ良くわからないけれど Subversion ならわかる、 という人向けのお話です。
+
+\subsubsection{インストール}
+\begin{commandline}
+  % sudo aptitude install svn-buildpackage
+\end{commandline}
+
+\subsubsection{パッケージをリポジトリに追加する}
+
+一度適当なパッケージを作成してみましょう。 ここでは GNU hello のパッケージが作成できたとします。
+横着したい人は{\tt{apt-get source hello}}でも良いでしょう。
+
+テストのために簡単なリポジトリを作成します。ここでは {\tt{~/Work/svn/}} 以下にリポジトリを作成します。
+\begin{commandline}
+  % svnadmin create ~/Work/svn/
+  % svn mkdir file:///home/uwabami/Work/svn/trunk -m "create trunk"
+  % svn mkdir file:///home/uwabami/Work/svn/tags -m "create tags"
+  % svn mkdir file:///home/uwabami/Work/svn/branches -m "create branches"
+  % svn ls file:///home/uwabami/Work/svn
+  branches/
+  tags/
+  trunk/
+\end{commandline}
+次に、作成したパッケージをリポジトリに追加します。追加するコマンドは {\tt{svn-inject}} です。
+\begin{commandline}
+  % svn-inject -l 2 -o -c 0 hello_2.7-1.dsc file:///home/uwabami/Work/svn
+\end{commandline}
+svn-inject のオプションの詳細は man を見てもらうとして、ここでは
+\begin{commandline}
+      -l
+          Layout type.
+          1 (default) means package/{trunk,tags,branches,...} scheme,
+          2 means the {trunk,tags,branches,...}/package scheme.
+      -o
+          Only keep modified files under SVN control (including the debian/ directory),
+          track only parts of upstream branch
+
+       -c number
+          Checkout nothing (0), trunk directory (1) or everything (2) when
+          the work is done.
+\end{commandline}
+を用いています. 単一のパッケージを単一のリポジトリで管理する場合には {\tt{-l 1}} が良いでしょう.
+
+\subsubsection{パッケージのビルド}
+
+{\tt{svn-inject}}が終わったので、リポジトリからファイルを取得してみます。
+\begin{commandline}
+  % svn checkout file:///home/uwabami/Work/svn/trunk svn-work
+  A    trunk/hello
+  A    trunk/hello/debian
+  A    trunk/hello/debian/control
+  A    trunk/hello/debian/source
+  A    trunk/hello/debian/source/format
+  ...
+\end{commandline}
+ここでは {\tt{svn-work}} にファイルをチェックアウトしました。
+実際に {\tt{svn-work/trunk/hello}} に移動して、パッケージを作成してみます。
+\begin{commandline}
+  % cd svn-work/trunk/hello
+  % sudo apt-get build-dep hello
+  % svn-buildpackage
+  Complete layout information:
+          trunkDir=/home/uwabami/svn-work/trunk/hello
+          trunkUrl=file:///home/uwabami/Work/svn/trunk/hello
+  dpkg-checkbuilddeps
+  Orig tarball not found (expected ../tarballs/hello_2.7.orig.tar.gz)
+  mergeWithUpstream mode detected, looking for ../tarballs/hello_2.7.orig.tar.gz
+  I: mergeWithUpstream property set, looking for upstream source tarball...
+  E: Could not find the upstream source file! (should be ../tarballs/hello_2.7.orig.tar.gz)
+\end{commandline}
+...転びました。
+{\tt{svn-buildpackage}}では、
+パッケージ作成時の一時ディレクトリ({\tt{build-area}})と
+upstream のソースの保管場所({\tt{tarballs}})の存在を仮定しています。
+これを準備しましょう(ちなみに{\tt{svn-buildpackage}}は失敗しました時点で、これらのディレクトリが既に作成されています)。
+\begin{commandline}
+  % cd ..
+  % ls
+  build-area/  hello/  tarballs/
+  % cd hello
+  % uscan --download-current-version --destdir=../tarballs/
+\end{commandline}
+{\tt{watch}}ファイルがきちんと書かれている/書けていると、{\tt{uscan}}一発で良いので楽です。
+ではもう一度パッケージをビルドしてみます。
+\begin{commandline}
+  % svn-buildpackage
+  Complete layout information:
+        buildArea=/home/uwabami/svn-work/trunk/build-area
+        origDir=/home/uwabami/svn-work/trunk/tarballs
+        trunkDir=/home/uwabami/svn-work/trunk/hello
+        trunkUrl=file:///home/uwabami/Work/svn/trunk/hello
+  ...
+  dpkg-deb: `../hello_2.7-1_amd64.deb' にパッケージ `hello' を構築しています。
+  signfile hello_2.7-1.dsc
+  gpg: “Santiago Vila <sanvila@debian.org>”をとばします: 秘密鍵が得られません
+  gpg: [stdin]: clearsign failed: 秘密鍵が得られません
+
+  dpkg-genchanges  >../hello_2.7-1_amd64.changes
+  dpkg-genchanges: including full source code in upload
+  dpkg-source --after-build hello-2.7
+  dpkg-buildpackage: full upload (original source is included)
+  dpkg-buildpackage: warning: Failed to sign .dsc and .changes file
+  Command 'dpkg-buildpackage' failed in '/home/uwabami/svn-work/trunk/build-area/hello-2.7',
+  how to continue now? [Qri?]: ignore
+\end{commandline}
+最後の gpg sign で止まっていますので i(ignore)で終わらせましょう。どうやら上手くできたみたいですね。
+あとは、通常通り debian/ 以下を更新していき、リリース時(dput/dupload時)に
+タグを付けたり、branch を切ってメンテしたりしてきます。
+
+\subsubsection{new upstream release}
+
+upstream で新しいパッケージがリリースされた時には {\tt{svn-upgrade}} コマ
+ンドを使って、新しいソースを登録します。とはいえ、今回やった様
+に {\tt{debian}} ディレクトリのみを管理している場合に
+は、uscan の download 先を見て、適宜更新していくだけで良いでしょう。
+
+\subsubsection{tips?}
+
+佐々木は以下のコマンドを alias として登録しています。
+svn-pbuilder は cowbuilder 呼び出しのための wrapper スクリプトです.
+\begin{commandline}
+if [ -f /usr/bin/svn-buildpackage ]; then
+  alias svn-b="svn-buildpackage -rfakeroot -us -uc --svn-ignore --svn-lintian --svn-dont-clean"
+  alias svn-bc="svn-buildpackage --svn-builder='svn-pbuilder' --svn-lintian --svn-dont-clean"
+  alias svn-bct="svn-buildpackage --svn-builder='svn-pbuilder' --svn-lintian --svn-tag --svn-retag --svn-dont-clean"
+  alias svn-bcl="svn-buildpackage --svn-builder='svn-pbuilder-local' --svn-lintian --svn-dont-clean"
+fi
+\end{commandline}
+
+\subsection{どうするの?: git-buildpackage 編}
+
+以下では既存のパッケージとし
+て {\tt{rabbit}}\footnote{{\tt{http://rabbit-shockers.org/}}} の更新作業
+を例に、git-buildpackage を使った作業を述べてみます。
+
+\subsubsection{インストール}
+
+\begin{commandline}
+  % sudo aptitude install git-buildpackage
+\end{commandline}
+Recommends に {\tt{pristine-tar}} と {\tt{cowbuilder}} があります。これらもインストールしておくと良いでしょう。
+{\tt{cowbuilder}}に関しては、先月の水野さんの資料を参照して下さい。
+{\tt{pristine-tar}} については後述。
+
+\subsubsection{パッケージのリポジトリへの追加}
+
+Git なので、リポジトリの作成とか面倒な事はありません。
+既存のパッケージの Git リポジトリ作成には {\tt{git-import-dsc}} を使用します。
+\begin{commandline}
+  % apt-get source rabbit
+  % git-import-dsc --pristine-tar rabbit_0.9.2-3.dsc
+  gbp:info: No git repository found, creating one.
+  Initialized empty Git repository in /home/uwabami/Downloads/rabbit/.git/
+  gbp:info: Tag upstream/0.9.2 not found, importing Upstream tarball
+  /usr/bin/pristine-tar: committed rabbit_0.9.2.orig.tar.gz.delta to branch pristine-tar
+  gbp:info: Version '0.9.2-3' imported under 'rabbit'
+\end{commandline}
+この際に {\tt{--pristine-tar}} オプションをつけることを推奨します。
+また、これまでのバージョンの {\tt{.dsc}} ファイルと {\tt{.orig.tar.gz}}ファイルがある場合には
+{\tt{git-import-dscs}} コマンドを使うと良いでしょう。tag を良きにはからってくれます。
+
+さて、これで{\tt{rabbit}}という Git リポジトリが作成されました。実際に中を見てみましょう。
+\begin{commandline}
+  % cd rabbit
+  % git branch
+  * master                    <-- debian/ 入りのフルソース
+    pristine-tar              <-- orig.tar.{gz,bz2} のバイナリデルタ
+    upstream                  <-- debian/ 無し(upstream)のソース
+  % git tag
+  debian/0.9.2-3
+  upstream/0.9.2
+\end{commandline}
+ブランチの意味は上記の通りです。{\tt{git-import-dscs}} を使うと、バージョ
+ンに応じて tag が沢山並んでいると思います。{\tt{master}},
+
+{\tt{pristine-tar}}はちょっと特殊です。
+このブランチには、import される前の .tar.gz(もしくは.bz2)のバイナリデルタのみがコミットされています。
+{\tt{git-buildpackage}} を実行すると {\tt{upstream}}ブランチ、もしくは {\tt{upstream/バージョン番号}}タグから、
+元々の {\tt{orig.tar.\{gz,bz2\}}}を生成します。
+{\tt{pristine-tar}}ブランチのバイナリデルタが無いと(圧縮率が違ったりして)元々の upstream のソースを正しく生成できなかったりします。
+
+\subsubsection{パッケージのビルド}
+では、パッケージをビルドしてみましょう。
+\begin{commandline}
+  % sudo apt-get build-dep rabbit
+  % cd rabbit
+  % git-buildpackage
+  ...
+  ...
+  Successfully signed dsc and changes files
+\end{commandline}
+ちなみに{\tt{notify-send}}コマンドがあると、git-buildpackage の結果を通知してくれます。
+
+あとは通常通り{\tt{debian/}} 以下を更新していき、リリース毎にタグをつけたり、適当に branch を切って作業していきます。
+また(Subversionのところでは紹介しませんでしたが) {\tt{git-dch}} コマンドによって、
+Git のコミットログから {\tt{debian/changelog}} を生成することができます(コミットログの最初の行しか生かされませんので、粒度の小さいコミットが求められます)。
+
+\subsubsection{New upstream release}
+
+upstream で新しいリリースが出た場合には {\tt{git-import-orig}} で新しい {\tt{.orig.tar.\{gz,bz2\}}}を取り込みます。
+\begin{commandline}
+  % uscan --download
+  rabbit: Newer version (0.9.3) available on remote site:
+    http://rabbit-shockers.org/download/rabbit-0.9.3.tar.gz
+    (local version is 0.9.2)
+  rabbit: Successfully downloaded updated package rabbit-0.9.3.tar.gz
+      and symlinked rabbit_0.9.3.orig.tar.gz to it
+  % git-import-orig --pristine-tar ../rabbit_0.9.3.orig.tar.gz
+  What is the upstream version? [0.9.3]
+  gbp:info: Importing '../rabbit_0.9.3.orig.tar.gz' to branch 'upstream'...
+  gbp:info: Source package is rabbit
+  gbp:info: Upstream version is 0.9.3
+  /usr/bin/pristine-tar: committed rabbit_0.9.3.orig.tar.gz.delta to branch pristine-tar
+  gbp:info: Merging to 'master'
+  ...
+  gbp:info: Successfully imported version 0.9.3 of ../rabbit_0.9.3.orig.tar.gz
+\end{commandline}
+既存の master と自動的に merge が行なわれますので、適宜修正してきます。
+
+\subsubsection{patch-queue ブランチ?}
+
+source format 3.0 (quilt) では, upstream への変更点を {\tt{quilt}} を用い
+てパッチで管理します。通常通り {\tt{quilt}} を用いてパッチを作成(もしく
+は debuild が走ったさいにパッチとして抽出)するのでも良いのですが、
+折角なので{\tt{git format-patch}}でパッチを生成する方法について述べてみます。
+
+{\tt{git-buildpackage}} には {\tt{gbp-pq}}というコマンドが提供されています。pq は patch-queue の略です。
+先ず、現時点で debian/patches 以下にあるパッチを {\tt{patch-queue}} ブランチへ登録します。
+\begin{commandline}
+  % quilt pop -a
+  % gbp-pq import
+\end{commandline}
+この時点で、{\tt{master}} ブランチから {\tt{patch-queue/master}} ブランチへ切り代わります。
+debian/patches 以下にあったパッチがファイル一つ毎に一つのコミットとして登録されます。
+適宜 rebase するなどして、パッチをマージしたり削除したりしていきます。
+パッチの修正が終わったら
+\begin{commandline}
+  % git checkout master
+  % gbp-pq export
+\end{commandline}
+で、{\tt{patch-queue/master}} のコミットがそれぞれパッチとして debian/patches 以下に置かれます。
+あとは
+\begin{commandline}
+  % quilt push -a
+  % git-buildpackge
+\end{commandline}
+で ok です。
+この方式の利点は、個々のパッチが追跡しやすくなること、{\tt{git format-patch}}の出力結果なので、
+upstream が Git を用いている場合には upstream に投げ易くなること、でしょうか\footnote{とはいえ、毎度 quilt pop/push -a するのも面倒かしらん}?
+
+ちなみに、{\tt{git-buildpackage}}のオプションには{\tt{--git-debian-branch=}}がありますので、
+\begin{commandline}
+  % git-buildpackage --git-debian-branch=patch-queue/master
+\end{commandline}
+とすると、パッチが当たった(quilt push -a)状態の tree を用いてパッケージ作成ができます。
+
+\subsubsection{リモートリポジトリとのやりとり}
+
+適宜 git clone/push/fetch すれば良いと思いますが
+\begin{enumerate}
+\item {\tt{pristine-tar}}, {\tt{upstream}} ブランチ、{\tt{upstream/バージョン番号}}タグは必ず push する
+\end{enumerate}
+に気をつけましょう。
+また、リモートリポジトリから
+{\tt{git-buildpackage}} 用に clone するための{\tt{gbp-clone}}コマンドも用意されています。
+
+他にも upstream が Git を使用していると、結構幸せになれます。
+git remote で、upstream の Git リポジトリの master や、特定の tag とこちらの upstream を紐付けておくと、
+単一のリポジトリで全て作業を行なえたりします。
+
+\subsubsection{Tips?}
+佐々木は以下を alias に登録しています。
+\begin{commandline}
+if [ -f /usr/bin/git-buildpackage ]; then
+  alias git-b="git-buildpackage --git-ignore-new --git-builder='debuild -rfakeroot -i.git -I.git -sa -k891D7E07'"
+  alias git-bc="git-buildpackage --git-ignore-new --git-builder='git-pbuilder'"
+  alias git-bct="git-buildpackage --git-ignore-new --git-tag --git-builder='git-pbuilder'"
+  alias git-bcl="git-buildpackage --git-ignore-new --git-builder='git-pbuilder-local'"
+fi
+\end{commandline}
+
+%...以下、当日\& 後日補足予定...
+
+\subsection{最後に}
+
+以上、簡単に svn-buildpackage, git-buildpackage についてお話しました。
+実際にパッケージを作成する際には、共同作業者との合意や Team Policy によって、それなりにルールがありますのでそれを参考にして下さい。
+
+また、結局 {git,svn}-buildpackage で multiple upstream を使用する場合の方法論とかはちゃんと調べられませんでした。
+結構需要ありそうなんですけれどね。bzr-buildpackage はその辺上手く動作するらしいので、山下 尊也さんの発表を期待して待つ事にします。
 
 % 201109 kansai
 \dancersection{vcs-buildpackage $\sim$bzrの場合$\sim$}{山下尊也}
@@ -5050,6 +5634,8 @@ Merge modeはNormal modeに比べて少し複雑な作業が必要になってきます。
 \end{commandline}
 %$
 \clearpage
+
+% 201109 kansai
 %------------------------------------------------------------------------------
 \dancersection{vcs-buildpackage $\sim$Gitの場合(again)$\sim$}{佐々木洋平さん}
 
@@ -5448,1708 +6034,1117 @@ git-dpm パッケージは提供するコマンドが多くて、
 \end{itemize}
 です。
 
-% 201110 tokyo
-\dancersection{Debian とはなにか？}{岩松信洋}
-%-------------------------------------------------------------------------------
-\index{debian}
+% 201107 tokyo Debconfのため資料無し
+% 201107 kansai Debconfのため資料無し
 
-今回はDebian勉強会を筑波大学さんで行うということで、たぶんLinuxやUbuntu、
-Fedoraという言葉は知っているけど、
-Debianは知らないって方がいると思います。
-簡単にDebianとは何なのかを簡単に説明します。
 
-\subsection{Debianとは？}
-
-Debian Project の略称、またはDebian OSそのものを指す場合があります。
-フリーかつオープンなOSを作る完全ボランティアベースのプロジェクトです。
-歴史が長く保守的なLinuxディストリビューションの一つです。
-
-公式開発者は約1000名。非公式な開発者やパッケージメンテナ、翻訳者などを入れると
-5000名以上になります。世界のいたるところに開発者がいて、日本では約30名ほど公式
-開発者が活動しています。また、日本の開発者が集まって活動している Debian JP Project
-もあり、日本でのDebian環境のサポート、開発者育成、ユーザサポートなどを行なっています。
-
-オープンソース・ライセンスの要件の定義（The Open Source Definition(OSD)）は
-DebianのDebianフリーソフトウェアガイドラインをベースとしたものです。
-
-\subsection{特徴}
-
-\subsubsection{フリーなソフトウェアで構成されている}
-Debian プロジェクトはフリーソフトウェアを強く支持しています。
-ソフトウェアには、いくつもの違ったライセンスが使われるので、 
-Debian フリーソフトウェアガイドライン (DFSG) を作って、 
-何をもってフリーソフトウェアと言えるのかの妥当な定義をしています。 
-
-\begin{itemize}
-\item 何台のマシンにもソフトウェアをインストールしても良い。
-\item 何人の人がソフトウェアを同時に使用しても良い。
-\item 何個でもソフトウェアのコピーを作ってもいいし、それを誰にあげても構わない。(フリーもしくはオープンな再配布)
-\item ソフトウェアの改変に対する制約が無い。(特定の通告を変えない事を除く)
-\item そのソフトウェアを配布や売る事に対する制約が無い。
-\end{itemize}
-
-Debian の「main」ディストリビューションには、DFSG に適合したソフト
-ウェアしか 入れる事を許されていません。
-\footnote{http://www.debian.org/intro/free.ja.html より}
-
-とはいっても、フリーではないアプリケーション
-を使いたいユーザもいるので、そのようなユーザのためにcontrib、non-free 
-といったパッケージセクションを作って、できるだけ提供できるようにしています。
-
-\subsubsection{オープンな開発をしている}
-完全ボランティアの団体なので、特定の企業の力によってDebianの
-方針が変更されたりすることがありません。
-バグや議論経過なども全て公開されており、プロジェクトの方針等
-はDebian公式開発者の選挙によって決まります。
-
-\subsubsection{バイナリベースのディストリビューション}
-ディストリビューションにはバイナリベースとソースベースの2種類があります。
-前者は既にコンパイルされたパッケージを提供するディストリビューションで、
-Debian や Redhat、Ubuntuなどがあります。
-既にコンパイルされているので、直ぐに使うことができますが、一定のルールに
-よって最適化されているため、
-使っているCPU向けに最適化されているとは限りません。しかし、同じアーキテク
-チャならどの環境でも同じ問題が再現する
-可能性があり、問題の共有が容易になります。
-自分で使うソフトウェアは自分でコンパイルするというディストリビューションで、
-代表的なものとしてGentooがあります。
-パケージにはソースコードはなく、コンパイルに必要な簡単なスクリプトがパッケー
-ジに同梱されています。
-このスクリプトで定義されている場所からソースコードをダウンロードし、コンパイルします。
-これは自分に合わせたソフトウェアに最適化できるという利点があります。そのかわり
-ソフトウェアを使うには時間がかかり、
-問題があった場合でも他の環境では再現しにくいというデメリットもあります。
-
-\subsubsection{豊富なパッケージ数}
-
-Debianは多くのパッケージを提供しており、現在約3万パッケージのパッケージが利用可能です。
-他のディストリビューションは、Gentooが15000パッケージ、Ubuntuだと10000パッケージ
-\footnote{main と Universe がありますが、基本的にUbuntu側のサポートありなのはmainのみ。} 
-ほどあります。
-Debian の変態的なところは、各アーキテクチャで同じバージョンのバイナリを
-提供している事です。
-リリース対象になっているアーキテクチャでパッケージが動作しない場合、ポーティング
-を行い、開発元に取り込むように提案します。
-
-%Gentoo? 約１５０００。あんなのビルドできるかわからないものも多くあるのでだめだろ。
-%Ubuntu? main だけだと５０００ぐらい？Universe とかありますが、基本的にUbuntu側のサポートはなし。
-
-\subsubsection{ポリシーに基づいたパッケージ}
-Debian で提供されているパッケージは Debian Pocilyという
-パッケージングポリシーに基づいて作成されています。
-このポリシーは厳格に決められており、違反しているパッケージ
-はDebianにインストールされません。
-
-\subsubsection{強力なパッケージングシステム}
-Debianでは パッケージングシステムに dpkg というアプリケーションを使っており、deb という拡張子
-がついたパッケージファイルをインストール、アンインストールします。
-パッケージの依存関係管理がしっかりされており、depends（依存）、recommends（推奨）、
-suggests（提案） などの項目によってコントロールしています。
-パッケージマネージャのAPT (Advanced Package Tool) によって、インストールしたいパッケージに
-依存しているパッケージがインストールされます。アンインストールも同様です。
-
-\subsubsection{アップデートが容易}
-Debian は約2年毎に安定版がリリースされます。Debian は 
-前回のバージョンからのアップデートをサポートしています。
-例えば、2007年にリリースされた 4.0 から、最新版の 6.0 にアップデートするには、
-4.0、5.0、6.0 と順にアップデートすることによって可能です。
-
-\subsubsection{豊富なサポートCPUアーキテクチャ}
-現時点で正式サポートCPUアーキテクチャは11、次期リリースに向けてサポート
-準備中が 10 あります。
-サーバからPC、組み込みCPUまでサポートしています。
-新しいCPUアーキテクチャをサポートするためのインフラもあるので、何がサポートしたいCPUが
-ある人、debian-ports プロジェクトに連絡するとインフラを提供してくれるかもしれません。
-
-
-\begin{minipage}[t]{0.5\hsize}
-
-現在サポートしているアーキテクチャ。
-\begin{itemize}
-  \item amd64
-  \item armel
-  \item hurd-i386
-  \item i386
-  \item ia64
-  \item kfreebsd-amd64
-  \item kfreebsd-i386
-  \item mips
-  \item mipsel
-  \item powerpc
-  \item s390
-  \item sparc
-\end{itemize}
-
-\end{minipage}
-\begin{minipage}[t]{0.5\hsize}
-
-サポート予定のアーキテクチャ
-\begin{itemize}
-  \item alpha
-  \item armhf
-  \item avr32
-  \item hppa
-  \item m68k
-  \item powerpcspe
-  \item s390x
-  \item sh4
-  \item sparc64
-\end{itemize}
-
-\end{minipage}
-
-\subsubsection{Linux以外のカーネルもサポートする}
-
-LinuxをカーネルとしたOS、Debian GNU/Linux だけではなく、
-FreeBSDのカーネルを使ったOS Debian GNU/kFreeBSD 
-も提供しています。
-Debian 開発者の中にはGNU Hurd, Minix, NetBSD カーネルを
-ベースにした Debian を開発している人もいます。
-
-\subsubsection{他のOSSプロジェクトと関連が強い}
-
-Debian開発者と各OSS開発者が兼務していることが多く、他のOSS
-プロジェクトと結び付きが強いです。パッケージメンテナ＝開発元の開発者
-ということが多いのが特徴です。自分の作ったソフトウェアをDebianに入れたい人が
-多いようです。
-また、大抵のDebian開発者は複数のプロジェクトに顔を出しているので、更にプロ
-ジェクト間の結びつきが強いです。
-
-\subsubsection{派生しているディストリビューションの多さ}
-いままで説明した特徴によって、Debianから派生したディストリビューションが多く
-あります。
-有名なところでは、UbuntuやKnoppix、Vyatta （VPN/ネットワークファイアウォール）
-などがあります。
-現時点で129以上の派生ディストリビューション
-\footnote{http://distrowatch.com/dwres.php?resource=independence 参照}
-があり、Debianの live CD システムを使った小さい
-ディストリビューションを入れるともっと多くなります。
-また派生として分散させているだけでなく、派生したディストリビューションの
-成果を本家であるDebianに取り組む仕組みもあります。
-ちなみに2番目に多いのはFedoraベースの 63 です。
-
-\subsection{まとめ}
-
-\begin{itemize}
-\item フリーである。
-\item オープンな開発プロジェクトである。
-\item 世界規模のボランティアベースのプロジェクトである。
-\item バイナリベースのディストリビューションで、サポートしているパッケージ数が多い。
-\item サポートしているアーキテクチャが多い。
-\item Linux カーネルだけをサポートしていない。
-\item 派生しているディストリビューションが多い。
-\end{itemize}
-
-\subsection{んで、どういう風に使えばいいの？}
-
-個人的な見解ですと、
-
-\begin{itemize}
-\item 開発に使いたいなら、Debian か Gentoo。
-
-アップストリームに近い位置にいるためです。
-パッチなどがディストリビューション開発者経由で取り込まれやすい。
-
-\item デスクトップやノートPCで使いたいなら Ubuntu。いろいろデスクトップとか弄りたいなら、DebianかGentoo。
-
-2ch とかニコニコ動画みる程度なら Ubuntu で十分だと思います。もちろん Debian でも問題ありません。
-プログラムを最適化したいとか、「Gnomeとかイラネ！他のデスクトップ環境が欲しい」という人なら、Debian かGentooをお薦めします。
-
-\item サーバで使いたいなら、Debian。
-
-無駄なものがインストールされてないから。
-
-\end{itemize}
-です。
-
-ぜひDebianを使って、フィードバックをください。
-そして開発に興味がある人は開発に参加してみてください。手取り足取り教えます。
-みんなでDebianを良いものにしていきましょう。
-
-
-%-------------------------------------------------------------------------------
-\dancersection{HaskellとDebianの辛くて甘い関係}{岡部究}
-%-------------------------------------------------------------------------------
-\index{haskell}
-
-\subsection{Haskellというプログラミング言語}
-
-Haskell \footnote{\url{http://haskell.org/}}
-というプログラミング言語をご存知でしょうか。
-Haskellは関数型言語の一種で以下のような特徴があります。(以下の意見はHaskell初心者である筆者の偏見や間違いを多量に含んでいます)
-
-\begin{itemize}
-\item 静的型付け
-
-暗黙の型変換とかそんなことは起きません。
-また多くのエラーをコンパイル時に検出することができます。
-Haskellでプログラミングをしていると視野角が狭くなる気分になると思います。
-型で守られることによって「考慮に入れておくべき前提」のコード範囲が小さくなり、
-そしてインターフェイスに用いている型について「本当にこれがふさわしいのか？」
-と考えることになります。
-もっと簡単に言うと「型による設計」をHaskellでは行います。
-
-\item 型推論
-
-型をすべて書く必要がないという利点もありますが、
-型推論がないと綺麗に表現できないこともあります。
-個人的には、関数自体には型を書いて、関数の内部での型は省略することが行儀が
-良いと思います。
-
-\item パターンマッチ
-
-\texttt{if}や\texttt{case}文で場合分けを記述するよりもはるかに柔軟な場合分けができます。
-アルゴリズムの記述とはある種場合分けの繰り返しとも言えるので、
-この場合分けを型で記述できると、わかりやすく簡潔になります。
-
-\item 遅延評価
-
-諸刃の剣ですが、無限リストを作れたり、破壊的なデータ構造を用いなくても計算量を
-少なくすることができます。
-正格性フラグを使うことで遅延評価を部分ごとに抑制することもできます。
-
-\item コンパイルして実行
-
-ローカルでコンパイルすれば、配布先にはHaskellがインストールされていなくても
-OKです。要は単なる実行バイナリになります。
-また\texttt{runhaskell}コマンドでコンパイルせずに実行することもできます。
-
-\item 読みやすく、書きやすい文法
-
-本当です!
-もし型を使っても不足なケースではTemplate Haskell
-\footnote{\url{http://www.kotha.net/ghcguide_ja/latest/template-haskell.html}}
-を使えばコンパイル時にメタプログラミングをすることもできます。
-個人的には見た目があまりにかわりすぎてしまうので、邪悪なのではないかと
-思っていますが。。。まぁ使いどころに気をつけましょう。
-
-\end{itemize}
-
-どうでしょう。わくわくしますよね!
-さっそく使ってみましょう。なぁにDebianなら簡単です。\footnote{ここではDebian Sidを使っていることを前提にしています。}
-haskell-platformパッケージをインストールすればHaskellコンパイラであるghcと
-その基本ライブラリ群が使えるようになります。
-Rubyのirbコマンドや、Pythonのpythonコマンドに似たghciコマンドという
-インタラクティブなHaskell評価コマンドも使えるようになります。
-
-\begin{commandline}
-$ sudo apt-get install haskell-platform
-$ rehash
-$ ghci
-GHCi, version 7.0.4: http://www.haskell.org/ghc/  :? for help
-Loading package ghc-prim ... linking ... done.
-Loading package integer-gmp ... linking ... done.
-Loading package base ... linking ... done.
-Prelude> print $ fmap (foldr (++) "" . flip replicate "hoge") [1..3]
-["hoge","hogehoge","hogehogehoge"]
-\end{commandline}
-
-\subsection{cabalによるパッケージ管理}
-
-先程インストールしたhaskell-platformというのはHaskell言語における
-標準ライブラリで、GUIフレームワークとかWebアプリケーションフレームワーク
-などは入っていません。(OpenGLはなぜか入ってますけれど)
-それじゃあHaskellで書かれた最新のライブラリやプログラムを使おう、
-と思いますよね。
-Haskellで書かれたプログラムの多くはHackage
-\footnote{\url{http://hackage.haskell.org/}}
-というサイトに登録されています。
-そう。PerlのCPANや、RubyのgemにあたるものがHaskellにも用意されているのです。
-
-一個ずつtar玉をダウンロードしてコンパイルするのでしょうか？
-いいえ大丈夫です。\texttt{cabal}
-\footnote{\url{http://www.haskell.org/cabal/} 正確なプログラム名はcabal-install。Cabalはライブラリの名前。ちょっとややこしいです。}
-というコマンドがあります。
-この\texttt{cabal}コマンドはHackageの依存関係を考えて所望のプログラムを
-インストールできるすぐれものです。
-
-Debianの場合、以下の手順で任意のHackageをインストールできます。
-
-\begin{commandline}
-$ sudo apt-get install cabal-install # haskell-platformをインストールすれば自動でインストールされるので本当は不要です
-$ rehash
-$ cabal update
-$ cabal install パッケージ名
-\end{commandline}
-
-\subsection{でもcabalには色々不都合が、、、}
-
-もし\texttt{cabal}コマンドを長期にわたって使ったことがある方であれば体験していると
-思うのですが、cabalコマンドはパッケージのインストールはできてもパッケージの更新
-をすることができません。
-
-Rubyのgemを思い出してみましょう。
-
-\begin{commandline}
-$ sudo gem update
-$ sudo gem install earchquake
-# 月日は流れ、、、そしてある日、、、
-$ sudo gem update
-# これで以前インストールいしたearchquakeパッケージは依存ライブラリを含めて最新版になるはず
-\end{commandline}
-
-ところがcabalの場合、筆者は以下のような不具合によく直面していました。
-
-\begin{commandline}
-$ cabal update # これはローカルのHackageデータベースを更新するだけ
-$ cabal install yesod # 実行後、インストール完了
-\end{commandline}
-これで色々開発したりして、、、楽しい月日は流れます。後日yesodを最新版に更新しようと思いたちました。
-
-\begin{commandline}
-$ cabal upgrade
-cabal: Use the 'cabal install' command instead of 'cabal upgrade'.
-You can install the latest version of a package using 'cabal install'. The
-'cabal upgrade' command has been removed because people found it confusing and
-it often led to broken packages.
-If you want the old upgrade behaviour then use the install command with the
---upgrade-dependencies flag (but check first with --dry-run to see what would
-happen). This will try to pick the latest versions of all dependencies, rather
-than the usual behaviour of trying to pick installed versions of all
-dependencies. If you do use --upgrade-dependencies, it is recommended that you
-do not upgrade core packages (e.g. by using appropriate --constraint= flags).
-\end{commandline}
-
-なにこれーーーーーしょうがない、必要なパッケージだけ更新しましょう
-\begin{commandline}
-$ cabal install yesod # しかしなぜかyesodが動作しなかったり、そもそも依存関係をcabalが自動解決しない、、、
-# とりあえずcabalでインストールしたHackageを全部消そう。。。
-$ rm -rf ~/.ghc ~/.cabal
-$ cabal update
-$ cabal install yesod　# さっきのyesodのバグが再現しない。ふつーに動いとる。なぜだーーー!？
-\end{commandline}
-
-あれれ。インストールした時は問題なかったの何が起きたのでしょう。
-どうやらこのような不具合が起きるのは筆者だけではなく、
-多くのHaskell開発者も同様のようです。
-どの開発者も本質的にはcabalの環境をマッサラ(\texttt{rm -rf .cabal .ghc})にしてから再インストールして凌いでいるようです。。。
-
-\subsection{cabalをパッケージシステムとして使うことの問題点}
-
-どうしてこんなことが起きてしまうのでしょう？
-それはcabalのしくみとHackage作者達の文化に問題があります。
-
-\subsubsection{Hackage作成の文化的問題}
-
-まずは例としてyesodパッケージの情報を覗いてみましょう。
-
-\begin{commandline}
-$ cabal info yesod
-* yesod            (program and library)
-    Synopsis:      Creation of type-safe, RESTful web applications.
-    Versions available: 0.6.7, 0.7.2, 0.7.3, 0.8.0, 0.8.1, 0.8.2, 0.8.2.1,
-                        0.9.1, 0.9.1.1 (and 35 others)
-    Versions installed: [ Not installed ]
-    Homepage:      http://www.yesodweb.com/
---snip--
-    Source repo:   git://github.com/yesodweb/yesod.git
-    Executables:   yesod
-    Flags:         ghc7
-    Dependencies:  yesod-core >=0.9.1.1 && <0.10, yesod-auth ==0.7.*,
-                   yesod-json ==0.2.*, yesod-persistent ==0.2.*,
-                   yesod-form ==0.3.*, monad-control ==0.2.*,
-                   transformers ==0.2.*, wai ==0.4.*, wai-extra >=0.4.1 && <0.5,
-                   hamlet ==0.10.*, shakespeare-js ==0.10.*,
-                   shakespeare-css ==0.10.*, warp ==0.4.*, blaze-html ==0.4.*,
-                   base >=4.3 && <5, base >=4 && <4.3, base >=4 && <4.3,
-                   base >=4.3 && <5, process -any, blaze-builder >=0.2 && <0.4,
-                   http-types >=0.6.1 && <0.7, attoparsec-text >=0.8.5 && <0.9,
-                   containers >=0.2 && <0.5, unix-compat >=0.2 && <0.4,
-                   Cabal >=1.8 && <1.13, directory >=1.0 && <1.2,
-                   template-haskell -any, time >=1.1.4 && <1.3,
-                   bytestring ==0.9.*, text ==0.11.*, parsec >=2.1 && <4
-    Cached:        No
-    Modules:
-        Yesod
-\end{commandline}
-
-まず見てとれるのが、''Versions available''行です。
-yesodパッケージはHackageDBに複数のバージョンが登録されているのがわかります。
-もう一つ気になるのは''Dependencies''行です。
-textやbytestringなどの基本的のパッケージに対してA.Bの桁までバージョンを指定しています。
-Debianパッケージのほとんどは、
-依存は同ソースパッケージから生成されたものについてはバージョン番号を完全に指定、
-他パッケージへの依存は下限バージョン指定、
-となっているのとは対照的です。
-
-このバージョン指定のポリシーはどこからやってきたかというと、
-Hackageのバージョン番号のポリシー文書
-\footnote{\url{http://www.haskell.org/haskellwiki/Package\_versioning\_policy}}
-からです。
-おおざっぱに引用すると以下のような規則です。
-Haskageのバージョン番号が仮にA.B.C.Xと表わされる場合、、、
-
-\begin{enumerate}
- \item エントリの削除、エントリの型やデータ型定義やクラスの変更、インスタンスの追加/削除、importの変更、他パッケージの新たなバージョンへの依存。のような場合にはA.Bバージョンを上げるべき
- \item 上記に該当せず、新たなバインディング、型、クラス、モジュールがインターフェイスに追加された場合にはA.Bバージョンは同値のままでも良いがCバージョンを上げるべき
- \item そうでない場合、A.B.Cは同値のままでも良い。Xなどそれより桁が下のバージョンを上げるままでも良い
-\end{enumerate}
-
-この規則を守ると、自分の依存しているHackageのAPIが削除されないように期待するためには''bytestring ==0.9.*''のように指定してくなるわけです。
-ところが、この指定方法によってcabalコマンドが依存関係の解決に混乱することがあるようです。
-
-\subsubsection{cabalの実装上の問題}
-先のHaskellImplementorsWorkshop/2011にて新しいcabalの依存解決のしくみが発表されました。
-\footnote{\url{http://www.haskell.org/haskellwiki/HaskellImplementorsWorkshop/2011/Loeh}}
-この中のスライド
-\footnote{\url{http://www.haskell.org/wikiupload/b/b4/HIW2011-Talk-Loeh.pdf}}
-で現状のcabalの問題点が説明されています。
-
-上記スライドから引用して説明します。
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=5cm]{image201110/cabal-1.png}
-  \end{center}
-  \label{fig:cabal-1}\caption{Hackage DB上でB-1パッケージがAに依存している場合}
-\end{figure}
-
-まず上図のようにHackage DBでB-1パッケージがAパッケージに依存している場合を
-考えます。この時B-1はAのバージョンについて特に指定していないとします。
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=5cm]{image201110/cabal-2.png}
-  \end{center}
-  \label{fig:cabal-2}\caption{B-1とA-1をインストール}
-\end{figure}
-
-このようなHackage DBからB-1をインストールするとAパッケージの最新バージョン
-であるA-1も一緒にインストールされます。
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=5cm]{image201110/cabal-3.png}
-  \end{center}
-  \label{fig:cabal-3}\caption{そしてさらにB-1に依存したHackage群をインストール}
-\end{figure}
-
-そうして、このような環境にさらにC-1を含むB-1依存したHackage群をインストール
-します。ここで、Bに依存しているC-1はローカルではB-1に紐づけられています。
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=5cm]{image201110/cabal-4.png}
-  \end{center}
-  \label{fig:cabal-4}\caption{A-2に依存しているD-1をインストールしようと試みる}
-\end{figure}
-
-ここでHackage DBからD-1をインストールしてみましょう。
-D-1はHackage DB上(上図右)ではA-2とB-1にバージョン指定で依存しています。
-ローカルにはA-1とB-1がインストールされています。
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=5cm]{image201110/cabal-5.png}
-  \end{center}
-  \label{fig:cabal-5}\caption{cabalはD-1をインストールにあたってA-2もインストールしようとする}
-\end{figure}
-
-このままローカルにインストールされているA-1とB-1を無変更でD-1をインストール
-することはできません。そこで、cabalはインストール計画をたて、
-A-1のかわりにA-2をインストールしようとします。
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=5cm]{image201110/cabal-6.png}
-  \end{center}
-  \label{fig:cabal-6}\caption{D-1は正常にインストールされたが、B-1に依存していたHackage群は依存が壊れてしまう}
-\end{figure}
-
-A-2,B-1,D-1について\texttt{cabal}はインストール/更新を完了しました。
-しかし、B-1に依存していたHackageについては再コンパイルは行ないません。
-当然B-1に依存していたHackageは依存が壊れたまま放置されてしまうことになります。
-
-
-この問題は依存解決する際のインストール計画の際にバックトラックが行なわれない
-ためです。B-1を再インストールするのであれば、それに依存したHackage(C-1など)
-も再インストールすべきだったのです。
-もちろんHaskellコミュニティではこの問題を認識しており、その解決のために
-新しいソルバを実装しています。
-\footnote{\url{http://darcs.haskell.org/cabal-branches/cabal-modular-solver}}
-近い将来に本家\texttt{cabal}に取り込まれることでしょう。
-
-\subsubsection{Hackageが依存する環境についてcabalコマンドは面倒をみてくれない}
-
-cairo
-\footnote{\url{http://hackage.haskell.org/package/cairo}}
-のようにC言語に依存するHackageについてはcabalコマンドは面倒を見てくれません。
-Debianパッケージlibcairo2-devが入っていない環境で
-cairo Hackageを\texttt{cabal}コマンドを使ってインストールしようとしても、
-(当然)コンパイルエラーによってインストールに失敗します。
-
-そもそもDebianではHaskell以外の部分のパッケージはDebianパッケージ(deb)によって管理されています。
-cabalコマンドはOSに依存していないので、(当然)apt-getを呼び出すわけにもいきません。
-\footnote{\url{http://packages.debian.org/ja/sid/auto-apt}
-を使ってcabalコマンド実行の裏でDebianパッケージを自動インストールする手はあるかもしれませんね ;-)}
-
-\subsubsection{Hackage群全てを最新バージョンでインストールできないかもしれない}
-
-yesod \footnote{\url{http://hackage.haskell.org/package/yesod}}
-,hakyll \footnote{\url{http://hackage.haskell.org/package/hakyll}}
-,hamlet \footnote{\url{http://hackage.haskell.org/package/hamlet}}
-の3つのHackageを例に説明します。
-この問題はyesod-0.9.2, hakyll-3.2.0.8, hamlet-0.10.2のバージョン間で生じていました。(現在は解消されています)
-
-まずそれぞれのHackageについて依存を見てみましょう。
-
-\begin{commandline}
-$ cabal info yesod-0.9.2
-* yesod-0.9.2            (program and library)
---snip--
-    Dependencies:  yesod-core >=0.9.1.1 && <0.10, yesod-auth ==0.7.*,
---snip--
-                   hamlet ==0.10.*, shakespeare-js ==0.10.*,
---snip--
-$ cabal info hakyll-3.2.0.8
-* hakyll-3.2.0.8           (library)
---snip--
-    Dependencies:  base ==4.*, binary >=0.5 && <1.0, blaze-html >=0.4 && <0.6,
---snip--
-                   filepath >=1.0 && <2.0, hamlet >=0.7 && <0.9,
-\end{commandline}
-
-あれ？yesod-0.9.2はhamlet-0.10.*に依存しているのにhakyll-3.2.0.8は
-hamlet-0.7.*もしくはhamlet-0.8.*に依存しています。
-確かに表面上問題はありません。この状態でもyesodとhakyllの両方をインストール
-することはできます。しかしもしhakyllとyesod両方のライブラリを使いたいプログラム
-を作りたくなった場合にはどうしたら良いのでしょう？
-hakyllはローカルでWebサーバを起動してプレビューする機能を持っています。
-たまたまhakyllはこのWebサーバのエンジンとしてsnap
-\footnote{\url{http://hackage.haskell.org/package/snap}}
-を使っていたから良かったもののyesodを使っていたら、古いyesodの機能
-しか使えないところです。
-
-どうしてこんな状態でHackageが放置されていたのでしょう？
-やる気がないのでしょうか？いえいえそんなことはありません。
-今度はhamletについて調べてみましょう。
-
-\begin{multicols}{2}
-hamlet-0.8.2.1のModuleリスト
-\begin{commandline}
-Text
-  Text.Cassius
-  Text.Coffee
-  Text.Hamlet
-    Text.Hamlet.NonPoly
-    Text.Hamlet.RT
-  Text.Julius
-  Text.Lucius
-  Text.Romeo
-  Text.Shakespeare
-\end{commandline}
-\columnbreak
-hamlet-0.9.0のModuleリスト
-\begin{commandline}
-Text
-  Text.Cassius
-  Text.Coffee
-  Text.Hamlet
-  Text.Julius
-  Text.Lucius
-  Text.Romeo
-  Text.Shakespeare
-\end{commandline}
-\end{multicols}
-
-あれ？APIに変更があるようです。ここで注目したいのはText.Hamlet.RTモジュールが
-消滅していることです。
-嫌な予感がします。hakyllのソースコード
-\footnote{\url{https://github.com/jaspervdj/hakyll/blob/master/src/Hakyll/Web/Template/Read/Hamlet.hs}}
-を見てみましょう。
-
-\begin{commandline}
--- | Read templates in the hamlet format
---
-{-# LANGUAGE MultiParamTypeClasses #-}
-module Hakyll.Web.Template.Read.Hamlet
-    ( readHamletTemplate
-    , readHamletTemplateWith
-    ) where
-
-import Text.Hamlet (HamletSettings, defaultHamletSettings)
-import Text.Hamlet.RT
-
-import Hakyll.Web.Template.Internal
---snip--
-\end{commandline}
-
-あーhakyllのコンパイルにはText.Hamlet.RTモジュールが必須なんですね。
-これでは新しいhamletを使うことができない訳です。
-
-Hackage作者が自由に依存Hackageのバージョンを選択可能である以上、
-このようなHackage群全体の不整合は避けられません。
-
-\subsection{HackageをDebianパッケージ化する}
-
-cabalを使ってDebianパッケージと同等のレベルで
-パッケージ管理をするのは現状では難しいことがわかりました。
-それにapt-getでライブラリ環境が整うのはDebianユーザとしてうれしいですよね。
-そこで、自分の良く使うHackageはDebianパッケージ化してDebian本体に
-登録してしまうのはいかがでしょうか。
-実はHackageをDebianパッケージ化するのはすごく簡単です。
-\texttt{cabal-debian}というまんまの名前のコマンドがあります。\footnote{\url{http://hackage.haskell.org/package/debian}}
-さっそくやってみましょう!
-
-例題としてHCWiid
-\footnote{Wiiリモコンからイベントを拾うためのライブラリ
-  \url{http://hackage.haskell.org/package/hcwiid}}
-をDebianパッケージ化してみます。
-まずHackageのDebianパッケージ化に必要なhaskell-debian-utils,
-haskell-devscriptsをapt-get installしましょう。
-
-\begin{commandline}
-$ sudo apt-get install haskell-debian-utils haskell-devscripts
-$ rehash
-\end{commandline}
-
-hackageをダウンロードして解凍したら、ディレクトリに移動しておもむろに\texttt{cabal-debian}コマンドを使います。
-
-\begin{commandline}
-$ wget http://hackage.haskell.org/packages/archive/hcwiid/0.0.1/hcwiid-0.0.1.tar.gz
-$ tar xfz hcwiid-0.0.1.tar.gz
-$ cd hcwiid-0.0.1/
-$ cabal-debian --debianize --ghc --maintainer="Kiwamu Okabe <kiwamu@debian.or.jp>"
-$ ls debian
-changelog  compat  control  copyright  rules*
-$ debuild -rfakeroot -us -uc
---snip--
- dpkg-genchanges  >../haskell-hcwiid_0.0.1-1~hackage1_amd64.changes
-dpkg-genchanges: including full source code in upload
- dpkg-source --after-build hcwiid-0.0.1
-dpkg-buildpackage: full upload; Debian-native package (full source is included)
-Now running lintian...
-W: haskell-hcwiid source: native-package-with-dash-version
-W: haskell-hcwiid source: out-of-date-standards-version 3.9.1 (current is 3.9.2)
-E: libghc-hcwiid-dev: copyright-file-contains-full-gpl-license
-E: libghc-hcwiid-dev: copyright-should-refer-to-common-license-file-for-lgpl
-E: libghc-hcwiid-dev: description-contains-tabs
-E: libghc-hcwiid-prof: copyright-file-contains-full-gpl-license
-E: libghc-hcwiid-prof: copyright-should-refer-to-common-license-file-for-lgpl
-E: libghc-hcwiid-prof: description-contains-tabs
-E: libghc-hcwiid-doc: copyright-file-contains-full-gpl-license
-E: libghc-hcwiid-doc: copyright-should-refer-to-common-license-file-for-lgpl
-E: libghc-hcwiid-doc: description-contains-tabs
-Finished running lintian.
-$ ls ../*hcwiid*deb
-../libghc-hcwiid-dev_0.0.1-1~hackage1_amd64.deb
-../libghc-hcwiid-doc_0.0.1-1~hackage1_all.deb
-../libghc-hcwiid-prof_0.0.1-1~hackage1_amd64.deb
-\end{commandline}
-
-なんかあっさりDebianパッケージができちゃいました。
-lintianがなんか言ってますが、
-あまり深刻なものではないのでとりあえずインストールしてみましょう。
-
-\begin{commandline}
-$ sudo dpkg -i ../libghc-hcwiid-dev_0.0.1-1\~hackage1_amd64.deb \
-../libghc-hcwiid-doc_0.0.1-1\~hackage1_all.deb ../libghc-hcwiid-prof_0.0.1-1\~hackage1_amd64.deb
-$ cd ~/
-$ rm -rf .ghc .cabal # これでcabalでインストールしたパッケージは一切使っていないはずです
-$ ghc-pkg list|grep hcwiid
-    hcwiid-0.0.1
-\end{commandline}
-Hackageはインストール済みのようです。hcwiidライブラリを使ってみましょう。
-
-Test.hs
-\begin{commandline}
-module Main where
-
-import Prelude
-import Control.Monad
-import System.CWiid
-import System.Posix.Unistd
-
-main :: IO ()
-main = do
-  putStrLn "Put Wiimote in discoverable mode now (press 1+2)..."
-  (Just wm) <- cwiidOpen
-  putStrLn "found!"
-  _ <- cwiidSetLed wm
-  _ <- cwiidSetRptMode wm
-  _ <- forever $ do _ <- usleep 300000
-                    cwiidGetBtnState wm >>= print
-  return () -- not reach
-$ ghc --make Test.hs
-[1 of 1] Compiling Main             ( Test.hs, Test.o )
-Linking Test ...
-$ ./Test
-Put Wiimote in discoverable mode now (press 1+2)...
-\end{commandline}
-
-なんて簡単なんでしょう!簡単なHackageならcabal-debianコマンドを使えば
-Debianパッケージ化が完了してしまうようです。
-しかも下記3つのライブラリに分割してくれています。やった!
-
-\begin{itemize}
- \item libghc-HOGE-dev  - 通常使用するライブラリ
- \item libghc-HOGE-doc  - Haddockで生成されたAPIドキュメント
- \item libghc-HOGE-prof - プロファイラ対応ライブラリ
-\end{itemize}
-
-\subsection{haskell-debian-utilsのしくみ}
-
-cabal-debianでのDebianパッケージ化はどのようなしくみなのでしょうか。
-さきほど作ったhcwiidパッケージのdebian/rulesファイルを見てみましょう。
-
-\begin{commandline}
-#!/usr/bin/make -f
-include /usr/share/cdbs/1/rules/debhelper.mk
-include /usr/share/cdbs/1/class/hlibrary.mk
-
-# How to install an extra file into the documentation package
-#binary-fixup/libghc-hcwiid-doc::
-#       echo "Some informative text" > debian/libghc-hcwiid-doc/usr/share/doc/libghc-hcwiid-doc/AnExtraDocFile
-\end{commandline}
-
-なんということでしょう。内容がありません。。。
-これはhlibrary.mkファイルに秘密があるに相違ありません。
-全部を読まずにまずはlibghc-HOGE-devのbuildターゲットとその近辺をhlibrary.mk
-から抜き出してみましょう。
-
-\begin{commandline}
-DEB_SETUP_BIN_NAME ?= debian/hlibrary.setup
-BUILD_GHC := $(DEB_SETUP_BIN_NAME) build
-
-$(DEB_SETUP_BIN_NAME):
-        if test ! -e Setup.lhs -a ! -e Setup.hs; then echo "No setup script found!"; exit 1; fi
-        for setup in Setup.lhs Setup.hs; do if test -e $$setup; then ghc --make $$setup -o $(DEB_SETUP_BIN_NAME); \
-          exit 0; fi; done
-
-build/libghc-$(CABAL_PACKAGE)-prof build/libghc-$(CABAL_PACKAGE)-dev:: build-ghc-stamp
-
-build-ghc-stamp: dist-ghc
-        $(BUILD_GHC) --builddir=dist-ghc
-        touch build-ghc-stamp
-\end{commandline}
-
-なるほど。libghc-HOGE-devをbuildしようとすると、
-まずSetup.lhsもしくはSetup.hsをghcを使ってコンパイルして\texttt{debian/hlibrary.setup}
-コマンドを作成するようです。
-そうして作ったdebian/hlibrary.setupコマンドを使って
-"debian/hlibrary.setup build --builddir=dist-ghc"
-のようにしてdist-ghcディレクトリ上でHackageをコンパイルするんですね。
-
-ちょっと脱線しますが、
-このビルドプロセスはcabalが普段やっていることと全く同じです。
-cabalはインストール対象のHackageを取得/展開したら、まずこのSetup.hsを
-ghcでコンパイルして、そのコンパイルした結果できた実行バイナリを
-本当のビルダ/インストーラとして使います。
-普段使っている/usr/bin/cabalコマンドは"cabal-install"と呼ばれています。
-そして、Setup.hsを書くために必要なライブラリを"Cabal"と呼びます。
-ややこしいですね。。。
-
-ではlibghc-HOGE-devのinstallはどうなっているのでしょうか？
-
-\begin{commandline}
-debian/tmp-inst-ghc: $(DEB_SETUP_BIN_NAME) dist-ghc
-	$(DEB_SETUP_BIN_NAME) copy --builddir=dist-ghc --destdir=debian/tmp-inst-ghc
-
-install/libghc-$(CABAL_PACKAGE)-dev:: debian/tmp-inst-ghc debian/extra-depends
-	cd debian/tmp-inst-ghc ; find usr/lib/haskell-packages/ghc/lib/ \
-		\( ! -name "*_p.a" ! -name "*.p_hi" \) \
-		-exec install -Dm 644 '{}' ../$(notdir $@)/'{}' ';'
-	pkg_config=`$(DEB_SETUP_BIN_NAME) register --builddir=dist-ghc --gen-pkg-config | sed -r 's,.*: ,,'`; \
-		$(if $(HASKELL_HIDE_PACKAGES),sed -i 's/^exposed: True$$/exposed: False/' $$pkg_config;) \
-		install -Dm 644 $$pkg_config debian/$(notdir $@)/var/lib/ghc/package.conf.d/$$pkg_config; \
-		rm -f $$pkg_config
-	if [ 'z$(DEB_GHC_EXTRA_PACKAGES)' != 'z' ] ; then \
-		echo '$(DEB_GHC_EXTRA_PACKAGES)' > \
-                debian/$(notdir $@)/usr/lib/haskell-packages/ghc/lib/$(CABAL_PACKAGE)-$(CABAL_VERSION)/extra-packages ; \
-	fi
-	dh_haskell_provides -p$(notdir $@)
-	dh_haskell_depends -p$(notdir $@)
-	dh_haskell_shlibdeps -p$(notdir $@)
-\end{commandline}
-
-ちょっとわかりにくいですが、パッケージ化の後半はDebian流儀の詳細なので
-踏みこまずに解釈すると、
-まずlibghc-HOGE-devをinstallしようとすると、debian/tmp-inst-ghcターゲット
-が呼び出されて
-"debian/hlibrary.setup copy --builddir=dist-ghc --destdir=debian/tmp-inst-ghc"
-のようなコマンドが実行されて、dist-ghcでコンパイルした内容が
-debian/tmp-inst-ghc以下にインストールされます。
-あとは、Debianの流儀にのっとってdebian/tmp-inst-ghc以下のファイル群を
-パッケージ化するだけです。
-パッケージ化対象のHackageが依存しているHackageも
-dh\_haskell\_shlibdepsでちゃんと検出してくれるみたいです。 :)
-
-\subsection{作ったパッケージをDebianに登録するには}
-
-せっかく作ったHackageです。自分だけで使っているのはもったいないです。
-Debian本家に登録して皆に使ってもらいましょう!
-Debian本家に登録しておけばめぐりめぐってUbuntuにも登録されるかもしれませんよ？
-
-その秘技はプレゼン資料の方でこっそり、あなただけに、紹介します。 ;)
-
-%-------------------------------------------------------------------------------
-\dancersection{月刊 debhelper 第1回}{岩松 信洋}
-%-------------------------------------------------------------------------------
-\index{debhelper}
-
-\subsection{debhelper とは何か？}
-
-Debian パッケージを作成する時、パッケージに必要なファイルのチェック、
-コンパイル前の設定、コンパイルなど様々な処理を行う必要があります。
-Debianパッケージでは debian/rules という GNU Make のmakefile に各処理
-を記述するのですが、細かい処理をひとつづつ書いていくと膨大な量になります。
-
-またコードの量が多くなるとバグも多くなり、パッケージ作成時に問題が起きた
-ときに修正するのは大変です。
-これらの処理を機能毎にまとめ、使いやすくした機能を提供しているパッケージ
-として debhelper があります。他にも同様のツールがいくつかありますが、
-１番使われているのがこの debhelper です。
-Debian パッケージをメンテナンスしている人にとって debhelper の知識が必須と
-言ってもいいでしょう。
-
-ちなみにdebhelper は Debian 開発者の Joey Hess 氏\footnote{Wikiエンジンのikiwiki, 
-ディストリビューションのパッケージ間変換ツールである alien の開発者として有名。}
-によって開発/メンテナンスされ、最新のバージョンは 8.9.8 となっています。
-
-\subsection{月刊 debhelperとは？}
-先にも説明したように、Debian パッケージをメンテナンスしている人にとって 
-debhelper の知識が必須となっています。
-debhelper がどのような機能を提供して、それらをどのように使えばいいのか、
-どのように使われているのか、理解しておく必要があります。
-現時点で debhelper では59個のコマンド（dh\_で始まるコマンド）が提供されており、
-全部理解するのは難しいでしょう。また、debhelper に収録されていない debhelper サポートツール
-を含めると100個ほどになります。
-日頃Debianの開発を行なっている人でも「ああ、こんな機能があるのだ」と思うことがあるぐらいです。
-更にdebhelper 7 からコマンドがいくつか増え、debian/rules ファイルが以下のように記述
-できるようになりました。
-
-これだけでは何をやっているのかさっぱり分かりません。
-細かい指定を行いたい場合、どのようにしたらいいのかすらわからない状態です。
-
-そこで debhelper で提供されているコマンドの動きと使い方を毎月数個づつ
-紹介し、Debian勉強会参加者でパッケージ作成の理解を深める企画、「月刊 debhelper」
-を企画しました。
-全て理解した頃には、皆 Debian パッケージメンテナになっているかもしれません。
-ヒャッハー！
-
-\begin{multicols}{2}
-
-\begin{commandline}
-debhelper 6:
-#!/usr/bin/make -f
-
-build: build-stamp
-build-stamp:
-    dh_testdir
-    $(MAKE)
-    touch $@
-
-clean:
-    dh_testdir
-    dh_testroot
-    $(MAKE) clean
-    dh_clean
-
-install: build
-    dh_testdir
-    dh_testroot
-    dh_clean -k
-
-binary-indep:
-
-binary-arch: build install
-    dh_testdir
-    dh_testroot
-    dh_installchangelogs ChangeLog
-    dh_installd
-.....
-\end{commandline}
-\columnbreak
-\begin{commandline}
-debhelper 7:
-#!/usr/bin/make -f
-%:
-        dh $@
-\end{commandline}
-\end{multicols}
-% $
-
-\subsection{debian パッケージ構築、全体の流れ}
-
-いきなり個々のコマンド説明をしてもよくわからないので、パッケージ作成の全体の
-流れとどのようなコマンドが呼び出されるのか説明します。
-Debian パッケージが作成される簡単流れは以下の通りで、
-図にすると図\ref{fig:rules-work}のようになります。
-
-\begin{enumerate}
-\item パッケージビルド環境を構築する
-
-実際にビルドを始める前に、まずはビルドのための環境を構築する必要があります。
-ここでは、ソースコードの展開、パッケージ構築依存のチェック等を行います。
-
-\item 不要なファイルを削除する\\
-次にパッケージに不要なファイルを削除します。 
-例えば、前に行われたパッケージビルドで生成されたファイルがある場合はそれを削除して、 
-ソースが展開された常に同じ状態からビルドできるようにします。 
-
-これは debian/rules ファイルの {\bf clean} ターゲットで行われ、このターゲットは
-「不要なファイルを削除する」ことを目的とするように Debian Policy で定められています。
-
-また clean ターゲットでは、以下の dehhelper コマンドが実行されます。
-\begin{commandline}
-dh_testdir -> dh_auto_clean -> dh_clean
-\end{commandline}
-
-\item  バイナリパッケージに格納するファイルをビルドする
-
-次にソースコードからバイナリをビルドします。ここではconfigure などを使った
-コンパイル前の設定、コンパイラを使った実行ファイルの作成、ドキュメントの変
-換などがおこなわれます。
-
-これは debian/rules ファイルの {\bf build} ターゲットで行われ、このターゲットは
-「プログラムの設定、コンパイルやデータの変換」ことを目的とするように Debian Policy で
-定められています。
-
-また build ターゲットでは、以下の dehhelper コマンドが実行されます。
-\begin{commandline}
-dh_testdir -> dh_auto_configure -> dh_auto_build -> dh_auto_test
-\end{commandline}
-
-\item ビルドしたファイルをバイナリパッケージにまとめる
-
-必要なファイルをすべてビルド完了した後、それらを適切なパーミッションで
-適切な場所に配置し、バイナリパッケージにまとめます。 
-
-ここでは、debian/tmpを/(ルート)と見なしてソフトウェア全体の
-インストール (「仮インストール」) を行い、 その上でdebian/tmp 内の各ファイルを適切に
-debian/バイナリパッケージ名に振り分け、 最後にdebian/バイナリパッケージ名をそれぞれ
-バイナリパッケージ化する、という流れで行います。 debian/バイナリパッケージ名 を
-バイナリパッケージ化する際には、各ファイルのパーミッションの設定やファイルの圧縮など、
-行わなければならないことや、推奨されていることが多数あります。 
-
-これは debian/rules ファイルの {\bf binary、binary-arch、 binary-indep} 
-ターゲットで行われ、このターゲットは
-「バイナリパッケージとしてまとめる」ことを目的とするように Debian Policy で
-定められています。
-
-また binary、binary-arch、 binary-indep ターゲットでは、以下の dehhelper コマンドが実行されます。
-\begin{commandline}
-dh_testdir -> dh_auto_configure -> dh_auto_build -> dh_auto_test -> dh_testroot
--> dh_prep -> dh_installdirs -> dh_auto_install -> dh_install -> dh_installdocs
--> dh_installchangelogs -> dh_installexamples -> dh_installman -> dh_installcatalogs
--> dh_installcron -> dh_installdebconf -> dh_installemacsen -> dh_installifupdown
--> dh_installinfo -> dh_pysupport -> dh_installinit -> dh_installmenu -> dh_installmime
--> dh_installmodules -> dh_installlogcheck -> dh_installlogrotate -> dh_installpam
--> dh_installppp -> dh_installudev -> dh_installwm -> dh_installxfonts -> dh_installgsettings
--> dh_bugfiles -> dh_ucf -> dh_lintian -> dh_gconf -> dh_icons -> dh_perl -> dh_usrlocal
--> dh_link -> dh_compress -> dh_fixperms -> dh_strip -> dh_makeshlibs -> dh_shlibdeps
--> dh_installdeb -> dh_gencontrol -> dh_md5sums -> dh_builddeb
-\end{commandline}
-
-\item .changesファイルを作成する
-
-パッケージが作成されたら、そのパッケージの.changelog ファイルを作成します。
-このファイルの作成には dpkg-genchanges コマンドが使われます。
-このコマンドは debhelper のコマンドではありません。
-\item パッケージに署名する
-
-必須ではありませんが、パッケージができたら.dscファイルと.changes ファイルに
-GPG/PGPを使って署名をします。この署名には debsign コマンドを使います。
-このコマンドは debhelper のコマンドではありません。
-\end{enumerate}
-
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[height=10cm]{image201110/rules-work.png}
-  \end{center}
-  \label{fig:rules-work}\caption{各処理とdebhelperコマンドの関係図}
-\end{figure}
-
-\subsection{その他 debhelper の重要な機能}
-
-\subsubsection{環境にあわせたシーケンス情報を読み込む}
-debhelper は特定の言語や環境に合わせたシーケンスを定義し、
-読み込ませることによって、makefile 内で利用できるターゲットとコマンドを増やすことができます。
-例えば、パッチ管理ツールである quilt を使ったターゲットは debhelper には含まれていません。
-使いたい場合には、{\bf --with}オプションを使って指定します。
-
-\begin{commandline}
-%:
-        dh $@ --with quilt
-\end{commandline}
-指定することによって、\bf{dh\_quilt\_patch}が利用できるようになります。
-
-\subsubsection{各 debhelper コマンドの動きを変更する}
-上記で説明しように、debhelper では各ターゲットと各コマンドの動作が予め決められています。
-これらを変更するには各コマンド用のターゲットに対して動作を記述します。
-このターゲットは {\bf override\_各debhelper コマンド}となっており、dh\_auto\_configure
-（決められた値で自動的に configure を実行するためのコマンド）の場合には以下のように使います。
-
-\begin{commandline}
-override_dh_auto_configure:
-    dh_auto_configure -- --enable-foo
-\end{commandline}
-
-\subsection{今月のコマンド : dh\_testdir}
-
-\subsubsection{概要}
-
-パッケージビルドを行うときに正しいディレクトリにいるかチェックします。
-
-\subsubsection{使い方}
-
-dh\_testdir コマンドはカレントディレクトリに debian/control があることに
-よって正しいディレクトリにいるかチェックをしています。
-dh\_testdir はほとんどのターゲットから利用されます。ちゃんと debian パッケージ
-をビルドできる場所にいるかチェックするためです。
-
-
-\begin{commandline}
-$ mkdir foo
-$ cd foo
-$ dh_testdir
-dh_testdir: cannot read debian/control: そのようなファイルやディレクトリはありません
-echo $?
-2
-$ mkdir debian
-$ touch debian/control
-$ dh_testdir
-$ echo $?
-0
-\end{commandline}
-%$
-
-引数としてファイルパスを指定することができます。
-ファイルパスを指定した場合には、指定したファイルによってチェックが行われます。
-
-\begin{commandline}
-$ touch moo
-$ dh_testdir moo
-$ echo $?
-0
-\end{commandline}
-%$
-
-\subsection{今月のコマンド : dh\_bugfiles}
-
-\subsubsection{概要}
-
-dh\_bugfiles コマンドは バグレポートに必要なファイルをパッケージに
-格納します。
-バグレポートに使うファイルは script、control、presubj の3つがあり、
-debian/bug ディレクトリに格納されている必要があります。
-各ファイルの用途を以下に説明します。
-
-\begin{itemize}
-\item script
-
-バグレポート用のスクリプトです。
-バグレポートを行うためのツールreportbugs 等でレポート作成時に呼び出し、
-結果をバグレポートの一部として追記します。
-例えば、X.Orgのドライバ群は /usr/share/bug/xserver-xorg-core/script 
-にシンボリックリングを張ったファイルをバイナリパッケージ内に持ちます。
-このスクリプトでは、reportbug を実行した環境のカーネルバージョンや 
-dmesg, xorg のログなどが自動的に出力されるようになっています。
-
-\item control
-
-controlファイルは指定したコマンドの結果をバグレポートの一部として出力します。
-コマンドには以下の4つがあります。
-
-\begin{itemize}
-\item package-status
-指定したパッケージのステータス（インストール状態、バージョン）を
-バグレポートに追加します。
-
-\begin{commandline}
-設定例:
-/usr/share/bug/mutt/control package-status: mutt mutt-patched mutt-dbg
-\end{commandline}
-
-\item report-with
-指定したパッケージ情報をバグレポートに追加します。
-
-\begin{commandline}
-設定例:
-/usr/share/bug/xorg/control report-with: xserver-xorg
-\end{commandline}
-
-\item Send-To
-Debian BTS以外に自動的にが行われるメールアドレスを設定します。
-
-\begin{commandline}
-Send-To: foo@example.org
-\end{commandline}
-
-\item Submit-As:
-一つのパッケージにレポートが行われるようにコントールする
-以下のように設定した場合、linux-image-3.0.0-2-amd64 にバグレポート
-した場合には linux-2.6 に行われるように自動的に変更されます。
-
-\begin{commandline}
-control:Submit-As: linux-2.6
-\end{commandline}
-\end{itemize}
-
-\item presubj
-
-レポートする前の警告文を出すために使います。
-例えば、gnupg パッケージの場合にはこのファイルに
-\begin{commandline}
-Please consider reading /usr/share/doc/gnupg/README.BUGS.Debian before
-sending a bug report. Maybe you'll find your problem there.
-\end{commandline}
-と書くことによって、バグレポートを送る前に /usr/share/doc/gnupg/README.BUGS.Debian 
-を参照するよう、誘導しています。
-
-reportbug を使って、gnupg パッケージにバグレポートしようとしたとき、以下のような
-メッセージが表示されます。
-\begin{commandline}
-Please consider reading /usr/share/doc/gnupg/README.BUGS.Debian before
-sending a bug report. Maybe you'll find your problem there.
-
-
-(You may need to press 'q' to exit your pager and continue using
-reportbug at this point.)
-\end{commandline}
-
-\end{itemize}
-
-これらのファイルは一つだけでもかまいません。
-
-\subsubsection{使い方}
-
-このコマンドは install ターゲットで使用します。
-
-\begin{commandline}
-install:
-    ....
-    dh_bugfiles
-    ....
-\end{commandline}
-
-%\subsection{次の発表者}
-%次の発表者は 勉強会で発表します。選ばれた人、おめでとうございます。
-%頑張ってください。
-
-% 201110 kansai
-\dancersection{Emacs, Vim の拡張機能で学ぶ Debian パッケージ}{西田孝三}
-
-\subsection{はじめに}
-
-パッケージメンテナになることでDebianに関わりたいと思われている方は多いのではないでしょうか。
-もしあなたがEmacs, Vimのユーザであればこれらの機能拡張でパッケージを作成するところから始めて
-みるのはどうでしょうか。
-理由は、
-\begin{itemize}
- \item アーキテクチャに依存しない
- \item コンパイルは不要 (Emacsの場合バイトコンパイルがありますが)
-\end{itemize}
-などから比較的簡単と思われるためです。
-
-ここでは大きく分けて下記のことを行い、まずは簡単なDebianパッケージを自分で作成できるようにな
-るまでを目的としています。
-
-\begin{itemize}
-  \item EmacsのDebianパッケージ
-    \begin{itemize}
-      \item 既存のDebianパッケージの構成を知り再構成を行う
-      \item 独自のDebianパッケージを作成する
-    \end{itemize}
-  \item VimのDebianパッケージ
-    \begin{itemize}
-      \item 既存のDebianパッケージの構成を知る
-    \end{itemize}
-\end{itemize}
-
-Vimでは構成だけを学び、独自のDebianパッケージの作成を行いません。その理由は後に説明します。
-それではEmacsの既存のDebianパッケージの構成を知り再構成を行うところから始めましょう。
-
-\subsection{EmacsのDebianパッケージ}
-
-\subsubsection{Emacsの既存Debianパッケージのソース取得と再構成}
-
-ここでは前回の関西Debian勉強会で発表されていた山下尊也さんがメンテナンスをされている
-auto-install-elのパッケージのソースを取得し、再構成を行います。
-
-\begin{commandline}
- $ mkdir tmp; cd tmp
- $ apt-get source auto-install-el
- $ ls auto-install-el-1.48
-\end{commandline}
-
-これでtmpディレクトリ内にauto-install-elのソース(バージョン1.48)が取得できているはずです。
-ソース内容を確認することは保留し、いきなりDebianパッケージを作ってみましょう。
-
-\begin{commandline}
- $ cd auto-install-el-1.48
- $ debuild -us -uc
- $ ls ..
-\end{commandline}
-
-これでdebuildをしたディレクトリのひとつ上にauto-installのDebianパッケージができます。
-それではこのDebianパッケージをインストールしてみましょう。
-
-\begin{commandline}
- $ cd ..
- $ sudo dpkg -i auto-instlal-el_1.48-1_all.deb
- $ aptitude show auto-install-el
-\end{commandline}
-
-これでauto-install-elがインストールされたことがわかります。
-それではうまく使えるかどうかEmacsで確認してみましょう。
-
-\begin{commandline}
- $ emacs -nw
- M-x load-library
- auto-install
- auto-install-from-emacswiki
- grep-edit.el
-\end{commandline}
-
-これで ~/.emacs.d/auto-install/ 下にgrep-edit.el(elc)がインストールされていることが
-確認できます。
-
-それでは保留していたソースの構成の確認に戻りましょう。
-が、その前にもう一つ別のディレクトリにauto-install-elのソースを取得しましょう。
-というのはdebuild後にはいくつかのファイルが生成されているからです。
-2つのソースディレクトリを比較することでこれらのファイルが確認できます。
-詳細はご自身でご確認ください。
-
-\begin{commandline}
- $ cd; mkdir auto-install-el
- $ cd auto-install-el; apt-get source auto-install-el
-\end{commandline}
-
-それではdebuildする前のauto-install-el-1.48内のファイル構成を見てみましょう。
-auto-install.elというファイルとdebianというディレクトリがあります。
-このことからEmacsの拡張機能のDebianパッケージを作るには
-
-\begin{itemize}
- \item Emacsの拡張機能にバージョン名を加えた名前のディレクトリを作り
- \item その下にEmacs Lispとdebianというディレクトリを作ればよい
-\end{itemize}
-
-ということがわかります。それではこれをまだDebianパッケージが作られていないEmacs
-の拡張機能に対して行っていきましょう。
-
-\subsubsection{Emacsの新規Debianパッケージの作成}
-
-今回は青田直大さんによるtwinstall.elのパッケージを作ってみましょう。
-これはtwittering-modeというEmacs用twitterクライアントの機能を使って、
-auto-install.elでインストールしたEmacs Lisp名をつぶやくものです。
-現時点ではIDが1300477のgist(https://gist.github.com/1300477)から取得できます。
-
-\begin{commandline}
- $ tar zxvf gist1300477.tar.gz
- $ mv gist1300477 twinstall-el-0.1
- $ tar czvf twinstall-el-0.1.tar.gz twinstall-el-0.1
- $ cd twinstall-el-0.1
- $ cat >>~/.bashrc <<EOF
-  DEBEMAIL=''your.email.address@example.org''
-  DEBFULLNAME=''Firstname Lastname''
-  export DEBEMAIL DEBFULLNAME
-  EOF
- $ . ~/.bashrc
- $ dh_make -f ../twinstall-el-0.1.tar.gz
-\end{commandline}
-
-次にどのような種類のパッケージを作るか聞かれるのでsingleのsにしenterを押します。
-するとdebianディレクトリとその下に各種設定ファイルの雛形が生成されます。
-多くのファイルができあがりますが、auto-install-elと同じものがあればよいので対応す
-るファイルは削除し、後はauto-install-elを真似てファイル内容を変更していきましょう。
-(変更せずにこの段階でdebuildを行っても一応パッケージはできます。)
-それでは各ファイルの説明をします。
-
-\clearpage
-
-\paragraph{\texttt{README.Debian}}
-  \begin{itemize}
-    \item DebianパッケージのREADME
-    \item 必須ではない?
-  \end{itemize}
-
-\paragraph{\texttt{changelog}}
-  \begin{itemize}
-    \item 必須のファイル
-    \item Debianのポリシーで規定された書式
-  \end{itemize}
-
-\paragraph{\texttt{compat}}
-  \begin{itemize}
-    \item わかりませんでした!
-    \item 作られた雛形のままにしましょう
-  \end{itemize}
-
-\paragraph{\texttt{control}}
-  \begin{itemize}
-    \item 必須のファイル
-    \item aptitudeなどのパッケージ管理ツールが利用する情報
-    \item Debianのポリシーで規定された書式
-    \item twinstall.elはauto-installとtwittering-modeに依存している。Depends:に追加
-  \end{itemize}
-
-\paragraph{\texttt{copyright}}
-  \begin{itemize}
-    \item 必須のファイル
-    \item upstreamソースに関する著作権やライセンスなどの情報を書く
-    \item Debianのポリシーで規定された書式
-  \end{itemize}
-
-\paragraph{\texttt{dirs}}
-  \begin{itemize}
-    \item ファイルをインストールするディレクトリを書く
-    \item 前述ディレクトリのパスのトップの/は書かない
-  \end{itemize}
-
-\paragraph{\texttt{emacsen-install, emacsen-remove}}
-  \begin{itemize}
-    \item install, uninstall時に行う処理をやってくれるシェルスクリプト
-  \end{itemize}
-
-\paragraph{\texttt{emacsen-startup}}
-  \begin{itemize}
-    \item elispのインストールディレクトリにdirsで書いたインストール先をEmacsのload-pathに追加してくれるelisp
-    \item これ自体は/etc/emacs/site-start.d/に50'パッケージ名'.elという名でインストールされる
-  \end{itemize}
-
-\paragraph{\texttt{rules}}
-  \begin{itemize}
-    \item 必須のファイル
-    \item パッケージを作成するために使うルールを書く
-    \item まずはとりあえず人様のものを真似る
-  \end{itemize}
-
-\paragraph{\texttt{source}}
-  \begin{itemize}
-    \item わかりませんでした!
-    \item 作られた雛形のままにしましょう
-  \end{itemize}
-
-\begin{commandline}
- $ debuild -us -uc
- $ cd ..
- $ sudo dpkg -i twinstall-el_0.1-1_all.deb
-\end{commandline}
-
-controlのDepends以外はauto-install-elを真似て新規パッケージに応じた情報に置き換えることでtwinstallのDebianパッケージが出来ます。
-後はこのDebianパッケージを公開する必要があるかを考え、ライセンスなどを学び、公開に必要な次のステップへ進んでください。
-もちろんコンパイルが必要なパッケージ作成へとレベルアップするのもよいでしょう。
-
-\subsection{Vimの既存パッケージのソース取得}
-
-Vimの拡張機能のDebianパッケージはEmacsと比較すると数は少なく、あまりパッケージを作るモチベーションが得られなさそうです。
-そのためVimに関してはパッケージ作成までは行いません。
-実際にRails用のVim scriptパッケージのソースを取得しその内容をみてみましょう。
-
-\begin{commandline}
- $ apt-get source vim-rails
-\end{commandline}
-
-これで取得できるソースのREADME.Debianとcontrolを見るとvim-addon-managerというパッケージを使いvim-addonsというコマンドで
-vim-railsを使用可能にするということを行なっていることがわかります。
-これではDebianのパッケージマネージャーとVimのaddon-managerでmanagerを2つ用いていることになり、あまり良いこととは思えません。
-現在のVimユーザの多くはvim-addon-managerよりbundleやneobundleといったVim scriptで書かれたmanagerを用いており、これらの完成
-度が高いためDebianのパッケージは不要なのかもしれません。
-
-
-%$
-\clearpage
+% 201108 tokyo
+\dancersection{パッケージビルド七転八倒 - rulesからgit-buildpackageまで}{やまだ}
 %------------------------------------------------------------------------------
-\dancersection{翻訳で Debian に貢献しよう}{八津尾 雄介}
 
 \subsection{はじめに}
-Debian を利用する以上, 英語との付き合いは避けて通れない問題だと思います. 英語の
-文章を読むのが苦にならない人から, エラーメッセージさえ読む努力を放棄する人まで, 
-様々だとは思いますが, もっと英語ができればと思う事が誰でも少なからずあると思い
-ます.
+Debianパッケージを作成しようとして、関連するコマンドの層の厚さに
+戸惑ってしまった人はいないでしょうか？本稿はパッケージビルドを
+rules ベースから git-buildpackage まで一歩づつ発展させることで、
+関わってくるコマンドチェインへの理解を深めようと書いてみました。
 
-私は英語と付き合う第一歩として, 翻訳をおすすめします. 翻訳というと特殊技術だとか自
-分には無理と身構えてしまう人も多いかもしれませんが, それほど敷居の高い作業ではあ
-りません.
+ところで、今回の内容は「パッケージビルド方法の紹介・講習」ではなく、
 
-辞書と基本文法の知識さえあれば誰でもできる作業ですし, どうしても意味がとれない箇
-所はメーリングリストなどへ投げれば誰かが答えてくるでしょう. ついでに Debian の知
-識も身につくので, Debian Maintainer や Debian Developer を目指している人にとって
-うってつけの自習教材ではないでしょうか？
-
-オープンソースコミュニティ全体に言えることだと思いますが, 翻訳者の数は圧倒的に少
-ないのが現状です.その主たる原因を私なりに分析してみました. 
-\begin{itemize}
-	\item 読める人は訳さない
-	\item 読めない人も訳さない
-	\item 時間も手間もかかる地道な作業
-	\item 貢献に対する見返りがあまりない(なかった)
-	\footnote{パッケージ作業以外でのDebian への貢献を認める決議がなされました}
-\end{itemize}
-
-DDP\footnote{Abbr. Debian Documentation Project: http://www.debian.org/doc/ddp}に
-はまだ翻訳されていない文章がたくさんあります. 翻訳をしながら Debian について学び,
- 貢献し, そして英語力の向上に役立ててみませんか？
-
-\subsection{翻訳メモリとは}
-翻訳とは一般的に, 時間も手間もかかる地道な作業なわけですが, それをある程度軽減して
-くれるのが翻訳メモリツールです.翻訳メモリとは, 原文と翻訳文のペアをデータベース化
-したもので, 翻訳メモリツールは翻訳メモリから一致率の高い文章をサジェストする翻訳
-支援ソフトです.翻訳メモリツールを指して翻訳メモリということもあります.
-
-翻訳メモリはいわば実用文例集のようなもので, 機械翻訳とは根本的に違います.注意した
-いのは, 翻訳メモリを作るのは訳者自身だということです. 翻訳メモリツールが参照する
-のはあくまで, あなたが （もしくはメモリの提供元が) 過去に訳した文章であり, それに
-ついての正確さは一切保証されていません.
-
-\subsubsection{翻訳メモリを使うと何が嬉しいのか}
-では, 翻訳メモリを利用することで得られるメリットとは何でしょうか.
-\begin{itemize}
-	\item 膨大な訳文を蓄積し使い回す事により作業効率が一気に高まる(作業の効率化)
-	\item 複数人で翻訳作業を行う際の文体や訳語の微妙な違いを少なくする事ができる
-	      (一定品質の保持)
-	\item PO形式ではない場合でも原文の変更に追従しやすくなる(保守性の向上)
-\end{itemize}
-
-職業翻訳では翻訳メモリが広く利用されています. 翻訳家は業界標準の翻訳メモリである
- Trados などの利用率が高いようです. 一方, Debian で利用可能な翻訳支援ツールは
- poedit や gtranslator, OmegaT. webベースであれば Google Translator Toolkit など
-があります. どれも翻訳メモリを使用するツールです. 
-
-\subsection{OmegaTとは}
-OmegaT とは先述の通りオープンソースで利用可能な翻訳メモリで, Java で開発されて
-おりクロスプラットフォームです. 翻訳メモリには LISA\footnote{abbr. Localization 
-Industry Standarts Assosiation = ローカライゼーション産業の標準化団体} 
-が標準化している TMX\footnote{abbr. Translation Memory eXchange} というオープンな
-XML を採用しており, Trados や SDLX をはじめとした他ツール間で翻訳メモリを相互運用
-できます.
-
-OmegaT では同梱版の Java を使うように推奨されていますが Debian でもパッケージを
-提供しており, apt からインストールすることも可能です.
-
-\paragraph{OmegaTの(一般的に言われる)良い点}
-\begin{itemize}
-	\item オープンソース
-	\item コミュニティが活発
-	\item 業界標準の TMX を使っている
-	\item Windows的 (あるいはGnome的) な操作性
-\end{itemize}
-
-\paragraph{OmegaTの(私から見て)ダメな点}
-\begin{itemize}
-	\item 起動が遅い(=Java)
-	\item Look and Feelが残念(=Java)
-	\item ショートカットキーとニモニックが致命的にまずい
-	\item hjklで移動できない ← 重要
-\end{itemize}
-
-という事で Java で開発されているという点と, vim じゃないという点以外は特に不満は
-ありません. しかしながら, マウス操作を強制されるというのはあまり気持の良いもので
-はありませんね.
-
-\subsection{OmegaTの使い方}
-ここでは, apt から Debian パッケージをインストールしたものとして話を進めていきた
-いと思います. Debian Squeeze での現在のバージョンは 1.8.1 ですが皆さんは Wheezy 
-あるいは Sid を使っているはずですので(?) 2.3.0 前提で進めたいと思います.
-基本的な使い方についてはお手軽スタートガイドを読めばわかりますのでここでは割愛し
-ます.
-
-\subsubsection{ファイルフォーマットについて}
-
-OmegaT は次のフォーマットをサポートしています.
-\begin{itemize}
-	\item OpenDocument や OpenOffice.org
-	\item プレーンテキスト
-	\item .poファイル
-	\item XHTML, HTML
-	\item Microsoft Open XML
-	\item 字幕ファイル(SRT)
-	\item Android リソース
-	\item LaTeX
-	\item 他多数
-\end{itemize}
-
-\paragraph{サポート外のファイルを訳すには}
-DebianDoc-SGML の利用は廃止にむかっているもののまだまだ sgml のドキュメントが存在
-します. sgml は OmegaT によってサポートされていない形式です.\footnote{Java で利用
-可能なオープンのパーサが無いという理由らしい}
-OmegaT はサポートしない形式のファイルを翻訳対象のファイルに加えようとしても無視し
-ます.では, OmegaT でサポートされないフォーマットのファイルを訳すにはどうすれば良
-いでしょうか？
-
-とりあえず訳したいという場合にはファイルの拡張子を OmegaT でサポートされているフ
-ァイルの拡張子にしてしまえば訳すことができます. ただし, タグ付きの文書の場合は 
-タグの扱いに注意をしなければなりません. とりあえず *.txt にしておくというのが正
-解のような気がします.
-
-Debian 的な方法としては Gettext PO 形式に変換して翻訳するという方法がありますが,
- OmegaT 的にやろうと思うのであれば, ファイルフィルターを利用して近いフォーマット
-として認識させる方法が良いでしょう.
-例えば sgml を xhtml として読み込ませたい場合, "設定" から "ファイルフィルター" 
-を選択し, XHTML を選択した状態で "編集" をクリックします. それから "追加" をクリ
-ックして "*.sgml" を "原文ファイルの構成名" へ追加します. こうする事で sgml ファ
-イルが翻訳対象のファイルとして追加可能になります.
-
-残念ながら独自のファイル定義を追加できるわけでは無いので, 今のところは拡張子を変
-更して対応する場合と大きな違いはありません. ただ, 例にあるような sgml などのタグ
-付きのファイルを編集する場合, タグの挿入などの便利な機能を使えるようなるので txt
- で扱うよりも少し楽になるはずです.
-
-\subsubsection{分節化規則を変更する}
-分節化された文章を見てみると, 中途半端な箇所で切られてしまっているような場合が
-ままあります. 特にタグ付きの文章をプレーンテキストとして読み込ませると思わぬ所
-で分節化されてしまいます. そのような自体に対処したり, ユーザーの好みに柔軟に対応
-する為に, 分節化の規則をカスタマイズする事が可能です.
-
-分節化の設定は "設定" の "分節化規則" から行えます. 分節化規則の定義は Java で
-サポートされている正規表現を使用します. 
-
-この分節化規則は慎重に取り扱うべきでしょう. 途中で規則を変更してしまえばメモリの
-一致率を下げる原因となるからです. 分節化規則は良く考えられて作られているので, 最
-初はデフォルトのまま使用し, もし不満があれば何度が試験的な短めのドキュメントでテ
-ストしながら徐々に自分の好みに合わせていけば良いでしょう. いきなり長文の翻訳に適
-用してしまうと, 思わぬ不都合が起きた場合の対処が非常に面倒です.
-
-\subsubsection{用語集を作成する}
-
-用語集：グロッサリ は プロジェクトフォルダ内の glossary に置きます. (デフォルト
-設定)翻訳中にでくわした用語をグロッサリへ登録しておけば訳語に統一感を持たせる事が
-できます. 例えば "upstream" を訳す際に "開発元" とすべきか, "上流" とすべきか "ア
-ップストリーム" とすべきかといったような事や "コンピュータ" と表記するか "コンピ
-ューター" と長音を省略せず表記するかといったような曖昧になりやすい事は下読みの段
-階でピックアップしグロッサリにしておくと良いでしょう.\footnote{一括で置換する手
-法を使う人にとっては不要ですね…でも将来の為に作っておくと良いですよ}言うまでもな
-く, 複数人で訳す場合はこれを共有すべきですね. Debian を デビアン と表記しないなど
-"訳さない" 単語を登録しておくのも有効です.
-
-グロッサリは OmegaT で直接編集はできません.\footnote{顧客からグロッサリを渡され
-るような事があるので, 訳者が勝手に編集できないようにする配慮だと思われます}
-作成/編集/メンテにはテキストエディタを使いましょう.
-
-Debian JP では対訳表というのを作っていて(?)\footnote{私の知る限りでは放置中です} 
-OmegaT で利用できる形式にしてあるものも一応あります.\footnote{\url{http://w
-ww.debian.or.jp/community/translate/}参照} とりあえずはこれを用語集として放り込ん
-でおいても良いでしょう.
-
-OmegaT のヘルプには何故か長々と OpenOffice を使ったグロッサリの作成方法が書かれて
-います. グロッサリの元データが表計算ソフトで作られていたりワープロソフトで作ら
-れていたりしないのであれば, テキストエディタで作った方が楽だと思います.
-
-グロッサリのフォーマットは
-\begin{commandline}
-翻訳対象の言語[TAB]日本語[TAB]説明や注記
-\end{commandline}
-です. グロッサリのファイルは プロジェクトで使用しているものと同じエンコードで
-保存し, ファイル名は "*.tab" とします. 私は面倒なので全て UTF-8 にし, グロッサ
-リは "*.utf8" にしています.
-
-実際にグロッサリを作成してみます. 例えばこんなファイルを作ってみましょう.
-
-\begin{commandline}
-Debian (tab) Debian
-maintainer (tab) メンテナ
-computer (tab) コンピュータ (tab) 長音省略
-upstream (tab) 開発元 (tab) アップストリーム 上流 は避ける	
-Debian developer (tab) Debian 開発者
-\end{commandline}
-
-上記の例でわかるように, ソートされている必要は無いようです. これを OmegaT のプロ
-ジェクトフォルダ内の glossary に配置します. 翻訳中の分節が含む完全一致した単語を
-全て, 用語集ペインに表示します. 
-グロッサリは完全一致している必要があり, 活用形はピックアップできません. 
-例えば
 \begin{quote}
-Debian [tab] Debian
+\Large{自分の手順を晒し、講評を貰って自分の糧とする}
 \end{quote}
-があった場合, Debian's は ピックアップできません. ケースセンシティブではないので
-debian は表示されます. このあたりの挙動を理解しながら良く使われる活用 - 例えば
-上記の "Debian's" など - もある程度網羅すると良さそうです. 
 
-グロッサリに辞書ファイルを登録する事も可能ですが, 分節中の単語全てをリストアップ
-し, まともな辞書であれば用語集ペインが溢れ返ってしまう上, 上記の通り活用まではカ
-バーできない為あまりおすすめできません. 
+というのを目しています。要するに
 
-グロッサリは, 例えば "debian.utf8" ".utf8" など, 大雑把でもジャンル
-分けしておいた方が再利用しやすくなります.
+\begin{quote}
+\Large{色々やってこういう手順になった、何かもやもや}
+\end{quote}
 
+とコメントしてもらう逆講習セッションとなります。ですので、晒している
+手順の中では失敗した過程や引っかかった内容と疑問もそのまま書いています。
+毎日の迷路での迷いぶりをぜひお楽しみ下さい。
 
-\subsubsection{辞書について}
-実は私は OmegaT の辞書を使った事がありません. 普段は wine 上の PDIC で 英辞郎
-を利用するか, 手元の電子辞書を使います. OmegaT では StarDict 形式の辞書ファイル
-をサポートしていて, tab 区切りになっている辞書ファイルであれば stardicttools で
-簡単に変換できます. せっかくなので英辞郎の辞書ファイルを StarDict の形式に変換
-し使用してみましたが, 私の欲しい感じではありませんでした. 今後に期待です.
+別の方法でできている人は、別記事で手順をぜひ晒してみて下さい！
 
-\subsection{翻訳メモリを活用する}
-OmegaT では翻訳メモリを複数箇所に保持しています.
+\subsection{ビルド０日目}
 
-\paragraph{project/omegat フォルダ内}
+今回の題材は cocot です。これはターミナル側の対応エンコーディングと
+実行コマンドの入出力エンコーディングが一致しない場合に
+
+\begin{commandline}
+cocot -t UTF-8 -p EUC-JP program-with-euc-jp-only-support ...
+\end{commandline}
+
+のように実行するとUTF-8対応コマンドのように使えるというスグレモノなのですが、
+今回の話題とは特に関係ないので紹介はこれくらいにします。
+
+０日目の今日は、まずソースのDebianパッケージ化を行います。
+
+\begin{commandline}
+$ cd /d/src/
+$ git-clone git://github.com/vmi/cocot # ソースはgit公開のみ
+$ cd cocot
+$ dh_make -c bsd
+For dh_make to find the package name and version, the current directory
+needs to be in the format of <package>-<version>. 以下略
+\end{commandline}
+
+早速エラーとなりました。これはソースフォルダの形式が
+
+\begin{commandline}
+<package>-<version>/
+\end{commandline}
+
+とバージョン情報を含むことが期待されているためです。が、git clone の
+フォルダにバージョン名をつけて運用するというのはイマイチです。さらに、
+これから自分が作りこむ debian/ 以下も git 管理したい訳なので、
+上の名前でコピーを作って作業するのもしっくりこない。
+
+なので、フォルダ名と関係なく開発・ビルドできる環境を作るために、
+従わずにこうします（しました）：
+
+\begin{commandline}
+$ dh_make -c bsd -n -p cocot_20100903 # --native --packagename を追加
+Type of package: single binary, indep binary, multiple binary,
+                 library, kernel module, kernel patch or cdbs?
+[s/i/m/l/k/n/b] s <- 今回は cocot 単品なので single binary
+...
+Done. Please edit the files in the debian/ subdirectory now. cocot
+uses a configure script, so you probably don't have to edit the Makefiles.
+$
+\end{commandline}
+
+そして作られた debian/ フォルダ以下のサンプルファイルを削除・編集します。
+最終的に
+
+\begin{commandline}
+$ ls debian/
+total 44
+4 README         4 changelog  4 compat   4 copyright  4 manpages  4 source/
+4 README.source  4 cocot.1    4 control  4 docs       4 rules*
+\end{commandline}
+
+と整理して、ビルド準備が整いました。
+
+\subsection{ビルド１日目 - はじめの一歩}
+
+それではまずは最もシンプルなビルド形態から。これは Makefile に
+なっている debian/rules で binary ターゲットを実行するだけです：
+
+\begin{commandline}
+$ fakeroot ./debian/rules binary
+dh binary
+...
+dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
+$ ls -d ../cocot*
+ 4 ../cocot/  20 ../cocot_20100903-1_amd64.deb
+\end{commandline}
+
+バイナリパッケージだけなら、これで終わりです。簡単ですね。
+fakerootはパッケージ中のファイル所有者が root になるように
+併用されるものです。
+
+しかし、このパッケージはDebian品質にはなっていません。
+
 \begin{itemize}
-	\item{project\_save.tmx}
+\item 生成されたバイナリパッケージは署名されていない
+\item ソースパッケージは生成すらされていない
+\item 構成が Debian Policy に準拠しているか未テスト
 \end{itemize}
-このフォルダ内には tmx ファイルのバックアップが作成されます. 翻訳作業を開始して
-からの全ての分節が保存されています. プロジェクトとして実際に読み込まれているの
-がこれです.
 
-\paragraph{project/ 内}
+などの問題があるためです。これらは署名なら gpg、ソースパッケージ
+生成なら tar/diff/etc（はさすがに原始的過ぎるので普通は dpkg-source）、
+構成テストなら lintian があるわけですが、手動でやっていては面倒なので
+一括実行するツールが整備されているわけです。
+
+\subsection{ビルド２日目 - dpkg-buildpackage と lintian}
+
+というわけで、「バイナリのみ、しかも未署名未テスト」の状態を
+脱するため、debian/rules の直接実行ではなく、ビルドツールを使った
+パッケージビルドに進みます。
+
+使う道具は dpkg-buildpackage です。何はともあれまず実行：
+
+\begin{commandline}
+$ dpkg-buildpackage -b # まずは binary-only ビルド
+...
+dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
+ dpkg-genchanges -b >../cocot_20100903-1_amd64.changes
+dpkg-genchanges: binary-only upload - not including any source code
+ signfile cocot_20100903-1_amd64.changes
+...
+$ ls -d ../cocot*
+ 4 ../cocot/                          20 ../cocot_20100903-1_amd64.deb
+ 4 ../cocot_20100903-1_amd64.changes
+\end{commandline}
+
+今度は deb に加えて changes も生成されました。ちゃんと署名しているのも
+確認できますね。changes は主にパッケージリポジトリで deb を管理するために
+使われるもので、（バイナリ）アップロードの際は deb と changes をペアで
+リポジトリにコピーします。
+
+ちなみに、上では構成テストはされていません。これは dpkg-buildpackage は
+パッケージ生成に特化しているためです。
+
+\begin{commandline}
+$ lintian ../cocot_20100903-1_amd64.changes
+W: cocot: new-package-should-close-itp-bug
+\end{commandline}
+
+dpkg-buildpackage を使う場合はこのように別途テストします。出てくる
+エラーメッセージはタグ名になっており、-i オプションで詳細解説を
+表示させたり、また、lintian.debian.org でも同様に細かく知ることができます。
+
+ただ、何が警告されているかは詳しく書かれていても、直し方の例などがなく、
+解釈に悩むこともあります。「よくある失敗と直し方」のような情報を
+付けられればと、lintian/l.d.oの表示の横にコメント領域を作りたくなります。
+
+ここまでが、バイナリのみ配布する場合の（最小限の）ビルド手順になります。
+
+\subsection{ビルド３日目 - dpkg-buildpackage と git とソースパッケージ}
+
+さて、ここまでソースパッケージの生成はしていませんでした。
+これは今回の設定が
+
+\begin{quote}
+\Large{普通の git ツリーで Debian package を作る}
+\end{quote}
+
+のため、tarball の場合には存在しない .git/ フォルダの扱いを
+考慮する必要があるためです。要は、ソースパッケージから .git
+フォルダは外したい訳です。
+
+このあたりの問題を完全に解決し git との親和性を高くするのが
+後述の git-buildpackage なのですが、それを使うまでは以下のような方法で
+対処していました：
+
+\begin{commandline}
+$ git-branch upstream # 素のソース保存用ブランチを作っておく
+$ git-checkout master # debian/ コミの自分の開発用ブランチを master にする
+$ git-add debian/     # debian/ を追加
+$ git-commit -a       #
+\end{commandline}
+
+このように素のソースツリーと Debian 化した自分の開発用ツリーで
+ブランチを分けた上で、
+
+\begin{commandline}
+$ git-archive --prefix=cocot-20100903/ upstream \
+| gzip > ../cocot_20100903.orig.tar.gz
+\end{commandline}
+
+などとして素のソースツリーのみの orig.tar を生成できます。後は
+
+\begin{commandline}
+$ dpkg-buildpackage -S # ソースパッケージのみビルド
+...
+dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.dsc
+ signfile cocot_20100903-1.dsc
+ ...
+ signfile cocot_20100903-1_source.changes
+
+$ ls -d ../cocot*
+  4 ../cocot/                            4 ../cocot_20100903-1_source.changes
+  4 ../cocot_20100903-1.debian.tar.gz  216 ../cocot_20100903.orig.tar.gz
+  4 ../cocot_20100903-1.dsc
+\end{commandline}
+
+で完成します。署名もされていますね。ちなみに、テストもできます：
+
+\begin{commandline}
+$ lintian ../cocot_20100903-1_source.changes
+$
+\end{commandline}
+
+意味があるかは不明ですが・・・。
+
+とにかく、これでソースパッケージも生成できるようになったので、
+
+\begin{commandline}
+$ git-archive --prefix=cocot-20100903/ upstream \
+| gzip > ../cocot_20100903.orig.tar.gz
+$ dpkg-buildpackage  # 無指定なので dpkg-buildpackage -b -S の両方する
+\end{commandline}
+
+でようやくdebian.orgに出せるようなまっとうなパッケージビルドに
+届いたことになります。
+
+\subsection{ビルド４日目 - debuildの存在意義に疑問を持つ}
+
+ここまで ./debian/rules、dpkg-buildpackage とビルド方法を
+経てきましたが、次はその更に上位のコマンドとなる debuild を
+使ってみます。
+
+debuildのdpkg-buildpackageに対する優位性は
+
 \begin{itemize}
-	\item{*\_omegat.tmx}
-	\item{*\_level1.tmx}
-	\item{*\_level2.tmx}
+\item コマンド名が短くて楽
+\item lintianも実行してくれるので楽
+\item 署名に debsign や debrsign を使うことができ、柔軟
+\begin{itemize}
+\item 例：\~{}/.gnupg/ のある生活環境と、パッケージビルドする作業環境が別サーバなど
 \end{itemize}
-target ファイル生成時の source ファイルの内容に対応した翻訳メモリが作成されます.
-それぞれのファイルフォーマットには微妙な差異があり, 用途によってわかれています.
-level1 は文書情報のみが含まれています.
-level2 は OmegaT 特有の情報が tmx タグ として保存されるので level2 の翻訳メモリ
-に対応したアプリケーションでの利用が可能です.
-omegat は OmegaT 特有のフォーマットなので他のアプリケーションからは利用できません.
+\end{itemize}
 
-\paragraph{project/tm フォルダ内}
-過去のプロジェクトからメモリを流用したい時はこのフォルダに配置します. level1, level2
-あるいは omegat のいづれかのファイルをいくつでも置いておく事が可能です.
+というあたりだと思われます。
 
-翻訳メモリの内部を覗いでみましょう. フォーマットによって違いはありますが, だいたい
-こんな風になっています.
-\begin{verbatim}
-	<tu>
-		<tuv lang="lang1">
-			<seg>lang1の分節</seg>
-		</tuv>
-	</tu>
-	<tu>
-		<tuv lang="lang2">
-			<seg>lang2の分節</seg>
-		<tuv>
-	</tu>
-\end{verbatim}
+\begin{quote}
+\Large{コマンドチェインを長くする程の価値があるか、微妙}
+\end{quote}
 
-OmegaT のプロジェクトフォルダでは /source 内へのファイル配置は基本的に自由です. こ
-のフォルダ内で "securing-howto" や "maint-guide" のように文書毎のフォルダを作り
-管理するという方法がおすすめです. こうする事によって, いちいちマージやファイル
-移動をしなくても用語集や翻訳メモリを共通で使えるようになります.
+という感想を捨てきれませんが、この更に上位のコマンド群は debuild を
+呼ぶので、地位は安泰と思われます。
 
-問題は翻訳メモリのサイズとソースファイルの量ですが, 試しに DDP からチェックアウトし
-てきたファイルのうち, 不正なファイルだとエラーで弾かれるものを除き, 全てプロジェ
-クトフォルダに放り込んでみました.
-私が確認した限りでは問題なく動作していましたが, 読み込みに時間がかかるので同一
-プロジェクトで扱うファイルは常識的な数に留めておく事が賢明です.
+何はともあれ実行：
 
-\subsubsection{機械翻訳を利用する}
-機械翻訳はまだまだ使い物になりません. しかし, 短い文章の翻訳精度は向上しつつあり,
-場合によっては て に を は を修正すればそのまま使えるような文章ができあがるような
-場合もあります. うまく訳せない長目の文章でも, 特定の単語の意味がわからない場合な
-どは有効な手段です. 別段必要な機能だとは思えませんが, あくまでも参考程度に利用す
-るのであれば良いと思います.
+\begin{commandline}
+$ git-archive --prefix=cocot-20100903/ upstream \
+| gzip > ../cocot_20100903.orig.tar.gz
+$ debuild
+...
+dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.dsc
+...
+dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
+ dpkg-genchanges  >../cocot_20100903-1_amd64.changes
+...
+Now running lintian...
+W: cocot: new-package-should-close-itp-bug
+Finished running lintian.
+Now signing changes and any dsc files...
+ signfile cocot_20100903-1.dsc Taisuke Yamada <tai@rakugaki.org>
+ ...
+ signfile cocot_20100903-1_amd64.changes Taisuke Yamada <tai@rakugaki.org>
+...
+Successfully signed dsc and changes files
+$
+\end{commandline}
 
-\subsubsection{翻訳へ参加する}
-翻訳を始めようと思ったら, まず Debian JP Documentation メーリングリストへ参加しま
-しょう. 詳しくは \url{http://www.debian.or.jp/community/ml/openml.html} を参照する
-か, 会場のスタッフへ尋ねてみてください. きっとあなたの世界が広がりますよ.
+たしかに dpkg-buildpackage よりは少し楽ではあるのですが・・・
 
+\subsection{ビルド５日目 - git-buildpackage - git と Debian の幸せな結婚}
+
+さて、いよいよ git-buildpackage にまでやってきました。これまでは
+
+\begin{commandline}
+$ git-archive --prefix=cocot-20100903/ upstream \
+| gzip > ../cocot_20100903.orig.tar.gz
+$ debuild
+\end{commandline}
+
+のように orig.tar は自分で用意してから debuild などを呼んで
+いたのですが、git-buildpackage はこの手順を統合します。
+
+\begin{itemize}
+\item ブランチAは素のソース管理用で、これを元に orig.tar を生成できる
+\item ブランチBはDebian化されたツリーで、これを使ってビルドする
+\end{itemize}
+
+という構成を理解して処理してくれる形です。この他にもビルド完了時に
+タグを打ってくれたり（--git-tag）、細かい機能が色々あります。
+
+何はともあれ実行：
+
+\begin{commandline}
+$ git-buildpackage --git-upstream-branch=upstream --git-debian-branch=master
+...
+cocot_20100903.orig.tar.gz does not exist, creating from 'upstream'
+ dpkg-buildpackage -rfakeroot -D -us -uc -i -I
+ ...
+$ ls -d ../cocot*
+  4 ../cocot/                            4 ../cocot_20100903-1_amd64.changes
+  8 ../cocot_20100903-1.debian.tar.gz   20 ../cocot_20100903-1_amd64.deb
+  4 ../cocot_20100903-1.dsc            208 ../cocot_20100903.orig.tar.gz
+ 12 ../cocot_20100903-1_amd64.build
+\end{commandline}
+
+キタ！以降は dpkg-buildpackage を呼んでいる通り、これまでと同じです。
+
+で、上では引数を長々と書いていますが、使うブランチ名がデフォルトで
+upstream/masterなので、そのようにgitリポジトリを運用していれば
+
+\begin{commandline}
+$ git-buildpackage
+\end{commandline}
+
+のみでビルド完了になります。
+
+\subsection{ビルド６日目 - pbuilder - えっ、私のビルド、・・・動かない？}
+
+ここまで各種ビルド方法をやってきて、git-buildpackage で一里塚に
+到達した感がありますが、
+
+\begin{quote}
+\Large{そのパッケージ、本当に他の環境で使えますか？}
+\end{quote}
+
+という点が実はまだ甘いままです。
+
+\begin{itemize}
+\item パッケージメンテナの環境にしかない非互換のライブラリ
+\item パッケージメンテナの環境にしかないカスタマイズされたビルドツール
+\end{itemize}
+
+こういったものに依存するバイナリやビルドプロセスが残っていると、
+折角アップロードしたパッケージもただのゴミファイルになってしまいます。
+
+これをクリアするためのツールが pbuilder です。これは
+
+\begin{itemize}
+\item 独立した deboostrap 環境を作り、
+\item その中にパッケージファイルをコピーして、
+\item 最後に chroot してビルド
+\end{itemize}
+
+をすることで、パッケージメンテナの環境に依存するビルドミスを撲滅します。
+
+まずは実行：
+
+\begin{commandline}
+# まずは普通にgit-buildpackageでビルド
+$ git-buildpackage
+$ ls -d ../cocot*
+  4 ../cocot/                            4 ../cocot_20100903-1_amd64.changes
+  8 ../cocot_20100903-1.debian.tar.gz   20 ../cocot_20100903-1_amd64.deb
+  4 ../cocot_20100903-1.dsc            208 ../cocot_20100903.orig.tar.gz
+ 12 ../cocot_20100903-1_amd64.build
+
+# 完成物をpbuilder環境内でリビルド。chrootが絡むのでroot権限が必要
+$ sudo pbuilder --create # 初回のみ行う（中でdebootstrapする）
+$ sudo pbuilder --update # 次回からは更新の上、処理に入る
+$ sudo pbuilder --build ../cocot_20100903-1.dsc
+...
+I: extracting base tarball [/var/cache/pbuilder/sid-amd64/base.tgz]
+...
+I: Copying source file
+I: copying [../cocot_20100903-1.dsc]
+I: copying [../cocot_20100903.orig.tar.gz]
+I: copying [../cocot_20100903-1.debian.tar.gz]
+...
+dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.dsc
+...
+dpkg-deb: building package `cocot' in `../cocot_20100903-1_amd64.deb'.
+ dpkg-genchanges  >../cocot_20100903-1_amd64.changes
+...
+\end{commandline}
+
+このように、chroot環境内でリビルドを試みて、ビルドできることの検証と
+正しいバイナリの生成を行います。
+
+このようにpbuilderは頑健なパッケージ作成のためにお勧めのツールですが、
+いくつか欠点もあります。
+
+\begin{itemize}
+\item 大掛かりになるため遅い
+\item root権限が必要になる
+\item lintian が自動実行されない
+\item 署名処理も自動実行されない
+\end{itemize}
+
+本質的に解決が難しい部分もあるので、普段はdebuild/git-buildpackageを
+使い、最終チェックにpbuilderといった使い分けをしています。また、欠点を
+カバーするための上位ツール群も登場しています。
+
+\subsection{ビルド７日目 - pdebuildでダイレクトビルド}
+
+前回は
+
+\begin{itemize}
+\item ソースツリーから git-buildpackage が debuild でビルド
+\item ビルド結果中のソースパッケージを元に pbuilder がリビルド
+\end{itemize}
+
+という２段階実行になっていましたが、考えてみると
+
+\begin{quote}
+\Large{それなら最初からchroot環境にソース置いてビルドすれば？}
+\end{quote}
+
+という疑問が浮かびます。これを実現するのがpdebuildです。正確には
+
+\begin{quote}
+\Large{pdebuild に debuild と同じ CLI I/F を持たせ、入れ替える}
+\end{quote}
+
+ことで、git-buildpackage が .git/ の処理をした後で、後は最初から
+pdebuild にビルドさせる方式です。pdebuildはオプションでdebsignも
+呼び出してくれるので、そこも統合できます。上の方でdebuildの
+存在意義に疑問を持っていましたが、このあたりの処理I/Fの基準化という
+意味合いもあるのでしょうか？
+
+\begin{commandline}
+$ sudo pbuilder --create # 初回のみ行う（中でdebootstrapする）
+$ sudo pbuilder --update # 次回からは更新の上、以下続行
+$ git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
+...
+cocot_20100903.orig.tar.gz does not exist, creating from 'upstream'
+...
+dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.dsc
+ dpkg-genchanges -S >../cocot_20100903-1_source.changes
+...
+I: extracting base tarball [/var/cache/pbuilder/sid-amd64/base.tgz]
+...最後にdebsignも呼び出される...
+signfile /d/src/cocot_20100903-1.dsc Taisuke Yamada <tai@rakugaki.org>
+...
+signfile /d/src/cocot_20100903-1_amd64.changes Taisuke Yamada <tai@rakugaki.org>
+...
+\end{commandline}
+
+再び git ツリーからのパッケージビルドをほぼ一括でやれるようになりました。
+ちなみに root 権限が一見不要に見えますがそんなはずもなく、pdebuild は
+デフォルトで sudo -E を使って内部で pbuilder を昇格させて処理しています。
+
+なお、Debian Planet 調べでは git-pbuilder なる更に上位のラッパーが
+開発途上の模様です。このコマンド階層はどこまで深くなるのか・・・
+
+\subsection{ビルド８日目 - cowbuilder - 高速pbuilderでビルド最終形へ}
+
+前回で git と pbuilder の統合が果たされましたが、pbuilder の
+欠点はまだそのまま残っています。この決定を軽減するのが cowbuilder です。
+
+\begin{itemize}
+\item ベースの debootstrap 環境を tar.gz で保持せず展開状態で管理する
+\item 上記をビルド環境として展開する際、コピーではなくハードリンクを用いる
+\begin{itemize}
+\item さらに、書き込みはトラップして、ベース環境に書き戻されないよう保護する
+\end{itemize}
+\end{itemize}
+
+という手法で、処理時間を劇的に短縮します。
+
+\begin{commandline}
+$ sudo cowbuilder --create # 初回のみ行う
+$ sudo cowbuilder --update # 次回からは更新処理をしてから続行
+$ PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
+...
+dpkg-source: info: building cocot using existing ./cocot_20100903.orig.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.debian.tar.gz
+dpkg-source: info: building cocot in cocot_20100903-1.dsc
+ dpkg-genchanges -S >../cocot_20100903-1_source.changes
+...
+-> Copying COW directory
+...以降はpbuilderがchroot/COW環境下でビルドを行う...
+\end{commandline}
+
+使い勝手はほとんど同一で
+
+\begin{itemize}
+\item pbuilder を使うところを cowbuilder とする
+\item pdebuild が cowbuilder を使うよう PDEBUILD\_PBUILDER=cowbuilder と定義する
+\end{itemize}
+
+のみで倍速近くになるため、非常に有用です。
+
+この形が、現在のパッケージビルド方法の最終形になるようです。
+しかし本稿はまだ続きます。
+
+\subsection{ビルド９日目 - i386 on amd64}
+
+上の git-buildpackage + pdebuild + cowbuilder でビルド手順としては
+ようやく完成を見ました。しかし、
+
+\begin{quote}
+\Large{ネイティブビルドだけで、いいんですか？}
+\end{quote}
+
+という課題があります。
+
+アップロードすればそのうち i386 や他アーキテクチャ用のパッケージも
+出来てくる訳ですが、自分で使う自分のパッケージなら、自分でビルドも
+してしまいたいものです。アーキテクチャ依存バグを潰すこともできます。
+
+まずは、より簡易な i386 on amd64 ビルドを見てみましょう。
+これは gcc レベルでは
+
+\begin{itemize}
+\item gcc を gcc -m32 で呼ぶ
+\item 依存ライブラリがあれば、それの i386 build 版も用意しておく
+\end{itemize}
+
+で済みますが、これをパッケージビルド内でする方法は意外に悩みました。
+バイナリがi386なのにパッケージ名がamd64だったり、その逆が起こったり・・・
+
+というわけで、各ビルドツールレベルでの指定方法をまとめてみました：
+
+\begin{commandline}
+# debian/rules レベルの場合
+CFLAGS=-m32 \
+linux32 dpkg-architecture -ai386 -c fakeroot ./debian/rules binary
+
+# dpkg-buildpackage レベルの場合
+DEB_CFLAGS_APPEND=-m32 linux32 dpkg-buildpackage -ai386
+
+# debuild レベルの場合
+DEB_CFLAGS_APPEND=-m32 linux32 debuild -ai386
+
+# git-buildpackage レベルの場合
+git-buildpackage \
+--git-builder="DEB_CFLAGS_APPEND=-m32 linux32 debuild -ai386"
+\end{commandline}
+
+CFLAGSの指定方法が途中で変わるのは、dpkg-* 系のツールは
+ビルドオプションは dpkg-buildflags が供給するものを使うためです。
+
+アーキテクチャ指定については、dpkg-architecture が出力する
+DEB\_(BUILD\_HOST)\_* 変数で処理する形が標準で、linux32 の
+エミュレーション（uname(3)の結果をいじるだけ）は実質的に意味が
+なくなっています。が、お守り代わりでまだ付けたり付けなかったり。
+
+Debian Policyのどこかに
+
+\begin{quote}
+\Large{告知：linux32はもうobsoleteです}
+\end{quote}
+
+と書いてあったりしないのかな・・・？
+
+\subsection{ビルド１０日目 - cross-build on amd64}
+
+今回は ARM や MIPS などのツールチェインがまったく別の場合の
+クロスパッケージビルドです。cocot については使う予定は
+ないのですが、通信系のツールなどではたまに自分でビルドして
+欲しくなります。
+
+実は i386 on amd64 より、まったく別のアーキテクチャ向けの
+ビルドをする方が簡単です。
+
+\begin{commandline}
+# debian/rules レベルの場合
+dpkg-architecture -aarmel -c fakeroot ./debian/rules binary
+
+# dpkg-buildpackage レベルの場合
+dpkg-buildpackage -aarmel
+
+# debuild レベルの場合
+debuild -aarmel
+
+# git-buildpackage レベルの場合
+git-buildpackage --git-builder="debuild -amipsel"
+\end{commandline}
+
+当然クロスコンパイラや依存ライブラリのクロス版が入っていることが
+前提となりますが、Debianの場合はapt-crossがこのためにあり、容易に
+環境を作ることができます。
+
+\subsection{ビルド１１日目 - i386 build on amd64 pbuilder}
+
+ここまでのクロスビルドはコンパイラのモード切替やクロスコンパイラで
+行っていましたが、pbuilder でもできるのでしょうか？
+
+答は「できる」で、むしろchroot環境でのビルドは、その環境下での
+ネイティブビルドとも言えるので更に単純です。ただし、debootstrap の
+処理の都合上、こちらは i386/amd64 の方が other/amd64 より楽です。
+
+まずは i386 on amd64 pbuilder から：
+
+\begin{commandline}
+$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
+$ sudo -E pbuilder --create # 最初の一度だけ行う環境構築
+$ sudo -E pbuilder --update # 二回目からは更新だけ行う
+$ git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
+\end{commandline}
+
+微妙に DIST=sid ARCH=i386 と DISTRIBUTION=sid ARCHITECTURE=i386 と
+同じ事を二重に指定しているのが不審ですが、これは pbuilder と
+pdebuild で ARCH/DIST 情報の伝達・参照方法が異なるためです。なお、
+マニュアルでは
+
+\begin{commandline}
+pbuilder --architecture arch --distribution dist
+pdebuild --architecture arch
+\end{commandline}
+
+というのがありますが、これは現状あまり有効ではありません（この辺り
+もやもやしている）。環境変数の方がコマンドチェインを下っても有効に
+なっていやすいので、現在は環境変数べったりに倒してます。
+
+高速化で cowbuilder を組込む場合、pbuilderrc に追加が必要な点のみ
+要注意でしたが、ビルド自体は変数設定を１つ増やすだけで済みます：
+
+\begin{commandline}
+$ vi /etc/pbuilderrc
+...
+# for cowbuilder
+BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.cow
+...
+$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
+$ sudo -E cowbuilder --create
+$ sudo -E cowbuilder --update
+$ PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
+\end{commandline}
+
+\subsection{ビルド１２日目 - cross build on amd64 pbuilder}
+
+だんだん話も終わりに近づいてきました。今度はi386ではない
+他アーキテクチャのビルドをpbuilder/cowbuilder on amd64で行ってみます。
+
+他アーキテクチャを扱う上で面倒な点は以下の２つです：
+
+\begin{itemize}
+\item debootstrapが一発でchroot環境を構築できない
+\item chroot環境内のバイナリはamd64環境で直接実行できない
+\end{itemize}
+
+これはいずれもchroot環境さえ作れればいいので、一番手っ取り早い方法は
+qemu-*-staticエミュレータを使ってdebootstrapしてしまうことです：
+
+\begin{commandline}
+$ cd /var/cache/pbuilder/
+$ sudo debootstrap --variant=buildd --include=apt,cowdancer \
+--foreign --arch armel sid sid-armel.cow http://localhost:9999/debian
+...
+$ sudo cp /usr/bin/qemu-arm-static sid-armel.cow/usr/bin/
+$ sudo chroot sid-armel.cow /debootstrap/debootstrap --second-stage
+...
+I: Base system installed successfully.
+
+# 上の --second-stage 実行でクリアされてしまうsources.listを再補充
+$ sudo tee sid-armel.cow/etc/apt/sources.list.d/local.list
+deb http://127.0.0.1:9999/debian sid main
+^D
+$ sudo chroot sid-armel.cow apt-get update
+\end{commandline}
+
+これは欠点として pbuilder/cowbuilder --create で作った環境ほど
+パッケージ構成が最適化されていないようですが、これで
+
+\begin{commandline}
+$ export DIST=sid ARCH=armel DISTRIBUTION=sid ARCHITECTURE=armel
+$ sudo -E cowbuilder --create
+$ sudo -E cowbuilder --update
+$ PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
+\end{commandline}
+
+とアーキテクチャを問わず同一手順でビルドできるようになりました。
+
+もっとも、qemu-user-static は確実に動作するとは限らないので、
+アーキテクチャによって動くような、動かないようなという面は
+あります（MIPSですら実は動かないことも…）。
+
+もし cowbuilder ではなく pbuilder で実行する必要があるならば、
+単に tarball にして sid-armel/base.tgz に置けば転用できます：
+
+\begin{commandline}
+$ sudo mkdir sid-armel
+$ cd sid-armel.cow
+$ sudo tar zcf ../sid-armel/base.tgz *
+\end{commandline}
+
+なお、http://localhost:9999/debian/ は approx で立てている
+キャッシングプロキシですが、設定が簡便なのと効果絶大なためオススメです。
+
+\subsection{ビルド１３日目 - cross build on amd64 pbuilder, better}
+
+前回は他アーキテクチャ用の chroot 環境を手動 debootstrap で作りましたが、
+pbuilder/cowbuilder の生成する環境とは差が出てしまうため、やはり通常の
+
+\begin{commandline}
+pbuilder/cowbuilder --create
+\end{commandline}
+
+で生成したい所です。そこで、クロス環境もコマンド一回で構築できる
+debootstrap-crossを用意して、
+
+\begin{commandline}
+pbuilder/cowbuilder --create --debootstrap /usr/local/bin/debootstrap-cross
+\end{commandline}
+
+と呼び出してみましょう。スクリプトは単純で、以下の通りです：
+
+\begin{commandline}
+#!/bin/sh
+
+archfix() {
+  case "$1" in
+  armel) echo arm;;
+  amd64) echo x86_64;;
+  *)     echo $1;;
+  esac
+}
+
+scanarg() {
+  while [ $# -gt 0 ]; do
+  case "$1" in
+  --arch=)
+    ARCH=${$1##--arch=};;
+  unstable|testing|stable|oldstable|sid|wheezy|squeeze|lenny)
+    set -- "$@"; SUITE=$1; TARGET=$2; MIRROR=$3; SCRIPT=$4; break;;
+  esac
+  shift
+  done
+
+  : ${ARCH:=$(dpkg-architecture -qDEB_HOST_ARCH)}
+  : ${SUITE:=sid}
+  : ${TARGET:=.}
+  : ${MIRROR:=http://127.0.0.1:9999/debian}
+}
+
+scanarg "$@"
+
+if dpkg-architecture -e$ARCH; then
+  debootstrap "$@"
+elif dpkg-architecture -eamd64 && [ $ARCH = i386 ]; then
+  debootstrap "$@"
+else
+  debootstrap --foreign "$@"
+  cp "/usr/bin/qemu-$(archfix $ARCH)-static" "$TARGET/usr/bin/"
+  chroot "$TARGET" /debootstrap/debootstrap --second-stage
+  #echo $MIRROR > "$TARGET/etc/apt/sources.list.d/local.list"
+  #chroot "$TARGET" apt-get update
+fi
+\end{commandline}
+
+これはamd64上でamd64/i386環境を構築するケースも
+２段インストールしない本来の形で処理できるので、/etc/pbuilderrc に
+
+\begin{commandline}
+DEBOOTSTRAP=/usr/local/bin/debootstrap-cross
+\end{commandline}
+
+と書くことで、再び手順は
+
+\begin{commandline}
+$ vi /etc/pbuilderrc
+...
+# for cowbuilder
+BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.cow
+DEBOOTSTRAP=/usr/local/bin/debootstrap-cross
+...
+$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
+$ sudo -E cowbuilder --create
+$ sudo -E cowbuilder --update
+$ PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder="pdebuild --buildresult .. --auto-debsign"
+$ lintian ../mypackage*.deb
+\end{commandline}
+
+とアーキテクチャを問わず同様となります。
+
+\subsection{ビルド１４日目 - 大統一ビルドの失敗 - pbuilder に lintian 統合}
+
+ここまで、素の debian/rules ビルドから一歩ずつ進めて、
+
+\begin{quote}
+debian/rules
+$\rightarrow$ +dpkg-buildpackage
+$\rightarrow$ +debuild
+$\rightarrow$ +git-buildpackage
+$\rightarrow$ +pbuilder
+$\rightarrow$ +pdebuild
+$\rightarrow$ +cowbuilder
+$\rightarrow$ +i386 build support
+$\rightarrow$ +generic cross build support
+\end{quote}
+
+と１つずつ機能を組み込んできました。しかし、pbuilder 以降はlintianが
+統合から外れている事に気付かれているでしょうか？
+
+これには理由がある（と思われる）のですが、組み込み自体は実は可能です。
+pbuilder（そしてそれを利用している cowbuilder）にはフック機能があり、
+各種処理の前後で任意のスクリプトでフックできます。
+
+実は既に /usr/share/doc/pbuilder/examples/ に用意されているのですが、
+これを利用してビルド完了直後に lintian を呼んでみましょう。
+
+\begin{commandline}
+$ mkdir /t/pbhook/
+$ cp /usr/share/doc/pbuilder/examples/B90lintian /t/pbhook/
+$ PDEBUILD_PBUILDER=cowbuilder \
+git-buildpackage --git-builder="pdebuild \
+--buildresult .. --auto-debsign -- --hookdir /t/pbhook"
+...
+I: user script /d/cache/pbuilder/build/cow.13001/tmp/hooks/B90lintian starting
+...
+Get:19 http://127.0.0.1/debian/ sid/main lintian all 2.5.2 [617 kB]
+...
+Setting up lintian (2.5.2) ...
+Generating en_US.UTF-8 locale for internal Lintian use....
++++ lintian output +++
+W: cocot: new-package-should-close-itp-bug
+...
++++ end of lintian output +++
+I: user script /d/cache/pbuilder/build/cow.13001/tmp/hooks/B90lintian finished
+...
+\end{commandline}
+
+これでビルド+署名+検証を完全実行するビルド手順の大統一が再び果たされました。
+
+・・・が、やってみると判るのですが、ネイティブビルドなら
+まだしも、クロスビルドの時にエミュレータ上でlintianを実行するのは
+正直遅いです。上の Generating locale ... の辺りでかなりぐんにゃり。
+
+結局、餅は餅屋で
+
+\begin{itemize}
+\item テストビルドをネイティブのdebuild環境でやりつつlintianも連動実行
+\item 最終的なクリーンビルド・バイナリ生成はpbuilder環境
+\item 署名はせずに、アップロードまたは独自リポジトリ設置のタイミングで実行
+\end{itemize}
+
+と、むしろ統一しないほうがいい、というのが結論です。
+
+\begin{quote}
+\Large{ここまで引っ張っておいてそれが結論か！}
+\end{quote}
+
+どうぞ皆様は同じ過ちは犯されませんように・・・
 
 \subsection{まとめ}
-現在勉強会当日の朝4時ですので, そろそろまとめに入らせて頂きます. OmegaT は数ある
-翻訳メモリの中でもフリーで汎用性が高く, プロフェッショナルユースにも十分利用でき
-るソフトウェアです.
 
-翻訳作業全てを OmegaT で行う事を強制する事は望ましくありませんが, せめて翻訳メモ
-リの使用を強く推奨し, コミュニティの資産としてメモリを蓄積できれば今後の翻訳作業
-が加速する事は間違いありません.
+今回は debian/rules による単純な（といっても、この中身は debhelper という
+別の闇が控えてます・・・）ビルドから始めて、git-buildpackage での git 統合、
+さらに pbuilder/cowbuilder でのクリーンビルド、そしてさらにクロスビルドまで
+含んでの手順統一を行ってきました。
 
-また, 翻訳者の中にはマウスの操作を嫌う人が相当数いますので[要出典]是非ショートカ
-ットキーのカスタマイズとニーモニックキーを採用して欲しいと思います.
+すべてを勘案した、現在のビルドの最終形はこうなっています：
 
+\begin{commandline}
+=== /etc/pbuilderrc ===
+...
+# for cowbuilder
+PDEBUILD_PBUILDER=cowbuilder
+if echo $SUDO_COMMAND | grep -q qemubuilder; then
+  BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.qemu
+else
+  BASEPATH=/var/cache/pbuilder/$DIST-$ARCH.cow
+fi
+  
+# このコマンドの内容はビルド１３日目を参照
+DEBOOTSTRAP=/usr/local/bin/debootstrap-cross
+...
+\end{commandline}
+
+この設定でマルチアーキテクチャ対応の pbuilder/cowbuilder 環境が
+整うので、後は
+
+\begin{commandline}
+$ export DIST=sid ARCH=i386 DISTRIBUTION=sid ARCHITECTURE=i386
+$ sudo -E cowbuilder --update # たまに行っておく。初回だけ --create になる
+$ git-buildpackage --git-builder="pdebuild --buildresult .."
+$ lintian ../$(basename $PWD)*.deb
+$ debsign ../$(basename $PWD)*.changes ../$(basename $PWD)*.dsc
+\end{commandline}
+
+を実行、という形に落ち着いています。
+
+この先には qemubuilder という大物や、アップロード/野良リポジトリ運営との
+統合などがテーマとしてまだあるのですが、今日の所はこれくらいで締めさせて
+頂きます。それでは
+
+\begin{quote}
+\Large{Happy Building!}
+\end{quote}
+
+% 201108 tokyo
+%-------------------------------------------------------------------------------
+\dancersection{パッケージを作ったらスポンサーアップロード}{岩松 信洋}
+%-------------------------------------------------------------------------------
+\label{sec:sponsorupload}
+\index{sponsor upload}
+
+\subsection{はじめに}
+%* Debian Developers
+%* Debian Maintainers (DM)
+% Sponsored maintainers
+
+Debian にパッケージをアップロードする場合、誰でもアップロードできるわけではなく
+限られた人しかアップロードできません。
+アップロードできるのはDebian Developer(以下、DD)とDebian Maintainer（以下、DM）
+だけです。また、DM はアップロードする際に制限があります。
+
+
+%この制限にはパッケージが新しく追加されること、
+%
+%- 制限を書く
+
+ 
+DDではない人が、メンテナンスしているパッケージをアップロード
+する場合には、DD に頼んでアップロードしてもらう必要があります。
+パッケージを代理でアップロードする人をスポンサーといい、アップロードする行為を
+スポンサーアップロードといいます。
+パッケージメンテナに変わってパッケージをアップロードするので、パッケージに対して
+責任が問われる作業です。
+よって、アップロードするパッケージの内容やパッケージメンテナについてある程度知
+っておく必要があります。
+スポンサーはパッケージのチェック等を行ったりパッケージ内容に対して助言をす
+るので、mentor（助言する人）といった方がわかりやすいかもしれません。 
+このパッケージチェックの過程は DD や DM
+になる場合に優位に働く場合があります。DDやDMになる時には既存のDDに支持者になって
+もらう必要があるのですが、この場合スポンサーに支持者担ってもらうように依頼すると、
+しっかりした内容の支持内容を提供してくれるはずです。
+
+では、スポンサーがどのようにしてパッケージをスポンサーアップロードするのか
+説明します。
+
+\begin{figure}[ht]
+ \begin{center}
+  \includegraphics[width=0.8\hsize]{image201108/sponsor0.png}
+ \end{center}
+\label{fig:sponsor0}\caption{パッケージアップロード}
+\end{figure}
+
+\subsection{スポンサーアップロードするときに確認する内容}
+
+パッケージメンテナに「アップロードして！」と言われてはいはいと 
+アップロードしてしまうと変なパッケージがDebianのパッケージ
+リポジトリに入ることになり、いろいろ問題が起きてしまいます。
+よって、スポンサーはアップロードするパッケージメンテナとパッケージを
+確認する必要があります。
+スポンサーは確認する前と後にチェックする内容があります。スポンサーによって内容が異なりますが、
+ここでは私が行っているチェック内容を紹介します。
+
+\subsubsection{パッケージをチェックする前のチェック}
+
+スポンサーをするパッケージメンテナの方に以下の内容を確認しています。
+
+\begin{itemize}
+\item Web of Trust（WOT） に入っているか。
+
+GPGの鍵チェックを行います。WOT に入ってない場合には近くにいるDDにキーサインしてもらうように
+依頼しています。
+
+\item DDやDMへの意欲はあるか。
+
+ただパッケージメンテナになるのもいいのですが、私を含めたスポンサーの多くは、
+メンテナには最終的に DDになってもらって、Debianの開発に参加して欲しいと思っている
+と思います。よって、パッケージメンテナの次のステップについて考えているか、確認しています。
+私はDDやDMになりたくないからといって、スポンサーにならないことはないです。
+
+\item Debian 新メンテナーガイド\footnote{\url{http://www.debian.org/doc/manuals/maint-guide/}} を読んだか。
+\item DFSG \footnote{\url{http://www.debian.org/social_contract.ja.html}} を読んだか。
+\item Debian Policy\footnote{\url{http://www.debian.org/doc/debian-policy/}} を読んだか。
+\item Debian Reference \footnote{\url{http://www.debian.org/doc/manuals/developers-reference/}}を読んだか。
+
+これらは読んでおくべきドキュメント類です。読んでないと話
+にならないので、まず読んである程度理解してもらうようにしています。
+
+\end{itemize}
+
+これ以外にも、たまに誰もスポンサーする人がいないようなのでスポンサーする場合があります。
+
+\subsubsection{パッケージのチェック}
+
+次に実際のパッケージのチェックを行います。
+内容は以下になります。
+
+\begin{itemize}
+
+\item ライセンスの確認
+
+ソフトウェアのライセンスがDFSGに合致するライセンスか、
+ライセンスが debian/copuright に書かれているか確認します。
+この確認には devscripts パッケージに含まれる licensecheck を使うことが多いです。
+
+また、最近ではdebian/copyright のフォーマットには、
+DEP5
+\footnote{\url{http://dep.debian.net/deps/dep5/}}
+に対応しているか確認しています。
+仮に不明な場合には上流開発者に問い合わせるようにメンテナにお願いします。
+
+\item orig.tar.gz の確認
+
+オリジナルのtarボールと一緒か、オリジナルのソースコードに
+変な改変をしていないかを確認します。
+
+\item 最新のパッケージングのルールに合っているかの確認。
+
+例えば、使っているプログラミング言語向けのパッケージングサポートツールが新しくなっていたり、
+パッケージングポリシーが決まっている場合があります。できるだけ新しいパッケージングのルールに
+合わせるようにします。
+
+\item debian/control ファイルの確認
+
+依存関係、パッケージの説明、各セクションの確認を行います。
+
+\item debian/rules の確認
+
+シンプルな構成になっているか、ポリシーに違反していないかの確認。
+
+\item pbuilder を使ったパッケージビルドの確認
+
+最新unstable ディストリビューションでパッケージがビルドできるか確認します。
+lintian によるチェックや、ビルドに必要なパッケージが依存関係から漏れていないか
+確認することができます。
+この時に使うツールは pbuilder\footnote{\url{http://packages.qa.debian.org/p/pbuilder.html}}(cowbuilder\footnote{\url{http://packages.qa.debian.org/c/cowdancer.html}})と、
+sbuild\footnote{\url{http://packages.qa.debian.org/s/sbuild.html}} です。
+手元でビルドしてアップロードする場合には pbuilder を使っています。
+スポンサーをしているパッケージは定期的にビルドの確認を行うようにしており、
+これには sbuild を使っています。
+
+\item lintianを使ったポリシーとパッケージングミスの確認
+
+パッケージが Debian ポリシー に準拠しているか簡単に確認するには
+lintian\footnote{\url{http://packages.qa.debian.org/l/lintian.html}} を使います。
+これはDebian ポリシー の他に Debian パッケージのよくある間違いに関してチェックしてくれます。
+
+\item メンテナスクリプト(preinst、postinst、prerm、postrm、コンフィグ)の確認
+
+これらは動くのか、必要なものなのかをチェックします。
+
+\item オリジナルの tar ボールとの差分の確認
+
+diff.gz の内容を確認します。
+作成されたパッチは上流開発者に送ってあるか、パッチはDEP3
+\footnote{\url{http://dep.debian.net/deps/dep3/}}
+に対応しているか、確認します。
+
+\item パッケージのインストール、アンインストール、動作確認
+
+パッケージはできても、インストールできない場合やアンインストールできない場合があります。
+またパッケージが動作しない場合もあります。このような問題
+がないか確認するために、
+piuparts\footnote{\url{http://packages.qa.debian.org/p/piuparts.html}} を使ってインストール、アンインストールのチェックと、実際にインストールしてみて動作するか確認をします。
+
+\end{itemize}
+
+\subsubsection{その他}
+その他、スポンサーによっては以下のような理由でスポンサーしてくれない場合があるようです。
+注意しましょう。
+
+\begin{itemize}
+
+\item スポンサーをUploaderに入れることを要求される場合がある。
+
+これは、パッケージメンテナの代わりにパッケージをアップロードする場合に有効です。
+先に説明したように、パッケージのメンテナンスの責任はスポンサーにもあるのためです。
+
+\item パッケージング用のツールを要求される場合がある。
+
+例えばスポンサーによっては、パッケージにcdbs を使っている場合、debhelper を使うように言われる場合があるようです。
+
+\item \url{http://mentors.debian.net} を使わない場合はスポンサーをしない。
+
+信頼できる以外にアップロードされたソースパッケージは信頼しないというポリシーのようです。
+
+\item 自分の知らないプログラミング言語で書かれたパッケージはスポンサーをしない。
+
+\end{itemize}
+
+また、\url{http://wiki.debian.org/SponsorChecklist}
+に実際にスポンサーしている人の方針が纏められています。
+
+\subsection{アップロード}
+アップロードには、dput や dupload パッケージを使います。
+実装が異なるだけで、基本的な機能は揃っているのでどちらでも使い方は同じです。
+
+\subsection{まとめ}
+以上のようにスポンサーになることはとても大変なので、メンテナの方はさっさとDMかDDがになりましょう。
+
+% 201109 tokyo debian温泉のため無し
+
+
+%$
+\clearpage
 % 201111 tokyo OSC Tokyoのため資料無し
 
 % 201111 kansai KOFのため資料無し
