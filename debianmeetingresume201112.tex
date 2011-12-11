@@ -49,9 +49,11 @@
 \hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
 
 % ここはアップデートすること
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集1: XXXX}}
+\rotatebox{10}{\fontsize{30}{30} {\gt 特集1: 2011年の振り返り}}
 
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集2: YYYY}}
+\rotatebox{10}{\fontsize{30}{30} {\gt 特集2: quiltでportingしてみた}}
+
+\rotatebox{10}{\fontsize{30}{30} {\gt 特集3: 月刊Debhelper}}
 
 \vspace*{-2cm}
 \hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
@@ -104,28 +106,44 @@
 \hrule
 \end{minipage}
 
-\dancersection{事前課題}{岩松 信洋}
+\dancersection{事前課題}{野島　貴英}
 
 今回の事前課題は以下です:
 \begin{enumerate}
- \item Debian使いとしてウェブサービスに期待することは何ですか？
+ \item 今年パッケージ化した、あるいは、使い込んだDebianパッケージを5つまであげて、そこで出会った課題について200文字以内に解説してください。
 \end{enumerate}
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-% \input{image201107/prework.tex}
+% \input{image201112/prework.tex}
 }
 \end{multicols}
 
-\dancersection{最近のDebian関連のミーティング報告}{岩松 信洋}
-\subsection{東京エリアDebian勉強会79回目報告}
+\dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
+\subsection{東京エリアDebian勉強会81回目報告}
+
+10月の東京エリアDebian勉強会は、筑波大学にて開催されました。Debianをよく知らない学生の方々が
+参加される可能性があったため、若い人向けにDebianについておさらいの意味で、
+Debianとは何かについて岩松さんが発表しました。この発表をきっかけに若い方々でDebianに興味を
+持っていただき、ますますDebian Developer候補が増えて欲しいと思います。
+
+また、岡部さんにはDebian上でHaskellの開発について現状・問題点を説明していただきました。
+関数型言語の代表的な言語の一つであるHaskellをDebianでやってみようという方が増えると
+良いなぁと思っています。坂口さんには、Debian上でのLaTeX環境についての紹介と、学校の課題を
+自動生成する事について発表していただきました。坂口さんは学生ということで、今の学生さんが
+どのようにLaTeX環境と付き合っているのかについて非常に参考になりました。
+
+最後に岩松さんから月刊Debhelperの企画と発表がありました。Debianのパッ
+ケージを開発する際に強力なツールであるDebhelperのコマンドについて、毎月
+2コマンド以上持ち回りで説明が行われる事になりました。きっとこれで、Debianパッケージ
+開発者が益々増えると良いなぁと思います。
+
+\subsection{東京エリアDebian勉強会82回目報告}
 
 % (query-replace-regexp "<.*?>" "")
 % (query-replace-regexp "^[	 ]\+" "")
 
-
-
-\dancersection{Debian Trivia Quiz}{岩松 信洋}
+\dancersection{Debian Trivia Quiz}{野島 貴英}
 
 ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
 題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
@@ -136,18 +154,1059 @@
 内容とDebian Project Newsからです。
 
 \begin{multicols}{2}
-% \input{image201107/quiz.tex}
+% \input{image201112/quiz.tex}
 \end{multicols}
 
 %-------------------------------------------------------------------------------
-\dancersection{XXXX}{上川純一}
+\dancersection{2011年の振り返り}{まえだこうへい}
 %-------------------------------------------------------------------------------
 \index{hoge}
 
 %-------------------------------------------------------------------------------
-\dancersection{XXXX}{上川純一}
+\dancersection{quiltでportingしてみた}{杉本典充}
 %-------------------------------------------------------------------------------
-\index{fuga}
+\index{sec:quilt-porting-sugimoto}
+ 
+\subsection{はじめに}
+本稿はdebianのパッケージ作成で使用しているパッチ管理ツールquiltの紹介、
+およびquiltを用いてkfreebsdのportingパッチを作成しましたので発表します。
+
+\subsection{Debianパッケージのフォーマット}
+
+現在Debianで使用している主なソースパッケージフォーマットは２つです。
+\footnote{東京エリアDebian勉強会 2010年03月号「dpkg ソース形式''3.0(quilt)''」 吉野与志仁}\footnote{\url{http://wiki.debian.org/Projects/DebSrc3.0}}
+
+\begin{itemize}
+ \item{3.0(native)：tarball１つで構成されたソースパッケージフォーマット}
+  \begin{itemize}
+   \item{packagename-version.tar.ext}
+   \item{packagename-version.dsc}
+  \end{itemize}
+  \item{3.0(quilt)：あるアップストリームのtarballとDebianパッケージ作成に
+必要なtarballに分割しているソースパッケージフォーマット}
+  \begin{itemize}
+   \item{packagename-upstreamversion.orig.tar.ext}
+   \item{packagename-upstreamversion.orig-component.tar.ext（任意）}
+   \item{packagename-debianversion.debian.tar.ext}
+   \item{packagename-debianversion.dsc}
+  \end{itemize}
+\end{itemize}
+
+ソースパッケージフォーマットの詳細は`dpkg-source(1)`コマンドで確認することができます。
+\footnote{manの記述には3.0(custom)、3.0(git)、3.0(bzr)というパッケージ形式の定義があるようです。}
+
+
+アップストリームのソースコードを無修正のままDebianパッケージを作成しようと
+するとlintian処理でエラーになったり、Debianの開発ポリシーを満たせない場合が
+あります
+（例：アップストリームのソースコードはIPv6で動作しない）。
+そのときは、3.0(quilt)のソースパッケージフォーマットでパッケージを作成し、
+必要なパッチを当ててからソフトウェアのビルド処理を行うことで対応させます。
+
+\subsection{quiltパッケージ}
+quiltはdebianパッケージを作成するときにパッチファイルを管理するツールとして
+採用しているソフトウェアです。
+Debianパッケージとして提供しており、aptでインストールできます。
+
+\begin{commandline}
+# apt-get update
+# apt-get install quilt
+\end{commandline}
+
+quiltコマンドは複数のpatchファイルをスタックに積んだようなイメージで、
+パッチの適用順番を管理します。
+\footnote{東京エリアDebian勉強会 2007年01月号「パッチ管理ツールquiltの使い方」小林儀匡}
+
+quiltコマンドを使うことで、パッケージ作成に必要なパッチが複数ある場合も
+正しく適用でき、不要なパッチが出てきたときにそのパッチを取り除くことが容易に
+なります。
+
+
+\subsection{quiltの使用例：Debian GNU/kFreeBSD向けのportingパッチ作成}
+
+\subsubsection{Debian GNU/kFreeBSDとは}
+Debian Projectで開発しているOSはLinuxカーネルを用いた「Debian GNU/Linux」が有名ですが、Linuxカーネル以外を用いたDebianがあります。その１つとしてFreeBSDカーネルを用いた「Debian GNU/kFreeBSD」\footnote{\url{http://wiki.debian.org/Debian\_GNU/kFreeBSD}}があり、ユーザランドはDebianのためaptが使え、デバイスやシステムコールといったカーネル特有の機能はFreeBSDカーネルに準じる、という特徴があります。Debuan GNU/kFreeBSDは安定版のリリースには至っていませんが、日々開発が続けられています。
+
+本稿では以降「Debian GNU/kFreeBSD」を「kfreebsd」と略記します。
+
+\subsubsection{kfreebsdのporting作法}
+Debianのporting関連情報およびkfreebsdのporting情報は以下にあります。
+
+\begin{itemize}
+ \item{\url{http://www.debian.org/ports/}}
+ \item{\url{http://www.debian.org/ports/kfreebsd-gnu/}}
+ \item{\url{http://glibc-bsd.alioth.debian.org/porting/}}
+\end{itemize}
+
+「\url{http://glibc-bsd.alioth.debian.org/porting/PORTING}」を読むと
+kfreebsd向けにportingするには以下の確認および修正が行うようにあります。
+
+\begin{itemize}
+ \item{Add our system name to checks here and there}
+  \begin{itemize}
+   \item{Makefileやスクリプト中のunameなどをチェックしてください。 }
+  \end{itemize}
+ \item{debian/control files}
+  \begin{itemize}
+   \item{debian/controlファイルでArchitectureをlinux専用ソフトウェアの場合は「linux-any」等、CPUの違いのみでLinux、kfreebsdは関係なく使用できるソフトウェアの場合は「any-i386」等に変更してください。}
+  \end{itemize}
+ \item{Libraries, your beloved enemy}
+  \begin{itemize}
+   \item{libtool、aclocal.m4周りに対応してください。}
+  \end{itemize}
+ \item{Preprocessor Variables}
+  \begin{itemize}
+   \item{kfreebsdのシステムマクロは「\_\_FreeBSD\_kernel\_\_」、バージョンマクロは「\_\_FreeBSD\_kernel\_version」なので対応してください。}
+  \end{itemize}
+ \item{Writing to devfs (kFreeBSD)}
+  \begin{itemize}
+   \item{FreeBSDカーネルでは（udevではなく）devfsを使うようにしてください。}
+  \end{itemize}
+ \item{RT signals}
+  \begin{itemize}
+   \item{FreeBSDカーネルは「POSIX RT (realtime) signals」がないので変更してください。}
+  \end{itemize}
+ \item{Get libc soname (6 or 6.1 on linux-gnu, 0.1 on kfreebsd-gnu, etc)}
+  \begin{itemize}
+   \item{使用するlibcの名前をハードコードしているプログラムがあれば修正してください。}
+  \end{itemize}
+\end{itemize}
+
+
+\subsubsection{kfreebsdに対応させたいパッケージとその原因}
+
+今回portingするパッケージは既にkfreebsd用パッケージとして存在している
+icewmとなります。
+icewmはウィンドウマネージャのソフトウェアで軽快な動作をするのが特徴です。
+
+icewmではタスクバーにバッテリー残量アイコンを表示する機能がありますが
+kfreebsdでは表示されません。linux-i386及びlinux-amd64では表示されるため
+kfreebsdのポーティングが不完全の可能性があります。
+
+まずはビルド準備とソースコードのダウンロードを行います。
+
+\begin{commandline}
+# apt-get update
+# apt-get build-dep icewm
+$ apt-get source icewm
+\end{commandline}
+
+ソースコードを「\_\_FreeBSD\_\_」及び「\_\_linux\_\_」grepすると、電源周りの処理で以下のマクロが検出されます。
+\begin{commandline}
+$ cd icewm-1.3.7/src
+$ grep -nr __FreeBSD__ *
+aapm.cc:30:#ifdef __FreeBSD__
+aapm.cc:74:#if defined(__FreeBSD__) && defined(i386)
+aapm.cc:99:#if defined(__FreeBSD__) && defined(i386)
+aapm.cc:273:#ifndef __FreeBSD__
+aapm.cc:333:#ifndef __FreeBSD__
+aapm.cc:418:#ifndef __FreeBSD__
+aapm.cc:463:#ifdef __FreeBSD__
+aapm.cc:885:#ifndef __FreeBSD__
+aapm.h:2:#if defined(linux) || (defined (__FreeBSD__)) || (defined(__NetBSD__) && defined(i386))
+aapm.h:7:#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD_
+（以下略）
+
+$ grep -nr __linux__ *
+(なにもなし)
+\end{commandline}
+
+\_\_FreeBSD\_\_マクロはFreeBSD OSを示すマクロですが、kfreebsdでは「\_\_FreeBSD\_kernel\_\_」がシステム（厳密にはカーネル）を示すマクロです。そのためマクロでシステムを切り分けているはずがkfreebsd向けのパッケージビルド時にLinuxカーネル向けの処理が有効なコードとしてビルドされてしまいバッテリー残量アイコンの表示がうまく動作していないようです。
+
+そのため、今回はこのマクロを「PORTING」の記述に従って以下のような修正を行います。
+
+（修正前）\#ifdef \_\_FreeBSD\_\_
+
+（修正後）\#if defined(\_\_FreeBSD\_\_) || defined(\_\_FreeBSD\_kernel\_\_)
+
+これで修正方針が定まりましたので、debianパッケージ作成に向けてパッチを作成していきます。
+
+\subsection{quiltの登場}
+今回は新規のパッチファイルとなるため、quiltのパッチスタックに新規追加します。
+
+\begin{commandline}
+$ cat debian/patches/series
+#cvs_fixes
+package_build_fixes
+#misc_fixes
+debian_defaults
+#compiler_defaults
+#iconify_on_wm_hint
+#move-to-screen
+i18n_updates
+tray_hotfixes
+imap_unseen
+ifstate_exact_check
+debian-changes-1.3.7~pre2-1.1
+
+$ quilt new kfreebsd_porting_aapm
+Patch kfreebsd_porting_aapm is now on top
+
+$ cat debian/patches/series
+#cvs_fixes
+package_build_fixes
+#misc_fixes
+debian_defaults
+#compiler_defaults
+#iconify_on_wm_hint
+#move-to-screen
+i18n_updates
+tray_hotfixes
+imap_unseen
+ifstate_exact_check
+debian-changes-1.3.7~pre2-1.1
+kfreebsd_porting_aapm
+\end{commandline}
+
+これで新規追加できました。
+
+次にportingするために修正を行うソースファイルをquiltで管理するように登録処理をします。その後「quilt edit ソースファイル」を実行すると、環境変数EDITORで登録したエディタが自動で起動しますのでソースファイルの修正作業を行います。
+
+
+\begin{commandline}
+$ quilt add src/aapm.h
+File src/aapm.h added to patch kfreebsd_porting_aapm
+
+$ quilt edit src/aapm.h
+File src/aapm.h is already in patch kfreebsd_porting_aapm
+
+$ quilt refresh
+Refreshed patch kfreebsd_porting_aapm
+
+$ quilt add src/aapm.cc
+File src/aapm.cc added to patch kfreebsd_porting_aapm
+
+$ quilt edit src/aapm.cc
+File src/aapm.cc is already in patch kfreebsd_porting_aapm
+
+$ quilt refresh
+Refreshed patch kfreebsd_porting_aapm
+\end{commandline}
+
+できたパッチファイル「kfreebsd\_porting\_aapm」を確認します。
+
+\begin{commandline}
+$ cat debian/patches/kfreebsd_porting_aapm
+Index: icewm-1.3.7/src/aapm.h
+===================================================================
+--- icewm-1.3.7.orig/src/aapm.h 2010-10-31 23:09:36.000000000 +0900
++++ icewm-1.3.7/src/aapm.h      2011-12-10 23:17:15.000000000 +0900
+@@ -1,10 +1,10 @@
+
+-#if defined(linux) || (defined (__FreeBSD__)) || (defined(__NetBSD__) && defined(i386))
++#if defined(linux) || (defined (__FreeBSD__)) || (defined (__FreeBSD_kernel__)) || ((defined(__NetBSD__) && defined(i386))
+
+ #include ``ywindow.h''
+ #include ``ytimer.h''
+
+-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
++#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__)
+ #define APMDEV ``/dev/apm''
+ #else
+ #define APMDEV ``/proc/apm''
+Index: icewm-1.3.7/src/aapm.cc
+===================================================================
+--- icewm-1.3.7.orig/src/aapm.cc        2010-10-31 23:09:36.000000000 +0900
++++ icewm-1.3.7/src/aapm.cc     2011-12-10 23:18:37.000000000 +0900
+@@ -27,7 +27,7 @@
+ #include <stdio.h>
+ #include <dirent.h>
+
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+ #include <sys/file.h>
+ #include <sys/ioctl.h>
+ #include <sys/types.h>
+
+（以下略）
+\end{commandline}
+
+あとはパッケージをビルドします。
+
+\begin{commandline}
+$ dch
+$ debuild -uc -us
+\end{commandline}
+
+作成したパッケージをインストールして確認します。
+\begin{commandline}
+$ sudo dpkg -i icewm-common_1.3.7-1.1_kfreebsd-amd64.deb icewm_1.3.7-1.1_kfreebsd-amd64.deb
+$ reboot
+\end{commandline}
+
+作成したパッチはBTSへ送信しておきましょう。
+
+\begin{commandline}
+$ reportbug
+$ w3m http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=650395
+\end{commandline}
+
+\subsection{終わりに}
+これでkfreebsdのicewmウィンドウマネージャ上でバッテリー残量アイコンを表示することができました。
+
+みなさんもkfreebsd含め様々なアーキテクチャで数多くのパッケージがDebianで動作するようにがんばりましょう。
+
+\subsection{参考情報}
+\begin{itemize}
+ \item{東京エリアDebian勉強会 2007年01月号「パッチ管理ツールquiltの使い方」小林儀匡}
+ \item{東京エリアDebian勉強会 2010年03月号「dpkg ソース形式''3.0(quilt)''」 吉野与志仁}
+ \item{man dpkg-source(1)}
+ \item{man quilt(1)}
+ \item{\url{http://wiki.debian.org/Projects/DebSrc3.0}}
+ \item{\url{http://www.debian.org/doc/manuals/maint-guide/first.ja.html}}
+ \item{\url{http://wiki.debian.org/Debian\_GNU/kFreeBSD}}
+ \item{\url{http://glibc-bsd.alioth.debian.org/porting/}}
+\end{itemize}
+
+%-------------------------------------------------------------------------------
+\dancersection{月刊Debhelper 第2回}{野島 貴英}
+%-------------------------------------------------------------------------------
+\index{monthly-debhelper-2nd}
+\subsection{はじめに}
+
+ Debianパッケージを作成する際、作成前の設定、コンパイル、Debianパッケー
+ジにまとめるなど沢山の処理を行わなければなりません。これらの処理につい
+ては、debian/ruleというファイルにGNUのmakeのmakefileの形式で記述するこ
+とになるのですが、細かい処理を記載していくと膨大な量となってしまいます。
+これをできるだけ簡潔に記載できるように考えられたツールとしてdebhelperという
+コマンド群が存在します。
+
+　本企画はこのdebhelperのコマンドについて、毎月持ち回りで解説していくという
+ものです。ルールは、毎月2つ以上のコマンドを解説し、次回発表の立候補が無い場合は
+発表者が次の発表者を決めれるというルールの元に進めて行きます。
+
+\subsection{ちょっとおさらい}
+\label{sec:osarai-debhelper}
+　コマンドの説明をするまえに、ちょっとdebhelperの使い方をおさらいします。
+
+　まずdebhelperのインストールをします。
+
+\begin{commandline}
+$ sudo aptitude install debhelper
+$
+\end{commandline}
+
+ ここでdebhelperを使った典型的なdebian/rulesファイルを用意します。
+
+\begin{commandline}
+$ cat debian/rules
+#!/usr/bin/make -f
+%:
+        dh $@
+\end{commandline}
+% $
+
+ このdhというのがdebhelperのコマンドとなります。
+
+　その他、debian/ディレクトリ以下にパッケージを作る上で必要なファイルを用意しておきます。
+
+\begin{commandline}
+$ ls debian/
+README.Debian  compat     dirs      rules*         hoge.links     hoge.postinst
+README.source  control    docs      watch          hoge.manpages  hoge.postrm
+changelog      copyright  patches/  hoge.desktop   hoge.menu
+$
+\end{commandline}
+
+ ここで、パッケージをビルドすると、debhelperのコマンド群が次々と呼び出され、パッケージが出来上がります。
+
+\begin{commandline}
+$ dpkg-buildpackage -uc -us -rfakeroot
+...中略...
+$ ls ../
+hoge-1.0.0/           hoge_1.0.0-1.dsc            hoge_1.0.0-1_amd64.deb
+hoge_1.0.0-1.diff.gz  hoge_1.0.0-1_amd64.changes
+\end{commandline}
+
+ 簡潔なdebian/rulesファイルを用意すれば、Debianパッケージが構築されてしまうわけです。
+すごいですね。
+
+\subsection{debhelperに共通のオプションについて}
+
+ debhelperに含まれるコマンド群は以下のようにして見る事ができます。
+
+\begin{commandline}
+$ dpkg　-Ｌ　ｄｅｂｈｅｌｐｅｒ　| fgrep /usr/bin
+/usr/bin
+/usr/bin/dh_undocumented
+/usr/bin/dh_usrlocal
+/usr/bin/dh_auto_install
+/usr/bin/dh_strip
+/usr/bin/dh_perl
+/usr/bin/dh_installchangelogs
+/usr/bin/dh_auto_clean
+/usr/bin/dh_installman
+/usr/bin/dh_installdeb
+/usr/bin/dh_installmanpages
+...中略...
+/usr/bin/dh_makeshlibs
+/usr/bin/dh_scrollkeeper
+%$
+\end{commandline}
+
+　実はdebhelperのコマンドはdebhelperパッケージに入っているものだけでな
+く、いろいろなパッケージ（主に開発に使われるようなパッケージですが）にもこっそり梱包されています。
+man debhelperによれば、とにかく頭に''dh\_''とつくコマンドはdebhelperのコマンドとして振る舞う
+べしと書いてあります。このルールを元にdebhelperパッケージ以外に含まれるdebhelperコマンドを調べると、これだけあります。
+
+\begin{commandline}
+$ apt-file search /dh_ | fgrep /usr/bin | fgrep -v debhelper:
+autotools-dev: /usr/bin/dh_autotools-dev_restoreconfig
+autotools-dev: /usr/bin/dh_autotools-dev_updateconfig
+bash-completion: /usr/bin/dh_bash-completion
+cli-common-dev: /usr/bin/dh_auto_build_nant
+cli-common-dev: /usr/bin/dh_auto_clean_nant
+cli-common-dev: /usr/bin/dh_clideps
+cli-common-dev: /usr/bin/dh_clifixperms
+cli-common-dev: /usr/bin/dh_cligacpolicy
+cli-common-dev: /usr/bin/dh_clistrip
+cli-common-dev: /usr/bin/dh_installcligac
+cli-common-dev: /usr/bin/dh_makeclilibs
+...中略...
+xserver-xorg-dev: /usr/bin/dh_xsf_substvars
+xulrunner-dev: /usr/bin/dh_xulrunner
+yorick-dev: /usr/bin/dh_installyorick
+$ apt-file search /dh_ | fgrep /usr/bin | fgrep -v debhelper| wc -l
+79
+$
+\end{commandline}
+%$
+
+実に79個もありますね。本企画だと、一回あたり２コマンドづつ発表で、発表に3年以上もかかる計算です。
+
+　以下にdebhelperのコマンド群に共通で使えるオプションを載せます。(man debhelperより抜粋)
+これらのオプションは実は、dhというコマンドによっても適宜設定され、パッケージ構築の制御に利用される事があります。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+オプション&説明 \\
+\hline
+-v, --verbose & 饒舌モード。パッケージを構築するディレクトリの中をいじるようなコマンドを全部表示します。\\
+\hline
+--no-act & 本当になにもしない状態になります。-vオプションと併用すると、実際にコマンドがどんな処理を行うかを見ることができます。\\
+\hline
+-a, --arch & アーテキクチャ依存のパッケージを、指定したアーテキクチャの元で作るように扱います\\
+\hline
+-i, --indep & アーキテクチャ非依存のパッケージとして扱います。\\
+\hline
+-ppackage, --package=package & nameで指定されたパッケージとして処理します。これは一連のパッケージをdebhelperに操作させる時には、何度も指定する事ことになります。\\
+\hline
+-s, --same-arch & これはより賢い-aフラグとして使われていました。しかしながら現在では-aは同じぐらい賢くなりました。\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+オプション(続き)&説明(続き) \\
+\hline
+-Npackage, --no-package=package &　オプション-a, -i, -p が指定されていても、指定されているパッケージには処理を行わないようにします。(※dhが中断した処理を再開するときに、dhによって各debhelperコマンドへこのオプションが指定され、すでに処理が終わったパッケージに無駄な処理が走らないようにする時にも使われます）\\
+\hline
+--remaining-packages & すでにdebhelperコマンドにより処理が行われているものについては処理しないようにします(つまり、debhleprのログに記録があるものは処理しない）例えば、２つのバイナリパッケージだけに対して特別なオプション付きでコマンドを呼び出し、残りのパッケージに対しては、このオプションをつけてコマンドを呼び出すと、残りのパッケージについてはデフォルト設定による処理を行う事ができます。\\
+\hline
+--ignore=file & 特定のファイルを無視します。debian/以下に実際にはdebhelperコマンドが実行しては困るようなdebhelper設定ファイルがあるような時に利用できます。ただ、debian/compat,debian/control,debian/changelogは無視する事ができません。これは、動作の都合上、これらのファイルを無視するわけにはいかないからです。実際に使う例として、上流の開発者が debian/initを提供しているにもかかわらず、dh\_installinit でインストールしたくないような時,--ignore=debian/initを使うことになります \\
+\hline
+-Ptmpdir, --tmpdir=tmpdir & tmpdirをパッケージ構築用ディレクトリとして利用します。デフォルトではdebian/packageディレクトリが使われます。\\
+\hline
+--mainpackage=package & このあまり使われないオプションは、debhelperコマンドが"main package"としてみなすパッケージ、つまり、debian/controlの最初に記載されたパッケージを変更するも のです。こちらにより、debian/package.fooファイルの代わりにdebian/fooファイルが使われるようになります。\\
+\hline
+-O=option|bundle & ユーザが指定したオプションがdhにより実行されるすべてのコマンドに渡されるようになります。もし実行されるコマンドにて、指定されたオプションが有効であったり内蔵されていたりすれば、その効力が発揮されます。もしコマンドがオプションをサポートしていなかったり（あるいは、どれも内蔵していなかったり）する場合 は、無視されます。\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\clearpage
+
+\subsection{debhelperに共通の環境変数について}
+
+debhelperのコマンドの振る舞いは環境変数によっても制御できます。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+環境変数&説明 \\
+\hline
+DH\_VERBOSE & この環境変数に1を指定すると冗長表示モードの動作となります。debhelperは、構築システム上で、ファイルを変更するようなコマンドの全てを表示するようになります。\\
+\hline
+DH\_COMPAT & この環境変数は、どんな互換性度合いでdebhelperを実行するかを一時的に指定するかを指定するものです。こちらを指定するとdebian/compatに指定されている値は無視されます。\\
+\hline
+DH\_NO\_ACT & 1に設定すると、何もしない(no-act)モードになります。\\
+\hline
+DH\_OPTIONS & この環境変数に指定したものは、debhelperコマンドの末尾に全て指定されるようになります。dhを使えば、dhに指定したオプションを呼び出されるdebhelperコマンドに渡すようにさせることができます。これはDH\_OPTIONSを使うよりも一般的に行われています。\\
+\hline
+DH\_ALWAYS\_EXCLUDE & こちらが設定されていると、-Xオプションをサポートするすべてのコマンドに-Xオプションを指定したのと同等の振る舞いをします。さらに、dh\_builddebコマンドは構築ディレクトリの元で-Xで指定したパターンにマッチするもの全部をrm -rfするようになります。これはCVSソースツリーからパッケージ構築をする場合に便利な場合があります。例えば、DH\_ALWAYS\_EXCLUDE=CVSを指定すれば、全CVSディレクトリが構築の際に検索されるのを防ぐことができます。あるいは、ソースのtar玉にすでにCVSディレクトリが含まれている（賢いことではないのですが）場合、debian/rulesにDH\_ALWAYS\_EXCLUDE=CVS環境変数をexportしておくコードを入れる事により、パッケージを構築しようとする場所全部で、CVSディレクトリが処理の為のファイル検索対象から除外されるようになります。除外したいものを複数指定したい場合は、コロンで区切ってください。例を上げるなら、DH\_ALWAYS\_EXCLUDE=CVS:.svnのようになります。\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\clearpage
+
+\subsection{互換性度合い （ COMPATABILITY LEVELS ) }
+
+debhelperコマンドの振る舞いをばっさり変えてしまうものとして、互換性度合い （ COMPATABILITY LEVELS )という考え方があります。これはdebhelperが以前のバージョンと現在のバージョンとで、振る舞いが変わってしまうものが出てきた為、動作の互換性を図る為に導入されています。
+
+　通常、debian/compatファイルに記載されている数字で、互換性度合いを指定します。例えば8とあれば、v8の互換性度合いを意味します。2011/12/12現在、debian sid付属のdebhelperにて特に指定無き場合の互換性度合いはv8となります。将来v9になるらしいですが、現在は絶賛開発中とのことで、v9を指定する時は注意がいります。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+互換性度合い&直前のバージョンとの動作の違いの説明 \\
+\hline
+v1〜v4 & 廃止されました。\\
+v5 & \begin{enumerate}
+  \item debhelper設定ファイルにてコメントは無視されるようになりました。
+  \item dh\_strip --dbg-packageにより、パッケージの名前にデバッグシンボル入りであるもの、シンボル無しであるものを指定できるようになりました。
+  \item dh\_installdocs は空のファイルについては処理を飛ばすようになりました。
+  \item もしワイルドカードが何も展開しない時は、dh\_installはエラーを出力するようになりました。
+  \end{enumerate} \\
+\hline
+v6 & \begin{enumerate}
+  \item メンテナンス用スクリプト群を生成するコマンドは、prermとpostrmスクリプトに対しては逆順でスクリプトを生成するようになりました。
+  \item dh\_installwmはx-window-manager.1.gzという副次的なmanページへのリンクを張るようになりました。これはパッケージ構築ディレクトリ内のusr/share/man/man1ディレクトリにmanページがある場合に行われます。
+  \item 以前、dh\_builddebは、CVS:.svn:.gitなどのディレクトリが、DH\_ALWAYS\_EXCLUDEに指定されていた場合、これら全部を前もって削除しませんでした。しかしながら、本互換性度合いの元では削除するようになっています。
+  \item dh\_installmanにより、パッケージ構築ディレクトリにあるすでに存在するmanページを上書き出きるようになりました。これより以前の互換性度合いの元では、このような動作は何の警告もなく拒絶されていました。
+\end{enumerate} \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+互換性度合い(続き)&直前のバージョンとの動作の違いの説明(続き) \\
+\hline
+v7 & \begin{enumerate}
+  \item もし、debian/tmp以下にあるようなファイルが、カレントディレクトリにない場合（もしくは、--sourcedirで指定したディレクトリにない場合）、dh\_installはdebian/tmpを探しにいくようになりました。この振る舞いにより、dh\_installは特に何かパラメタを指定しなくても、 debian/tmpにインストールしようとするdh\_auto\_installにあわせて動作することができるようになりました。
+  \item dh\_cleanはdebian/cleanを解釈し、そこにリストされているファイルを消すようになりました。
+  \item dh\_cleanは構築ディレクトリ中最も上のディレクトリにある*-stampファイルを消すようになりました。
+  \item dh\_installchangelogsは何も指定しなくても、どのファイルが上流開発者(upstream)のchangelogであるかを推定するようになりました。
+ \end{enumerate} \\
+\hline
+v8 (推奨)& \begin{enumerate}
+ \item 不明なオプションを渡そうとすると、警告文を出して処理続行よりもエラーにして失敗させるようになりました。
+ \item dh\_makeshlibsは、shlibsファイルを作成する為に、dpkg-gensymbolsをすべての共有ライブラリに対して実行するようになりました。-Xを指定すると処理を除外するライブラリを指定できます。また、ライブラリが通常ではない場所にある為にdpkg-gensymbolsが処理していないようなライブラリが後のコ マンドに渡った時の振る舞いが変更されており、この場合には、パッケージの構築ができないようになりました。
+ \item dhは最初のパラメタとして、処理の名前を指定し、その次にオプションを記載しなければならなくなりました。つまり、"dh $@ --foo"が正しく、"dh --foo $@"は間違いとなります。
+ \item dh\_auto\_*はMakefile.PLファイルを使うよりも、PerlのModule::Buildモジュールを好んで利用するようになりました。
+\end{enumerate} \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+互換性度合い(続き)&直前のバージョンとの動作の違いの説明(続き) \\
+\hline
+v9 (開発中。なので発展途上) & \begin{enumerate}
+ \item 複数のアーキテクチャ(Multiarch)をサポートします。特にdh\_auto\_configureはautoconfの--libdirや--libexecdirに個別アーキテクチャ用途のディレクトリを指定するようになります。
+ \item dhコマンドはdebian/rulesに記載されているターゲット間に存在する依存性に気を使います。そのため、"dh binary"はrulesファイルに存在するbuild,build-arch,build-indep,install等のターゲットを実行していきます。これは、他のターゲットに対する依存関係を逐一指定したbinaryターゲットを、いちいち用意する必要がないことを示します。
+ \item dh\_stripはデバッグシンボルファイルを圧縮し、-dbgパッケージのインストール時に占める大きさを減らします。
+ \item dh\_auto\_configureはautoconfを使ったときに、--libexecdirにソースパッケージ名を含めなくなりました。
+ \item dhは特に指定が無い場合、--with=python-supportオプションを指定しなくなりました。
+ \item dh\_auto\_* のdebhelperプログラム全部とdhコマンドはdpkg-buildflagsにて得られる環境変数を設定します。これはすでに環境変数に設定されている場合でも行われます。これらプログラムはDEB\_BUILD\_OPTIONS=nooptもサポートします。
+ \item dh\_auto\_configureはCFLAGS環境変数をMakefile.PLや、Build.PLへ指定するようになります。
+\end{enumerate}\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\clearpage
+
+\subsection{今月のコマンドその1:dh}
+
+\subsubsection{dhの動作概要}
+
+ dhは引数に指定したシーケンス名に基づいて一連のdebhelperを起動するコマンドとなります。実際の使い方は\ref{sec:osarai-debhelper}章のようにdebian/rulesに記述して利用します。
+
+　単体でdhコマンドを起動すると以下のように動作します。
+
+\begin{commandline}
+$ dh clean
+  dh_testdir
+  dh_auto_clean
+Checking a few things
+Warning:Makefile is older than Imakefile
+Geronimo!
+rm -f foo
+rm -f bar
+...中略...
+rm -f *.CKP *.ln *.BAK *.bak *.o core errs ,* *~ *.a .emacs_* tags TAGS make.log MakeOut   "#"*
+rm -f Makefile Makefile.dep
+   dh_clean
+\end{commandline}
+%$
+
+みると、dh\_testdirと、dh\_auto\_clean、dh\_cleanがdhにより呼び出されていきます。
+
+\subsubsection{dhに指定できるシーケンス名}
+\label{sec:debhelper-sequences}
+dhに指定できるシーケンス名は以下の通りです。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+シーケンス名&シーケンスの説明 \\
+\hline
+binary & 構築からパッケージ作成まで実行するシーケンスです。\\
+binary-arch & arch依存のパッケージの構築からパッケージ作成まで実行するシーケンスです。\\
+binary-indep & arch非依存のパッケージの構築からパッケージ作成まで実行するシーケンスです。\\
+build & 構築からテストまで実行するシーケンスです。\\
+build-arch & arch依存のパッケージの構築からパッケージ作成まで実行するシーケンスです。\\
+build-indep & arch非依存のパッケージの構築からパッケージ作成まで実行するシーケンスです。\\
+clean &　一度パッケージを構築したディレクトリから、パッケージ構築時に生成したものを取り除き、構築ディレクトリを綺麗にします。\\
+install & 構築から、パッケージ生成直前までの処理を行うシーケンスです。\\
+install-arch & arch依存のパッケージについて、構築から、パッケージ生成直前までの処理を行うシーケンスです。\\
+install-indep & arch非依存のパッケージについて、構築から、パッケージ生成直前までの処理を行うシーケンスです。\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+なお、--with fooを指定すると、dhに指定可能なシーケンスが増える場合があります(例： --with quiltのpatchシーケンス等。）
+
+\clearpage
+\subsubsection{dhのコマンドラインオプション}
+
+以下にdhのコマンドラインオプションを載せます。(man dhより)
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{15em}|p{28em}|}
+\hline
+オプション&説明 \\
+\hline
+--with addon[,addon ...] & debhelperコマンドに適切な場所で一連のコマンドを実行するような付加機能(addon)を指定します。このオプションはオプションを繰り返し指定することもできますし、複数の付加機能をカンマで区切って列挙して指定できます。このオプションはdebhelperコマンドを提供する外部パッケージと共に利用する時に使います。debhelperパッケージ梱包のPROGRAMMINGファイルに、一連の付加機能用インターフェースを使ったaddonを作る事についての文章があります。\\
+\hline
+--without addon　& --withとは逆の働きをします。指定された付加機能を使わないようにします。\\
+\hline
+--list, -l & 利用可能な付加機能一覧。\\
+\hline
+--no-act & 指定された一連の処理の内容を表示するだけコマンドとなります。表示だけして実際にはコマンドを実行しません。\\
+\hline
+その他 & dhに、先に記載した以外の何かオプションを渡すとそれはのちに実行する全コマンドへ引き渡されます。-v、-X、-Nや、他の特別なオプションを指定するのに使われます。\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{廃止されたコマンドラインオプション}
+
+--until,--before,--after,--remainingがありましたが、これらは全部dhが解釈する
+``override\_{\em DHコマンド名}ターゲット''による動作に置き換えられた為、{\em 廃止}となりました。
+
+なので、昔のdebian/ruleにあるような、以下の用な書き方は{\em 廃止}です。
+
+\begin{commandline}
+廃止された書き方
+#!/usr/bin/make -f
+
+%:
+        dh $@
+
+build: build-stamp
+build-stamp:
+        dh build --before configure
+        dh_auto_configure -- --with-gnu-ld --disable-nls
+        dh build --after configure
+        touch build-stamp
+\end{commandline}
+%$
+
+代わりの書き方は次の章で述べます。
+
+\subsubsection{``override\_dh\_コマンド名''ターゲットについて}
+
+dhコマンドは''dh シーケンス名''により、そのシーケンスに必要な一連のdebhelperコマンドを呼び出す機能があります。(どんなdebhelperコマンドが呼び出されるかは、--no-actをオプションにつけて、dh --no-act buildとか、dh --no-act installとかしてください）
+
+この呼び出されるコマンドを一部変更したい場合は以下のように書きます。
+
+\begin{commandline}
+今時の書き方：
+#!/usr/bin/make -f
+
+%:
+        dh $@
+
+override_dh_autoconfigre:
+        dh_auto_configure -- --with-gnu-ld --disable-nls
+\end{commandline}
+%$
+
+こうすると、本来であれば、dh\_auto\_configureがオプション無しで呼び出される場所が全部
+``dh\_auto\_configure -- --with-gnu-ld --disable-nls''で呼び出されるようになります。
+
+他の例では、configureスクリプトが無く、代わりにImakefileがあるような古いX用のプログラムを
+パッケージにする用な場合は以下のように書きます。
+
+\begin{commandline}
+Imakefileを利用するような場合：
+#!/usr/bin/make -f
+
+%:
+        dh $@ --with quilt
+
+override_dh_auto_configure:
+        xmkmf -a
+\end{commandline}
+%$
+
+こうすると、本来であれば、dh\_auto\_configureが呼び出される場所全部で、
+``xmkmf -a''を呼び出すようになります。
+
+この''override\_dh\_コマンド名''ターゲットは、コマンドを{\em 実行したくない場合}にも利用可能です。(``override\_dh\_コマンド名''のアクションを空にする事がミソです。)
+
+\begin{commandline}
+dh_auto_test,dh_compress,dh_fixpermsを実行したく無い場合：
+#!/usr/bin/make -f
+
+%:
+        dh $@ 
+
+override_dh_auto_test override_dh_compress override_dh_fixperms:
+
+\end{commandline}
+%$
+
+
+また、build-arch,binary-arch,build-indep,binary-indepターゲットがdhに
+指定されるときにあわせて振る舞いを変更したい場合は''override\_dh\_コマンド名-indep''や、
+''override\_dh\_コマンド名-arch''を使って、それぞれの場合にdhによって呼び出されるコマンドを
+変更できます。以下の例では、ドキュメントパッケージの作成に時間がかかるので、build-indepや、
+binary-indepの時にだけドキュメントを作成してくれるようにする場合のdebian/ruleとなります。
+
+\begin{commandline}
+ドキュメント作成を分離して、時間のかかるドキュメント作成が何度も実行されないようにする:
+#!/usr/bin/make -f
+%:
+        dh $@
+
+override_dh_auto_build-indep:
+        $(MAKE) -C docs
+
+# No tests needed for docs
+override_dh_auto_test-indep:
+
+override_dh_auto_install-indep:
+        $(MAKE) -C docs install
+
+\end{commandline}
+%$
+
+\subsubsection{addonについて}
+
+dhコマンドのオプション--with addonにてaddonが提供するパッケージの作成方法を組み込む
+事ができます。お使いのシステムで現在どんなaddonが使えるかはdh --listを実行すると一覧
+が出てきます。
+
+\begin{commandline}
+$dh --list
+bash-completion
+dkms
+python-central
+python-support
+python2
+quilt
+tex
+$
+（...お使いのシステムによって表示される量が変わります...)
+\end{commandline}
+
+実はこれらは/usr/share/perl5/Debian/Debhelper/Sequence/''addon名''.pmとして
+インストールされています。こちらを利用して、現在のDebianで、どんなaddonが提供されているかを
+知りたければ、次のようにして調べる事ができます。
+
+\begin{commandline}
+$ apt-file search Debhelper/Sqeuence
+autotools-dev: /usr/share/perl5/Debian/Debhelper/Sequence/autotools_dev.pm
+bash-completion: /usr/share/perl5/Debian/Debhelper/Sequence/bash_completion.pm
+cli-common-dev: /usr/share/perl5/Debian/Debhelper/Sequence/cli.pm
+cli-common-dev: /usr/share/perl5/Debian/Debhelper/Sequence/cli_nant.pm
+debhelper: /usr/share/perl5/Debian/Debhelper/Sequence/python_support.pm
+dh-autoreconf: /usr/share/perl5/Debian/Debhelper/Sequence/autoreconf.pm
+dh-di: /usr/share/perl5/Debian/Debhelper/Sequence/d_i.pm
+dh-lisp: /usr/share/perl5/Debian/Debhelper/Sequence/lisp.pm
+...中略...
+sphinx-common: /usr/share/perl5/Debian/Debhelper/Sequence/sphinxdoc.pm
+tex-common: /usr/share/perl5/Debian/Debhelper/Sequence/tex.pm
+xserver-xorg-dev: /usr/share/perl5/Debian/Debhelper/Sequence/xsf.pm
+xulrunner-dev: /usr/share/perl5/Debian/Debhelper/Sequence/xulrunner.pm
+$ apt-file search Debhelper/Sqeuence | wc -l
+43
+$
+\end{commandline}
+% $
+全部で43個もありますね。(debian sidで実行）
+
+よく使うaddonとしては、quiltがあります。quiltコマンドと組み合わせてquilt形式のpatchを
+ソースに当ててパッケージを作りたい時に利用します。また、複数addonを指定したい場合は繰り返し
+--withオプションで指定したり、カンマで区切って指定します。
+
+\begin{commandline}
+quilt用のaddonと、autotools_dev用のaddonを併用したい時：
+#!/usr/bin/make -f
+%:
+        dh $@ --with quilt --with autotools_dev
+#       dh $@ --with quilt,autotools_dev　もOK
+\end{commandline}
+%$
+
+\subsubsection{addonの構造について}
+
+addonが何をしているかは/usr/share/perl5/Debian/Debhelper/Sequence/''addon名''.pm
+を覗くとピンときます。
+
+例えば、--with quiltの場合、
+
+\begin{enumerate}
+ \item dh cleanにて、dh\_cleanを呼び出す前に、quiltパッケージが一緒に提供しているdh\_quilt\_unpatchコマンドを呼び出すようになります。
+ \item dh buildでは、dh\_auto\_configureの前にdh\_quilt\_patchを呼び出すようになります。
+ \item dhにシーケンス名patchが追加され、dh patchが使えるようになります。
+\end{enumerate}
+
+addonを自分で書く場合は、dh内で定義されている以下のAPIを呼び出して書いてください。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{20em}|p{23em}|}
+\hline
+API名&APIの説明 \\
+\hline
+insert\_before(\$existing,\$new) & \$existingで指定されるdebhelperコマンドを実行する直前に\$newを実行します。\\
+\hline
+insert\_after(\$existing,\$new) & \$existingで指定されるdebhelperコマンドを実行した直後に\$newを実行します。\\
+\hline
+remove\_command(\$command) & \$commandをdhが実行しないようにします。\\
+\hline
+add\_command(\$command,\$sequence) & \$sequenceで示されるシーケンスで実行されるコマンド群の最後に\$commandを付け加えます。また、本APIを使って\ref{sec:debhelper-sequences}章で示されないシーケンスを新たに作成することができます。\\
+\hline
+add\_command\_options(\$command,@options) & \$commandに、配列@optionsで示される一連のオプションを付け加えて実行するようにします。\\
+\hline
+remove\_command\_options (\$command,@options) & \$commandから配列@optionsで示される一連のオプションを取り除く。@optionsをまったく指定せずにremove\_command\_options(\$command)と呼び出すと、\$commandについてのオプション全部を取り除きます。\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+以下に例としてquilt.pmを載せます。
+
+\begin{commandline}
+quilt用のaddonの中身：
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Debian::Debhelper::Dh_Lib;
+
+insert_before("dh_auto_configure", "dh_quilt_patch");
+insert_before("dh_clean", "dh_quilt_unpatch");
+
+# Eval to avoid problem with debhelper < 7.3.12
+eval {
+    add_command("dh_quilt_patch", "patch");
+};
+1;
+\end{commandline}
+%$
+
+※ patchというシーケンス名はdhには無い。add\_command()でエラーによる異常終了防止の為、eval()でくるんでいる事に注意。
+
+ なお、複数のaddonを指定した場合、同じ内容のdebhelperコマンドが意図せず複数回も同じシーケンスに挿入される事がありますが、きちんと１個の呼び出しにまとめてくれます。
+
+\subsubsection{dhの内部動作}
+
+dhコマンドはdebian/ruleがmakeファイルである事を利用しながら、makeコマンドと協調して動作します。
+
+図にdpkg-buildpackageを呼び出したときのdhの内部動作を示します。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=17cm]{image201112/dh-internal-schema1.png}
+  \end{center}
+  \label{fig:dh-internal-schema1}\caption{dh内部動作}
+\end{figure}
+
+\clearpage
+
+図から判るように、dpkg-buildpackageからmakeコマンドが起動され、次にdhが起動され、
+さらにdhからmakeが起動されるという関係になっている事が判ります。また、
+override\_dh\_コマンド名ターゲットの処理を行うのに、makeコマンドを使って
+処理をしているという事も判ります。
+
+dhを使うと、makeコマンドはoverride\_dh\_コマンド名ターゲットの処理をする役目だけを担当します。
+そのうち、dhコマンドが進化すると、makeコマンドの力を借りなくてもパッケージ作成ができるようになる
+かもしれませんね。
+
+\subsubsection{debian/パッケージ名.debhelper.logファイルについて}
+
+最近のdhコマンドを使うdebian/rulesには、ファイルの依存関係についての記載がありません。この為、パッケージビルド中で処理が中断した場合、どこから再開すれば良いかをdebian/rulesでmakeが判定する事はできません。
+
+実は、dhコマンドはclean以外のシーケンスが指定されると、debian/パッケージ名.debhelper.logというファイルに処理を行ったdebhelperコマンドを記録しています。ここで、万一dhの処理が中断した場合、処理をどこから始めれば良いかについてはこのログファイルを参照して処理の再開を行います。
+
+debian/パッケージ名.debhelper.logの中身は以下のようになっています。
+
+\begin{commandline}
+debian/パッケージ名.debhelper.logの中身:
+dh_auto_test
+dh_prep
+dh_installdirs
+...中略...
+dh_buiddeb
+\end{commandline}
+
+また、このファイルはdh cleanによって消去されます。なお、dh cleanの時には、このログファイルは作成されません。つまり、dh cleanの処理を中断した場合は、dh cleanは呼び出される一連のdebhelperコマンドは最初から実行されてしまいます。
+
+なお、処理再開の場所は、このログファイルのみ参照して決める為、処理を中断した後に、パッケージのソースファイルを変更して再開させるような使い方はできません。例えば、ソースファイル中のあるファイルを変更した為、特定のパッケージのシーケンスについては再会時に全部やり直しが必要だったとしても、これを自動で検知することはできません。
+
+\subsubsection{dpkg-buildflagとの関係}
+
+dhはdebhelperコマンドを呼び出す前に、パッケージ構築の時に使う環境変数を設定するため、
+内部でdpkg-buildflag相当の処理を呼び出します。
+
+その為、debhelper時に設定される環境変数は、
+\begin{enumerate}
+\item /etc/dpkg/buildflags.confの中身
+\item XDG\_CONFIG\_HOME/dpkg/buildflags.conf (XDG\_CONFIG\_HOMEは環境変数です)の中身
+\item HOME/.config/dpkg/buildflags.conf (HOMEは環境変数です)の中身
+\item DEB\_flag\_MAINT\_SET,DEB\_flag\_MAINT\_STRIP,DEB\_flag\_MAINT\_APPEND,DEB\_flag\_MAINT\_PREPEND,DEB\_BUILD\_MAINT\_OPTINS（全部環境変数です）の値
+\end{enumerate}
+により様々に変化します。どのように変わるかはman dpkg-buildflagを参照してください。
+
+\subsection{今月のコマンドその2:dh\_testroot}
+
+\subsubsection{dh\_testroot動作詳細}
+
+ 現在の実行ユーザがrootであるかどうかを確認するコマンドです。rootユーザでは無い場合、
+エラーメッセージを出力して処理を中断します。
+
+\subsubsection{dh\_testrootコマンドラインオプション}
+
+　コマンドラインオプションは特にありません。何か指定しても無視されます。
+
+\subsubsection{dh\_testrootを実行してみる}
+
+早速、実行してみましょう。
+
+\begin{commandline}
+$ sudo dh_testroot
+$ echo $?
+0
+$ dh_testroot
+You must run this as root (or use fakeroot).
+$ echo $?
+255
+$ fakeroot dh_testroot
+$ echo $?
+0
+\end{commandline}
+% $
+
+このようにroot権限で実行するか、fakeroot経由で実行した時のみ0を返却します。
+
+\subsubsection{次回の発表について}
+
+次の発表者は勉強会で発表します。選ばれた人はよろしくおねがいします。
+
+%-------------------------------------------------------------------------------
+\dancersection{おまけ：東京エリアDebian勉強会を開催してみる}{野島 貴英}
+%-------------------------------------------------------------------------------
+\index{hold-tokyodebian-meeting}
+
+\subsection{はじめに}
+
+実は東京エリアDebian勉強会では、毎年12月は勉強会の開催方法についてサマリしています。
+今回、初めて野島が勉強会幹事を勤めましたので、こちらについてサマリしてみます。
+
+\subsection{東京エリアDebian勉強会を開く時のスケジュール}
+
+以下のスケジュールで行う事が一般的なようです。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|p{20em}|p{23em}|}
+\hline
+時期&作業内容 \\
+\hline
+開催2ヶ月前 & 場所を確保します。多くの会議室は２ヶ月前に予約しないと埋まってしまうケースが多いです。\\
+\hline
+開催2ヶ月前〜1ヶ月前 & 勉強会のテーマと、事前課題を決めます。\\
+\hline
+開催1ヶ月前 & 勉強会のテーマに沿った原稿を募集します。時間枠にあわせた発表が埋まらない場合、発表者を枠が埋まるまで、探す事になります。また、開催にあたり、作業の分担が必要な時は、この時ぐらいに割り当てを完了します。また、宴会の場所について、確保が困難な事が予想される場合は、あらかじめ席のみ予約しておきます。\\
+\hline
+開催2週間前までに & \url{http://www.debian.or.jp/}及び、\url{http://tokyodebian.alioth.debian.org/}、\url{http://debianmeeting.appspot.com/eventadmin/edit?eventid=}に勉強会の掲示を出します。\\
+\hline
+開催１週間前までに & 発表者の原稿が勉強会資料用gitにpushされます。\\
+\hline
+開催２日前　& 参加者の募集の締切りを行います。この時までに揃った事前課題を掲載します。\\
+\hline
+開催1日前　& kinkos等の印刷サービスに原稿印刷を依頼します。\\
+\hline
+開催当日　& \begin{enumerate}
+  \item 印刷サービスから原稿を受け取り、製本します。
+  \item 参加者に会費の回収と集計をします。
+  \item 勉強会を定刻どおりに開催します。
+  \item 司会者、発表者と協力して時間内に勉強会を終了します。
+　　\item 宴会の場所の確保が困難でない時は、宴会の場所を抑えます。
+  \item 宴会の開催、宴会の会計をします。
+\end{enumerate} \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\clearpage
+
+\subsection{東京エリアDebian勉強会の開催調整}
+
+東京エリアDebian勉強会の開催調整は専用のMLがあり、普段はこちらで調整が行われます。
+現在よく使われているのは\url{http://qwik.jp/}の提供するMLで行われています。
+
+\subsection{初めて東京エリアDebian勉強会の開催を担当する場合の事前準備}
+
+初めて東京エリアDebian勉強会の開催を担当する場合以下の準備が必要です。
+
+\begin{enumerate}
+\item Debian JP Projectの提供するサーバーへログインできるアカウントを持つ必要があります。これは通常Debian JP Projectの会員になるときに付与されます。
+\item \url{http://alioth.debian.org/}に別途アカウントを取得する必要があります。アカウントを取得したら、MLでtokyodebianグループ権限に所属させてほしい旨、取得したIDを沿えて依頼します。
+\item \url{http://debianmeeting.appspot.com/eventadmin/〜}を操作できるように、MLで依頼します。この時、開催しようとしている勉強会のイベント登録ページも作成してもらいます。
+\end{enumerate}
+
+また、勉強会の幹事担当の場合に必要な知識とコンピュータの環境を載せます。
+
+\begin{enumerate}
+\item Debianが動作し、インターネットが利用できるPCの用意
+\item emacs,muse-elの基本操作についての知識
+\item git、subversionの基本操作の知識
+\item ブラウザとHTMLの記載の知識
+\item sshに関する知識
+\item \url{http://alioth.debian.org/},\url{http://qwik.jp/}の使い方の知識
+\item LaTeXの知識
+\end{enumerate}
+
+\subsection{東京エリアDebian勉強会の掲示の出し方}
+
+\url{http://www.debian.or.jp/}に掲示を出す場合の編集の仕方は、\url{http://www.debian.or.jp/project/webmasters.html}にその記載があります。実際には、svnでリポジトリをとってきて、
+www.debian.or.jp/blosxom/data/ events/tokyodebian-XX.d (XXは第XX回を示します）を作成します。
+
+\url{http://debianmeeting.appspot.com/eventadmin/edit?eventid=}のフォームの編集はフォームに沿って情報を入れるだけです。ただ、細かい事は表示能力の為に書きにくいので、\url{http://tokyodebian.alioth.debian.org/YYYY-MM.html}へのリンクをURLのフォームに指定し、細かい事はURLを参照して欲しい旨記載します。
+
+\url{http://tokyodebian.alioth.debian.org/}へは、\url{http://qwik.jp/ML名}のトップページに記載されているやり方に従います。実際にはgitで\url{git+ssh://git.debian.org/git/tokyodebian/muse.git};リポジトリをcloneして、muse形式で編集し、make publishする事となります。
+
+\subsection{終わりに}
+
+ 東京エリアDebian勉強会の開催について書いてみました。これであなたも、東京エリアDebian勉強会を開けるはず！
 
 \printindex
 
