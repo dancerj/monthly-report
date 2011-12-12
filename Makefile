@@ -10,7 +10,7 @@ check: all
 publish: $(RELEASEFILES)
 	# this gives error when I am not the owner of the
 	# file, but fixes all files that I am the owner
-	-ssh alioth.debian.org chmod 664 :/home/groups/tokyodebian/htdocs/pdf/*.pdf
+	-ssh alioth.debian.org chmod 664 /home/groups/tokyodebian/htdocs/pdf/*.pdf
 
 %.release-stamp: %.pdf
 	# copy PDF file to a temporal location, and fixup permissions, and move to final destination.
