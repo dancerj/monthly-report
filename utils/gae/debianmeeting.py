@@ -18,7 +18,7 @@ import webapp_generic
 class TopPage(webapp_generic.WebAppGenericProcessor):
     """The top page for the site. 
     Has a form to create a new event."""
-    def process_input(self):
+    def get(self):
         user = users.get_current_user()
         
         events = self.load_event_with_owners(user)
@@ -42,7 +42,7 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
 
 class Thanks(webapp_generic.WebAppGenericProcessor):
     """Show a thanks page"""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:

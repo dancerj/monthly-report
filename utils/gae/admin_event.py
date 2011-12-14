@@ -13,7 +13,7 @@ DEFAULT_CAPACITY = 30
 
 class NewEvent(webapp_generic.WebAppGenericProcessor):
     """Form to create a new event."""
-    def process_input(self):
+    def get(self):
         template_values = {
             'nickname': users.get_current_user().nickname(),
             'eventid': "na", # set it to N/A to later set it to something else...?
@@ -24,7 +24,7 @@ class NewEvent(webapp_generic.WebAppGenericProcessor):
 
 class EditEvent(webapp_generic.WebAppGenericProcessor):
     """Load from the existing data and edit the event"""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid(eventid)
         if event == None:
@@ -67,7 +67,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
     """Load from the existing database and edit the event content.
     Handler for /eventadmin/register
     """
-    def process_input(self):
+    def post(self):
         eventid = self.request.get('eventid')
         title = self.request.get('title')
         user = users.get_current_user()
@@ -117,7 +117,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
 
 class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
     """View summary of registered users for a given event."""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if not event:
@@ -142,7 +142,7 @@ You are not allowed to see a summary""")
 
 class PreworkLatex(webapp_generic.WebAppGenericProcessor):
     """View prework from registered users in LaTeX format."""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if not event:

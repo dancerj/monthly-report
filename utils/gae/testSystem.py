@@ -125,7 +125,7 @@ class SystemTest(unittest.TestCase):
         self.assertTrue(eventid in response)
 
     def userEventEntryFormSimple(self, app, eventid, new_entry):
-        response = app.post('/event',
+        response = app.get('/event',
                             {
                 'eventid': eventid,
                 'ui': 'simple',
@@ -139,7 +139,7 @@ class SystemTest(unittest.TestCase):
         """Show the page user is prompted with before registration.
         Test the two variances.
         """
-        response = app.post('/event',
+        response = app.get('/event',
                             {
                 'eventid': eventid,
                 })
@@ -198,7 +198,7 @@ class SystemTest(unittest.TestCase):
 
         # check user sees the event after registering
         self.userEventEntry(app, eventid)
-        response = app.post('/')
+        response = app.get('/')
         self.assertEqual('200 OK', response.status)
         self.assertTrue(TITLE in response)
 
@@ -220,7 +220,7 @@ class SystemTest(unittest.TestCase):
 
         # check user sees the event after registering
         self.userEventEntry(app, eventid, capacity=1)
-        response = app.post('/')
+        response = app.get('/')
         self.assertEqual('200 OK', response.status)
         self.assertTrue(TITLE in response)
 
@@ -245,7 +245,7 @@ class SystemTest(unittest.TestCase):
         self.userEventEntry(app, eventid)
 
         self.login(LOGGED_IN_ADMIN)
-        response = app.post('/eventadmin/summary', 
+        response = app.get('/eventadmin/summary', 
                             {
                 'eventid': eventid,
                 })

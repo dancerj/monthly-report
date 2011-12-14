@@ -8,7 +8,7 @@ import webapp_generic
 
 class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
     """Form where user signs up for an event, and edits old sign-up entries."""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         if not user:
@@ -76,7 +76,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
 
 class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
     """The page to show after user commits to a registration."""
-    def process_input(self):
+    def post(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:
