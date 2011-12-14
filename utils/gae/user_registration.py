@@ -8,6 +8,19 @@ import webapp_generic
 
 class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
     """Form where user signs up for an event, and edits old sign-up entries."""
+    def ValidateContentUrl(self, url):
+        """Validate that content URL is not malicious and return a
+        non-malicious URL.
+
+        There isn't much we can really do, but avoid obvious ones like
+        javascript: lines.
+        """
+        if url.startswith('http://'):
+            return url
+        if url.startswith('https://'):
+            return url
+        return ''
+
     def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
@@ -36,7 +49,7 @@ class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
             'title': event.title,
             'location': event.location,
             'content_text': event.content_text,
-            'content_url': event.content_url,
+            'content_url': self.ValidateContentUrl(event.content_url),
             'prework_text': event.prework_text,
             'event_date': event.event_date,
             'remaining_seats': remaining_seats,
