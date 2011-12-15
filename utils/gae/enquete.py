@@ -10,7 +10,7 @@ import webapp_generic
 
 class EnqueteAdminEdit(webapp_generic.WebAppGenericProcessor):
     """Admin edits the enquete questionnaire."""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
@@ -27,6 +27,7 @@ class EnqueteAdminEdit(webapp_generic.WebAppGenericProcessor):
             'eventid': event.eventid,
             'event_title': event.title,
             'overall_message': enquete.overall_message,
+
             'question_text': '\n'.join(enquete.question_text),
             }
         self.template_render_output(template_values, 'EnqueteAdminEdit.html')
@@ -34,7 +35,7 @@ class EnqueteAdminEdit(webapp_generic.WebAppGenericProcessor):
 
 class EnqueteAdminEditDone(webapp_generic.WebAppGenericProcessor):
     """Admin submits edits to the enquete questionnaire."""
-    def process_input(self):
+    def post(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
@@ -60,7 +61,7 @@ class EnqueteAdminEditDone(webapp_generic.WebAppGenericProcessor):
 class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
     """Send mail to all participants by request of the administrator.
     This code will queue the mail through GAE taskqueue."""
-    def process_input(self):
+    def post(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
@@ -104,7 +105,7 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
 class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
     """Taskqueue email handler. This is the worker job which will
     actually send mail."""
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:
@@ -123,7 +124,7 @@ class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
 class EnqueteRespond(webapp_generic.WebAppGenericProcessor):
     """Page for user to enter form for enquete."""
     # TODO: should I allow for editing ?
-    def process_input(self):
+    def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         attendance = self.load_attendance_with_eventid_and_user(eventid, user)
@@ -159,7 +160,7 @@ class EnqueteRespond(webapp_generic.WebAppGenericProcessor):
 class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
     """User has responded to enquete and sends the result. We will
     store the resulting data to database."""
-    def process_input(self):
+    def post(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
@@ -213,8 +214,8 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
             mail_title, mail_message)
 
 class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
-    """Admin submits edits to the enquete questionnaire."""
-    def process_input(self):
+    """Admin lists enquete results summary."""
+    def get(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:

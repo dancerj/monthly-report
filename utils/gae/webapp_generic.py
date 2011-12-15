@@ -13,18 +13,7 @@ MEMCACHE_EXPIRE_TIME = 24 * 60 * 60 # Make it so that cache expires after 24 hou
 
 class WebAppGenericProcessor(webapp.RequestHandler):
     """Convenience class to collect all methods that seem generally useful.
-
-    Merge get and post requests so that both is handled by the same
-    handler, process_input.
     """
-    def process_input(self):
-        """do something here"""
-
-    def get(self):
-        self.process_input()
-
-    def post(self):
-        self.process_input()
 
     def fixup_attendance(self, attendance):
         """Fixup attendance after loading.
