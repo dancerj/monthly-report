@@ -254,6 +254,75 @@ class SystemTest(unittest.TestCase):
         self.assertTrue(LOGGED_IN_USER in response)
         self.assertTrue(USER_PREWORK in response)
 
+    def testEnqueteCreate(self):
+        """Test Enquete creation flow.
+        """
+        # generate event data first
+        app = TestApp(application)
+        eventid = self.createPageCommitHelper(app)
+
+        # be the admin and create the enquete.
+        self.login(LOGGED_IN_ADMIN)
+        
+        response = app.get('/enquete/edit',
+                           {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+
+        question_text = '''question 1
+question 2
+question 3'''
+        response = app.post('/enquete/editdone',
+                           {
+                'eventid': eventid,
+                'overall_message': 'hello',
+                'question_text': question_text,
+                })
+        self.assertEqual('200 OK', response.status)
+
+        # make sure the next time to edit will show the content
+        response = app.get('/enquete/edit',
+                           {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue(question_text in response)
+
+        # user joins the event
+        self.login(LOGGED_IN_USER)
+        self.userEventEntry(app, eventid)
+
+        response = app.get('/enquete/respond',
+                           {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue('question 1' in response)
+        self.assertTrue('question 2' in response)
+        self.assertTrue('question 3' in response)
+
+        response = app.post('/enquete/responddone',
+                           {
+                'eventid': eventid,
+                'question0': 0,
+                'question1': 5,
+                'question2': 4,
+                'overall_comment': 'hello world',
+                })
+        self.assertEqual('200 OK', response.status)
+
+        # admin views the list
+        self.login(LOGGED_IN_ADMIN)
+        response = app.get('/enquete/showresult',
+                           {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertEquals('''question 1,question 2,question 3,自由記入
+NA,5,4,hello world
+
+''', response.body)
 
 if __name__ == '__main__':
     unittest.main()
