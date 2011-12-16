@@ -1,5 +1,5 @@
 %%Title: ./attend.png
-%%Creator: ebb Version 0.5.2
-%%BoundingBox: 0 0 667 260
-%%CreationDate: Fri Nov 27 07:07:34 2009
+%%Creator: extractbb 20090708
+%%BoundingBox: 0 0 384 252
+%%CreationDate: Sat Dec 17 00:30:55 2011
 
