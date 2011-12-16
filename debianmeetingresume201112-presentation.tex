@@ -128,6 +128,7 @@ Debian の常識、もちろん知ってますよね?
  \input{image201112/prework4p.tex}
 }
 \section{今月の発表}
+\subsection{2011年の振り返り}
 \emtext{2011年の振り返り}
 
 \begin{frame}{参加者数、事前・事後課題 年移動平均推移}
@@ -392,16 +393,177 @@ MacBookが新しい基盤に。
 }
 \end{frame}
 
+\subsection{quiltでportingしてみた}
 \emtext{quiltでportingしてみた}
+\subsection{月刊debhelper 第２回}
 \emtext{月刊debhelper 第２回}
+\begin{frame}{今回発表の流れ}
+\begin{itemize}
+\item ちょっとおさらい
+\item debhelper共通の事柄
+\item 今月のコマンド: dh
+\item 今月のコマンド: dh\_testroot
+\item 次回発表者
+\end{itemize}
+\end{frame}
+\begin{frame}[containsverbatim]{ちょっとおさらい}
+例：xmrisパッケージの場合
+\begin{commandline}
+ソース展開後のパッケージディレクトリ:
+~/prog/xmris/xmris-4.0.5/ ls
+CHANGES       PixmapList.h  defmred.h     player.c
+CHANGES.4.01  README        defmris.c     puzzle.gdn
+...中略...
+Icon.h        debian/       menubar.c     xmris.h
+Imakefile     defcom.c      monster.c     xmris.man
+Makefile.std  defcom.h      move.c
+PixmapList.c  defmred.c     patchlevel.h
+\end{commandline}
 
+\end{frame}
+
+\begin{frame}[containsverbatim]{ちょっとおさらい}
+debian/ディレクトリ以下
+\begin{commandline}
+~/prog/xmris/xmris-4.0.5/debian/ ls
+README.Debian  control    patches/     xmris.manpages
+README.source  copyright  rules*       xmris.menu
+changelog      dirs       watch        xmris.postinst
+compat         docs       xmris.links  xmris.postrm
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{ちょっとおさらい}
+debian/rule中身
+\begin{commandline}
+~/prog/xmris/xmris-4.0.5/debian/ cat rules 
+#!/usr/bin/make -f
+%:
+	dh $@ --with quilt
+
+override_dh_auto_configure:
+	xmkmf -a
+\end{commandline}
+%$
+\end{frame}
+\begin{frame}[containsverbatim]{ちょっとおさらい}
+debian/rules build実行
+\begin{commandline}
+~/prog/xmris/xmris-4.0.5/ debian/rules build
+dh build --with quilt
+   dh_testdir
+   dh_quilt_patch
+パッチ debian_system.patch を適用しています
+patching file Imakefile
+...中略(ビルド続く)...
+\end{commandline}
+\end{frame}
+\begin{frame}{debhelperコマンド群}
+今日の暴言:\\
+　/usr/bin/dh\_xxxの形のコマンドであれば何でも\\
+ (man debhelperより)
+\end{frame}
+\begin{frame}[containsverbatim]{debhelperコマンド群}
+\begin{commandline}
+~/ apt-file search /dh | fgrep /usr/bin 
+autotools-dev: /usr/bin/dh_autotools-dev_restoreconfig
+autotools-dev: /usr/bin/dh_autotools-dev_updateconfig
+bash-completion: /usr/bin/dh_bash-completion
+cli-common-dev: /usr/bin/dh_auto_build_nant
+cli-common-dev: /usr/bin/dh_auto_clean_nant
+cli-common-dev: /usr/bin/dh_clideps
+..中略...
+~/ apt-file search /dh | fgrep /usr/bin |wc -l
+156
+\end{commandline}
+!156個もあるぞ。(1人2個発表で、6年間の長期連載企画!)
+\end{frame}
+
+\begin{frame}{debhelper共通コマンドラインオプション}
+全debhleprコマンドに共通：
+\begin{itemize}
+\item -v,--verbose: \\何実行してるかも見せる
+\item --no-act: \\実行しようとするdebhelperコマンドみせるだけ。実行しない。
+\item -ppackage, --package=package : \\処理するパッケージを指定
+\item -a,--arch
+\item -i,--indep
+\item -s,--same-arch
+\end{itemize}
+説明はman debhelper
+\end{frame}
+\begin{frame}{debhelper共通コマンドラインオプション}
+全debhleprコマンドに共通：
+\begin{itemize}
+\item -Npackage,--no-package=package: \\指定パッケージを処理しない
+\item --remainning-packages:\\
+すでに処理しているものは処理しない。
+\item --ignore=file:\\
+debian/の特定のfileを無視する。
+\item -Ptmpdir, --tmpdir=tmpdir:\\
+tmpdirをパッケージ構築ディレクトリとして利用
+\item --mainpackage=package
+\item -O=option
+\end{itemize}
+説明はman debhelper
+\end{frame}
+
+\begin{frame}{debhelper環境変数}
+指定されているとdebhelperの動作変わります。
+\begin{itemize}
+\item DH\_VERBOSE\\
+1にすると-vつけたのと同じ。
+\item DH\_COMPAT\\
+互換性度合い(COMPATABILITY LEVEL)を強制的に指定(debian/compatより優先)
+\item DH\_NO\_ACT\\
+1だと--no-actオプションをつけたのと一緒。
+\item DH\_OPTIONS\\
+debhelperコマンドの末尾に\$DH\_OPTIONSの中身を指定したのと一緒
+\item DH\_ALWAYS\_EXCLUDE\\
+指定されているファイル,ディレクトリパターンを除外。-Xオプションと同等。指定例：DH\_ALWAYS\_EXCLUDE=CVS:.svnなど。\\
+\end{itemize}
+
+\end{frame}
+\begin{frame}{互換性度合い(COMPATABILITY LEVEL)}
+\end{frame}
+\begin{frame}{今月のコマンド: dh}
+\end{frame}
+\begin{frame}{dh起動してみる}
+\end{frame}
+\begin{frame}{シーケンス名って？}
+\end{frame}
+\begin{frame}{override\_{\em debhelperコマンド名}}
+\end{frame}
+\begin{frame}{addon}
+\end{frame}
+\begin{frame}{addon一覧}
+\end{frame}
+\begin{frame}{addon構造}
+\end{frame}
+\begin{frame}{dh内部動作}
+\end{frame}
+\begin{frame}{``debian/パッケージ名.debhelper.log''ファイルについて}
+\end{frame}
+\begin{frame}{dpkg-buildflagとの統合(v9)}
+\end{frame}
+\begin{frame}{今月のコマンド: dh\_testroot}
+\end{frame}
+\begin{frame}{dh\_testroot実行結果}
+\end{frame}
+\begin{frame}{次回発表者}
+\end{frame}
+\begin{frame}{次回発表者}
+\end{frame}
+\begin{frame}{次回発表者}
+\end{frame}
 \section{今後のイベント}
 \emtext{今後のイベント}
 \begin{frame}{今後のイベント}
  
 \begin{itemize}
  \item 12月度HackCaffe\\
-   
+12/26(月)19:00-21:00\\
+\url{http://atnd.org/events/22786}\\
+\url{https://twitter.com/debian_hackcafe}
  \item 1月 第84回 東京エリアDebian勉強会
 \end{itemize}
 \end{frame}
