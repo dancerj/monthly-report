@@ -46,7 +46,9 @@ class WebAppGenericProcessor(webapp.RequestHandler):
                                                                        user.email()).fetch(1000)
         for event in events:
             self.fixup_event(event)
-        return events
+        
+        # Sort by timestamp, to mix events that are owned by somebody else.
+        return sorted(events, key=lambda x: x.timestamp, reverse=True)
 
     def load_event_with_eventid(self, eventid):
         """Load an event with the eventid.
