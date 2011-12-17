@@ -588,30 +588,283 @@ arch$B0MB8$N%Q%C%1!<%8$K$D$$$F!"9=C[$+$i!"%Q%C%1!<%8@8@.D>A0$^$G$N=hM}$r9T$&%7!
 \item install-indep \\
 arch$BHs0MB8$N%Q%C%1!<%8$K$D$$$F!"9=C[$+$i!"%Q%C%1!<%8@8@.D>A0$^$G$N=hM}$r9T$&%7!<%1%s%9$G$9!#(B
 \end{itemize}
+$B$J$*!"(B--with foo$B$r;XDj$9$k$H!"(Bdh$B$K;XDj2DG=$J%7!<%1%s%9$,A}$($k>l9g$,$"$j$^$9(B($BNc!'(B --with quilt$B$N(Bpatch$B%7!<%1%s%9Ey!#!K(B
 \end{frame}
-\begin{frame}{override\_{\em debhelper$B%3%^%s%IL>(B}}
+\begin{frame}{dh$B$N%3%^%s%I%i%$%s%7!<%1%s%9(B}
+\begin{itemize}
+\item --with addon[,addon ...] \\
+$BE,@Z$J>l=j$G0lO"$N%3%^%s%I$r<B9T$9$k$h$&$JIU2C5!G=(B(addon)$B$r;XDj$7$^$9!#(B
+\item --without addon\\
+--with$B$H$O5U$NF/$-$r$7$^$9!#;XDj$5$l$?IU2C5!G=$r;H$o$J$$$h$&$K$7$^$9!#(B
+\item --list, -l \\
+$BMxMQ2DG=$JIU2C5!G=0lMw!#(B
+\end{itemize}
 \end{frame}
-\begin{frame}{addon}
+\begin{frame}{dh$B$N%3%^%s%I%i%$%s%7!<%1%s%9(B}
+\begin{itemize}
+\item --no-act \\
+$B;XDj$5$l$?0lO"$N=hM}$NFbMF$rI=<($9$k$@$1%3%^%s%I$H$J$j$^$9!#I=<($@$1$7$F<B:]$K$O%3%^%s%I$r<B9T$7$^$;$s!#(B
+\item $B$=$NB>(B \\
+dh$B$K!"@h$K5-:\$7$?0J30$N2?$+%*%W%7%g%s$rEO$9$H$=$l$O$N$A$K<B9T$9$kA4%3%^%s%I$X(B
+$B0z$-EO$5$l$^$9!#(B-v$B!"(B-X$B!"(B-N$B$d!"B>$NFCJL$J%*%W%7%g%s$r;XDj$9$k$N$K;H$o$l$^$9!#(B
+\end{itemize}
 \end{frame}
-\begin{frame}{addon$B0lMw(B}
+
+\begin{frame}[containsverbatim]{$BGQ;_$5$l$?%3%^%s%I%i%$%s%*%W%7%g%s(B}
+
+--until,--before,--after,--remaining$B$,$"$j$^$7$?$,!"$3$l$i$OA4It(Bdh$B$,2r<a$9$k(B
+``override\_{\em DH$B%3%^%s%IL>(B}$B%?!<%2%C%H(B''$B$K$h$kF0:n$KCV$-49$($i$l$?0Y!"(B
+{\em $BGQ;_(B}$B$H$J$j$^$7$?!#(B
+
+$B$J$N$G!"@N$N(Bdebian/rule$B$K$"$k$h$&$J!"0J2<$NMQ$J=q$-J}$O(B{\em $BGQ;_(B}$B$G$9!#(B
+
+\begin{commandline}
+$BGQ;_$5$l$?=q$-J}(B
+#!/usr/bin/make -f
+
+%:
+        dh $@
+
+build: build-stamp
+build-stamp:
+        dh build --before configure
+        dh_auto_configure -- --with-gnu-ld --disable-nls
+        dh build --after configure
+        touch build-stamp
+\end{commandline}
+%$
+
+\end{frame}
+\begin{frame}[containsverbatim]{override\_{\em debhelper$B%3%^%s%IL>(B}}
+dh$B%3%^%s%I$O(B''dh $B%7!<%1%s%9L>(B''$B$K$h$j!"$=$N%7!<%1%s%9$KI,MW$J0lO"$N(Bdebhelper$B%3%^%s%I$r8F$S=P$95!G=$,$"$j$^$9!#(B($B$I$s$J(Bdebhelper$B%3%^%s%I$,8F$S=P$5$l$k$+$O!"(B--no-act$B$r%*%W%7%g%s$K$D$1$F!"(Bdh --no-act build$B$H$+!"(Bdh --no-act install$B$H$+$7$F$/$@$5$$!K(B
+
+$B$3$N8F$S=P$5$l$k%3%^%s%I$r0lItJQ99$7$?$$>l9g$O0J2<$N$h$&$K=q$-$^$9!#(B
+
+\begin{commandline}
+$B:#;~$N=q$-J}!'(B
+#!/usr/bin/make -f
+
+%:
+        dh $@
+
+override_dh_autoconfigre:
+        dh_auto_configure -- --with-gnu-ld --disable-nls
+\end{commandline}
+%$
+\end{frame}
+\begin{frame}[containsverbatim]{override\_{\em debhelper$B%3%^%s%IL>(B}}
+$B$3$N(B''override\_dh\_$B%3%^%s%IL>(B''$B%?!<%2%C%H$O!"%3%^%s%I$r(B{\em $B<B9T$7$?$/$J$$>l9g(B}$B$K$bMxMQ2DG=$G$9!#(B(``override\_dh\_$B%3%^%s%IL>(B''$B$N%"%/%7%g%s$r6u$K$9$k;v$,%_%=$G$9!#(B)
+
+\begin{commandline}
+dh_auto_test,dh_compress,dh_fixperms$B$r<B9T$7$?$/L5$$>l9g!'(B
+#!/usr/bin/make -f
+
+%:
+        dh $@ 
+
+override_dh_auto_test override_dh_compress override_dh_fixperms:
+
+\end{commandline}
+%$
+
+\end{frame}
+\begin{frame}[containsverbatim]{addon}
+dh$B%3%^%s%I$N%*%W%7%g%s(B--with addon$B$K$F(Baddon$B$,Ds6!$9$k%Q%C%1!<%8$N:n@.J}K!$rAH$_9~$`(B
+$B;v$,$G$-$^$9!#$*;H$$$N%7%9%F%`$G8=:_$I$s$J(Baddon$B$,;H$($k$+$O(Bdh --list$B$r<B9T$9$k$H0lMw(B
+$B$,=P$F$-$^$9!#(B
+\begin{commandline}
+$dh --list
+bash-completion
+dkms
+python-central
+python-support
+python2
+quilt
+tex
+$
+$B!J(B...$B$*;H$$$N%7%9%F%`$K$h$C$FI=<($5$l$kNL$,JQ$o$j$^$9(B...)
+\end{commandline}
+\end{frame}
+\begin{frame}[containsverbatim]{addon$B0lMw(B}
+\begin{commandline}
+$ apt-file search Debhelper/Sqeuence
+autotools-dev: /usr/share/perl5/Debian/Debhelper/Sequence/autotools_dev.pm
+bash-completion: /usr/share/perl5/Debian/Debhelper/Sequence/bash_completion.pm
+...$BCfN,(B...
+sphinx-common: /usr/share/perl5/Debian/Debhelper/Sequence/sphinxdoc.pm
+tex-common: /usr/share/perl5/Debian/Debhelper/Sequence/tex.pm
+xserver-xorg-dev: /usr/share/perl5/Debian/Debhelper/Sequence/xsf.pm
+xulrunner-dev: /usr/share/perl5/Debian/Debhelper/Sequence/xulrunner.pm
+$ apt-file search Debhelper/Sqeuence | wc -l
+43
+$
+\end{commandline}
+% $
+$BA4It$G(B43$B8D$b$"$j$^$9$M!#(B(debian sid$B$G<B9T!K(B
+\end{frame}
+\begin{frame}[containsverbatim]{addon$BJ#?t(B}
+\begin{commandline}
+quilt$BMQ$N(Baddon$B$H!"(Bautotools_dev$BMQ$N(Baddon$B$rJ;MQ$7$?$$;~!'(B
+#!/usr/bin/make -f
+%:
+        dh $@ --with quilt --with autotools_dev
+#       dh $@ --with quilt,autotools_dev$B!!$b(BOK
+\end{commandline}
+%$
 \end{frame}
 \begin{frame}{addon$B9=B$(B}
+$BNc$($P!"(B--with quilt$B$N>l9g!"(B
+\begin{enumerate}
+ \item dh clean$B$K$F!"(Bdh\_clean$B$r8F$S=P$9A0$K!"(Bquilt$B%Q%C%1!<%8$,0l=o$KDs6!$7$F$$$k(Bdh\_quilt\_unpatch$B%3%^%s%I$r8F$S=P$9$h$&$K$J$j$^$9!#(B
+ \item dh build$B$G$O!"(Bdh\_auto\_configure$B$NA0$K(Bdh\_quilt\_patch$B$r8F$S=P$9$h$&$K$J$j$^$9!#(B
+ \item dh$B$K%7!<%1%s%9L>(Bpatch$B$,DI2C$5$l!"(Bdh patch$B$,;H$($k$h$&$K$J$j$^$9!#(B
+\end{enumerate}
 \end{frame}
+\begin{frame}[containsverbatim]{addon$B9=B$(B}
+quilt.pm$B$NCf?H(B
+\begin{commandline}
+quilt$BMQ$N(Baddon$B$NCf?H!'(B
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Debian::Debhelper::Dh_Lib;
+insert_before("dh_auto_configure", "dh_quilt_patch");
+insert_before("dh_clean", "dh_quilt_unpatch");
+# Eval to avoid problem with debhelper < 7.3.12
+eval {    add_command("dh_quilt_patch", "patch");};
+1;
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}{addon$B$N(BAPI}
+\begin{itemize}
+\item insert\_before(\$existing,\$new) \\
+ \$existing$B$G;XDj$5$l$k(Bdebhelper$B%3%^%s%I$r<B9T$9$kD>A0$K(B\$new$B$r<B9T$7$^$9!#(B
+\item insert\_after(\$existing,\$new) \\
+\$existing$B$G;XDj$5$l$k(Bdebhelper$B%3%^%s%I$r<B9T$7$?D>8e$K(B\$new$B$r<B9T$7$^$9!#(B
+\item remove\_command(\$command) \\
+\$command$B$r(Bdh$B$,<B9T$7$J$$$h$&$K$7$^$9!#(B
+\item add\_command(\$command,\$sequence) \\
+\$sequence$B$G<($5$l$k%7!<%1%s%9$G<B9T$5$l$k%3%^%s%I72$N:G8e$K(B\$command$B$rIU$12C$($^$9!#$^$?!"K\(BAPI$B$r;H$C$F%7!<%1%s%9$r?7$?$K:n@.$9$k$3$H$,$G$-$^$9!#(B
+\end{itemize}
+\end{frame}
+\begin{frame}{addon$B$N(BAPI($BB3$-(B)}
+\begin{itemize}
+\item add\_command\_options(\$command,@options) \\
+\$command$B$K!"G[Ns(B@options$B$G<($5$l$k0lO"$N%*%W%7%g%s$rIU$12C$($F<B9T$9$k$h$&$K$7$^$9!#(B
+\item remove\_command\_options (\$command,@options) \\
+\$command$B$+$iG[Ns(B@options$B$G<($5$l$k0lO"$N%*%W%7%g%s$r<h$j=|$/!#(B
+@options$B$r$^$C$?$/;XDj$;$:$K(Bremove\_command\_options(\$command)$B$H8F$S=P$9$H!"(B\$command$B$K$D$$$F$N%*%W%7%g%sA4It$r<h$j=|$-$^$9!#(B
+\end{itemize}
+\end{frame}
+
 \begin{frame}{dh$BFbItF0:n(B}
+$B%l%8%a(Bpp.21$B;2>H(B
 \end{frame}
+\begin{frame}[containsverbatim]{``debian/$B%Q%C%1!<%8L>(B.debhelper.log''$B%U%!%$%k$K$D$$$F(B}
+$B:G6a$N(Bdh$B%3%^%s%I$r;H$&(Bdebian/rules$B$K$O!"%U%!%$%k$N0MB84X78$K$D$$$F$N5-:\$,$"$j$^$;$s!#$3$N0Y!"%Q%C%1!<%8%S%k%ICf$G=hM}$,CfCG$7$?>l9g!"$I$3$+$i:F3+$9$l$PNI$$$+$r(Bdebian/rules$B$G(Bmake$B$,H=Dj$9$k;v$O$G$-$^$;$s!#(B
+
+$B$=$N$?$a!"Be$o$j$K(B''debian/$B%Q%C%1!<%8L>(B.debhelper.log''$B$K5-O?$r;D$7%j%8%e!<%`$7$^$9!#(B
+\begin{commandline}
+debian/$B%Q%C%1!<%8L>(B.debhelper.log$B$NCf?H(B:
+dh_auto_test
+dh_prep
+dh_installdirs
+...$BCfN,(B...
+dh_buiddeb
+\end{commandline}
+\end{frame}
+
 \begin{frame}{``debian/$B%Q%C%1!<%8L>(B.debhelper.log''$B%U%!%$%k$K$D$$$F(B}
+$BCm0U!'$J$*!"=hM}:F3+$N>l=j$O!"$3$N%m%0%U%!%$%k$N$_;2>H$7$F7h$a$k0Y!"=hM}$rCfCG$7$?8e$K!"%Q%C%1!<%8$N%=!<%9%U%!%$%k$rJQ99$7$F:F3+$5$;$k$h$&$J;H$$J}$O$G$-$^$;$s!#Nc$($P!"%=!<%9%U%!%$%kCf$N$"$k%U%!%$%k$rJQ99$7$?0Y!"FCDj$N%Q%C%1!<%8$N%7!<%1%s%9$K$D$$$F$O:F2q;~$KA4It$d$jD>$7$,I,MW$@$C$?$H$7$F$b!"$3$l$r<+F0$G8!CN$9$k$3$H$O$G$-$^$;$s!#(B
+\begin{center}
+$B$=$j$c$=$&$@!#(B
+\end{center}
 \end{frame}
+
 \begin{frame}{dpkg-buildflag$B$H$NE}9g(B(v9)}
+$B8_49@-EY9g$$(B(COMPATABILITY LEVEL)$B$K(Bv9$B;XDj$9$k$H!"(B
+dh$B$OFbIt$G(Bdpkg-buildflags$BAjEv$N=hM}$r8F$S=P$7$F(B
+$B%3%s%Q%$%k;~$N4D6-JQ?t$r;XDj$G$-$k$h$&$K$J$j$^$9!#(B
+$B$J$N$G!"8F$S=P$5$l$k(Bdebhelper$B;~$K@_Dj$5$l$k4D6-JQ?t$O!"(B
+\begin{enumerate}
+\item /etc/dpkg/buildflags.conf$B$NCf?H(B
+\item XDG\_CONFIG\_HOME/dpkg/buildflags.conf (XDG\_CONFIG\_HOME$B$O4D6-JQ?t$G$9(B)$B$NCf?H(B
+\item HOME/.config/dpkg/buildflags.conf (HOME$B$O4D6-JQ?t$G$9(B)$B$NCf?H(B
+\item DEB\_flag\_MAINT\_SET, DEB\_flag\_MAINT\_STRIP, DEB\_flag\_MAINT\_APPEND, DEB\_flag\_MAINT\_PREPEND, DEB\_BUILD\_MAINT\_OPTINS$B!JA4It4D6-JQ?t$G$9!K$NCM(B
+\end{enumerate}
+$B$K$h$jMM!9$KJQ2=$7$^$9!#(B
+\end{frame}
+\begin{frame}[containsverbatim]{dpkg-buildflag$B$H$NE}9g(B(v9)}
+
+\begin{commandline}
+$ dpkg-buildflags
+CFLAGS=-g -O2 -fstack-protector --param=ssp-buffer-size=4 
+  -Wformat -Wformat-security -Werror=format-security
+CPPFLAGS=-D_FORTIFY_SOURCE=2
+CXXFLAGS=-g -O2 -fstack-protector --param=ssp-buffer-size=4 
+  -Wformat -Wformat-security -Werror=format-security
+FFLAGS=-g -O2
+LDFLAGS=-Wl,-z,relro
+$ env DEB_CFLAGS_MAINT_SET='-O3 -Wall -pedantic' dpkg-buildflags
+CFLAGS=-O3 -Wall -pedantic
+CPPFLAGS=-D_FORTIFY_SOURCE=2
+CXXFLAGS=-g -O2 -fstack-protector --param=ssp-buffer-size=4 
+  -Wformat -Wformat-security -Werro
+r=format-security
+FFLAGS=-g -O2
+LDFLAGS=-Wl,-z,relro
+$
+\end{commandline}
+%$
+
 \end{frame}
 \begin{frame}{$B:#7n$N%3%^%s%I(B: dh\_testroot}
+\begin{itemize}
+\item $BF0:n35MW(B\\
+$B8=:_$N<B9T%f!<%6$,(Broot$B$G$"$k$+$I$&$+$r3NG'$9$k%3%^%s%I$G$9!#(Broot$B%f!<%6$G$OL5$$>l9g!"(B
+$B%(%i!<%a%C%;!<%8$r=PNO$7$F=hM}$rCfCG$7$^$9!#(B
+\item $B%3%^%s%I%i%$%s%*%W%7%g%s(B\\
+$B%3%^%s%I%i%$%s%*%W%7%g%s$OFC$K$"$j$^$;$s!#2?$+;XDj$7$F$bL5;k$5$l$^$9!#(B
+\end{itemize}
 \end{frame}
-\begin{frame}{dh\_testroot$B<B9T7k2L(B}
+\begin{frame}[containsverbatim]{dh\_testroot$B$r<B9T$7$F$_$k(B}
+\begin{commandline}
+$ sudo dh_testroot
+$ echo $?
+0
+$ dh_testroot
+You must run this as root (or use fakeroot).
+$ echo $?
+255
+$ fakeroot dh_testroot
+$ echo $?
+0
+\end{commandline}
+% $
+$B$3$N$h$&$K(Broot$B8"8B$G<B9T$9$k$+!"(Bfakeroot$B7PM3$G<B9T$7$?;~$N$_(B0$B$rJV5Q$7$^$9!#(B
+\end{frame}
+\begin{frame}{man$BJ8>O::FI$N$*4j$$(B}
+debhelper$B$N(Bman$BJ8>O$N(Bpo4a$BF|K\8lLu$7$^$7$?!#(B\\
+$B!JCf4VJs9p$H$7$F!"(B1$B2s(B100\%$B$^$GLu$7$?$b$N$r(Bdebian-doc@d.o.j$B$KN.$7$?!K(B\\
+$B$^$@AF$$Lu$J$N$G!"=$@5$7$?$i$b0lEY$J$,$9$N$G!"$@$l$+::FI<jEA$C$F!<$C(B\\
+\end{frame}
+
+\begin{frame}{$B<!2sH/I=<T(B}
+\begin{center}
+$B<!2s$N9,1?$JH/I=<T$O!"(B
+\end{center}
 \end{frame}
 \begin{frame}{$B<!2sH/I=<T(B}
+\begin{center}
+$B$P$P!<$s(B
+\end{center}
 \end{frame}
 \begin{frame}{$B<!2sH/I=<T(B}
-\end{frame}
-\begin{frame}{$B<!2sH/I=<T(B}
+\begin{center}
+XXXX$B$5$s$G$9!<(B
+\end{center}
 \end{frame}
 \section{$B:#8e$N%$%Y%s%H(B}
 \emtext{$B:#8e$N%$%Y%s%H(B}
