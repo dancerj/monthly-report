@@ -145,19 +145,99 @@
 
 Debian 勉強会予約システムの開発から2年経ちました。当初は宴会君をリプレー
 スするために突貫でつくりあげたものですがほぼそのままの状態で運営されてい
-ます。ウェブアプリケーションプログラミングをよくわからずに書いていた部分
-があったのでいまから振り返って何が問題だったかを検討します。
+ます。面倒くさがって適当に実装した部分、ウェブアプリケーションプログラミ
+ングをよくわからずに書いていた部分があったのでいまから振り返って何が問題
+だったかを検討します。
 
 \subsection{脆弱性}
 
-\subsubsection{A}
-\subsubsection{B}
-\subsubsection{C}
+\subsubsection{POST/GET の使い分け}
+
+当初めんどくさかったのでpostとgetのハンドラを一緒にしてました。よって、
+あらゆるページがGETとPOSTの両方で動くようになっています。それを適切にGET
+とPOSTにわけるようにしました。
+
+GETは情報の取得のみ、POSTは登録などの副作用のある処理に利用します。
+
+ブラウザのセキュリティモデルとして、same-originじゃないとPOSTがやりにく
+いようになっています。GETはたとえばscriptタグやimgタグなどを埋め込んでお
+けばいくらでも発行できますが、POSTは多分XmlHttpRequestの発行が必要です。
+
+以前は任意のページからscriptタグの埋め込みをして勝手にDebian勉強会に登録
+することが可能でしたが、今はそれができないようになっています。
+\begin{commandline}
+<html>
+  <head>
+    <title>auto reserve exploit</title>
+    <script src="http://localhost:8080/eventregister?eventid=df24a1e1de11c067c461537dce6394e0e51df6ad&user_prework=&user_attend=attend&user_enkai_attend=enkai_attend&user_realname=myname">
+    </script>
+  </head>
+
+  <body>
+    <h1>auto reserve exploit</h1>
+    <p>
+      ぼくはまちちゃん
+    </p>
+\end{commandline}
+
+\subsubsection{HTML escaping}
+
+めんどくさかったので入力文字列のサニタイズとかエスケープとかまったくして
+ませんでした。関西Debian勉強会ではHTMLタグを勉強会の予約ページに入力して
+いたようで、それでこの脆弱性があるのに思い至りました。
+
+任意の文字列をHTMLとして出力できると、任意のjavascriptのコードを実行する
+ことができます。たとえば以下の内容を説明文にかいておけば説明ページを開い
+た瞬間に予約登録するを作成することができます。
+\begin{commandline}
+<script>
+var xhr = new XMLHttpRequest();
+xhr.open('POST', 'http://localhost:8080/eventregister');
+xhr.withCredentials = true
+xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); 
+xhr.send('eventid=df24a1e1de11c067c461537dce6394e0e51df6ad&user_prework=%E3%81%BC%E3%81%8F%E3%81%AF%E3%81%BE%E3%81%A1%E3%81%A1%E3%82%83%E3%82%93&user_attend=attend&user_enkai_attend=enkai_attend&user_realname=hamachi');
+</script>
+\end{commandline}
+
+しかたがないので文字列をエスケープするようにしました。
+副作用としてHTMLタグを説明文に打ち込むことができないようになっています。
+
+\subsubsection{任意のURL表示}
+
+Debian勉強会予約システムでは説明文の表示が貧弱な代わりに任意のURLを
+iframeで埋め込み表示できるようにしています。通常管理している勉強会のWiki
+ページを埋め込むことで二重に情報を管理しなくてすむようにという意図です。
+
+URLの中には特殊なものもあります。\url{javascript:}で始まるURLだとその
+Javascriptのコードを実行することができます。できても普通の役には立たなさ
+そうなので\url{http://}以外は許可しないようにしておきました。
+
+また、iframe buster と呼ばれる手法によりiframe
+から脱出できるようで、そういうページをiframeの中でひらいているつもりにな
+るとユーザが誤解する可能性があります。
+
+すべてのブラウザでサポートされているわけではないのですが、iframeに
+sandbox属性をつけておきjavascriptなどの実行を制約しておきました。
+
+\subsection{可能性と脆弱性のバランス}
+
+今回いろいろと脆弱性があったのでふさいでみました。しかし、脆弱性を塞ぐの
+も、ありうる被害とのバランスで考えるべきだと思います。Debian勉強会に提出
+する事前課題が漏洩するだとか勝手に宴会に参加することになっているだとか程
+度の脆弱性と、自由にHTMLが記述できる自由とどちらが重要か。すこし悩ましい
+と思いませんか?
 
 %-------------------------------------------------------------------------------
-\dancersection{XXXX}{上川純一}
+\dancersection{Debian での nodejs 入門}{XXX}
 %-------------------------------------------------------------------------------
 \index{fuga}
+
+%-------------------------------------------------------------------------------
+\dancersection{Debiandroid計画}{YYY}
+%-------------------------------------------------------------------------------
+\index{fuga}
+
+Debian GNU/Linux (arm) inside Android chrootの計画について。
 
 \printindex
 
