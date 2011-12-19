@@ -22,7 +22,7 @@
 
 %  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 % 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
-%(shell-command "cd image201109; ebb *.png")
+%(shell-command "cd image201201; ebb *.png")
 
 %%ここからヘッダ開始。
 
@@ -49,6 +49,7 @@
 \hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
 
 % ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
 \rotatebox{10}{\fontsize{32}{32} {\gt 特集1: XXXX}}
 
 \rotatebox{10}{\fontsize{32}{32} {\gt 特集2: YYYY}}
@@ -169,7 +170,9 @@ GETは情報の取得のみ、POSTは登録などの副作用のある処理に利用します。
 <html>
   <head>
     <title>auto reserve exploit</title>
-    <script src="http://localhost:8080/eventregister?eventid=df24a1e1de11c067c461537dce6394e0e51df6ad&user_prework=&user_attend=attend&user_enkai_attend=enkai_attend&user_realname=myname">
+    <script
+ src="http://localhost:8080/eventregister?eventid=df24a1e1de11c067c461537dce6394e0e51df6ad
+&user_prework=&user_attend=attend&user_enkai_attend=enkai_attend&user_realname=myname">
     </script>
   </head>
 
@@ -188,16 +191,27 @@ GETは情報の取得のみ、POSTは登録などの副作用のある処理に利用します。
 
 任意の文字列をHTMLとして出力できると、任意のjavascriptのコードを実行する
 ことができます。たとえば以下の内容を説明文にかいておけば説明ページを開い
-た瞬間に予約登録するを作成することができます。
+た瞬間に予約登録するイベントを作成することができます。
+
 \begin{commandline}
 <script>
 var xhr = new XMLHttpRequest();
 xhr.open('POST', 'http://localhost:8080/eventregister');
 xhr.withCredentials = true
 xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded'); 
-xhr.send('eventid=df24a1e1de11c067c461537dce6394e0e51df6ad&user_prework=%E3%81%BC%E3%81%8F%E3%81%AF%E3%81%BE%E3%81%A1%E3%81%A1%E3%82%83%E3%82%93&user_attend=attend&user_enkai_attend=enkai_attend&user_realname=hamachi');
+xhr.send('eventid=df24a1e1de11c067c461537dce6394e0e51df6ad&' 
++ 'user_prework=%E3%81%BC%E3%81%8F%E3%81%AF%E3%81%BE%E3%81%A1%E3%81%A1%E3%82%83%E3%82%93&'
++ 'user_attend=attend&user_enkai_attend=enkai_attend&user_realname=hamachi');
 </script>
 \end{commandline}
+
+\begin{figure}[H]
+ \begin{center}
+  \includegraphics{image201201/xhr.png}
+ \end{center} 
+\caption{Debian勉強会予約システムでの登録画面例}
+\end{figure}
+
 
 しかたがないので文字列をエスケープするようにしました。
 副作用としてHTMLタグを説明文に打ち込むことができないようになっています。
@@ -224,8 +238,8 @@ sandbox属性をつけておきjavascriptなどの実行を制約しておきました。
 今回いろいろと脆弱性があったのでふさいでみました。しかし、脆弱性を塞ぐの
 も、ありうる被害とのバランスで考えるべきだと思います。Debian勉強会に提出
 する事前課題が漏洩するだとか勝手に宴会に参加することになっているだとか程
-度の脆弱性と、自由にHTMLが記述できる自由とどちらが重要か。すこし悩ましい
-と思いませんか?
+度の脆弱性と、自由にHTMLが記述できる自由とどちらが重要か考えて見てくださ
+い。すこし悩ましいと思いませんか?
 
 %-------------------------------------------------------------------------------
 \dancersection{Debian での nodejs 入門}{XXX}
