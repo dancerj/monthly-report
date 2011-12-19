@@ -1,0 +1,236 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{東京エリアDebian勉強会 \\quilt でporting してみた}
+\subtitle{}
+\author{杉本 典充 dictoss@live.jp}
+\date{2011年12月17日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}
+ \frametitle{アジェンダ}
+ \begin{itemize}
+  \item Debian パッケージのフォーマット
+  \item quilt パッケージの紹介
+  \item Debian GNU/kFreeBSDとporting
+  \item quiltを使ってportingパッチの作成
+  \item 質疑応答
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{自己紹介}
+ \begin{itemize}
+  \item 杉本　典充 (SUGIMOTO Norimitsu)
+  \item Twitter: @dictoss
+  \item しがないソフトウェア開発者
+  \item Debian Userであり、FreeBSD Userでもある
+  \item 両者が合わさったDebian GNU/kFreeBSDがおもしろそうなので、最近使っている
+ \end{itemize}
+\end{frame}
+
+\emtext{Debianパッケージのフォーマット}
+
+\begin{frame}{Debianパッケージのフォーマット}
+ \begin{itemize}
+  \item man dpkg-source(1)に書いてあります
+  \item 3.0(native)
+   \begin{itemize}
+    \item 最初の頃からあるFormat 1.0(native)から圧縮形式が増えたもの。
+    \item packagename-version.tar.ext
+    \item packagename-version.dsc
+   \end{itemize}
+  \item 3.0(quilt)
+   \begin{itemize}
+    \item upstreamから持ってきてパッチなど修正を加えたパッケージはこの形式。
+    \item packagename-upstreamversion.orig.tar.ext
+    \item packagename-upstreamversion.orig-component.tar.ext（任意）
+    \item packagename-debianversion.debian.tar.ext
+    \item packagename-debianversion.dsc
+   \end{itemize}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{quiltコマンド}
+ \begin{itemize}
+  \item 3.0(quilt)で使用しているパッチ管理ツール
+  \item debianプロジェクトオリジナルではなく、以下プロジェクトの成果物をパッケージしたものです
+  \item https://savannah.nongnu.org/projects/quilt
+  \item debian/patches/series、又はdebian/patches/debian.seriesにパッチが積まれます
+  \item devscriptsの依存で一緒に入らないので別途「apt-get install quilt」
+ \end{itemize}
+\end{frame}
+
+\emtext{Debian GNU/kFreeBSD}
+
+\begin{frame}{Debian GNU/kFreeBSDとは}
+ \begin{itemize}
+  \item FreeBSDカーネルを使って動作するDebian
+  \item kfreebsd-i386、kfreebsd-amd64がアーキテクチャ名
+  \item もちろんaptが使えます
+  \item ドライバやデバイスはやっぱりFreeBSD（kldstatとか、/dev/ad4s1とか）
+  \item ZFSが使える
+  \item debootstrapでlinux-i386バイナリをインストールしてchrootするとlinuxバイナリが動く
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{portingって何？}
+ \begin{itemize}
+  \item 様々なアーキテクチャで動作させるように対応すること(armelやmipsに対応するなど)
+  \item カーネルやCPUの違いを意識する必要がある
+  \item http://www.debian.org/ports/
+  \item http://www.debian.org/ports/kfreebsd-gnu/
+  \item http://glibc-bsd.alioth.debian.org/porting/
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{kfreebsdにおけるporting作業}
+ \begin{itemize}
+  \item 具体的な作業は、http://glibc-bsd.alioth.debian.org/porting/PORTING
+  \item unameチェック
+  \item debian/controlでカーネルの違いなのか、CPUの違いなのか
+  \item libtool、aclocal.m4など（automake、autoconf周り）
+  \item \_\_FreeBSD\_kernel\_\_、\_\_FreeBSD\_kernel\_versionといったマクロ名に対応すること（FreeBSD本家は\_\_FreeBSD\_\_を使っている）
+  \item FreeBSDのデバイス管理はdevfsを使っていますので対応が必要
+  \item FreeBSDなので存在しないシグナルがあります
+  \item linux限定の共有ライブラリ名をハードコードしている部分の除去
+ \end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\LARGE{つまりDebian GNU/kFreeBSDで使えるようにするにはpatchをあてる必要がある}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\LARGE{そこでquilt登場}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{porting作業}
+ \begin{itemize}
+  \item 対象パッケージはicewmというウィンドウマネージャです
+  \item icewmのタスクバーにある電源状態通知アイコンがkfreebsdだと、表示されない
+  \item linux-i386、linux-amd64では表示されるのは確認済み
+  \item portingすれば、kfreebsdでも表示できるはず
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{kfreebsdで動かない原因の追求}
+ \begin{itemize}
+  \item "grep -nr \_\_FreeBSD\_\_ *"、"grep -nr \_\_linux\_\_"を実行してみる
+  \item 原因はマクロ名が違うせいで、linuxカーネル時の処理が実行されていた
+  \item これを直せば、動くはず！！
+%  \item #if defined(\_\_FreeBSD\_\_) || defined(\_\_FreeBSD\_kernel\_\_)
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{quiltコマンドでpatch操作}
+ \begin{itemize}
+  \item debian/patches/seriesに管理しているパッチファイルが積まれています
+  \item quilt new kfreebsd\_porting\_aapm
+  \item 新しいパッチファイルを追加できました
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{quiltコマンドでpatch操作}
+ \begin{itemize}
+  \item quilt add src/aapm.h
+  \begin{itemize}
+   \item 修正するファイルをquiltコマンドで登録します
+  \end{itemize}
+  \item quilt edit src/aapm.h
+  \begin{itemize}
+   \item ファイルを修正します
+  \end{itemize}
+  \item quilt refresh
+  \begin{itemize}
+   \item kfreebsd\_porting\_aapmに出力します
+  \end{itemize}
+  \item ファイルが複数あるので、add、edit、refreshを繰り返します。
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{ビルドできるか確かめる}
+ \begin{itemize}
+  \item dchコマンドでchangelogを追加
+  \item debuild -uc -usコマンドでパッケージをビルドします
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{パッケージがビルドできました}
+ \begin{itemize}
+  \item インストールして動作確認「\$ sudo dpkg -i icewm*.deb」 
+  \item 電源状態通知アイコンが表示されました
+  \item reportbugコマンドでpatchを送信しておきます
+  \item http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=650395
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{参考情報}
+ \begin{itemize}
+  \item 東京エリアDebian 勉強会2007 年01 月号「パッチ管理ツールquilt の使い方」小林儀匡
+  \item 東京エリアDebian 勉強会2010 年03 月号「dpkg ソース形式''3.0(quilt)''」吉野与志仁
+  \item man dpkg-source(1), man quilt(1)
+  \item http://wiki.debian.org/Projects/DebSrc3.0
+  \item http://wiki.debian.org/Debian\_GNU/kFreeBSD
+  \item http://glibc-bsd.alioth.debian.org/porting
+ \end{itemize}
+\end{frame}
+
+
+\begin{frame}{質疑応答}
+\begin{center}
+\Large なにか質問はありますか？
+\end{center}
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
