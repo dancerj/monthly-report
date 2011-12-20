@@ -61,7 +61,7 @@ class EnqueteAdminEditDone(webapp_generic.WebAppGenericProcessor):
 class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
     """Send mail to all participants by request of the administrator.
     This code will queue the mail through GAE taskqueue."""
-    def post(self):
+    def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
         event = self.load_event_with_eventid_cached(eventid)
