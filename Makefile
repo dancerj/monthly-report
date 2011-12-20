@@ -8,6 +8,11 @@ all: $(PDFFILES)
 check: all
 
 publish: $(RELEASEFILES)
+	# ファイルのリリースをするコマンド。clean すると一度全部のファ
+	# イルをpublishしたものとみなす。古いファイルを全部アップロード
+	# するのを回避します。アップロードしたいファイルは該当する
+	# .pdf ファイルをtouchすればリリースします。
+	#
 	# this gives error when I am not the owner of the
 	# file, but fixes all files that I am the owner
 	-ssh alioth.debian.org chmod 664 /home/groups/tokyodebian/htdocs/pdf/*.pdf
@@ -47,7 +52,7 @@ publish: $(RELEASEFILES)
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
 
-
+	# 一度全部のファイルをpublishしたものとみなす。古いファイルを全部アップロードするのを回避します
 	-touch $(RELEASEFILES)
 
 deb:
