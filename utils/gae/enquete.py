@@ -105,7 +105,7 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
 class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
     """Taskqueue email handler. This is the worker job which will
     actually send mail."""
-    def get(self):
+    def post(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
         if event == None:
