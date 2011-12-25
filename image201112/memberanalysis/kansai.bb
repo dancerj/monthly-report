@@ -1,5 +1,5 @@
-%%Title: ./image201012/memberanalysis/kansai.png
-%%Creator: extractbb 20090708
-%%BoundingBox: 0 0 667 264
-%%CreationDate: Thu Dec  9 23:34:51 2010
+%%Title: ./kansai.png
+%%Creator: extractbb 20110311
+%%BoundingBox: 0 0 384 249
+%%CreationDate: Sun Dec 25 08:28:09 2011
 
