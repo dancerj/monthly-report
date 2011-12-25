@@ -1,6 +1,7 @@
 #coding=utf-8
-# system test code. To run:
-# PYTHONPATH=$(PATH_TO_GAE):$(PATH_TO_GAE)/lib/django/ python testSystem.py
+#
+# Code to test the system.
+#
 import unittest
 import urlparse
 import os
