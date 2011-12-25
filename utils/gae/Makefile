@@ -2,13 +2,24 @@
 # there is a dev_appserver.py symlink to binary in $PATH
 GAE_PATH:=$(dir $(realpath $(shell which dev_appserver.py)))
 
+TESTFILES=testSystem.py
+TESTSTAMP=$(patsubst %.py,%.py-stamp,$(TESTFILES))
+
 all:
 
 clean:
-	rm -f *~ *.pyc # delete emacs backup files.
+	# clean emacs backup files, python precompiled files, and
+	# stamp files.
+	rm -f *~ *.pyc *-stamp
 
-check:
+check: ${TESTSTAMP}
+
+%.py-stamp: %.py
 	PYTHONPATH=${GAE_PATH}:${GAE_PATH}/lib/django_0_96:. \
-		python ./testSystem.py
+		python $<
+	touch $@ # If test succeeded, update the stamp
+
+# system test depends on everything.
+testSystem.py-stamp: testSystem.py $(wildcard *.py) $(wildcard *.html) $(wildcard *.txt)
 
 .PHONY: check
