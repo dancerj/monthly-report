@@ -69,24 +69,13 @@ class SystemTest(unittest.TestCase):
         self.taskqueue_stub = apiproxy_stub_map.apiproxy.GetStub( 'taskqueue' ) 
         self.taskqueue_stub._root_path = os.path.dirname(__file__)
 
+    # ==============================================================
+    # Utility functions
+    # ==============================================================
 
     def login(self, username):
         """change login account"""
         os.environ['USER_EMAIL'] = username
-
-    def testTopPage(self):
-        """test displaying of the top page."""
-        app = TestApp(application)
-        response = app.get('/')
-        self.assertEqual('200 OK', response.status)
-        self.assertTrue('Debian勉強会予約管理システム' in response)
-
-    def testCreatePage(self):
-        app = TestApp(application)
-        response = app.get('/newevent')
-        self.assertEqual('200 OK', response.status)
-        self.assertTrue('幹事用イベント管理ページ' in response)
-
 
     def createPageCommitHelper(self, app, capacity=CAPACITY):
         """
@@ -106,38 +95,10 @@ class SystemTest(unittest.TestCase):
         eventid = response.location.split('=')[1]
         return eventid
 
-    def testCreatePageCommit(self):
-        app = TestApp(application)
-        self.createPageCommitHelper(app)
-
-    def testListKnownAdminEvents(self):
-        """Check admin dashboard if the newly created event can be seen.
-        """
-        app = TestApp(application)
-        response = app.get('/')
-        self.assertEqual('200 OK', response.status)
-        self.assertFalse(TITLE in response)
-
-        # generate event data
-        self.createPageCommitHelper(app)
-
-        # check the event is viewable.
-        response = app.get('/')
-        self.assertEqual('200 OK', response.status)
-        self.assertTrue(TITLE in response)
-
     def verifyThanksPage(self, app, eventid):
         """verify that the Thanks Page content is okay."""
         response = app.get('/thanks?eventid=%s' % eventid)
         self.assertEqual('200 OK', response.status)
-        self.assertTrue(eventid in response)
-
-    def testThanksPageFailCase(self):
-        """test that Thanks page will fail when wrong eventid is requested."""
-        app = TestApp(application)
-        # try to get some incorrect eventid
-        eventid = 'zzz'
-        response = app.get('/thanks?eventid=%s' % eventid, status=404)
         self.assertTrue(eventid in response)
 
     def userEventEntryFormSimple(self, app, eventid, new_entry):
@@ -195,6 +156,52 @@ class SystemTest(unittest.TestCase):
                                                 self.userEventEntryFormSimple(app, eventid, False))
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity - 1, 
                                                 self.userEventEntryForm(app, eventid, False))
+
+
+    # ==============================================================
+    # Tests
+    # ==============================================================
+
+    def testTopPage(self):
+        """test displaying of the top page."""
+        app = TestApp(application)
+        response = app.get('/')
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue('Debian勉強会予約管理システム' in response)
+
+    def testCreatePage(self):
+        app = TestApp(application)
+        response = app.get('/newevent')
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue('幹事用イベント管理ページ' in response)
+
+    def testCreatePageCommit(self):
+        app = TestApp(application)
+        self.createPageCommitHelper(app)
+
+    def testListKnownAdminEvents(self):
+        """Check admin dashboard if the newly created event can be seen.
+        """
+        app = TestApp(application)
+        response = app.get('/')
+        self.assertEqual('200 OK', response.status)
+        self.assertFalse(TITLE in response)
+
+        # generate event data
+        self.createPageCommitHelper(app)
+
+        # check the event is viewable.
+        response = app.get('/')
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue(TITLE in response)
+
+    def testThanksPageFailCase(self):
+        """test that Thanks page will fail when wrong eventid is requested."""
+        app = TestApp(application)
+        # try to get some incorrect eventid
+        eventid = 'zzz'
+        response = app.get('/thanks?eventid=%s' % eventid, status=404)
+        self.assertTrue(eventid in response)
 
 
     def testUserRegisterEvent(self):
