@@ -7,10 +7,11 @@ import os
 
 from webtest import TestApp
 from google.appengine.api import apiproxy_stub_map
-from google.appengine.api import user_service_stub
 from google.appengine.api import datastore_file_stub
 from google.appengine.api import mail_stub
+from google.appengine.api import user_service_stub
 from google.appengine.api.memcache import memcache_stub
+from google.appengine.api.taskqueue import taskqueue_stub
 from google.appengine.api.xmpp import xmpp_service_stub
 
 from debianmeeting import application
@@ -29,6 +30,7 @@ class SystemTest(unittest.TestCase):
     def setUp(self):
         """set up stub
         """
+
         # API proxy
         apiproxy_stub_map.apiproxy = apiproxy_stub_map.APIProxyStubMap()
 
@@ -45,6 +47,8 @@ class SystemTest(unittest.TestCase):
 
         os.environ['AUTH_DOMAIN'] = AUTH_DOMAIN
         os.environ['USER_EMAIL'] = LOGGED_IN_ADMIN
+        # I don't know why this is needed but there's a warning from taskqueue.
+        os.environ['HTTP_HOST'] = 'localhost:8080'
 
         # mail
         apiproxy_stub_map.apiproxy.RegisterStub(
@@ -57,6 +61,13 @@ class SystemTest(unittest.TestCase):
         # memcache
         apiproxy_stub_map.apiproxy.RegisterStub(
             'memcache', memcache_stub.MemcacheServiceStub())
+
+        # taskqueue
+        apiproxy_stub_map.apiproxy.RegisterStub(
+            'taskqueue', taskqueue_stub.TaskQueueServiceStub())
+
+        self.taskqueue_stub = apiproxy_stub_map.apiproxy.GetStub( 'taskqueue' ) 
+        self.taskqueue_stub._root_path = os.path.dirname(__file__)
 
 
     def login(self, username):
@@ -78,6 +89,11 @@ class SystemTest(unittest.TestCase):
 
 
     def createPageCommitHelper(self, app, capacity=CAPACITY):
+        """
+        Creates an event.
+
+        @return eventid
+        """
         response = app.post('/eventadmin/register', 
                             {
                 'eventid': 'na',
@@ -136,8 +152,7 @@ class SystemTest(unittest.TestCase):
         return response
 
     def userEventEntryForm(self, app, eventid, new_entry):
-        """Show the page user is prompted with before registration.
-        Test the two variances.
+        """Show the page user is prompted with before registration to an event.
         """
         response = app.get('/event',
                             {
@@ -153,10 +168,10 @@ class SystemTest(unittest.TestCase):
         self.assertTrue(str(remaining_seats) in response)
 
     def userEventEntry(self, app, eventid, capacity=CAPACITY):
-        """Register to event.
-        Check that state changes before and after the event
+        """Register user to event.
+        Check that state changes before and after the event.
         """
-        # check entry page has right number of remaining seats
+        # check entry page has right number of remaining seats in the two possible UIs.
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity, 
                                                 self.userEventEntryFormSimple(app, eventid, True))
         self.checkUserEventEntryFormReturnValue(app, eventid, capacity, 
@@ -237,6 +252,8 @@ class SystemTest(unittest.TestCase):
         self.assertTrue('you cannot reserve a place' in response)
 
     def testAdminReviewEvent(self):
+        """Verify the event admin summary review flow.
+        """
         app = TestApp(application)
         # register the event
         eventid = self.createPageCommitHelper(app)
@@ -293,6 +310,15 @@ question 3'''
         self.login(LOGGED_IN_USER)
         self.userEventEntry(app, eventid)
 
+        # admin sends out the enquete mail.
+        self.login(LOGGED_IN_ADMIN)
+        response = app.get('/enquete/sendmail', {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+
+        # user responds to enquete
+        self.login(LOGGED_IN_USER)
         response = app.get('/enquete/respond',
                            {
                 'eventid': eventid,
