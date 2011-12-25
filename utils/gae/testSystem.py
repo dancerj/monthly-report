@@ -158,6 +158,31 @@ class SystemTest(unittest.TestCase):
                                                 self.userEventEntryForm(app, eventid, False))
 
 
+    def createEnquete(self, app, eventid, question_text = '''question 1
+question 2
+question 3'''):
+        """Create an enquete. Should be ran as the admin."""
+        response = app.get('/enquete/edit',
+                           {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+
+        response = app.post('/enquete/editdone', {
+                'eventid': eventid,
+                'overall_message': 'hello',
+                'question_text': question_text,
+                })
+        self.assertEqual('200 OK', response.status)
+
+        # make sure the next time to edit will show the content the
+        # next time.
+        response = app.get('/enquete/edit', {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue(question_text in response)
+
     # ==============================================================
     # Tests
     # ==============================================================
@@ -287,31 +312,7 @@ class SystemTest(unittest.TestCase):
 
         # be the admin and create the enquete.
         self.login(LOGGED_IN_ADMIN)
-        
-        response = app.get('/enquete/edit',
-                           {
-                'eventid': eventid,
-                })
-        self.assertEqual('200 OK', response.status)
-
-        question_text = '''question 1
-question 2
-question 3'''
-        response = app.post('/enquete/editdone',
-                           {
-                'eventid': eventid,
-                'overall_message': 'hello',
-                'question_text': question_text,
-                })
-        self.assertEqual('200 OK', response.status)
-
-        # make sure the next time to edit will show the content
-        response = app.get('/enquete/edit',
-                           {
-                'eventid': eventid,
-                })
-        self.assertEqual('200 OK', response.status)
-        self.assertTrue(question_text in response)
+        self.createEnquete(app, eventid)
 
         # user joins the event
         self.login(LOGGED_IN_USER)
