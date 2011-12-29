@@ -102,15 +102,17 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         mail_title = "[Debian登録システム] イベント %s が更新されました" % event.title.encode('utf-8')
         mail_template = {
             'event': event,
-            'event_url': 'http://%s/eventadmin/edit?eventid=%s' % (self.request.host, eventid),
+            'event_url': 'http://%s/eventadmin/edit?eventid=%s' % (
+                self.request.host, eventid),
             }
         mail_message = self.template_render(mail_template, 'RegisterEvent.txt')
 
-        send_notification.send_notification_to_user_and_owner(user.email(), 
-                                                              user.email(), 
-                                                              event.owner.email(),
-                                                              event.owners_email,
-                                                              mail_title, mail_message)
+        send_notification.send_notification_to_user_and_owner(
+            user.email(), 
+            user.email(), 
+            event.owner.email(),
+            event.owners_email,
+            mail_title, mail_message)
 
         self.redirect('/thanks?eventid=%s' % eventid)
 
