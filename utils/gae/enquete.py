@@ -245,6 +245,13 @@ class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
 class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
     """Admin lists all enquete results."""
 
+    def conditional_get_enquete_map(self, enquete_map_of_user_key, key):
+        """Get the key from enquete map with optional mapping of 0 to NA."""
+        value = str(enquete_map_of_user_key.get(key, 'NA'))
+        if value == '0':
+            return 'NA'
+        return value
+
     def get(self):
         """List all enquete results in a big matrix."""
         user = users.get_current_user()
@@ -272,8 +279,10 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
 
             # We now have a list of enquete responses and matching events.
             for i in range(len(enquete.question_text)):
-                # a key to use for the map.
-                question_key = eventid + enquete.question_text[i]
+                # a key to use for the map. Use the first 4 letters of
+                # the hash and question name to make it reasonably
+                # unique.
+                question_key = eventid[:4] + enquete.question_text[i]
 
                 list_of_questions[question_key] = True
 
@@ -282,7 +291,9 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
                         # check for data corruption case where enquete
                         # was updated after the respose was made
                         continue
-                    enquete_map.setdefault(user.email(), {})[question_key] = (
+                    enquete_map.setdefault(
+                        enquete_response.user.email(), 
+                        {})[question_key] = (
                         enquete_response.question_response[i])
 
         self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
@@ -291,7 +302,9 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
 
         for user_email in enquete_map.iterkeys():
             out_string += (
-                ','.join([str(enquete_map[user_email].get(x, 'NA')) for x in list_of_questions.iterkeys()])
+                # user_email + ',' +
+                ','.join([self.conditional_get_enquete_map(enquete_map[user_email], x) 
+                            for x in list_of_questions.iterkeys()])
                 + '\n')
 
         self.response.out.write(out_string)
