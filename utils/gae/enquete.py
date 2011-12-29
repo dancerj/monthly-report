@@ -242,3 +242,56 @@ class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
         self.template_render_output(template_values, 'EnqueteAdminShowEnqueteResult.txt')
 
 
+class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
+    """Admin lists all enquete results."""
+
+    def get(self):
+        """List all enquete results in a big matrix."""
+        user = users.get_current_user()
+        events = self.load_event_with_owners(user)
+
+        # dict contains user -> event -> score.
+        enquete_map = {}
+
+        # questions dict which is eventid + question -> True.
+        list_of_questions = {}
+
+        for event in events:
+            eventid = event.eventid
+            enquete = self.load_enquete_with_eventid(eventid)
+            if enquete == None:
+                # There wasn't an enquete for this eventid, which is a
+                # reasonable error condition before enquete is
+                # created.
+                continue
+            enquete_responses = self.load_enquete_responses_with_eventid(eventid)
+            if enquete_responses == None:
+                # It's also possible that there is no enquete response
+                # for an enquete.
+                continue
+
+            # We now have a list of enquete responses and matching events.
+            for i in range(len(enquete.question_text)):
+                # a key to use for the map.
+                question_key = eventid + enquete.question_text[i]
+
+                list_of_questions[question_key] = True
+
+                for enquete_response in enquete_responses:
+                    if len(enquete_response.question_response) < i:
+                        # check for data corruption case where enquete
+                        # was updated after the respose was made
+                        continue
+                    enquete_map.setdefault(user.email(), {})[question_key] = (
+                        enquete_response.question_response[i])
+
+        self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
+
+        out_string = ','.join(list_of_questions.iterkeys()) + '\n'
+
+        for user_email in enquete_map.iterkeys():
+            out_string += (
+                ','.join([str(enquete_map[user_email].get(x, 'NA')) for x in list_of_questions.iterkeys()])
+                + '\n')
+
+        self.response.out.write(out_string)

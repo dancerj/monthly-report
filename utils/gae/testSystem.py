@@ -357,6 +357,12 @@ NA,5,4,hello world
 
 ''', response.body)
 
+        # admin views all the results
+        self.login(LOGGED_IN_ADMIN)
+        response = app.get('/enquete/showallresults')
+        self.assertEqual('200 OK', response.status)
+
+
 if __name__ == '__main__':
     unittest.main()
     

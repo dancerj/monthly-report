@@ -22,15 +22,17 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
         user = users.get_current_user()
         
         events = self.load_event_with_owners(user)
-        attendances = schema.Attendance.gql('WHERE user = :1 ORDER BY timestamp DESC',
-                                     user).fetch(1000)
+        attendances = schema.Attendance.gql(
+            'WHERE user = :1 ORDER BY timestamp DESC',
+            user).fetch(1000)
         # look up the titles of events.
         attendance_titles = []
         for attendance in attendances:
             title = self.load_event_title_with_eventid_cached(attendance.eventid)
-            attendance_titles.append({ 'title': title,
-                                       'eventid': attendance.eventid,
-                                       })
+            attendance_titles.append({ 
+                    'title': title,
+                    'eventid': attendance.eventid,
+                    })
         template_values = {
             'nickname': user.nickname(),
             'events': events,
@@ -59,6 +61,7 @@ application = webapp.WSGIApplication([
     ('/enquete/edit', enquete.EnqueteAdminEdit),
     ('/enquete/editdone', enquete.EnqueteAdminEditDone),
     ('/enquete/showresult', enquete.EnqueteAdminShowEnqueteResult),
+    ('/enquete/showallresults', enquete.EnqueteAdminShowAllEnqueteResults),
     ('/enquete/sendmail', enquete.EnqueteAdminSendMail),
     ('/enquete/sendmailworker', enquete.EnqueteAdminSendMailWorker),
     ('/enquete/respond', enquete.EnqueteRespond),
