@@ -40,10 +40,13 @@ class WebAppGenericProcessor(webapp.RequestHandler):
 
     def load_event_with_owners(self, user):
         """Look into owner and owners field and load event which match
-        the owner information."""
-        events = schema.Event.gql('WHERE owner = :1 ORDER BY timestamp DESC', 
-                                  user).fetch(1000) + schema.Event.gql('WHERE owners_email = :1 ORDER BY timestamp DESC', 
-                                                                       user.email()).fetch(1000)
+        the owner information.
+
+        @return list of Events sorted in chronological order."""
+        events = (schema.Event.gql(
+                'WHERE owner = :1 ORDER BY timestamp DESC', user).fetch(1000) 
+                  + schema.Event.gql(
+                'WHERE owners_email = :1 ORDER BY timestamp DESC', user.email()).fetch(1000))
         for event in events:
             self.fixup_event(event)
         
@@ -162,3 +165,4 @@ class WebAppGenericProcessor(webapp.RequestHandler):
             return max(capacity - num_attend, 0)
         else:
             return NO_SHOW_REMAINING_SEATS
+
