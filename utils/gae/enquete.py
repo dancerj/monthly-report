@@ -298,13 +298,14 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
 
         self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
 
-        out_string = ','.join(list_of_questions.iterkeys()) + '\n'
+        sorted_list_of_questions = sorted(list_of_questions.keys())
+        out_string = ','.join(sorted_list_of_questions) + '\n'
 
         for user_email in enquete_map.iterkeys():
             out_string += (
                 # user_email + ',' +
                 ','.join([self.conditional_get_enquete_map(enquete_map[user_email], x) 
-                            for x in list_of_questions.iterkeys()])
+                            for x in sorted_list_of_questions])
                 + '\n')
 
         self.response.out.write(out_string)
