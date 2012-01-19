@@ -445,10 +445,296 @@ Debian から twitterに自動ポストするような仕組みの作り方について。
 \end{enumerate}
 }
 
-%-------------------------------------------------------------------------------
-\dancersection{月刊デブヘルパー}{山田 泰資}
-%-------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+\dancersection{月刊Debhelper 第3回}{山田 泰資}
+%------------------------------------------------------------------------------
+\index{げっかんでぶへるぱーだいにかい@月刊Debhelper第3回}
+\index{でぶへるぱー@debhelper}
+\subsection{はじめに}
+パッケージビルド手順を記述するdebian/ruleファイル。これを
+簡潔化するためにdebhelperコマンド群(dh\_*)がありますが、
+その一方で裏側で一体何がなされているのか掴み難くなって
+しまいました。
 
+本企画ではこのコマンド群を、毎月持ち回りで解説します。毎月2つ以上の
+コマンドを解説し、次回発表の立候補が無い場合は発表者が次の発表者を
+指名できるというルールで進めて行きます。
+
+\subsection{今月のコマンド：dh\&dh\_auto\_* - シーケンスとビルドシステム}
+
+dhコマンドの全体像については前回の野島さんの発表で既に解説されて
+いるのですが、そこで「試しに読んでみるとよいと思います」とあったので、
+実際に読みつついじってみました。その中でもう少し判ったことがあったので
+報告します。
+
+\subsubsection{dhの動作、再まとめ}
+
+dhコマンドを実行すると、デフォルトでは以下のコマンド群が
+各シーケンス毎に呼ばれます：
+
+\begin{table}[ht]
+\begin{center}
+\small
+\begin{tabular}{|p{8em}|p{35em}|}
+\hline
+シーケンス名&シーケンスで実行されるコマンド \\
+\hline
+clean & dh\_testdir dh\_auto\_clean dh\_clean \\
+build & dh\_testdir + (rules build-arch build-indep) \\
+build-indep & dh\_testdir dh\_auto\_configure dh\_auto\_build dh\_auto\_test \\
+build-arch & dh\_testdir dh\_auto\_configure dh\_auto\_build dh\_auto\_test \\
+install &
+\begin{minipage}[t]{\columnwidth}%
+(rules build install-arch install-indep) + \newline
+dh\_testroot dh\_prep dh\_installdirs dh\_auto\_install
+dh\_install dh\_install*\newline
+dh\_bugfiles dh\_ucf dh\_lintian dh\_gconf dh\_icons
+dh\_perl dh\_usrlocal dh\_link\newline
+dh\_compress dh\_fixperms
+\end{minipage} \\
+install-indep & (rules install-indep) + ＜上のinstallと同じ＞ \\
+install-arch & (rules install-arch) + ＜上のinstallと同じ＞ \\
+binary & (rules install binary-arch binary-indep) \\
+binary-indep &
+\begin{minipage}[t]{\columnwidth}%
+(rules install-indep) +
+dh\_installdeb dh\_gencontrol dh\_md5sums dh\_builddeb \\
+\end{minipage} \\
+binary-arch &
+\begin{minipage}[t]{\columnwidth}%
+(rules install-arch) + \newline
+dh\_strip dh\_makeshlibs dh\_shlibdeps + ＜上のbinary-indepと同じ＞ \\
+\end{minipage} \\
+\hline
+\end{tabular}
+\caption{dhの各シーケンスで実行されるコマンド}
+\label{tab:sequence-dh-commands}
+\end{center}
+\end{table}
+かつてはrules(Makefile)に羅列されていたコマンド群が、
+今はdhの中にPerlのリスト変数で管理されている形になります。
+そしてdebhelperモジュール（*.pm）がロード時にリストの内容を
+いじって実行内容を変更することでビルド過程をカスタマイズします。
+
+わざわざmakeを使わず自前なのは、実行内容を変更するという
+モジュール機構とoverride機構がmakeベースでは依存関係ツリーの
+変更になり実現困難だったからでしょうか。たしかに拡張makeでも
+使わない限り難しそうです（拡張makeまで行きたくないから現状の
+実現方法・・・なんでしょうか）。
+
+さて、今回の話題は、このモジュール機構になります。
+普段何気なくどんなパッケージでもパッケージビルドされている訳ですが、
+言語環境や開発者の選択によってビルド方法は千差万別です。これは
+どうやって吸収されているのでしょうか？
+
+\subsubsection{２つのモジュール：シーケンスとビルドシステム}
+ここで登場するのが「シーケンス」とは別の、「ビルドシステム」
+モジュールになります。この２つは
+\begin{itemize}
+\item シーケンスモジュールは（主に）前処理・後処理を追加し、適切なパッケージビルドが行われるようにする
+\item ビルドシステムモジュールは各ソースパッケージに内包されるビルド方式を自動認識し、それを駆動する
+\end{itemize}
+と異なる役割を持ちます。典型的なconfigure\&makeパターンで説明すると、
+\begin{enumerate}
+\item Sequence/autotools\_dev.pm が config.sub/config.guess を最新に更新
+\item Buildsystem/autoconf.pm が ./configure を発見・実行
+\item Buildsystem/makefile.pm が Makefile を認識し、make でビルドやインストール
+\end{enumerate}
+といった連携リレーになります（autotools\_devは--withで有効化された場合のみ）。
+
+\subsubsection{ビルドシステムの選択と連携}
+さて、ビルドシステムは以下のフローで自動選択されています：
+\begin{enumerate}
+\item まず、Buildsystem/*.pmは全部ロードする
+\item 各モジュールのcheck\_auto\_buildable APIにて「ビルドできる度」を照会
+\item 同じクラス階層の中で一番大きい「ビルドできる度」を返したものを選択
+\end{enumerate}
+ポイントは
+\begin{itemize}
+\item この自動選択はconfigure/build/test/install/cleanの各段で毎回行われる
+\item 同じクラス階層縛りがある
+\end{itemize}
+の２点です。つまり、
+\begin{itemize}
+\item 毎回行われるので、各段で応答・不応答を変えてモジュール間連携を行う
+\item 自分が優先されるべき場合、親クラスの結果を上回るようにして勝つ
+\end{itemize}
+とする必要があり、「単純にビルドできるから真値を返す」という実装では
+ないのでした。これは自前のビルドシステム拡張、特に他と連携する場合に
+必要な留意事項になります。具体的にどういうコードなのかというとcmakeの
+ものが参考になります：
+\begin{commandline}
+=== Buildsystem/cmake.pm ===
+sub check_auto_buildable {
+    my $this=shift;
+    my ($step)=@_;
+    if (-e $this->get_sourcepath(``CMakeLists.txt'')) {
+        my $ret = ($step eq ``configure'' && 1) ||
+                  $this->SUPER::check_auto_buildable(@_);
+        # Existence of CMakeCache.txt indicates cmake has already
+        # been used by a prior build step, so should be used
+        # instead of the parent makefile class.
+        $ret++ if ($ret && -e $this->get_buildpath(``CMakeCache.txt''));
+        return $ret;
+    }
+    return 0;
+}
+\end{commandline}
+Makefileジェネレータとしてconfigureステージだけ担当のような
+顔をしつつ、ビルドキャッシュがある場合は自分が後段も担当すべきとして
+親であるmakefile.pmを押しのけて勝つ、というわけです。
+
+\subsubsection{ビルドシステムは誰が呼んでいるのか}
+ところでこのビルドシステム、誰が呼んでいるのでしょうか？例えばdhでは
+\begin{commandline}
+$ dh --buildsystem=perl_makemaker
+\end{commandline}
+のように指定できるのですが、dhにはどこにもビルドシステムに関する
+処理は書かれていません。
+
+これはdhからオプションをそのままスルーパスされる形で
+\footnote{Debianは、ビルドコマンド調査の時も思いましたが
+コマンドライン引数の引き回し本当に多用しますね・・・}
+dh\_auto\_(build\textbar{}clean\textbar{}configure\textbar{}install\textbar{}test)の
+dh\_auto\_*系コマンド（だけ）が呼び出し元になっています。シーケンス中の
+すべてのdh\_*コマンドに同様にスルーパスは届くのですが、反応するのが
+この5つだけ、という訳です（man debhelperのBUILD SYSTEM OPTIONS）。
+だからこそ独自処理を書く場合はrulesに
+\begin{commandline}
+override_dh_auto_build:
+        ...
+\end{commandline}
+などとoverride\_dh\_auto\_*ターゲットを書くという話になるわけです。
+dh\_auto\_*さえ止めれば、いかなるシーケンスが走ってもビルドシステム
+呼び出しが行われず、実際のビルドは行われないからです。
+
+これらのdh\_auto\_*コマンドは上のロード→照会(check\_auto\_buildable)
+→API(configure\textbar{}build\textbar{}test\textbar{}install\textbar{}clean)
+コールのトリガを引いているだけです。このフローの詳細はライブラリ化
+されているので各コマンドは3行くらいしかありません。
+
+\subsubsection{ビルドシステムの追加方法}
+ビルドシステムの拡張は簡単で、以下のAPIを実装した*.pmをBuildsystem/
+フォルダに置くだけです。基底クラスに空実装があるので全部書く必要はなく、
+実際に処理を追加したいAPIのみ実装すれば十分です。
+\begin{quote}
+\begin{verbatim}
+check_auto_buildable($step)                          # 必須
+pre_building_step($step)                             # オプション
+configure() build() test() install($destdir) clean() # いずれかを実装
+post_building_step($step)                            # オプション
+\end{verbatim}
+\end{quote}
+各APIの処理は名称から想像される通りで、先に解説済みのc\_a\_b API以外は
+返値もありません（使われていません）。
+
+サンプルとして、今は懐かしきimake/xmkmfを使ったソースパッケージの
+自動検知＋ビルドに対応するようにimake.pmモジュールを用意してみました：
+\begin{commandline}
+package Debian::Debhelper::Buildsystem::imake;
+use strict;
+use base 'Debian::Debhelper::Buildsystem::makefile';
+
+sub DESCRIPTION { ``imake (IMakefile)'' }
+sub new { shift->SUPER::new(@_); }
+sub check_auto_buildable {
+    my($self, $step) = @_;
+    return 1 if ($step eq ``configure'' &&
+                 glob($self->get_sourcepath(``I[Mm]akefile'')));
+    return 0;
+}
+sub configure { shift->doit_in_sourcedir(``xmkmf'', ``-a'', @_); }
+1;
+\end{commandline}
+こんな簡単なものでも、ktermなどの対象パッケージをビルドするには十分です。
+
+なお、これを組み込むにはDh\_Buildsystems.pmのソース中の自動判定リストの
+末尾に
+\begin{commandline}
+our @BUILDSYSTEMS = (``autoconf'', ..., ``imake'');
+\end{commandline}
+のようにモジュール名を追加してやる必要があります。
+
+\subsubsection{まとめ}
+本解説ではdhフレームワークを支えるビルドシステム部分を解説しました。
+これはdh\_*コマンドとしてはdh\_auto\_*の5コマンドに対応し、これらを
+通してビルドシステムが駆動されています。
+
+\subsection{今月のコマンド：dh\_builddeb}
+
+dh\_builddebは、dhによって起動される一連のコマンドシーケンスの最後を
+飾るコマンドです（ちなみに最初はdh\_testdir）。
+
+マニュアルは「dpkg-deb を呼ぶだけのかんたんなおしごと\footnote{
+dh\_builddeb simply calls dpkg-deb(1) to build a Debian package or packages.
+}」と一行だけの解説ですが、これが意外にも中で色々としていてdh\_*コマンドの
+勉強になります。
+
+\subsubsection{何をしているの？}
+
+やっていること自体は以下の３つです：
+\begin{enumerate}
+\item debhelper(7)のファイル排除指定があれば、その除去処理をする
+\item deb/udeb形式の判定を行い、dpkg-debの起動分けをする
+\item さらに、DEB\_BUILD\_OPTIONSのparallel=指定があれば、dpkg-debを並列駆動する
+\end{enumerate}
+マニュアルの解説が１行の割には、意外に仕事をしています。
+
+\subsubsection{疑問：udebって何？}
+実はudebの存在を知りませんでしたが、udebというのはDebian-Installer(d-i)で
+使用される*.deb風のパッケージです。形式としてはudebもdebも同じで
+普通にdpkgで操作できるのですが、極小リソースでの限定的な利用を
+想定しているためドキュメントはおろかチェックサム機能などまで外されています。
+\begin{commandline}
+=== debian/control ===
+Section: debian-installer
+...
+XC-Package-Type: udeb
+XB-Installer-Menu-Item: 1200 <- d-i menuでの表示制御パラメータ
+\end{commandline}
+のように特殊なヘッダが入っているcontrolがある場合、dh\_builddebは
+自動的にudebビルドモードでdpkg-debを起動します。
+
+他にもこういう特殊ヘッダはあるのだろうかとか、これを入れると
+具体的に何をどう変えられるのかなどudebとd-iの話は更に掘ると
+面白そうですが、今回は脱線ということでここまでにしておきます
+\footnote{
+資料としては http://d-i.alioth.debian.org/doc/talks/debconf6/paper/ かな？
+}。
+udeb固有処理は他のdh\_*コマンドにも多数含まれており、is\_udeb()で
+様々な処理分けを裏側でしています。
+
+\subsubsection{debhelper(7)系コマンドの実装パターン}
+dh\_builddebの中を覗くと、各所で\$dh{...}という変数へのアクセスが
+頻出しています。これはdh\_*コマンドのdebhelper(7)オプションの
+パースや共通的な処理が Debian::Debhelper::Dh\_Lib ライブラリで
+行われており、このライブラリとコマンド側の連携に %dh という
+グローバル変数が使われているためです。また %ENV も多用されています。
+
+コードの流れとしては、debhelperの純正(Perl製)dh\_*コマンドは
+概ね以下の実装パターンになっています：
+\begin{commandline}
+use Debian::Debhelper::Dh_Lib; # init()関数などがインポートされる
+init(options => { ``myopt=s'' => \&dh{MYOPT}, ... }); # @ARGVや%ENVの定型処理
+
+# 含まれているパッケージの数だけ処理を反復
+foreach my $package (@{$dh{DOPACKAGES}}) {
+    # 上のinit()で取り込まれた結果を見ながら処理をする
+    if ( $dh{...}) { ... # Dh_Lib.pm の API を呼んだりするなど ... }
+    # 自動的に取り込まれない環境変数（コマンド固有）は自分で処理する
+    if ($ENV{...}) { ... # 上記同様 ... }
+}
+\end{commandline}
+
+dh\_builddebの場合は、上のループの中が不要ファイルの削除と
+dpkg-debの起動になり、これが例えばdh\_stripの場合は各生成中パッケージの
+ワーキングフォルダをスキャンして、しかるべきファイルをstripして回ると
+いうようになります。
+
+\subsubsection{まとめ}
+dh\_builddebコマンドの解説と、そこから出てきた疑問と共通的な構成の解説を
+行ってみました。dh\_*コマンドは実質１行しかないものから1000行に迫るものまで
+色々ありますが、dh\_builddebはちょうど理解する上で手頃な大きさです。
 
 \printindex
 
