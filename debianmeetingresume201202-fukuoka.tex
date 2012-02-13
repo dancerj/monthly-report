@@ -141,7 +141,467 @@
 % \input{image201107/quiz.tex}
 \end{multicols}
 
-\dancersection{何か}{岩松 信洋}
+\dancersection{Dynamic Kernel Module Support Framework}{岩松 信洋}
+
+\subsection{Dynamic Kernel Module Support Frameworkとは}
+
+Dynamic Kernel Module Support Framework（以下、DKMS）は、
+マシンにインストールされているカーネル毎に
+自動的にドライバモジュールをビルドし管理する仕組みです。
+
+通常、
+Linuxカーネルが更新されたとき、Linuxカーネルで提供されていない
+サードパーティのドライバはそのLinuxカーネル用にデバイスドライバを
+再ビルドおよびインストールを行う必要があります。
+しかし DKMS を使ってサードパーティのデバイスドライバを管理している場合、
+新しいLinuxカーネルで起動された時に対応したデバイスドライバがないことを
+チェックし、ドライバモジュールをビルドして
+（自動インストールが設定されていれば）インストールします。
+もちろんそのドライバはLinuxカーネルに対応している必要がありますが、
+ドライバがメンテナンスされていれば、半自動的に新しいカーネルへ移行
+できるようになります。
+
+\if 0
+メリットが大きい DKMS ですが、起動時にビルドする
+ので、規模が大きいドライバモジュールでは起動に時間がかかるという
+デメリットもあります。
+\fi
+
+DKMS は DELL \url{http://linux.dell.com/dkms/} で開発されており、
+DebianやUbuntuなどののディストリビューションで利用できるようになって
+います。
+
+ちなみに Fedora は
+Kmods2 \url{http://rpmfusion.org/Packaging/KernelModules/Kmods2} と呼ばれる
+別のフレームワークを利用しています。Arch Linux と Gentoo も DKMS サポート
+パッケージもあるが、独自の実装が中心のようです。
+
+今回は DKMS の仕組みと DKMS に対応したパッケージの作成方法、
+Debian の DKMS 対応状況について説明します。
+
+\subsection{DKMS の仕組み}
+
+\begin{multicols}{2}
+
+DKMS の仕組みを理解するために簡単なデバイスドライバを使って
+説明します。ドライバをロードすると カーネルデバッグメッセージ
+に「Hello, world! from hello\_init」、ドライバをアンロードすると
+「Good bye! from hello\_exit」と出力するものです。
+以下に実際のソースコード、Makefile、実行結果とディレクトリ構成を示します。
+
+ドライバソースコード:
+\begin{commandline}
+#include <linux/init.h>
+#include <linux/module.h>
+
+static int __init hello_init(void)
+{
+  pr_info("Hello, world! from %s\n", __func__);
+  return 0;
+}
+
+static void __exit hello_exit(void)
+{
+  pr_info("Good bye! from %s\n", __func__);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+MODULE_LICENSE("GPL v2");
+\end{commandline}
+%$
+
+Makefile:
+\begin{commandline}
+obj-m:= src/
+\end{commandline}
+%$
+
+src/Makefile:
+\begin{commandline}
+obj-m:= hello.o 
+\end{commandline}
+%$
+
+
+ドライバのコンパイルと実行結果:
+\begin{commandline}
+$ make -C /lib/modules/`uname -r`/build M=`pwd` modules
+$ sudo insmod hello.ko
+$ dmesg | tail -1
+[5963787.044134] Hello, world! from hello_init
+$ sudo rmmod hello.ko
+$ dmesg | tail -1
+[5963798.420368] Good bye! from hello_exit
+\end{commandline}
+%$
+
+ディレクトリ構成:
+\begin{commandline}
+hello-0.0.1
+├─Makefile
+├── README
+├── dkms.conf
+└--src
+    ├── Makefile
+    └── hello.c
+\end{commandline}
+
+dkms.conf:
+\begin{commandline}
+PACKAGE_NAME="hello"
+PACKAGE_VERSION="0.0.1"
+BUILT_MODULE_NAME="$PACKAGE_NAME"
+BUILT_MODULE_LOCATION="src"
+DEST_MODULE_LOCATION="/updates"
+AUTOINSTALL="yes"
+\end{commandline}
+%$
+
+\end{multicols}
+
+\subsubsection{DKMS 全体の流れ}
+
+DKMS の全体の流れは以下のようになっています。
+各要素はDKMS で提供されているコマンドとスクリプトになっています。
+
+\begin{figure}[ht] 
+ \begin{center}
+  \includegraphics[width=0.4\hsize]{image201202/dkms.png}
+ \end{center}
+\label{fig:dkms}\caption{DKMS 全体の流れ}
+\end{figure}
+
+dkms\_autoinstaller はシステム起動時に呼ばれる
+\footnote{ディストリビューションによって異なる}スクリプトです。
+既に DKMS に登録（dkms add）されているドライバモジュールの中で、
+現在起動しているカーネル用にドライバモジュールがインストール
+（dkms install）されていないものがあれば、
+ドライバモジュールのビルドとインストール
+（dkms build / dkms install）が実行されます。
+
+\subsubsection{モジュールソースコードの配置位置}
+
+DKMS 対応モジュールのソースコードは
+\url{/usr/src/ドライバモジュール名-バージョン/} 以下に配置する必要があります。
+先のドライバの場合、\url{/usr/src/hello-0.0.1/} 以下に配置します。
+
+\subsubsection{DKMS 設定ファイル}
+
+DKMS は、各ドライバパッケージ毎に設定ファイルを持つ必要があります。
+この設定ファイルでは、どのようなドライバが提供、ビルド、インストールされるのか
+記述されている必要があります。以下によく利用する設定項目を示します。
+\begin{table}[ht]
+ \caption{DKMS 設定ファイル項目}
+ \label{tab:dkms-config-file}
+\begin{center}
+  \begin{tabular}{|l|p{35zw}|}
+ \hline
+ 設定項目 & 内容 \\
+ \hline \hline
+PACKAGE\_NAME & パッケージ名 \\
+PACKAGE\_VERSION & パッケージバージョン \\
+CLEAN & キャッシュなどの一時ファイルを削除するためのコマンドを指定する。指定しない場合には "make clean" が実行される。\\
+MAKE & モジュールをビルドするコマンドを指定する。\\
+BUILT\_MODULE\_NAME & ドライバモジュールの名前を指定する（拡張子は必要なし）。\\
+BUILT\_MODULE\_LOCATION &  ビルドされたモジュールが作成されるディレクトリまでの相対パス\\
+DEST\_MODULE\_LOCATION & モジュールをインストールするディレクトリを指定する。\\
+AUTOINSTALL & モジュールを自動的にインストールするか、"yes" か "no" を指定する。\\
+REMAKE\_INITRD & ドライバインストール時にINITRD イメージを再構成するか、"yes" か "no" を指定する。 \\
+PATCH & 適用したいパッチを指定する。\\
+PATCH\_MATCH & パッチを適用するバージョンの指定する。Linux カーネルが 2.6.38 と 2.6.39 の場合にパッチを適用したい場合には "2\.6\.(38|39)" と指定する。\\
+ \hline
+ \end{tabular}
+\end{center}
+\end{table}
+
+BUILT\_MODULE\_LOCATION や BUILT\_MODULE\_NAME などは
+配列を使ってドライバモジュール毎に設定できます。
+BUILT\_MODULE\_NAME 配列の番号は各要素の番号に紐づいているので、
+処理されるときは各々の番号が参照されます。
+例えば、一つのドライバパッケージから foo と bar の２つのデバイスドライバ
+が提供される場合、以下のように設定することができます。
+
+\begin{commandline}
+（省略）
+BUILT\_MODULE\_NAME[0] = "foo"
+BUILT\_MODULE\_LOCATION[0]  = "foo_build"
+DEST\_MODULE\_LOCATION[0] = "/update"
+BUILT\_MODULE\_NAME[1] = "bar"
+BUILT\_MODULE\_LOCATION[1]  = "bar_build"
+DEST\_MODULE\_LOCATION[1] = "/update"
+（省略）
+\end{commandline}
+
+これにより、ドライバ foo のビルドは foo\_build ディレクトリで行われ、
+update ディレクトリ以下にインストール、ドライバ bar のビルドは
+bar\_build ディレクトリで行われ、update ディレクトリ以下にインストール
+されます。
+
+\subsubsection{DKMS で提供されるコマンド}
+DKMS は dkms コマンドで操作します。
+以下に利用頻度が高いコマンドを紹介します。
+
+\begin{enumerate}
+\item dkms status\\
+DKMS で提供されている モジュールのステータスを表示します。
+\begin{commandline}
+$ dkms status
+v4l2loopback, 0.5.0, 3.1.0-1-amd64, x86_64: installed
+v4l2loopback, 0.5.0, 3.2.0-1-amd64, x86_64: installed
+virtualbox, 4.1.8, 3.1.0-1-amd64, x86_64: installed
+virtualbox, 4.1.8, 3.2.0-1-amd64, x86_64: installed
+\end{commandline}
+%$
+
+\item dkms add \\
+モジュールのソースコードを管理対象に追加します。
+実行する時に -m オプションで追加するドライバパッケージ名を、
+-v オプションでバージョンを指定します。
+
+\begin{commandline}
+$ sudo dkms add -m hello -v 0.0.1
+
+Creating symlink /var/lib/dkms/hello/0.0.1/source ->
+                 /usr/src/hello-0.0.1
+
+DKMS: add completed.
+$ dkms status
+hello, 0.0.1: added
+\end{commandline}
+%$
+
+実行すると/var/lib/dkms 以下に シンボリックリンクを張り、DKMS が管理する
+ドライバデータベースに登録されます。
+
+\item dksm build \\
+管理対象になっているモジュールをビルドします。
+実行する時に -m オプションで追加するドライバパッケージ名を、
+-v オプションでバージョンを指定します。
+
+ドライバは \url{/var/lib/dkms/ドライバ名/ドライババージョン/BUILT\_MODULE\_LOCATION} 以下
+でビルドされます。                   
+作成されたモジュールとビルドログは
+\url{/var/lib/dkms/ドライバ名/ドライババージョン/カーネルバージョン/アーキテクチャ}
+以下に置かれます。
+
+\begin{commandline}
+$ sudo dkms build -m hello -v 0.0.1
+
+Kernel preparation unnecessary for this kernel.  Skipping...
+
+Building module:
+cleaning build area....
+make KERNELRELEASE=3.0.0-1-amd64 -C /lib/modules/3.0.0-1-amd64/build M=/var/lib/dkms/hello/0.0.1/build....
+cleaning build area....
+\end{commandline}
+% $
+
+\item dksm install\\
+dkms build コマンドによってビルドされたモジュールをdkms.conf の 
+DEST\_MODULE\_LOCATION で指定されている場所にインストールします。
+例えば Linux カーネル 3.2.0-1-amd64 を使っていて、
+\begin{commandline}
+DEST_MODULE_LOCATION[0]="/updates"/
+\end{commandline}
+
+と指定されている場合には \url{/lib/modules/3.2.0-1-amd64/updates/dkms/}
+以下にインストールされます。
+
+\begin{commandline}
+$ sudo dkms install -m hello -v 0.0.1
+
+hello:
+Running module version sanity check.
+ - Original module
+   - No original module exists within this kernel
+ - Installation
+   - Installing to /lib/modules/3.0.0-1-amd64/updates/dkms/
+
+depmod..........
+
+DKMS: install completed.
+$ dkms status
+hello, 0.0.1: installed
+$ sudo modprobe -l | grep hello.ko
+updates/dkms/hello.ko
+\end{commandline}
+%$
+
+\item dkms uninstall\\
+モジュールをアンインストールします。
+実行する時に -m オプションで追加するドライバパッケージ名を、
+-v オプションでバージョンを指定します。
+また全てのカーネルから削除する場合には --all オプション、
+特定のカーネルモジュールのみを削除する場合には -k オプションでカーネル
+バージョンを指定します。
+
+\begin{commandline}
+$ sudo dkms uninstall -m hello -v 0.0.1 -k 3.0.0-1-amd64
+
+-------- Uninstall Beginning --------
+Module:  hello
+Version: 0.0.1
+Kernel:  3.0.0-1-amd64 (x86_64)
+-------------------------------------
+
+Status: Before uninstall, this module version was ACTIVE on this kernel.
+
+hello.ko:
+ - Uninstallation
+   - Deleting from: /lib/modules/3.0.0-1-amd64/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+
+depmod....
+
+DKMS: uninstall completed.
+\end{commandline}
+%$
+
+\footnote{この資料を作成している時点では、「dkms uninstall」は動作しません。
+一部のチェックが未実装なため、uninstall の処理まで行われないためです。
+\url{http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=659672}}
+
+\item dkms remove\\
+DKMS の管理対象から外します。uninstall と同様のオプションが必要です。
+ドライバモジュールがアンインストールされていない場合、アンインストールを実行してから、
+管理対象から外れるようになっています。
+
+\begin{commandline}
+$ dkms status
+hello, 0.0.1, 3.0.0-1-amd64, x86_64: installed
+virtualbox, 4.1.6, 3.0.0-1-amd64, x86_64: installed
+$ sudo dkms remove  -m hello -v 0.0.1 --all
+
+-------- Uninstall Beginning --------
+Module:  hello
+Version: 0.0.1
+Kernel:  3.0.0-1-amd64 (x86_64)
+-------------------------------------
+
+Status: Before uninstall, this module version was ACTIVE on this kernel.
+
+hello.ko:
+ - Uninstallation
+   - Deleting from: /lib/modules/3.0.0-1-amd64/updates/dkms/
+ - Original module
+   - No original module was found for this module on this kernel.
+   - Use the dkms install command to reinstall any previous module version.
+
+depmod....
+
+DKMS: uninstall completed.
+
+------------------------------
+Deleting module version: 0.0.1
+completely from the DKMS tree.
+------------------------------
+Done.
+$ dkms status
+\end{commandline}
+%$
+
+\end{enumerate}
+
+その他、rpm パッケージを作成する mkrpm オプションや Debianパッケージ
+を作成する mkdeb オプションなどが用意されています。
+
+\subsection{DKMS 対応Debian パッケージの作り方}
+
+上記での説明のように、DKMS 対応モジュールのソースを規定のディレクトリに
+展開しておくと DKMS は処理を行います。Debian の場合もパッケージ化するときは
+インストールした時に規定のディレクトリに展開するようにしておきます。
+パッケージ名などに関してはルールが決まっており、 DKMS 対応パッケージは 
+-dkms というサフィックスがついています。
+これはパッケージ名がわかりやすいという理由と、DKMS 用の debhelper 
+コマンド、dh\_dkms コマンドが -dkms サフィックスのついたパッケージに
+対して処理を行うためです。
+debian/パッケージ名.dkms または debian/dkms を dkms.conf に変換して、
+適切な dkms 用ディレクトリにコピーし、postinst と prerm に DKMS 用の
+処理を追加します。
+dh\_dkms コマンドは dkms パッケージで提供されています。
+debhelper 7 以降で利用する場合には、アドオンとして読み込ませる必要
+があります。 
+
+debian/hello-dkms.dkms:
+\begin{commandline}
+PACKAGE_NAME="hello"
+PACKAGE_VERSION="#MODULE_VERSION#"
+BUILT_MODULE_NAME[0]="$PACKAGE_NAME"
+BUILT_MODULE_LOCATION="src"
+DEST_MODULE_LOCATION[0]="/updates"
+AUTOINSTALL="yes"
+\end{commandline}
+%$
+
+DKMS 用 debian/rules:
+\begin{commandline}
+#!/usr/bin/make -f
+
+VERSION := $(shell dpkg-parsechangelog | sed -nr '/^Version:/s/Version: (.*:)?(.*)-(.*)/\2/p')
+
+%:
+    dh $@ --with dkms
+override_dh_install:
+    dh_install src/* usr/src/hello-$(VERSION)/src/
+    dh_install Makefile usr/src/hello-$(VERSION)/
+override_dh_dkms:
+    dh_dkms -V $(VERSION)
+
+override_dh_auto_configure override_dh_auto_build override_dh_auto_test override_dh_auto_install override_dh_auto_clean:
+\end{commandline}
+%$
+
+debian/rules ファイル内で override\_dh\_auto\_configure や 
+override\_dh\_auto\_build を呼び出している理由は Makefile がある場合、
+make が実行されてしまうのでこれを抑制するためです。
+
+\subsubsection{Debian でのドライバモジュールビルドのタイミング}
+
+Debian では DKMS ドライバパッケージがインストールされた後と、
+カーネルヘッダ または カーネルイメージパッケージがインストール
+（更新）された後、 dkms が起動してドライバモジュールのコンパイルが行われるよ
+うになっています。これらは以下のファイルで処理されます。
+
+\begin{commandline}
+/etc/kernel/postinst.d/dkms
+/etc/kernel/header_postinst.d/dkms
+\end{commandline}
+
+\subsubsection{Debian の DKMS 対応状況}
+
+主要なドライバの殆どは DKMS と module-assistant（m-a）の両方
+に対応しています。開発があまり活発ではないドライバは m-a のみ
+をサポートした状態が多いようです。
+新しくパッケージ化されたドライバはほとんどが両方に対応しています。
+DKMS のほうがメリットが多いため、m-a から DKMS に切り替えているユーザ
+も多いようです。
+
+\subsection{module-assistant との違い}
+Debian には他のドライバパッケージ管理機構に 
+module-assistant（m-a）があります。
+DKMS と m-a の違いには以下のようになっています。
+\begin{itemize}
+\item m-a は自動ビルド機構がない。\\
+カーネルが更新されると、手動で m-a を実行する必要があります。
+\item DKMS はドライバ用のバイナリパッケージを作らない。\\
+m-a は カーネル毎バイナリパッケージを作り、それをインストールします。
+\item m-a は起動しているカーネルのみのドライバをビルドするが、DKMS は
+インストールされているカーネルをビルドできる。
+\end{itemize}
+
+\subsection{まとめ}
+
+今回は DKMS の基本的な仕組みと、Debian での DKMS 対応パッケージ作成方法
+について説明しました。今までは m-a が主流だったのですが DKMS もサポート
+しているドライバパッケージも増え始め、徐々に DKMS に移行しつつあるように
+感じました。Debianパッケージ用ツールが用意されているため、
+対応パッケージ作成も難しくないと思います。
+今後ドライバパッケージを作成する場合には、DKMS をサポートしてみては
+いかがでしょうか。
+
 
 \dancersection{Debianサーバ量産工場 - 無限ポチポチ on Debian}{山田 泰資}
 
