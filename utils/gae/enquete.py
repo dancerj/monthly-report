@@ -104,7 +104,9 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
 
 class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
     """Taskqueue email handler. This is the worker job which will
-    actually send mail."""
+    actually send mail.
+
+    Used for enquete mail sending."""
     def post(self):
         eventid = self.request.get('eventid')
         event = self.load_event_with_eventid_cached(eventid)
@@ -112,11 +114,11 @@ class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('Event id %s not found' % (eventid))
             return
 
-        send_notification.send_notification_to_user_and_owner(
+        # don't try sending notification to every owner, but one.
+        send_notification.send_notification(
             'noreply@debianmeeting.appspotmail.com',
             self.request.get('to'),
             event.owner.email(),
-            event.owners_email,
             self.request.get('mail_title'),
             self.request.get('mail_message'))
 
