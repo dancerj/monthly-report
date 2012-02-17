@@ -1,0 +1,30 @@
+// dot dkms.dot -T png > dkms.png
+// dot dkms.dot -T dkms.eps
+digraph structure {
+
+node [style=filled  colorscheme=piyg9];
+
+add [label="dkms add"]
+build [label="dkms build"]
+install [label="dkms install"]
+uninstall [label="dkms uninstall"]
+remove [label="dkms remove"]
+
+k [shape = box, label="カーネル更新\n(postinst.d/dkms)", color=3]
+kh [shape = box, label="カーネルヘッダ更新\n(header\_postinst.d/dkms)", color=3]
+
+debinstall [shape = box, label="パッケージ\nインストール\n(postinst)"]
+debuninstall [shape = box, label="パッケージ\nアンインストール(prerm)"]
+
+
+trigger [shape = box, label="dkms_autoinstaller"]
+
+k -> trigger;
+kh -> trigger;
+debinstall -> add;
+debuninstall -> remove;
+trigger -> build;
+build -> remove;
+install -> remove;
+add -> build -> install -> uninstall -> remove;
+}
