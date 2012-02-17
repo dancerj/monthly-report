@@ -493,6 +493,112 @@ dh build  --with kde
 \dancersection{月刊Debhelper}{山本}
 %-------------------------------------------------------------------------------
 
+\index{make前に深入りしてみる}
+
+\subsection{パッケージのmakeの前に…}
+
+先月までに学んできたように、Debhelperは、基本的にビルドに必要な一連のdh_ほげほげコマンドを自動実行します。
+
+例えばDebhelperは、dh_auto_configureというコマンドを提供しており、これはご想像の通り、
+\begin{commandline}
+./configure --build='dpkg_architecture_value("DEB_BUILD_GNU_TYPE")' --prefix=/usr --includedir=/usr/include --mandir=/usr/share/man --infodir=/usr/share/info --sysconfdir=/etc --localstatedir=/var --libdir=/usr/lib/\$multiarch --libexecdir=/usr/lib/\$multiarch --disable-maintainer-mode --disable-dependency-tracking --host='dpkg_architecture_value("DEB_HOST_GNU_TYPE")
+\end{commandline}
+をしているだけです。
+
+しかし、メンテナによってautotoolsを利用し、confugureスクリプトをビルドの度に毎回configure.acから生成したい人もいるでしょうし、もしかするとMakefileの元となるMakefile.inだって、毎回Makefile.amから生成したい人もいるでしょう。
+また、Debianパッケージオリジナルのパッチをあててパッケージを作るのは、ごく当たり前のように行なわれています。
+
+そこで今月は、一連のdh_ほげほげコマンドへの追加の仕組みと、その例として、dpatchパッケージで提供されるdh_dpatch_patchコマンドと、autotools-devパッケージで提供されるdh_autotools-dev_updateconfigコマンドの追加について解説しましょう。
+
+\subsection{一連のdh_ほげほげコマンドへの追加の仕組み}
+
+基本となる一連のdh_ほげほげコマンドは、大元のコマンドであるdhスクリプトに記述してあり、すべてについては先月や先々月に話されているので、割愛します。
+
+特にmake直前に実行されるものは、
+\begin{commandline}
+dh_testdir  #カレントディレクトリの確認
+dh_auto_configure  #./configureの実行
+\end{commandline}
+だけです。
+
+勿論、これだけではパッチもあてられないですし、configureスクリプトの再生成もできません。
+
+そこでdhスクリプトは、一連のdh_ほげほげコマンドを列挙する配列にし、これを\$sequences{\$sequence}のスカラ変数として保持しています。(この辺はperlにあまり詳しくないので、ちょっと間違っているかも…)
+
+また、この\$sequencesからdh_ほげほげコマンドを除いたり(remove_command)、あるdh_ほげほげコマンドの前に追加する(insert_before)サブルーチンも用意されています。
+
+dhスクリプトは、/usr/share/perl5/Debian/Debhelper/Sequense/ディレクトリのなかにあるファイルを参照しており、ここに
+\begin{commandline}
+insert_before("dh_auto_configure", "dh_追加ほげほげ")
+\end{commandline}
+という記述のあるファイル(アドオン)が追加されると、dh_auto_configureの前にdh_追加ほげほげコマンドが実行されるようになります。
+
+これはすなわち、/usr/share/perl5/Debian/Debhelper/Sequense/ディレクトリにファイルを追加するパッケージをインストールすれば、必ずdh_追加ほげほげコマンドが実行されることを意味します。
+逆に言えば、sbuildやpbuilderのようなクリーンなビルド環境なら、メンテナの意志によりBuild-Dependされたパッケージのdh_ほげほげコマンドしか実行されませんが、普段使っている環境では、ユーザが既に別途インストールしているdh_追加ほげほげコマンドも否応なく実行されることを意味します。
+
+\subsection{dh_dpatch_patchコマンド}
+
+dpatchパッケージをインストールすると、/usr/share/perl5/Debian/Debhelper/Sequense/ディレクトリにdpatch.pmファイルが入り、これには、
+\begin{commandline}
+insert_before("dh_auto_configure", "dh_dpatch_patch")
+insert_before("dh_clean", "dh_dpatch_unpatch")
+\end{commandline}
+という記述があります。これは見て想像できるとおり、makeの直前に実行される./configureのさらに直前に、dh_dpatch_patchを加えています。
+また、下の記述は、以前にビルドしたことがある場合に、パッチする前の状態にするdh_dpatch_unpatchコマンドも追加されています。
+
+このdh_dpatch_patchは、パッケージソースのdebian/patches/00listに記述されたファイル名のパッチを先頭からパッチするコマンド、dpatchスクリプトを実行します。
+
+すなわち、もしconfigureスクリプトにdpatchでなんらかのパッチをあてて実行したければ、dpatchパッケージをBuild-depし、debian/patches/ディレクトリにパッチファイルとそれに合わせた00listファイルを用意し、
+\begin{commandline}
+dh --with dpatch \$@
+\end{commandline}
+とrulesファイルに記述しておけば良いはずです。
+
+buildだけしたければ、
+\begin{commandline}
+dh_dpatch_patch
+dh_auto_configure
+\$(MAKE)
+\end{commandline}
+でも大丈夫です。
+
+\subsection{autotoolsだって使いたい}
+
+dh-autoreconfパッケージをインストールすると、依存関係でautomake、autoconfと、automakeに依存してautotools-devがインストールされます。
+autotools-devパッケージは/usr/share/perl5/Debian/Debhelper/Sequense/ディレクトリにautotools-dev.pmファイルが入ります。
+これには、
+\begin{commandline}
+insert_before("dh_auto_configure", "dh_autotool-dev_updateconfig")
+insert_before("dh_clean", "dh_autotool-dev_restoreconfig")
+\end{commandline}
+と記述されています。
+
+dh_autotool-dev_updateconfigコマンドは、カレントディレクトリ以下で実行しているシステムタイプの標準名を推測するためのconfig.guessとconfig.subファイルを探し、config.guess.dh-origとconfig.sub.dh-origファイルに名前を換え、それぞれ/usr/share/misc/ディレクトリにある最新autotool-devのconfig.guessとconfig.subをコピーしてきます。
+
+dh-autoreconfパッケージは/usr/share/perl5/Debian/Debhelper/Sequense/ディレクトリにautoreconf.pmファイルが入ります。
+これには、
+\begin{commandline}
+insert_before("dh_auto_configure", "dh_autoreconf")
+insert_before("dh_clean", "dh_autoreconf_clean")
+\end{commandline}
+と記述されています。
+
+dh_autoreconfコマンドは、簡単に言うと、automake、autoconfをしてくれるautoreconfスクリプトを呼び出し、configureやMakefile.inを再生成します。
+
+dh_autoreconfを使いたいときは、このパッケージにBuild-depし、
+\begin{commandline}
+dh \$@  --with autoreconf
+\end{commandline}
+とrulesファイルに記述しておけば良いはずです。
+debian/autoreconfファイルにディレクトリのリストがあれば、そこだけconfigureやMakefile.inを更新してくれます。
+
+autoreconf.pmファイルでは「dh_auto_configureより前だよ」という指定しかありませんから、dh_autoreconfが実行されてパッチがあてられるのか、パッチがあてられてからdh_autoreconfが実行されるのかまでは記述されていません。
+dhスクリプトを見た限りでは「--with」オプションの順でリストされているようです。つまり、dh-autoreconfパッケージを利用するソースパッケージのMakefileに対してBTSでパッチを書く場合は、「--with」オプションの順を確認する必要がありそうです。
+
+\subsection{おわりに}
+
+今回はmakeを実行する前に使用されるconfigureスクリプトの、Debhelperを使ったカスタマイズ法について、駆け足で説明してみました。
+
 %-------------------------------------------------------------------------------
 \dancersection{cmake使ってみる}{野島 貴英}
 %-------------------------------------------------------------------------------
