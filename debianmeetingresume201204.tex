@@ -153,15 +153,72 @@ squeezeにはないですが、wheezy にはすでにはいっているようです。
 # apt-get install nodejs
 \end{commandline}
 
+Node Js 本体はnodejsというパッケージ名で入っていますが、
+関連パッケージはnode-ではじまるようになっています。
+
+本体を実行するとJSインタープリタのREPLインタフェースが起動します。
+ここでコマンドラインからjavascriptを適当に実行できるようです。この時点で
+は単なるV8のコマンドラインインタフェースですね。
 
 \begin{commandline}
+$ $node -v 
+v0.6.12
 $ node
 > console.log('hello world')
 hello world
 \end{commandline}
 
+
+\subsection{npm -- Node.js のパッケージ管理システム}
+
+Node.js のモジュールは npm で管理されています。npm でインストールすると最
+新のパッケージがインストールできるみたいです。一般ユーザ権限でパッケージ
+をインストールしてくれるようです。Debianのパッケージは/usr/lib/nodejs 以
+下にインストールされます。npmの場合は /usr/local/lib/nodejs 以下にインストールされます。
+
+手元で実行したところExceptionをはいて終了しました。どうやら node 0.6.2
+に対応していないバージョンの npm が現在パッケージされており、動かなくなっ
+ている模様\debianbug{622628}
+
+\begin{commandline}
+# npm
+\end{commandline}
+
+
+\subsection{Node で CLI}
+
+とりあえず、Node でCLIをつくってみます。
+node cli をインストールして適当にコードを書く。
+
+\begin{commandline}
+# apt-get install node-cli
+\end{commandline}
+
+とりあえず無駄に和とか計算してみた。
+
+\begin{commandline}
+// Command-line tool to sum the stdin items.
+var cli = require('cli');
+
+cli.withStdinLines(function(lines, newline) {
+    var sum = 0;
+    var count = 0;
+
+    for (var i = 0; i < lines.length; ++i) {
+	console.log(lines[i]);
+	if (lines[i] != '') {
+	    sum += parseInt(lines[i]);
+	    count ++;
+	}
+    }
+    console.log('sum: ' + sum + ' avg: ' + sum / count);
+});
+\end{commandline}
+
 \begin{thebibliography}{0}
-\bibitem{nodejslocalhtml} Node.js v0.4.12 Manual \& Documentation \url{/usr/share/doc/nodejs/api/index.html}
+\bibitem{nodejslocalhtml}  Node.js v0.6.12 Manual \& Documentation
+	\url{/usr/share/doc/nodejs/api/index.html}
+\bibitem{pkg-javascript-devel} Alioth の 　pkg-javascript-devel メーリングリスト \url{http://lists.alioth.debian.org/pipermail/pkg-javascript-devel/}
 \end{thebibliography}
 
 %-------------------------------------------------------------------------------
