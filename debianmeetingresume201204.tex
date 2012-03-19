@@ -141,7 +141,7 @@
 \end{multicols}
 
 %-------------------------------------------------------------------------------
-\dancersection{Debian での nodejs 入門}{XXX}
+\dancersection{Debian での nodejs 入門}{上川純一}
 %-------------------------------------------------------------------------------
 \index{nodejs}
 
@@ -173,7 +173,7 @@ hello world
 Node.js のモジュールは npm で管理されています。npm でインストールすると最
 新のパッケージがインストールできるみたいです。一般ユーザ権限でパッケージ
 をインストールしてくれるようです。Debianのパッケージは/usr/lib/nodejs 以
-下にインストールされます。npmの場合は /usr/local/lib/nodejs 以下にインストールされます。
+下にインストールされます。Debian パッケージの npmの場合は /usr/local/lib/nodejs 以下にインストールされます。
 
 手元で実行したところExceptionをはいて終了しました。どうやら node 0.6.2
 に対応していないバージョンの npm が現在パッケージされており、動かなくなっ
@@ -194,34 +194,61 @@ node 0.6 系列に対応しているnpmは1.1です。
 
 npm がインストールできたらモジュールはnpm install でインストールできるよ
 うになります。
+npm installだとカレントディレクトリ以下にインストールするようです。
+npm install -g だと \verb!/usr/lib/node_modules! 以下にインストールするようです。
 
 \begin{commandline}
 # apt-get install nodejs nodejs-dev
 # curl http://npmjs.org/install.sh | sh
-# npm install socket.io 
+# sudo npm install -g express ejs socket.io
+npm http GET https://registry.npmjs.org/express
+npm http GET https://registry.npmjs.org/ejs
 npm http GET https://registry.npmjs.org/socket.io
-npm http 200 https://registry.npmjs.org/socket.io
-npm http GET https://registry.npmjs.org/socket.io/-/socket.io-0.9.2.tgz
-npm http 200 https://registry.npmjs.org/socket.io/-/socket.io-0.9.2.tgz
-npm http GET https://registry.npmjs.org/socket.io-client/0.9.2
+npm http 304 https://registry.npmjs.org/socket.io
+npm http 200 https://registry.npmjs.org/ejs
+npm http GET https://registry.npmjs.org/ejs/-/ejs-0.6.1.tgz
+npm http 200 https://registry.npmjs.org/express
   .
   .
-  .
-socket.io@0.9.2 /node_modules/socket.io 
+/usr/bin/express -> /usr/lib/node_modules/express/bin/express
+ejs@0.6.1 /usr/lib/node_modules/ejs 
+express@2.5.8 /usr/lib/node_modules/express 
+├── qs@0.4.2
+├── mkdirp@0.3.0
+├── mime@1.2.4
+└── connect@1.8.6
+socket.io@0.9.2 /usr/lib/node_modules/socket.io 
 ├── policyfile@0.0.4
 ├── redis@0.6.7
 └── socket.io-client@0.9.2
 \end{commandline}
 
+\begin{table}[h]
+\caption{Debianパッケージおよびnpm でインストールされる場所}
+\begin{center}
+ \begin{tabular}{|c|c|}
+ \hline
+ & ディレクトリ\\
+ \hline
+ Debian パッケージ & /usr/lib/nodejs \\
+ Debian の npm & /usr/local/lib/nodejs\\
+ npm install -g & /usr/lib/node\_{}modules \\
+ npm install & ./ \\
+ \hline
+ \end{tabular} 
+\end{center}
+\end{table}
+
 \subsubsection{nave / nvm}
 
 Node.js をインストールするのに複数のNode.js環境を切り替える手法として
 nave, nvm などがポピュラーなようです。
+しかし今のところメリットがわからないので手元ではchroot環境に直接インストー
+ルして、nave / nvm を使わずに利用しています。
 
-今のところメリットがわからないので手元ではchroot環境でnave / nvm を使わず
-に利用しています。
+\subsection{Debian 流儀でのパッケージインストール}
 
-\subsection{Node で CLI}
+\subsubsection{Node で CLI}
 
 とりあえず、Node でCLIをつくってみます。
 node cli をインストールして適当にコードを書く。
