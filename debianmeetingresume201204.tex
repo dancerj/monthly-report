@@ -145,22 +145,23 @@
 %-------------------------------------------------------------------------------
 \index{nodejs}
 
+Javascriptでプログラムをガリガリ書きたいとおもったことはありませんか?
 昨年一時期話題になっていたnode.jsをDebianで試してみましょう。node.jsは
 squeezeにはないですが、wheezy にはすでにはいっているようです。
-
+インストールは簡単:
 \begin{commandline}
 # apt-get install nodejs
 \end{commandline}
 
 Node Js 本体はnodejsというパッケージ名で入っていますが、
-関連パッケージはnode-ではじまるようになっています。
+関連するモジュールパッケージはnode-ではじまるようになっています。
 
-本体を実行するとJSインタープリタのREPLインタフェースが起動します。
+nodejs を実行するとJSインタープリタのREPLインタフェースが起動します。
 ここでコマンドラインからjavascriptを適当に実行できるようです。この時点で
 は単なるV8のコマンドラインインタフェースですね。
 
 \begin{commandline}
-$ $node -v 
+$ node -v 
 v0.6.12
 $ node
 > console.log('hello world')
@@ -170,20 +171,30 @@ hello world
 
 \subsection{npm -- Node.js のパッケージ管理システム}
 
-Node.js のモジュールは npm で管理されています。npm でインストールすると最
-新のパッケージがインストールできるみたいです。一般ユーザ権限でパッケージ
-をインストールしてくれるようです。Debianのパッケージは/usr/lib/nodejs 以
-下にインストールされます。Debian パッケージの npmの場合は /usr/local/lib/nodejs 以下にインストールされます。
+Node.js のモジュールは npm で管理されています。Debian パッケージにもなっ
+ていますが、npm で直接インストールすることも可能です。
+Perl でいうCPAN、TeXでいうCTAN のようなもののようです。
+npm を利用してインストールすると最新のパッケージが手に入ります。
+パッケージは一般ユーザ権限でパッケージをインストールすることを主眼として
+設計されているようです。
+
+Debianのパッケージは/usr/lib/nodejs 以下にインストールされます。
+Debian パッケージの npmを利用する場合は /usr/local/lib/nodejs 以下にイン
+ストールします。
 
 手元で実行したところExceptionをはいて終了しました。どうやら node 0.6.2
 に対応していないバージョンの npm が現在パッケージされており、動かなくなっ
-ている模様。\debianbug{622628}
+ている模様です。\debianbug{622628}
 
 \begin{commandline}
 # npm
 \end{commandline}
 
-\subsubsection{npmの新しいバージョンをインストールしてみる}
+Debian パッケージを使うべきかnpmを使って導入するべきか悩ましいところです
+が、Debianパッケージになるまでにはタイムラグがあるので、最新のコードをつ
+かって開発する場合にはnpmを利用することになると思われます。
+
+\subsection{npmのアップストリーム版をインストールしてみる}
 
 npmが使えないのは不便なので、Debianパッケージになっていないパッケージを
 インストールする方法としてDebianパッケージではないnpmを利用する方法を紹
@@ -194,8 +205,24 @@ node 0.6 系列に対応しているnpmは1.1です。
 
 npm がインストールできたらモジュールはnpm install でインストールできるよ
 うになります。
-npm installだとカレントディレクトリ以下にインストールするようです。
-npm install -g だと \verb!/usr/lib/node_modules! 以下にインストールするようです。
+npm はsudo前提で設計されているようです。
+
+\texttt{sudo npm install パッケージ名}
+だとカレントディレクトリ以下にsudoを発行したユーザ権限
+でインストールするようです。
+\texttt{sudo npm install -g パッケージ名} だと \verb!/usr/lib/node_modules! 以下にインストール
+するようですが、権限はnobodyのままです\footnote{挙動としてはおかし
+いので操作を間違っているかバグのように思われる}。
+
+npmは開発者視点で便利なように設計されているようで、個人的におもしろいなと思った
+のは\texttt{sudo npm install} だけすると現在のディレクトリにあるプロジェ
+クトの依存しているパッケージをカレントディレクトリにインストールするとい
+う挙動になることです。依存しているパッケージがどんどん変更されている
+熱いプロジェクトであるnode.jsっぽい感じがします。
+npmの作者のウェブサイトを読んでいると、システムワイドでインストールする
+のはCLIツールなどに必要な時に限って、ウェブサイトにデプロイする用のコー
+ドではモジュールはプロジェクトのディレクトリにインストールすることを推奨
+すると説明しています。
 
 \begin{commandline}
 # apt-get install nodejs nodejs-dev
@@ -223,41 +250,66 @@ socket.io@0.9.2 /usr/lib/node_modules/socket.io
 └── socket.io-client@0.9.2
 \end{commandline}
 
+ディレクトリ構成をまとめました。
+
 \begin{table}[h]
 \caption{Debianパッケージおよびnpm でインストールされる場所}
 \begin{center}
- \begin{tabular}{|c|c|}
+ \begin{tabular}{|l|l|}
  \hline
  & ディレクトリ\\
  \hline
- Debian パッケージ & /usr/lib/nodejs \\
- Debian の npm & /usr/local/lib/nodejs\\
- npm install -g & /usr/lib/node\_{}modules \\
- npm install & ./ \\
+ Debian パッケージ & \texttt{/usr/lib/nodejs} \\
+ Debian の npm  & \texttt{/usr/local/lib/nodejs}\\
+ npm install -g & \texttt{/usr/lib/node\_{}modules} \\
+ npm install & \texttt{./node\_{}modules} \\
  \hline
  \end{tabular} 
 \end{center}
 \end{table}
+
+マニュアルなどはnpm コマンドを実行すると表示されるヘルプが充実しています。
+\begin{commandline}
+$ npm help
+$ npm help npm
+$ npm help install
+\end{commandline}
+
+\subsubsection{npm を使った場合のプログラム実行}
+
+カレントディレクトリにインストールしたときはよいのですが、そうではない場
+合は、\texttt{/usr/lib/node\_{}modules}以下にインストールされてもDebianの
+nodejs の標準のモジュールパスに含まれていないためロードされません。
+
+そのため、NODE\_{}PATHを指定して追加でロードされるようにしておきます。
+\begin{commandline}
+$ NODE_PATH=/usr/lib/node_modules node ./program.js 
+\end{commandline}
+%$
 
 \subsubsection{nave / nvm}
 
 Node.js をインストールするのに複数のNode.js環境を切り替える手法として
 nave, nvm などがポピュラーなようです。
 しかし今のところメリットがわからないので手元ではchroot環境に直接インストー
-ルして、nave / nvm を使わずに利用しています。
+ルして、nave / nvm を使わずに利用しています。もしかするとそっちを試した
+方が楽だったかもしれません。
 
-\subsection{Debian 流儀でのパッケージインストール}
+\subsection{Debian 流儀でのNodeモジュールパッケージインストール}
 
-\subsubsection{Node で CLI}
+Debianパッケージで提供されているnode.js パッケージを使ってみましょう。
 
-とりあえず、Node でCLIをつくってみます。
-node cli をインストールして適当にコードを書く。
+\subsubsection{NodeでCLIツールを作ってみる}
 
+とりあえず、Node でCLIをつくってみたい、のでnode cli をインストールして
+適当にコードを書いてみるという場面を想定してみます。
+cli モジュールはDebianパッケージになっているので以下でインストールできま
+す。
 \begin{commandline}
 # apt-get install node-cli
 \end{commandline}
 
-とりあえず無駄に和とか計算してみた。
+とりあえず無駄に平均を計算してみるコードを書いてみました。
 
 \begin{commandline}
 // Command-line tool to sum the stdin items.
@@ -276,6 +328,18 @@ cli.withStdinLines(function(lines, newline) {
     }
     console.log('sum: ' + sum + ' avg: ' + sum / count);
 });
+\end{commandline}
+
+コマンドラインで適当に実行してみたところ、結果が表示されました。
+
+\begin{commandline}
+$ node sum.js < testdata.txt
+10
+15
+200
+8
+
+sum: 233 avg: 58.25
 \end{commandline}
 
 \begin{thebibliography}{0}
