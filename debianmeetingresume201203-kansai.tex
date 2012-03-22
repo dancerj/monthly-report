@@ -123,8 +123,128 @@
 
 \clearpage
 
-\dancersection{月刊 Debian Policy 「Control ファイル」}{八津尾}
+\dancersection{月刊 Debian Policy 第2回 「Controlファイルについて 」}{八津尾 雄介}
 
+先月倉敷さんの指名で今回の担当となりました八津尾です。今回はパッケージ作成の要で
+ある {\it control} ファイルについてです。詳細はDebianポリシーマニュアルを読めば
+わかるはずですので、あまりだらだらと説明せずに概要のみの説明とさせていただきます。
+
+\subsection{Debian Policy 3.9.3.0 での変更点}
+先頃 {\it Debian Policy 3.9.3.0} がリリーズされ、著作権表記のフォーマット
+を中心にいくつかの変更がありました。現在の日本語訳 3.9.1.0 と若干変わっています
+ので、まずはその変更点を抑えておきましょう。\\
+第5章に関しての変更点は、5.6.8 の{\it *.dsc}ファイルについての変更のみとなってい
+ます。 {\it Archtecture} フィールドにアーキテクチャに依存するしないに関わらず
+{\it "any all"} という値を指定できるようになりました。
+\begin{quote}
+"Specifying {\it any all} indicates that the source package isn't dependent on any
+particular architecture. The set of produced binary packages will include at
+least one architecture-dependant package and one architecture-independent
+package."\\
+{\it Debian Policy Manual. version 3.9.3.1, Chapter 5.6.8 "Archtecture":
+Ian Jackson and Christian Schwarz, 2012-03-04}
+\end{quote}
+\begin{quote}
+"{\it any all}を指定すると、ソースパッケージが特定のアーキテクチャに依存しない
+事を意味します。生成されたバイナリパッケージには、アーキテクチャ依存パッケージ
+とアーキテクチャ非依存パッケージが、少なくとも1つずつ含まれます。" (訳：八津尾)
+\end{quote}
+また、先月の第7章(7.1)に関しては、
+\begin{quote}
+{\bf "もし特定のアーキテクチャに依存している場合は、アーキテクチャのリストは空
+白にしてはならない"}
+\end{quote}
+といった内容が追加されておりますので、日本語訳のみしか読んでいない方は確認をし
+ておきましょう。その他の変更点については、それぞれの章の担当者にお任せします。
+
+\subsection{debian/control ファイル}
+{\it control}ファイルとはパッケージのメタ情報を扱うファイルです。{\it debian/
+control}ファイルは2つの段落から成っており、最初の段落が全般的な情報を扱う {\it 
+"general paragraph"}、次の段落がバイナリパッケージで使用する情報を扱う {\it "b
+inary package paragraph"} と呼ばれています。{\it control} ファイルの書式は非常
+に単純です。
+\begin{screen}
+フィールド名: フィールド値
+\end{screen}
+と記述するだけです。細かいルールは {\it debian policy} 第5章を読みましょう。
+\begin{screen}
+\$dh\_make -f (パッケージ名)
+\end{screen}
+というコマンドを使えば {\it debian/} 以下に必要なファイルが作成されます。以下は
+私が {\it lpc21isp} という {\it arm} マイコン書込み用 {\it ISP}ツールをパッケー
+ジ化してみた時に、{\it dh\_make} が自動的に生成した {\it control} ファイルです。
+{\it dh\_make}コマンドを使えば、いくつかの質問に答えるだけで、{\it control}
+ファイルを以下の状態まで持っていく事ができます。{\it dh\_make} についての詳細は
+{\it dh\_make(8)} をご参照下さい。{\it dh\_make} を使ったパッケージ化の大まかな
+流れは"Debian パッケージ化入門"
+\footnote{パッケージ "packaging-tutorial"}
+または"新メンテナガイド"
+\footnote{http://www.debian.org/doc/manuals/maint-guide/index.ja.html\\
+またはパッケージ "maint-guide-ja"}
+が参考になります。
+\begin{itembox}[l]{debian/control ファイルの例}
+\begin{verbatim}
+Source: lpc21isp
+Section: utils
+Priority: optional
+Maintainer: Your Name <mail@address.here>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://www.aeolusdevelopment.com
+
+Package: lpc21isp
+Architecture: any
+Depends: 
+Description: Portable command line ISP
+ Portable command line ISP for NXP LPC1000 / LPC2000 family 
+  and Analog Devices ADUC70xx.
+\end{verbatim}
+\end{itembox}
+ここでは使用されていないフィールド名もありますので、フィールド名の一覧は5.2章を
+各フィールドが取る値とその意味については5.6章を参照して下さい。
+
+\subsection{DEBIAN/control ファイル}
+{\it debian/(パッケージ名)/DEBIAN/} 以下にも {\it control} ファイルが存在します。
+このファイルは先述の {\it debian/control} ファイルを元に {\it dh\_gencontrol(1)} が生成します。
+詳細は {\it man} を参照して下さい。\\
+\begin{screen}
+\$man dh\_gencontrol
+\end{screen}
+先に示した {\it control} ファイルからは以下のような {\it DEBIAN/control} ファイルが生成されます。
+
+\begin{itembox}[l]{DEBIAN/control ファイルの例}
+\begin{verbatim}
+package: lpc21isp
+Version: 1.8.3-1
+Architecture: i386
+Maintainer: Your Name <main@address.here>
+Installed-Size: 588
+Section: utils
+Priority: optional
+Homepage: http://www.aeolusdevelopment.com
+Description: Portable command line ISP
+ Portable command line ISP for NXP LPC1000 / LPC2000 family
+ and Analog Devices ADUC70xx.
+\end{verbatim}
+\end{itembox}
+
+\subsection{*.dsc ファイル}
+{\it debuild} などを実行すると {\it *.deb} ファイルと同じディレクトリに {\it *.dsc}
+ファイルが生成されます。
+書式は {\it control} ファイルと同じ形態で、{\it control}ファイルを元に生成します。
+{\it dpkg-source(1)} によって、ソースを展開する時に使われます。
+パッケージの展開時に整合性のチェックをします。
+
+\subsection{*.changes ファイル}
+{\it .changes}ファイルは{\it Debian}アーカイブを管理するソフトウェアによって使用されます。
+このファイルは{\it debian/control}、{\it debian/changelog}、{\it debian/rules} などから
+抽出したソースパッケージの情報が含まれています
+
+\subsection{各ファイルの関係}
+\begin{figure}[b]
+    \centering
+    \includegraphics[scale=0.5]{image201203/control.eps}
+\end{figure}
 
 \clearpage
 \dancersection{今後の予定}{Debian JP}
