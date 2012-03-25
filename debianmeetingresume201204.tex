@@ -141,23 +141,29 @@
 \end{multicols}
 
 %-------------------------------------------------------------------------------
-\dancersection{Debian での nodejs 入門}{上川純一}
+\dancersection{Debian での node.js 入門}{上川純一}
 %-------------------------------------------------------------------------------
 \index{nodejs}
 
 Javascriptでプログラムをガリガリ書きたいとおもったことはありませんか?
 昨年一時期話題になっていたnode.jsをDebianで試してみましょう。
-Node.jsはイベントベースのサーバサイドJavascriptエンジンです。シェルスク
-リプトの代わりに使うことも出来ますが、javascriptでウェブサーバが書きやすくなっています。
+node.js\footnote{マニュアルなどにはnodeと記述されていますが、通称はnode.js}は
+イベントベースのサーバサイドJavascriptエンジンです。シェルスク
+リプトの代わりに使うことも出来ますが、javascriptでウェブサーバが書きやす
+くなっています。
+特徴としてシングルスレッドなんだけどほとんどすべての処理を非同期イベント
+処理によって実現することによって、たくさんのリクエストを効率よく処理すると
+いうようなことになっているようです。
 
-node.jsのパッケージはsqueezeにはないですが、wheezy にはすでにはいっているようです。
+node.jsのパッケージはsqueezeにはないですが、wheezy にはすでに入っていま
+す。
 インストールは簡単:
 \begin{commandline}
 # apt-get install nodejs
 \end{commandline}
 
 Node Js 本体はnodejsというパッケージ名で入っていますが、
-関連するモジュールパッケージはnode-ではじまるようになっています。
+関連するモジュールパッケージの名前はnode-ではじまるようになっています。
 
 nodejs を実行するとJSインタープリタのREPLインタフェースが起動します。
 ここでコマンドラインからjavascriptを適当に実行できるようです。この時点で
@@ -276,7 +282,7 @@ npmの作者のウェブサイトを読んでいると、システムワイドでインストールする
 \begin{commandline}
 # apt-get install nodejs nodejs-dev
 # curl http://npmjs.org/install.sh | sh
-# sudo npm install -g express ejs socket.io
+$ sudo npm install -g express ejs socket.io
 npm http GET https://registry.npmjs.org/express
 npm http GET https://registry.npmjs.org/ejs
 npm http GET https://registry.npmjs.org/socket.io
@@ -324,7 +330,7 @@ $ npm help npm
 $ npm help install
 \end{commandline}
 
-\subsubsection{npm を使っっている場合のプログラム実行}
+\subsubsection{npm を使っている場合のプログラム実行}
 
 カレントディレクトリにインストールしたときはよいのですが、そうではない場
 合は、\texttt{/usr/lib/node\_{}modules}以下にインストールされてもDebianの
@@ -336,13 +342,47 @@ $ NODE_PATH=/usr/lib/node_modules node ./program.js
 \end{commandline}
 %$
 
-\subsubsection{nave / nvm}
+\subsubsection{パッケージのメタデータ: package.json}
 
-Node.js をインストールするのに複数のNode.js環境を切り替える手法として
-nave, nvm などがポピュラーなようです。
-しかし今のところメリットがわからないので手元ではchroot環境に直接インストー
-ルして、nave / nvm を使わずに利用しています。もしかするとそっちを試した
-方が楽だったかもしれません。
+package.json の設定をしてnpm link を使えばパスの追加は必要なくなります。
+\begin{commandline}
+$ npm link 
+\end{commandline}
+とすると必要なモジュールをプロジェクトのディレクトリにシンボリックリンク
+として追加してくれるということでした。
+
+npmのメタデータは ./package.json です。
+npm help json (man npm-json.1)に詳しく説明されています。
+す。とりあえずはname/versionフィールドさえあればよくて、dependenciesを追
+加するとnpm install やnpm link コマンドで利用してくれるようです。
+
+インストールに必要なファイルの一覧や、node-waf の実行方法などが記載され
+ているのでこれさえあればDebianパッケージを自動で生成することも可能な気が
+します。
+
+手元で作成してみた npm linkのためだけの最低限な内容のpackage.jsonを紹介
+します
+\begin{commandline}
+{
+    "name": "aptserver",
+    "version": "v0.0.1",
+    "dependencies": {
+	"cli": "",
+	"express": "",
+	"ejs": ""
+    }
+} 
+\end{commandline}
+
+\subsection{最後に}
+
+今回は nodejs をDebianで使う方法を紹介してみました。
+モジュールのパッケージングが更新においついていない感じなのでもうしばらく
+したらまた良くなっているかもしれません。
+nodejs の頻繁な更新と複数バージョンの必要性から
+は nave / nvm などの環境管理ツールで複数バージョンをインストール
+して利用するということもよくやられているようです。
+Debianでnodejsを活用するきっかけになれば幸いです。
 
 \begin{thebibliography}{0}
 \bibitem{nodejslocalhtml}  Node.js v0.6.12 Manual \& Documentation
