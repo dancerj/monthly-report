@@ -1152,6 +1152,111 @@ $ sudo pbuilder build konoha_1.0.0~954-1.dsc \
 \clearpage
 \dancersection{月刊 t-code パッケージ修正}{西田 孝三}
 
+第56回関西Debian勉強会では「emacs24で問題なく使えるt-code.debを作った話」という題で発表しました。前回の発表ではとりあえず問題なく動作するオレオレパッケージを作成するところで終わっていました。今回は最近のEmacsでも動作するようにパッケージに加えた変更の管理をしっかりしていこうと思います。
+
+\subsection{前回のおさらいと今回の作業方針}
+前回とりあえず動くパッケージを作るために行ったことは派生リポジトリ(http://code.google.com/p/tcode)で変更が加えられたコードを既存のパッケージのソースに上書きコピーした上でbuildを行うというものでした。今後行うべきことのひとつとして、どのような変更を加えたかを管理していくことがあります。今後の変更を管理していく場合、下記のような方針が考えられます。
+
+\begin{enumerate}
+\item 派生リポジトリが今後のt-codeパッケージのupstreamだと言い張る。これまでのdebianディレクトリを派生リポジトリの方にコピーしてビルドが通るようにする。これは前回のオレオレパッケージ作成方法とは異なる。このままもしビルドが通ればpatchを用意する必要は無い。
+\item 既存のt-codeパッケージのupstreamのコードに直接変更を加える(前回はコピー上書きした)ことはせず、パッチ管理ツール(dpatchやquilt)を用いて変更を管理する。
+\end{enumerate}
+
+1.には下記の理由があり、2.の方針をとることにしました。
+
+\begin{itemize}
+\item 既存のt-codeパッケージのdebianディレクトリをコピーしただけではdebuildが通らない。結局パッチ変更必要。
+\item Subversionの変更履歴の記録が他のソフトウェアも含むものとなっている(Windows用のIMEである漢直Winのソースも共に管理している)
+\end{itemize}
+
+\subsection{quiltを用いたパッチ作成}
+
+それでは前回行った変更に応じたパッチを作成してみましょう。
+
+\begin{enumerate}
+\item 既存Debianパッケージのソース取得と派生リポジトリのソースを取得
+\item 派生リポジトリのソースで既存Debianパッケージのソースに変更を加え
+\item debian/source/formatを追加しquiltを使うことを宣言し
+\item dpkg-source --commitコマンドでパッチを作成しています
+\end{enumerate}
+
+\begin{commandline}
+kozo2@debian:~$ mkdir debsrc
+kozo2@debian:~$ cd debsrc; apt-get source t-code
+kozo2@debian:~/debsrc$ cd; svn co http://tcode.googlecode.com/svn/trunk/tc
+kozo2@debian:~$ cp tc/bushu-util/* debsrc/t-code-2.3.1/bushu-util/
+kozo2@debian:~$ cp tc/etc/* debsrc/t-code-2.3.1/etc/
+kozo2@debian:~$ cp tc/lisp/* debsrc/t-code-2.3.1/lisp/
+kozo2@debian:~$ cp tc/mazegaki/* debsrc/t-code-2.3.1/mazegaki/
+kozo2@debian:~$ cd debsrc/t-code-2.3.1
+kozo2@debian:~/debsrc/t-code-2.3.1$ mkdir debian/source
+kozo2@debian:~/debsrc/t-code-2.3.1$ echo '3.0 (quilt)' > debian/source/format
+kozo2@debian:~/debsrc/t-code-2.3.1$ dpkg-source --commit
+\end{commandline}
+
+これでdebian/patches下にseriesというファイルと共にパッチファイルが作成されます。
+パッチファイル名は先程のコマンド入力後に指定します。
+ここではgooglecodeとしました。
+seriesという名のファイルには複数のパッチファイルを用いる場合にそれらのファイル名を記すようです。
+
+\begin{commandline}
+kozo2@debian:~/debsrc/t-code-2.3.1$ ls debian/patches/
+googlecode series
+kozo2@debian:~/debsrc/t-code-2.3.1$ cat debian/patches/series
+googlecode
+\end{commandline}
+
+\subsection{ビルド時にパッチを用いるための設定}
+
+次に先程生成したdebian/patches以下のパッチファイルをバイナリパッケージをビルドする際にパッチを当てた状態になるようにdebian/rulesのmakeコマンドのshebangの下に下記の1行を加えます。
+
+\begin{commandline}
+kozo2@debian:~/debsrc/t-code-2.3.1$ head debian/rules
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/patchsys-quilt.mk
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+\end{commandline}
+
+このpatchsys-quilt.mkはcdbsというパッケージをinstallすると用いることができます。
+CDBSはCommon Debian Build Systemの略で、debパッケージビルド用のdebian/rulesファイルを短く書けるようにrulesで行うことの汎用的な内容の集まりのようです。
+今回はこの1行でうまくpatchが当たり、ビルドできるかどうかまで試行を行いました。
+
+\begin{commandline}
+kozo2@debian:~/debsrc/t-code-2.3.1$ debuild -us -uc
+...
+patching file lisp/eelll.el
+Reversed (or previously applied) patch detected!  Skipping patch.
+22 out of 22 hunks ignored -- saving rejects to file lisp/eelll.el.rej
+patching file lisp/guess
+Reversed (or previously applied) patch detected!  Skipping patch.
+1 out of 1 hunk ignored -- saving rejects to file lisp/guess.rej
+patching file lisp/Makefile.am
+Reversed (or previously applied) patch detected!  Skipping patch.
+1 out of 1 hunk ignored -- saving rejects to file lisp/Makefile.am.rej
+patching file lisp/tc-bitmap.el
+Reversed (or previously applied) patch detected!  Skipping patch.
+2 out of 2 hunks ignored -- saving rejects to file lisp/tc-bitmap.el.rej
+patching file lisp/tc-help.el
+Reversed (or previously applied) patch detected!  Skipping patch.
+10 out of 10 hunks ignored -- saving rejects to file lisp/tc-help.el.rej
+patching file kinput2/Makefile.in
+Reversed (or previously applied) patch detected!  Skipping patch.
+3 out of 3 hunks ignored -- saving rejects to file kinput2/Makefile.in.rej
+dpkg-source: error: LC_ALL=C patch -t -F 0 -N -p1 -u -V never -g0 -E -b -B .pc/midnight/ < t-code-2.3.1.orig.iRO91G/
+debian/patches/midnight gave error exit status 1
+dpkg-buildpackage: error: dpkg-source -b t-code-2.3.1 gave error exit status 2
+\end{commandline}
+
+どうも何らかの問題がありpatchを当てることができずbuildに失敗しました。
+今回はこの問題の解決まではできませんでした。
+
+\subsection{おわりに}
+パッチの適用ができなかった問題については勉強会会場で参加者の方々に伺い、解決の糸口を得たいと思っています。
+他に懸念すべき事項としてライセンスがあるかと思いますが、ソースを通して見ても GPL v2以外のライセンスを用いている部分は無いように思ったので後は変更管理さえしっかりできれば正式にパッケージを採用して頂くための連絡へと進めるかと思っています。
+次回の勉強会までに何とかそこまで持っていきたいと思います。
+
 \clearpage
 
 \dancersection{月刊 Debian Policy 第2回 「Controlファイルについて 」}{八津尾 雄介}
