@@ -379,6 +379,106 @@ npm help json (man npm-json.1)に詳しく説明されています。
 } 
 \end{commandline}
 
+
+\subsection{とりあえず簡単なサーバを書いてみた}
+
+apt-cache search をして出力を返すだけの簡単なサーバを書いてみました。
+イベントドリブンな部分としては、HTTP requestのハンドラーをapp.get() で登
+録している部分と、apt cache の出力を aptCache.stdout.on で登録したハンド
+ラーで取得して aptCache.on exit ハンドラーで終了したらHTTPレスポンスを返
+すようになっている部分でしょうか。
+
+書いてみて気づきましたが、いまいちnodejsを使うメリットが出てないきもしま
+す。
+
+
+\begin{commandline}
+/*
+ * A simple server which serves apt cache search results.
+ */
+var child_process = require('child_process');
+var cli = require('cli');
+var url = require('url');
+var ejs = require('ejs');
+
+cli.parse({
+    port: ['p', 'HTTP server will listen on this port.', 'number', 8088]
+});
+
+cli.main(function cliMain(args, options) {
+    var express = require('express');
+    var app = express.createServer();
+    // set view options.
+    app.set('view engine', 'ejs');
+    app.set('view options', { layout: false });
+    app.set('views', __dirname + '/views');
+
+    // Set up routes.
+    app.get('/', getSlash);
+    app.get('/search', getSearch);
+
+    console.log('Start listening on http://localhost:' + options.port + '/');
+    app.listen(options.port);
+});
+
+/** handler for '/' request */
+function getSlash(request, response) {
+    response.render('index.ejs');
+}
+
+/** handler for '/search?' request */
+function getSearch(request, response) {
+    var query = request.query.q;
+    var aptCache = child_process.spawn('apt-cache', 
+				       [ 'search', query ]);
+    /** Output of apt-cache search, to be used for response. */
+    var responseString = '';
+    aptCache.stdout.on('data', function handleAptCacheStdout(data) {
+	responseString += data;
+    });
+    aptCache.stderr.on('data', function handleAptCacheStderr(data) {
+	responseString += data;
+    });
+    aptCache.on('exit', function handleAptCacheExit(exitCode) {
+	// apt-cache finished executing, send repsponse back to the server.
+	response.render('search.ejs',
+			{locals:{query: query,
+				 response: responseString}});
+    });
+}
+\end{commandline}
+
+ejs HTMLテンプレートファイル\texttt{views/search.ejs}はこんな内容になり
+ました。
+
+\begin{commandline}
+<!-- -*- html; -*- -->
+<html>
+  <body>
+    <form
+      method=GET 
+      action='/search'>
+      <input type=text name=q></input>
+      <button>search</button>
+    </form>
+    <h3>Search for: <%= query %></h3>
+    <pre>
+<%= response %>
+    </pre>
+  </body>
+</html> 
+\end{commandline}
+
+追加モジュールはexpress, ejs, cli を使いました。それぞれ
+
+\begin{itemize}
+ \item express: ウェブアプリケーションフレームワークとしてnodejsで最もポ
+       ピュラーなモジュール、リクエストベースのルーティングなどを担当。
+ \item ejs: HTMLテンプレートエンジンとしておそらく最もポピュラーなモジュール。
+ \item cli: コマンドラインオプションをパースしてくれるモジュール。
+\end{itemize}
+
+
 \subsection{最後に}
 
 今回は nodejs をDebianで使う方法を紹介してみました。
