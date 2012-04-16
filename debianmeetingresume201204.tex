@@ -526,6 +526,116 @@ Debian GNU/Linux (arm) inside Android chrootの計画について。
 \end{thebibliography}
 
 
+%-------------------------------------------------------------------------------
+\dancersection{月刊Debhelper}{杉本 典充}
+%-------------------------------------------------------------------------------
+\index{debhelper}
+
+\subsection{今月のコマンド：dh\_md5sums}
+dh\_md5sumsコマンドは「DEBIAN/md5sumsファイルを生成する」コマンドです。
+
+\subsubsection{DEBIAN/md5sumsファイルについて}
+「\$ ar x debian-package.deb」を実行し現れるcontrol.tar.xxファイルを展開するとmd5sumsファイルで出てきます。このmd5sumsファイルはdata.tar.xxファイルに含むファイルそれぞれから取得したmd5sumを記述しています。
+
+\begin{commandline}
+$ apt-get download hello-debhelper
+$ ar x hello-debhelper_2.7-3_i386.deb
+$ ls
+control.tar.gz  data.tar.gz  debian-binary  hello-debhelper_2.7-3_i386.deb
+$ tar xf control.tar.gz
+$ ls
+control         data.tar.gz    hello-debhelper_2.7-3_i386.deb
+control.tar.gz  debian-binary  md5sums
+$ head -n 1 md5sums
+098518cc321f0467dc0e7c67f65e2cc1  usr/bin/hello
+\end{commandline}
+
+\subsubsection{パッケージのビルド処理におけるdh\_md5sumsの実行}
+dh\_md5sumsコマンドはインストールするファイルのmd5sumを取得する処理のため、ビルド処理の終盤で実行されます。
+
+\begin{commandline}
+$ apt-get source hello-debhelper
+$ cd hello-debhelper-2.7
+$ debuild -uc -us
+  (省略)
+  dh\_gencontrol -a
+  dh\_md5sums -a
+  dh\_builddeb -a
+  (省略)
+$ ls debian/hello-debhelper
+DEBIAN   usr
+$ head -n 1 debian/hello-debhelper/DEBIAN/md5sums
+098518cc321f0467dc0e7c67f65e2cc1  usr/bin/hello
+\end{commandline}
+
+\subsubsection{コマンドのオプション}
+\begin{table}[ht]
+\caption{dh\_md5sumsのコマンドラインオプション一覧}
+\begin{center}
+\small
+\begin{tabular}{|p{12em}|p{33em}|}
+\hline
+オプション&説明 \\
+\hline
+-x,  --include-conffiles & DEBIAN/conffilesファイルに記述した設定ファイルのmd5も生成します。\\
+\hline
+-Xitem, --exclude=item & md5sumの生成を除外するファイル名を指定します。ただしディレクトリが別でもファイル名が一致すればどちらも除外されます。 \\
+\end{tabular}
+\label{tab:sequence-dh}
+\end{center}
+\end{table}
+
+\newpage
+
+\subsection{今月のコマンド：dh\_strip}
+dh\_stripコマンドは「実行ファイル、共有ライブラリ、スタティックライブラリをstripする」コマンドです。
+
+\subsubsection{デバッグシンボルの扱い方を制御する}
+オプションなしや環境変数を指定せずにdh\_stripコマンドを実行するとコンパイルしたオブジェクトファイルのデバッグシンボルをstripするのが通常の処理です。しかし、デバッグを目的とする場合はデバッグシンボルをstripしてしまうとデバッガが十分に機能しないため困ります。
+
+dh\_stripコマンドではデバッグシンボルを以下のように扱うことができます。
+
+\begin{itemize}
+ \item オプションなしで実行すると、stripする。
+ \item 環境変数DEB\_BUILD\_OPTIONS=nostripを指定して実行すると、stripしない。（処理的にはdh\_stripが即座に終了する）
+ \item --dbg-packageオプションを指定すると、/usr/lib/debug配下にデバッグシンボルを分離して残すパッケージ（＝デバッグパッケージ）を作成する。
+\end{itemize}
+
+\subsubsection{デバッグパッケージを作成するための条件}
+debhelperの機能を利用するとstrip済みのバイナリパッケージに加えて簡単にデバッグパッケージを作成できます。デバッグパッケージを追加で作成したい場合は以下の処理を記述してパッケージをビルドすればよいです。
+
+\begin{itemize}
+ \item CFLAGSなどのコンパイルオプションに''-g'を付与しビルド時にデバッグシンボルを生成するようにする。
+ \item debian/rulesでoverride\_dh\_stripを定義し、dh\_strip --dbg-package=package-dbgを処理させる。
+ \item debian/controlにパッケージ「package-dbg」の定義を記述する。このとき、パッケージ「package-dbg」はパッケージ「package」にバージョン指定をしてdependすること。
+\end{itemize}
+
+\subsubsection{コマンドのオプション}
+
+\begin{table}[ht]
+\caption{dh\_stripのコマンドラインオプション一覧}
+\begin{center}
+\small
+\begin{tabular}{|p{12em}|p{33em}|}
+\hline
+オプション&説明 \\
+\hline
+-Xitem, --exclude=item & 指定した文字列を含むファイルをstrip処理の対象から除外する。複数のファイルを指定したい場合はオプションを複数回指定することも可能。\\
+\hline
+--dbg-package=package & デバッグシンボルを含むパッケージ「package-dbg」を作成する。 \\
+\hline
+-k, --keep-debug & パッケージをビルドした作業ディレクトリ内のusr/lib/debugにstrip後のデバッグシンボルファイルを残す。--dbg-packageオプションの指定で事足りる場合は多いが、より細かくデバッグシンボルを扱いたい場合を想定して用意されている。 \\
+\end{tabular}
+\label{tab:sequence-dh}
+\end{center}
+\end{table}
+
+\begin{thebibliography}{0}
+\bibitem{lildebi} Debian Wiki - DebugPackage \url{http://wiki.debian.org/DebugPackage}\
+\bibitem{lildebi} Debian.org 第6章パッケージ化のベストプラクティス \url{http://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html}
+\end{thebibliography}
+
+
 \printindex
 
 \cleartooddpage
