@@ -3,6 +3,9 @@ DVIFILES:=$(SOURCE:%.tex=%.dvi)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
 RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 
+# extention for temporary filename when used for transferring to server.
+TMPEXT:=tmp.$(USERNAME)
+
 # server which hosts files for alioth.
 ALIOTH_FILEHOSTING:=wagner.debian.org
 all: $(PDFFILES)
@@ -21,8 +24,8 @@ publish: $(RELEASEFILES)
 
 %.release-stamp: %.pdf
 	# copy PDF file to a temporal location, and fixup permissions, and move to final destination.
-	scp $< ${ALIOTH_FILEHOSTING}:/home/groups/tokyodebian/htdocs/pdf/$<.tmp
-	ssh ${ALIOTH_FILEHOSTING} "chmod 664 /home/groups/tokyodebian/htdocs/pdf/$<.tmp && mv /home/groups/tokyodebian/htdocs/pdf/$<.tmp /home/groups/tokyodebian/htdocs/pdf/$<"
+	scp $< ${ALIOTH_FILEHOSTING}:/home/groups/tokyodebian/htdocs/pdf/$<.$(TMPEXT)
+	ssh ${ALIOTH_FILEHOSTING} "chmod 664 /home/groups/tokyodebian/htdocs/pdf/$<.$(TMPEXT) && mv /home/groups/tokyodebian/htdocs/pdf/$<.$(TMPEXT) /home/groups/tokyodebian/htdocs/pdf/$<"
 	touch $@
 
 %.pdf: %.dvi
