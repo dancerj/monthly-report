@@ -142,6 +142,195 @@
 \end{multicols}
 
 %-------------------------------------------------------------------------------
+\dancersection{Python初心者が「Pythonプロフェッショナルプログラミング」を読んでみた}{やまねひでき}
+%-------------------------------------------------------------------------------
+\label{sec:python-professional-programing}
+\index{python-professional-programing}
+
+わたくし、「Pythonプロフェッショナルプログラミング」という書籍を先日購入しました。私自身はまだ3月末ぐらいにPythonの入門から始めたばかりで本当はPythonビギナーズプログラミングが欲しいのですが、まだ世の中にはそのような本はありませんし、この書籍自体は評判が良かったので…
+
+で、実際読んでみて中々実践的というか環境構築などで参考になることが多々ありました。しかし、もうちょっと突っ込んでみたいなぁ、というところがいくつかあったので、Debianパッケージ方面からの見方として取り上げてみようと思います。この書籍自体ではUbuntu11.10を使っていますが、私のDebian unstableのやり方でも大体のところはそのまま応用が効くはずです。
+
+
+\subsection{なるべくディストリビューションのパッケージを使いたい}
+
+PythonにはPythonパッケージがあり、配布サイトPyPIがあります。PerlにCPAN、Rubyにgems、RにCRANみたいなものですね。で、このPythonパッケージを導入するのにpipというツールを使う旨説明があるのですが(P.4)、githubからwgetして、インストールスクリプトをsudoで実行しています。\verb!/usr/local! 以下にツールが入るわけです。書籍全体でこのpipを使ったインストールを勧めていますが、これは美しくない。Debianパッケージにpython-pipがあるので、そちらを入れてもいいんじゃないかと思います\footnote{pipは若干バージョンが古いですが、そんなに不都合もないかなーと。古いのが嫌ならローカルにアップデートパッケージ作っちゃうのが吉。}。それからユーザーの HOME 以下にパッケージをインストールするvirtualenvというツールがあります。これもpython-virtualenvパッケージを入れて対応します。この後は、virtualenvでユーザーのPython環境にpipでパッケージを入れていってもいいかな、と思います。便利ツールとして紹介されているvirtualenvwrapperもvirtualenvwrapperパッケージがありますのでそれを入れちゃいましょう。
+
+\begin{commandline}
+$ sudo apt-get install python-pip python-virtualenv virtualenvwrapper
+\end{commandline}
+
+この後でユーザー個人のPython仮想環境下にpipでPythonパッケージをガシガシ入れていくのはありだと思います。
+
+
+\subsection{複数バージョンのPythonを使う、のはいいけど。}
+
+Python2.5をインストールするのに公式のパッケージリポジトリからだと11.10に入れられないよ、ということが書いてあります(P.11)。ここでPPAからインストールするか、ソースからインストールするかという選択になっています。業務で使う場合、そのPPAがどれほど信用できるかを説明するのが難しいように思います。自己責任で、って書いてありますが、大抵盲目的にそのPPA信用しちゃうような…。古いバージョンを使わなきゃダメ、という場合、私だったら「debootstrapで古い環境を作る」というやり方でやります。（debootstrapについては後ほど述べます）。
+
+
+それからソースからPython2.5を入れる説明ですが、
+
+\begin{commandline}
+$ wget http://www.python.org/ftp/python/2.5.6/Python-2.5.6.tgz
+$ tar -xvzf Python-2.5.6.tgz
+$ cd Python-2.5.6
+$ LDFLAGS="-L/usr/lib/x86_64-linux-gnu" ./configure
+$ make
+$ sudo make install
+\end{commandline}
+
+という説明になっています。i386だとパス変わるよね…というのは読み取れるのか若干心配な所です。プロフェッショナルだからいいのかな？必要な依存パッケージについては、最初の方のページで
+
+\begin{commandline}
+$ sudo aptitude -y install build-essential
+$ sudo aptitude -y install libsqlite3-dev
+$ sudo aptitude -y install libreadline6-dev
+$ sudo aptitude -y install libgdbm-dev
+$ sudo aptitude -y install zlib1g-dev
+$ sudo aptitude -y install libbz2-dev
+$ sudo aptitude -y install sqlite3
+$ sudo aptitude -y install tk-dev
+$ sudo aptitude -y install zip
+\end{commandline}
+
+となっていました。あぁ、これはイケてない。パッケージビルド用のパッケージ取得は build-dep するべきです。こんな風に\footnote{ここのパッケージ名指定は、本当はpython2.5にしたいけど無いだろうから2.6にしています。}。
+
+\begin{commandline}
+$ sudo apt-get build-dep python2.6
+\end{commandline}
+
+これでPythonをビルドするときに必要な依存パッケージはすべてインストールされます。このやり方なら、Python以外のソフトウェアパッケージでもバージョンが変わっても大体応用が効きます。
+
+そして「ソースからそのまま入れると\verb!/usr/local!以下に入るから、pythonとだけ打つとPATHの優先度でソースから入れたPython2.5が起動する」…という説明が…そんな罠作らない方がいいじゃないですかー。私ならソースから入れるのなら「Python2.5のDebianパッケージを利用環境用にリビルドしていれる」をやります。PTSのPython2.5のページ \footnote{\url{http://packages.qa.debian.org/p/python2.5.html}} からソースパッケージのdscファイルが取得できるので、これをdevscriptsパッケージのdgetコマンドで取得します。
+
+\begin{commandline}
+$ sudo apt-get install devscripts 
+$ dget http://cdn.debian.net/debian/pool/main/p/python2.5/python2.5_2.5.5-11.dsc
+\end{commandline}
+
+これでPython2.5のソースパッケージが取得できました。ビルド用の依存パッケージは既に入れているので、ソースパッケージのchangelogに一言書いてビルドすれば独自リビジョンをつけた deb パッケージが出来上がりますので、dpkgで入れちゃえば良いでしょう（後で述べますがaptを使ってインストールも可能です）。
+
+\begin{commandline}
+$ cd python2.5-2.5.5-11
+$ dch -i -m "rebuild package for my own environment"
+$ debuild -us -uc
+$ sudo dpkg -i ../python2.5*.deb
+\end{commandline}
+
+これでpython2.5と打ったときだけ起動するようになります。
+
+
+\subsection{ソースからビルドする時、again}
+
+「ソースコードからビルドする」(P.390)では、Python Imaging Libraryをソースからビルドする場合について触れられています。これもpython-imagingという名前のDebianパッケージは提供されていますが、ソースから入れたいときもあるのでしょう。で、ビルドする前に
+
+\begin{commandline}
+$ sudo aptitude install python-dev build-essential
+$ sudo aptitude install libjpeg62-dev libfreetype6-dev zlib1g-dev liblcms1-dev
+\end{commandline}
+
+としています。既にパッケージがあるのなら、ここはもう分かりますね？build-depです。
+
+\begin{commandline}
+$ sudo apt-get build-dep python-imaging
+\end{commandline}
+
+これで漏れなくpython-imagingをビルドするときに必要なパッケージが一揃いインストールされますし、ディストリビューションのバージョンが変わってビルド用のパッケージ名が変わったとしても必要となる依存パッケージは変わりなくインストールされます。
+
+
+\subsection{さらにさらにソースからビルドする時}
+
+出来れば pbuilder でローカルの環境をなるべくクリーンに保ってビルドする方が良いですね。
+
+\begin{commandline}
+$ sudo apt-get install devscripts 
+$ dget http://cdn.debian.net/debian/pool/main/p/python2.5/python2.5_2.5.5-11.dsc
+$ sudo apt-get install pbuilder
+$ sudo pbuilder --create
+$ sudo pbuilder --build python2.5_2.5.5-11.dsc
+\end{commandline}
+
+\subsection{ローカルのdebパッケージのインストールについて}
+
+「閉じた環境のインストール」(P.259)というので、Debianパッケージをaptitudeを使ってダウンロードしたり、パッケージキャッシュからパッケージを取得したりということが書いてあります。しかし、この書籍では「dpkg -i *」としてパッケージをインストールしようという説明が。しかもパッケージが足りないとエラーになるけど、地道にやろうなどと書いてあります。ダメのダメダメです。私なら以下のようにします。
+
+\begin{enumerate}
+ \item apt-utils パッケージをインストールする「apt-get install apt-utils」
+ \item deb パッケージを集めたディレクトリ（ここでは \texttt{/home/username/packages} としましょうか）で「apt-ftparchive package . | gzip -c9 > Packages.gz」として \texttt{Packages.gz} ファイルを生成します。このファイルにはパッケージ情報がリストアップされています。
+ \item \texttt{/etc/apt/sources.list} ファイルを編集して、パッケージの入手ソースとして先ほどのパッケージを集めたディレクトリを追加します。「deb file:///home/username/packages/ ./」などとしておけば良いでしょう。
+ \item 「apt-get update」としてパッケージデータベースを更新します。
+ \item 必要なパッケージをapt-get installでインストールしましょう。
+\end{enumerate}
+
+\begin{commandline}
+$ sudo apt-get install apt-utils
+$ cd ~/packages
+$ apt-ftparchive package . | gzip -c9 > Packages.gz
+$ echo "deb file:///home/username/packages/ ./" > /etc/apt/sources.list
+$ sudo apt-get update
+$ sudo apt-get install <package name>
+\end{commandline}
+
+これで１個１個依存関係を確認しつつ地道にやるなどということからはおさらばですし、普段やりなれているパッケージインストール方法ともシームレスです。パッケージが増えたら apt-ftparchive しなおして apt-get update で。
+
+
+\subsection{パッケージ一覧の取得}
+
+「必要なパッケージを列挙する」(P.256)ではaptitudeでインストールしたパッケージの一覧は dpkg -l でリストを作って活用するとあります。いちいちパッケージバージョンを記載する必要があるなら別ですが、こんなやり方はどうでしょう?
+
+\begin{commandline}
+$ dpkg --get-selections > package-list.txt
+\end{commandline}
+
+これでインストールしてあるパッケージの一覧が取得できます。そしてさらに、この一覧をdpkgに食わせてインストールも可能です。
+
+\begin{commandline}
+$ sudo dpkg --set-selections < package-list.txt
+$ sudo apt-get dselect-upgrade
+\end{commandline}
+
+これで別のマシンでも同じパッケージを放り込むことが出来ます。
+
+
+\subsection{検証環境を用意する}
+
+「動作を検証する」(P.264)では、検証環境としてVirtualBoxをインストールすることが触れられています。それもいいけど、Debianならdebootstrapがあるじゃないですか。debootstrapはローカルに指定したバージョンのまっさらな最小限のDebian環境を作ることが出来るツールです。適宜chrootして使うことになります。
+
+\begin{commandline}
+$ sudo apt-get install debootstrap
+$ sudo mkdir -p /srv/chroot/{lenny-i386,squeeze-amd64}
+$ sudo debootstrap --arch i386 lenny /srv/chroot/lenny-i386 http://archive.debian.org/debian
+$ sudo debootstrap --arch amd64 squeeze /srv/chroot/squeeze-amd64 http://ftp.jp.debian.org/debian
+\end{commandline}
+
+--arch でアーキテクチャを、その次にバージョンのコードネームを、chroot環境を作るディレクトリ、取得先のサーバーと指定すればOK。ここではi386環境のDebian5.0とamd64環境のDebian6.0環境を作ります。ミソとしては、Debian5.0は既にミラーサーバーからは移動されているので古いバージョンの集積場所であるarchive.debian.orgを指定しなければならないのを知っておくことです。
+
+あとはchrootします。実際に構築している環境で先に述べたパッケージ一覧を取得しておき、適当なパッケージ一覧を食わせてやってインストールすれば楽でしょう。あぁ、アーカイブされていないバージョンだとapt lineにsecurity.debian.orgを追加しておくのも忘れないように。
+
+\begin{commandline}
+$ cp package-list.txt /srv/chroot/lenny-i386/tmp/
+$ LANG=C sudo chroot /srv/chroot/lenny-i386 /bin/bash
+# dpkg --set-selections < /tmp/package-list.txt
+# apt-get dselect-upgrade
+\end{commandline}
+
+\begin{commandline}
+$ cp package-list.txt /srv/chroot/squeeze-amd64/tmp/
+$ LANG=C sudo chroot /srv/chroot/squeeze-amd64 /bin/bash
+# echo "deb http://security.debian.org/ squeeze/updates main contrib non-free" >> /etc/apt/sources.list
+# apt-get update
+# dpkg --set-selections < /tmp/package-list.txt
+# apt-get dselect-upgrade
+\end{commandline}
+
+まぁ、仮想環境でやるのもいいですが、こういうツールを使うやり方も取り上げてほしいものだなぁ、と思います。
+
+\subsection{最後に}
+
+いかがでしたでしょうか。異論もあろうとは思いますが、こんな見方もできるんだよ、ということで。それよりもPythonちゃんと使えるようになれよ＞お前　という気もしますが、それは追々。
+
+
+%-------------------------------------------------------------------------------
 \dancersection{hoge}{fuga}
 %-------------------------------------------------------------------------------
 \index{nodejs}
