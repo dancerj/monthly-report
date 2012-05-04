@@ -165,7 +165,7 @@ $ sudo apt-get install python-pip python-virtualenv virtualenvwrapper
 
 \subsection{複数バージョンのPythonを使う、のはいいけど。}
 
-Python2.5をインストールするのに公式のパッケージリポジトリからだと11.10に入れられないよ、ということが書いてあります(P.11)。ここでPPAからインストールするか、ソースからインストールするかという選択になっています。業務で使う場合、そのPPAがどれほど信用できるかを説明するのが難しいように思います。自己責任で、って書いてありますが、大抵盲目的にそのPPA信用しちゃうような…。古いバージョンを使わなきゃダメ、という場合、私だったら「debootstrapで古い環境を作る」というやり方でやります。（debootstrapについては後ほど述べます）。
+Python2.5をインストールするのに公式のパッケージリポジトリからだと11.10に入れられないよ、ということが書いてあります(P.11)。ここでPPAからインストールするか、ソースからインストールするかという選択になっています。業務で使う場合、そのPPAがどれほど信用できるかを説明するのが難しいように思います。自己責任で、って書いてありますが、大抵盲目的にそのPPA信用しちゃうような…。古いバージョンを使わなきゃダメ、という場合、私だったら「debootstrapで古い環境を作る」というやり方でやります（debootstrapについては後ほど述べます）。
 
 
 それからソースからPython2.5を入れる説明ですが、
@@ -193,61 +193,127 @@ $ sudo aptitude -y install tk-dev
 $ sudo aptitude -y install zip
 \end{commandline}
 
-となっていました。あぁ、これはイケてない。パッケージビルド用のパッケージ取得は build-dep するべきです。こんな風に\footnote{ここのパッケージ名指定は、本当はpython2.5にしたいけど無いだろうから2.6にしています。}。
+となっていました。あぁ、これはイケてない。パッケージビルド用のパッケージ取得は build-dep するべきです。Squeezeではまだ2.5のバイナリパッケージが手に入るので、ここでは2.4をターゲットに作業してみましょう。こんな風に\footnote{ここのパッケージ名指定は、本当はpython2.4にしたいけど無いので2.5にしています。多少の差は後で修正。}。
 
 \begin{commandline}
-$ sudo apt-get build-dep python2.6
+$ sudo apt-get build-dep python2.5
 \end{commandline}
 
-これでPythonをビルドするときに必要な依存パッケージはすべてインストールされます。このやり方なら、Python以外のソフトウェアパッケージでもバージョンが変わっても大体応用が効きます。
+これでPythonをビルドするときに必要な依存パッケージはすべてインストールされます。あ、apt lineにdeb-srcラインを追加を忘れずに。このやり方なら、Python以外のソフトウェアパッケージでもバージョンが変わっても大体応用が効きます。
 
-そして「ソースからそのまま入れると\verb!/usr/local!以下に入るから、pythonとだけ打つとPATHの優先度でソースから入れたPython2.5が起動する」…という説明が…そんな罠作らない方がいいじゃないですかー。私ならソースから入れるのなら「Python2.5のDebianパッケージを利用環境用にリビルドしていれる」をやります。PTSのPython2.5のページ \footnote{\url{http://packages.qa.debian.org/p/python2.5.html}} からソースパッケージのdscファイルが取得できるので、これをdevscriptsパッケージのdgetコマンドで取得します。
+そして「ソースからそのまま入れると\verb!/usr/local!以下に入るから、pythonとだけ打つとPATHの優先度でソースから入れたPython2.5が起動する」…という説明が…そんな罠作らない方がいいじゃないですかー。私ならソースから入れるのなら「Python2.5のDebianパッケージを利用環境用にリビルドしていれる」をやります。PTSのPython2.4のページ \footnote{\url{http://packages.qa.debian.org/p/python2.4.html}} からソースパッケージのdscファイルが取得できるので、これをdevscriptsパッケージのdgetコマンドで取得します。
 
 \begin{commandline}
 $ sudo apt-get install devscripts 
-$ dget http://cdn.debian.net/debian/pool/main/p/python2.5/python2.5_2.5.5-11.dsc
+$ dget http://cdn.debian.net/debian//python2.4_2.4.6-1+lenny1.dsc
+dget: retrieving http://cdn.debian.net/debian//python2.4_2.4.6-1+lenny1.dsc
+--2012-05-04 03:59:21--  http://cdn.debian.net/debian//python2.4_2.4.6-1+lenny1.dsc
+Resolving cdn.debian.net... 150.65.7.130
+Connecting to cdn.debian.net|150.65.7.130|:80... connected.
+HTTP request sent, awaiting response... 404 Not Found
+2012-05-04 03:59:22 ERROR 404: Not Found.
+
+dget: wget python2.4_2.4.6-1+lenny1.dsc http://cdn.debian.net/debian//python2.4_2.4.6-1+lenny1.dsc failed
 \end{commandline}
 
-これでPython2.5のソースパッケージが取得できました。ビルド用の依存パッケージは既に入れているので、ソースパッケージのchangelogに一言書いてビルドすれば独自リビジョンをつけた deb パッケージが出来上がりますので、dpkgで入れちゃえば良いでしょう（後で述べますがaptを使ってインストールも可能です）。
+あれ、oldstableだとリンクが切れちゃいますか\footnote{これはバグ報告しましょう}。しょうがないので、archive.debian.orgに切り替えてみます。
+\begin{commandline}
+$ dget http://archive.debian.org/debian/pool/main/p/python2.4/python2.4_2.4.6-1+lenny1.dsc
+\end{commandline}
+
+これでPython2.4のソースパッケージが取得できました。ビルド用の依存パッケージは既に入れているので、ソースパッケージのchangelogに一言書いてビルドすれば独自リビジョンをつけた deb パッケージが出来上がりますので、dpkgで入れちゃえば良いでしょう（後で述べますがaptを使ってインストールも可能です）。
 
 \begin{commandline}
-$ cd python2.5-2.5.5-11
-$ dch -i -m "rebuild package for my own environment"
+$ dpkg-source -x python2.4_2.4.6-1+lenny1.dsc
+$ cd python2.4-2.4.6/
+$ export DEBFULLNAME="Hideki Yamane"
+$ export DEBEMAIL="henrich@debian.org"
+$ dch --bpo "rebuild package for my own environment"
 $ debuild -us -uc
-$ sudo dpkg -i ../python2.5*.deb
+dpkg-checkbuilddeps: Unmet build dependencies: libreadline5-dev tk8.4-dev libdb4.5-dev emacs22
+dpkg-buildpackage: warning: Build dependencies/conflicts unsatisfied; aborting.
 \end{commandline}
 
-これでpython2.5と打ったときだけ起動するようになります。
+あれ、依存関係が満たせない。python2.5と比較してちゃちゃっと変更しましょうか。apt-get source python2.5 として、diff取ります。
+
+\begin{commandline}
+--- python2.4-2.4.6/debian/control	2012-05-04 04:09:00.000000000 +0000
++++ python2.5-2.5.5/debian/control	2012-05-04 04:13:06.000000000 +0000
+@@ -1,82 +1,96 @@
+-Source: python2.4
++Source: python2.5
+ Section: python
+ Priority: optional
+ Maintainer: Matthias Klose <doko@debian.org>
+-Build-Depends: debhelper (>= 5), autoconf, libreadline5-dev, libncursesw5-dev (>= 5.3), tk8.4-dev, libdb4.5-dev, zlib1g-dev, libgdbm-dev, blt-dev (>= 2.4z), libssl-dev, sharutils, libbz2-dev, libbluetooth-dev [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64], locales, mime-support, libgpm2 [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64], netbase, lsb-release, bzip2
+-Build-Depends-Indep: libhtml-tree-perl, texlive-latex-recommended, texinfo, emacs22, debiandoc-sgml
+-Build-Conflicts: tcl8.3-dev, tk8.3-dev, python2.4-xml, python-xml
+-XS-Python-Version: 2.4
+-Standards-Version: 3.8.0
++Build-Depends: debhelper (>= 5), autoconf, libreadline-dev, libncursesw5-dev (>= 5.3), tk8.5-dev, libdb4.8-dev, zlib1g-dev, libgdbm-dev, blt-dev (>= 2.4z), libssl-dev, libbz2-dev, libbluetooth-dev [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64], locales [!avr32 !m68k], libsqlite3-dev, libffi-dev (>= 3.0.5-2), mime-support, libgpm2 [!hurd-i386 !kfreebsd-i386 !kfreebsd-amd64], netbase, lsb-release, bzip2, netbase, sharutils
++Build-Depends-Indep: libhtml-tree-perl, texlive-latex-recommended, texinfo, emacs23, debiandoc-sgml, latex2html
++Build-Conflicts: tcl8.4-dev, tk8.4-dev, tcl8.3-dev, tk8.3-dev, python2.5-xml, python-xml
++XS-Python-Version: 2.5
++Standards-Version: 3.9.1
+\end{commandline}
+
+debian/control ファイルはこんな感じです。
+
+\begin{commandline}
+python2.4 (2.4.6-1+lenny1~bpo60+0.1) squeeze-backports; urgency=low
+
+  * Rebuild for squeeze-backports.
+    - debian/control
+     + set Build-Depends: libreadline-dev, tk8.5-dev, libdb4.8-dev 
+     * set Build-Depends-Indep: emacs23
+  * rebuild package for my own environment
+
+ -- Hideki Yamane <henrich@debian.org>  Fri, 04 May 2012 04:16:39 +0000
+\end{commandline}
+
+\begin{commandline}
+$ debuild -us -uc
+$ ls ../*.deb
+../idle-python2.4_2.4.6-1+lenny1~bpo60+0.1_all.deb
+../python2.4-dev_2.4.6-1+lenny1~bpo60+0.1_amd64.deb 
+../python2.4-minimal_2.4.6-1+lenny1~bpo60+0.1_amd64.deb
+../python2.4-dbg_2.4.6-1+lenny1~bpo60+0.1_amd64.deb
+../python2.4-examples_2.4.6-1+lenny1~bpo60+0.1_all.deb
+../python2.4_2.4.6-1+lenny1~bpo60+0.1_amd64.deb
+$ sudo dpkg -i ../python2.4_2.4.6-1+lenny1~bpo60+0.1_amd64.deb  ../python2.4-minimal_2.4.6-1+lenny1~bpo60+0.1_amd64.deb
+\end{commandline}
+
+これでpython2.4と打ったときだけ起動するようになります。…結構面倒臭いですね。chroot するのが手っ取り早そう…。
 
 
 \subsection{ソースからビルドする時、again}
 
-「ソースコードからビルドする」(P.390)では、Python Imaging Libraryをソースからビルドする場合について触れられています。これもpython-imagingという名前のDebianパッケージは提供されていますが、ソースから入れたいときもあるのでしょう。で、ビルドする前に
+「ソースコードからビルドする」(P.390)では、Python Imaging Libraryをソースからビルドする場合について触れられています。これもpython-imagingという名前のDebianパッケージは提供されていますが、ソースから入れたいときもあるのでしょう。で、書籍ではビルドする前に
 
 \begin{commandline}
 $ sudo aptitude install python-dev build-essential
 $ sudo aptitude install libjpeg62-dev libfreetype6-dev zlib1g-dev liblcms1-dev
 \end{commandline}
 
-としています。既にパッケージがあるのなら、ここはもう分かりますね？build-depです。
+としています。既にパッケージがあるのなら、ここはもう分かりますね？build-dep です。
 
 \begin{commandline}
 $ sudo apt-get build-dep python-imaging
 \end{commandline}
 
-これで漏れなくpython-imagingをビルドするときに必要なパッケージが一揃いインストールされますし、ディストリビューションのバージョンが変わってビルド用のパッケージ名が変わったとしても必要となる依存パッケージは変わりなくインストールされます。
+これで漏れなく python-imaging をビルドするときに必要なパッケージが一揃いインストールされますし、ディストリビューションのバージョンが変わってビルド用のパッケージ名が変わったとしても必要となる依存パッケージは変わりなくインストールされます。
 
 
 \subsection{さらにさらにソースからビルドする時}
 
-出来れば pbuilder でローカルの環境をなるべくクリーンに保ってビルドする方が良いですね。
+出来れば pbuilder でローカルの環境をなるべくクリーンに保ってビルドする方が良いですね\footnote{あ、Ubuntuの場合はLaunchpadにアカウント作って独自PPA運用の方がいいのかも?}。
 
 \begin{commandline}
 $ sudo apt-get install devscripts 
-$ dget http://cdn.debian.net/debian/pool/main/p/python2.5/python2.5_2.5.5-11.dsc
+$ dget http://archive.debian.org/debian/pool/main/p/python2.4/python2.4_2.4.6-1+lenny1.dsc
 $ sudo apt-get install pbuilder
 $ sudo pbuilder --create
-$ sudo pbuilder --build python2.5_2.5.5-11.dsc
+$ sudo pbuilder --build python2.4_2.4.6-1+lenny1.dsc
 \end{commandline}
 
 \subsection{ローカルのdebパッケージのインストールについて}
