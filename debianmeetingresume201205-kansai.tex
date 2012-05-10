@@ -1,0 +1,273 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Kansai Debian Meeting resources
+%     Copyright (C) 2007 Takaya Yamashita
+%     Thank you for Tokyo Debian Meeting resources
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200708; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{kansaimonthlyreport}
+\usepackage[dvips]{xy}
+
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2012}
+\newcommand{\debmtgdate}{27}
+\newcommand{\debmtgmonth}{5}
+\newcommand{\debmtgnumber}{59}
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分、本文の末尾も修正することをわすれずに
+
+ 第\debmtgnumber{}回 関西 Debian 勉強会資料
+
+\vspace{2cm}
+
+\begin{center}
+\includegraphics{image200802/kansaidebianlogo.png}
+\end{center}
+
+\begin{flushright}
+\hfill{}関西 Debian 勉強会担当者 佐々木・倉敷・のがた・かわだ \\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+\end{flushright}
+
+\thispagestyle{empty}
+\end{titlepage}
+
+\dancersection{Introduction}{Debian JP}
+
+ 関西Debian勉強会はDebian GNU/Linuxのさまざまなトピック
+ (新しいパッケージ、Debian特有の機能の仕組、Debian界隈で起こった出来事、
+ などなど）について話し合う会です。
+
+ 目的として次の三つを考えています。
+ \begin{itemize}
+  \item MLや掲示板ではなく、直接顔を合わせる事での情報交換の促進
+  \item 定期的に集まれる場所
+  \item 資料の作成
+ \end{itemize}
+
+ それでは、楽しい一時をお楽しみ下さい。
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ {\rotatebox{90}{\fontsize{80}{80}
+{\gt 関西 Debian 勉強会}}}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\setcounter{tocdepth}{1}
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関係のイベント報告}{Debian JP}
+
+\clearpage
+
+\dancersection{事前課題}{Debian JP}
+
+今回は以下の課題を出題しました.
+\begin{screen}
+  \begin{enumerate}
+  \item ITPをしたことがない方は、ITPしたいパッケージを探してみて概要を紹介してください。\\
+    (\url{http://www.debian.org/devel/wnpp/}から探すのもよいでしょう。)\\
+     ITPをしたことがある方は、最初のITPパッケージの概要とITPをするきっかけなどを語ってください。
+  \end{enumerate}
+\end{screen}
+
+参加者の皆さんの解答は以下の通りです.
+
+\clearpage
+
+\dancersection{ITP から始めるパッケージメンテナへの道}{よしだ}
+
+\clearpage
+
+\dancersection{月刊 Debian Policy 第4回 「バイナリパッケージ」}{山城国の住人 久保博}
+
+
+\subsection{内容の概観}
+３章には、「バイナリパッケージ」というタイトルがついて、バイナリパッケージの論理的な構造や約束毎について述べています。
+
+バイナリパッケージは .deb ファイル形式で提供されています。
+.deb 形式はアーカイブファイルの一種で、展開すると複数のファイルが取り出されます。
+そうして取り出されるファイルをまず二種類に大別しています。
+
+\begin{itemize}
+\item A set of files to install on the system when the package is installed \\
+  （パッケージインストールの際にシステムにインストールされる一連のファイル群）
+\item second set of files: control information files \\
+  （制御情報ファイル）
+\end{itemize}
+
+
+続いて、割と細かく節毎に記述があるのですが、流れるような文章ではなく、 節一つ一つが箇条書の項目のようで、割と唐突な印象が拭えません。
+そこで、全体像をあぶり出して見ようと思います。
+
+まず、この章で述べられている範囲の概念を図\ref{fig:binary-package-class}に示すUMLのクラス図に書いてみました。
+\begin{figure}\label{fig:binary-package-class}
+\caption{３章のバイナリパッケージの概念的なクラス図}
+\begin{tabular}{|ll|}
+\hline
+\multicolumn{2}{|c|}{バイナリパッケージ} \\ \hline
++パッケージ名 &  \\ 
++バージョン & \\
++メンテナ & \\
++説明 & \\
++依存関係 & \\
++仮想パッケージ & \\
++プライオリティ評価 & \\
+ \hline
+\end{tabular}
+\mbox{
+\begin{picture}(100,80)
+\put(5,5){1}
+\put(90,5){*}
+\put(100,0){\vector(-1,0){100}}
+\end{picture}
+}
+\begin{tabular}{|ll|}
+\hline
+\multicolumn{2}{|c|}{メンテナスクリプト} \\ \hline
+-スクリプトを解釈するインタープリタ & \\
+\hline
++プロンプト表示() &  \\ 
+ \hline
+\end{tabular}
+
+\par
+\mbox{
+\begin{picture}(100,80)
+\put(50,80){\line(-1,-1){10}}
+\put(50,80){\line(1,-1){10}}
+\put(50,0){\line(0,1){80}}
+\put(40,70){\line(1,0){20}}
+\end{picture}
+}
+\par
+\begin{tabular}{|ll|}
+\hline
+\multicolumn{2}{|c|}{Essential バイナリパッケージ} \\ \hline
++Essential &  \\ 
+ \hline
+\end{tabular}
+\hfill
+\end{figure}
+
+
+図\ref{fig:binary-package-class}から、
+\begin{itemize}
+\item 「バイナリパッケージ」は、ひとつのクラスとみなせる
+\item 「バイナリパッケージ」には、いくつかの属性がある
+\item 「バイナリパッケージ」クラスの特別なもの（派生クラス）として、「Essential なバイナリパッケージ」クラスがある。
+\item 「バイナリパッケージ」には、複数の「メンテナスクリプト」が含まれる。
+\end{itemize}
+ということが読みとれるでしょうか。
+
+これを手がかりに３章を読んでみると、ここではバイナリパッケージが守るべき決め事をを次のような三つの側面から論じているように読みとることが出来るように思います。
+\begin{enumerate}
+\item パッケージ一つ一つの性質に応じてつける属性の決め事
+\begin{itemize}
+\item 3.1節 パッケージ名
+\item 3.2節 パッケージのバージョン
+\item 3.3節 パッケージのメンテナ
+\item 3.4節 パッケージの説明
+\item 3.5節 依存関係
+\item 3.6節 仮想パッケージ
+\end{itemize}
+\item Debian システム全体の中で特別な地位を占めるパッケージにつける属性についての決め事
+\begin{itemize}
+\item 3.7節 Base システム
+\item 3.8節 Essential パッケージ
+\end{itemize}
+\item パッケージに含まれるメンテナスクリプトが守るべき決め事
+\begin{itemize}
+\item 3.9節 メンテナスクリプト
+\end{itemize}
+\end{enumerate}
+
+また、3.1節から3.8節までは、「5.3 バイナリパッケージコントロールファイル -- DEBIAN/control」で解説されている、コントロールフィールドに記述する内容に関するガイドラインになっています。
+3.9節 「メンテナスクリプト」だけは、バイナリパッケージの属性ではなく、パッケージに含まれるスクリプトが守るべき決め事が書かれています。
+
+\subsection{最近の変更点}
+日本語訳版がある Version 3.9.1.0 から Version 3.9.3.1 までに加えられた変更点を押さえておきましょう。
+
+\begin{itemize}
+\item 「Debian GNU/Linux ディストリビューション」が「Debian ディストリビューション」と改められました。
+\item 「The maintainer of a package」の節の sect タグに id 属性値 ``maintainer'' が追加されました。
+\item メンテナの責任について、詳しく具体的な記述が追加されました。
+\item メンテナのメールアドレスについて、詳しく具体的な記述が追加されました。
+\item Uploader コントロールフィールドについての記述が追加されしました。
+\item みなしごパッケージについての記述が書き改められました。
+\item 「Dependencies」の節の sect タグに id 属性値 ``dependencies'' が追加されました。
+\item Pre-Depend コントロールフィールドについての記述が書き改められました。
+\end{itemize}
+
+\subsection{最後に}
+次回の月刊 Debian Policy は。。。
+
+
+\clearpage
+
+\dancersection{今後の予定}{Debian JP}
+
+\subsection{次回}
+
+次回は、2012年6月23日に京都大学で大統一Debian勉強会\footnote{\url{http://gum.debian.or.jp}}を行ないます。
+
+
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+%% \dancersection{メモ}{}
+%% \mbox{}\newpage
+%% \mbox{}\newpage
+
+\printindex
+ \cleartooddpage
+
+ \begin{minipage}[b]{0.2\hsize}
+  \rotatebox{90}{\fontsize{80}{80} {\gt 関西 Debian 勉強会} }
+ \end{minipage}
+ \begin{minipage}[b]{0.8\hsize}
+
+ \vspace*{15cm}
+ \rule{\hsize}{1mm}
+ \vspace{2mm}
+ \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+ \noindent \Large \bf Debian 勉強会資料\\ \\
+ \noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+ \noindent \normalfont 関西 Debian 勉強会 （編集・印刷・発行）\\
+ \rule{\hsize}{1mm}
+ \end{minipage}
+
+\end{document}
