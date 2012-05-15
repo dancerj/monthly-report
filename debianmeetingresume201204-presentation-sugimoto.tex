@@ -1,0 +1,223 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{東京エリアDebian勉強会 \\月刊Debhelper}
+\subtitle{}
+\author{杉本 典充 dictoss@live.jp}
+\date{2012年04月21日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+ \begin{itemize}
+  \item 自己紹介
+  \item 月刊Debhelper
+  \begin{itemize}
+   \item dh\_md5sums
+   \item dh\_strip 
+  \end{itemize}
+  \item 質疑応答
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{自己紹介}
+ \begin{itemize}
+  \item 杉本　典充 (SUGIMOTO Norimitsu)
+  \item Twitter: @dictoss
+  \item しがないソフトウェア開発者
+  \item Debian Userであり、FreeBSD Userでもある
+  \item 両者が合わさったDebian GNU/kFreeBSDがおもしろそうなので、最近使っている
+  \item 最近のsidのX.orgのアップデートでXが動かなくなったよ。。。
+ \end{itemize}
+\end{frame}
+
+\emtext{今月のコマンド：dh\_md5sums}
+
+\begin{frame}
+\begin{center}
+\LARGE{「DEBIAN/md5sumsファイルを生成する」コマンド}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{今月のコマンド：dh\_md5sums}
+ \begin{itemize}
+  \item 「DEBIAN/md5sumsファイルを生成する」コマンド
+  \item DEBIAN/md5sumsファイルはどこにあるの？ 
+  \item .debファイルの中身
+  \begin{itemize}
+   \item contorl.tar.gz
+   \begin{itemize}
+    \item md5sums  ←ここ
+   \end{itemize}
+   \item data.tar.\{xz,gz\}
+   \item debian-binary
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\LARGE{DEBIAN/md5sumsじゃない・・・}
+\end{center}
+\end{frame}
+
+\begin{frame}[fragile]{今月のコマンド：dh\_md5sums}
+
+DEBIAN/md5sumsはビルド過程で出てきます。
+
+\begin{commandline}
+$ apt-get source hello-debhelper
+$ cd hello-debhelper-2.7
+$ debuild -uc -us
+　（省略）
+dh_gencontrol -a
+dh_md5sums -a
+dh_builddeb -a
+　（省略)）
+$ ls debian/hello-debhelper
+DEBIAN   usr
+$ head -n 1 debian/hello-debhelper/DEBIAN/md5sums
+098518cc321f0467dc0e7c67f65e2cc1  usr/bin/hello
+\end{commandline}
+\end{frame}
+
+\begin{frame}[fragile]{今月のコマンド：dh\_md5sums}
+オプションは以下があります。
+ \begin{itemize}
+  \item -x, --include-conffiles
+  \begin{itemize}
+   \item DEBIAN/conffiles ファイルに記述した設定ファイルの md5 も生成します。
+  \end{itemize}
+  \item -Xitem, --exclude=item
+  \begin{itemize}
+   \item md5sum の生成を除外するファイル名を指定します。ただしディレクトリが別でもファイル名が一致すればどちらも除外されます。
+  \end{itemize}
+ \end{itemize}
+\end{frame}
+
+\emtext{今月のコマンド：dh\_strip}
+
+\begin{frame}
+\begin{center}
+\LARGE{「実行ファイル、共有ライブラリ、スタティックライブラリをstripする」コマンド}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{今月のコマンド：dh\_strip}
+ \begin{itemize}
+  \item 要はデバッグシンボルを落とすか残すかを制御できる
+  \begin{itemize}  
+   \item 単にパッケージをインストールして使う人はデバッグシンボルは不要
+   \item デバッグ目的の人はデバッグシンボルが欲しい
+  \end{itemize}
+  \item パッケージビルド時のデバッグシンボルの残し方
+  \begin{itemize}
+   \item 特に何も設定しない場合はstripする
+   \item 環境変数DEB\_BUILD\_OPTIONS=nostirpを設定するとstripしない（オブジェクトファイルについたまま）
+   \item --dbg-packageオプションを指定するとデバッグパッケージに分離して残す
+  \end{itemize}
+ \end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\LARGE{デバッグパッケージどうつくるの？}
+\end{center}
+\end{frame}
+
+\begin{frame}{今月のコマンド：dh\_strip}
+ \begin{itemize}
+  \item Debhelperでは簡単にデバッグパッケージがつくれます
+  \begin{itemize}  
+   \item CFLAGSなどのコンパイルオプションで-gを指定
+   \item debian/rulesでoverride\_dh\_stripを定義して \\「dh\_strip --dbg-package=package-dbg」
+   \item debian/controlにデバッグパッケージもビルドするよう記述する \\ stripしたパッケージにバージョン指定で依存させること
+  \end{itemize}
+ \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile]{今月のコマンド：dh\_strip}
+オプションは以下があります。
+ \begin{itemize}
+  \item -Xitem, --exclude=item
+  \begin{itemize}
+   \item  指定した文字列を含むファイルをstrip処理の対象から除外する。複数のファイルを指定したい場合はオプションを複数回指定することも可能。 
+  \end{itemize}
+  \item --dbg-package=package
+  \begin{itemize}
+   \item デバッグシンボルを含むパッケージ「package-dbg」を作成する。
+  \end{itemize}
+  \item -k, --keep-debug
+  \begin{itemize}
+   \item パッケージをビルドした作業ディレクトリ内のusr/lib/debugにstrip後のデバッグシンボルファイル
+を残す。--dbg-packageオプションの指定で事足りる場合は多いが、より細かくデバッグシンボルを扱いたい場
+合を想定して用意されている。
+  \end{itemize}
+ \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考情報}
+ \begin{itemize}
+  \item Debian Wiki - DebugPackage \\ \url{ http://wiki.debian.org/DebugPackage}
+  \item Debian.org - 第6章パッケージ化のベストプラクティス \\ \url{http://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html}
+ \end{itemize}
+\end{frame}
+
+
+\begin{frame}{質疑応答}
+\begin{center}
+\Large なにか質問はありますか？
+\end{center}
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***

@@ -111,13 +111,12 @@
 
 今回の事前課題は以下です:
 \begin{enumerate}
- \item 2012年の勉強会のテーマとして各月なにをするべきか提案してくさい。 
- \item 自分がどのテーマを担当したいか提案してください。
+ \item hogefuga
 \end{enumerate}
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-% \input{image201201/prework.tex}
+% \input{image201205/prework.tex}
 }
 \end{multicols}
 
@@ -146,7 +145,7 @@
 \dancersection{Python初心者が「Pythonプロフェッショナルプログラミング」を読んでみた}{やまねひでき}
 %-------------------------------------------------------------------------------
 \label{sec:python-professional-programing}
-\index{python-professional-programing}
+\index{python}
 
 わたくし、「Pythonプロフェッショナルプログラミング」という書籍を先日購入しました。私自身はまだ3月末ぐらいにPythonの入門から始めたばかりで本当はPythonビギナーズプログラミングが欲しいのですが、まだ世の中にはそのような本はありませんし、この書籍自体は評判が良かったので…
 
@@ -178,6 +177,7 @@ $ cd Python-2.5.6
 $ LDFLAGS="-L/usr/lib/x86_64-linux-gnu" ./configure
 $ make
 $ sudo make install
+(「Pythonプロフェッショナルプログラミング」より引用）
 \end{commandline}
 
 という説明になっています。i386だとパス変わるよね…というのは読み取れるのか若干心配な所です。プロフェッショナルだからいいのかな？必要な依存パッケージについては、最初の方のページで
@@ -192,7 +192,9 @@ $ sudo aptitude -y install libbz2-dev
 $ sudo aptitude -y install sqlite3
 $ sudo aptitude -y install tk-dev
 $ sudo aptitude -y install zip
+(「Pythonプロフェッショナルプログラミング」より引用）
 \end{commandline}
+%$ -- for emacs
 
 となっていました。あぁ、これはイケてない。パッケージビルド用のパッケージ取得は build-dep するべきです。Squeezeではまだ2.5のバイナリパッケージが手に入るので、ここでは2.4をターゲットに作業してみましょう。こんな風に\footnote{ここのパッケージ名指定は、本当はpython2.4にしたいけど無いので2.5にしています。多少の差は後で修正。}。
 
@@ -221,6 +223,7 @@ dget: wget python2.4_2.4.6-1+lenny1.dsc http://cdn.debian.net/debian//python2.4_
 \begin{commandline}
 $ dget http://archive.debian.org/debian/pool/main/p/python2.4/python2.4_2.4.6-1+lenny1.dsc
 \end{commandline}
+%$ -- for emacs
 
 これでPython2.4のソースパッケージが取得できました。ビルド用の依存パッケージは既に入れているので、ソースパッケージのchangelogに一言書いてビルドすれば独自リビジョンをつけた deb パッケージが出来上がりますので、dpkgで入れちゃえば良いでしょう（後で述べますがaptを使ってインストールも可能です）。
 
@@ -294,6 +297,7 @@ $ sudo dpkg -i ../python2.4_2.4.6-1+lenny1~bpo60+0.1_amd64.deb  ../python2.4-min
 \begin{commandline}
 $ sudo aptitude install python-dev build-essential
 $ sudo aptitude install libjpeg62-dev libfreetype6-dev zlib1g-dev liblcms1-dev
+(「Pythonプロフェッショナルプログラミング」より引用）
 \end{commandline}
 
 としています。既にパッケージがあるのなら、ここはもう分かりますね？build-dep です。
@@ -301,6 +305,7 @@ $ sudo aptitude install libjpeg62-dev libfreetype6-dev zlib1g-dev liblcms1-dev
 \begin{commandline}
 $ sudo apt-get build-dep python-imaging
 \end{commandline}
+%$ -- for emacs
 
 これで漏れなく python-imaging をビルドするときに必要なパッケージが一揃いインストールされますし、ディストリビューションのバージョンが変わってビルド用のパッケージ名が変わったとしても必要となる依存パッケージは変わりなくインストールされます。
 
@@ -316,6 +321,7 @@ $ sudo apt-get install pbuilder
 $ sudo pbuilder --create
 $ sudo pbuilder --build python2.4_2.4.6-1+lenny1.dsc
 \end{commandline}
+%$ -- for emacs
 
 \subsection{ローカルのdebパッケージのインストールについて}
 
@@ -348,6 +354,7 @@ $ sudo apt-get install <package name>
 \begin{commandline}
 $ dpkg --get-selections > package-list.txt
 \end{commandline}
+%$ -- for emacs
 
 これでインストールしてあるパッケージの一覧が取得できます。そしてさらに、この一覧をdpkgに食わせてインストールも可能です。
 
@@ -355,6 +362,7 @@ $ dpkg --get-selections > package-list.txt
 $ sudo dpkg --set-selections < package-list.txt
 $ sudo apt-get dselect-upgrade
 \end{commandline}
+%$ -- for emacs
 
 これで別のマシンでも同じパッケージを放り込むことが出来ます。
 
@@ -398,9 +406,117 @@ $ LANG=C sudo chroot /srv/chroot/squeeze-amd64 /bin/bash
 
 
 %-------------------------------------------------------------------------------
-\dancersection{hoge}{fuga}
+\dancersection{coffeescriptを使ってみた}{上川純一}
 %-------------------------------------------------------------------------------
-\index{nodejs}
+\index{coffeescript}
+
+\subsection{はじめに}
+
+Coffeescriptとはjavascriptを使いやすくしたプログラミング言語です。
+Coffeescriptはjavascriptに変換されてブラウザなどで実行できます。
+Node などを利用してサーバーサイドもクライアントサイドもjavascriptでプロ
+グラミングしているとjavascriptの罠だったり、冗長な部分などが目についてき
+ます。それをカバーしてくれるよい言語のようです。入門書を読んだので紹介し
+ます。
+
+
+\subsection{coffeescriptを使うと何がうれしいのか}
+
+\subsection{Debianで使うには}
+
+nodeでcoffeescriptを利用するのがおそらくポピュラーな方法だと思いますが確
+認していません。
+逆は正しくて、nodeの中ではcoffeescriptはポピュラーです。\footnote{2012年
+5月7日調べ、npmjs.org の依存関係ランキングではunderscoreの次にcoffee-script。}
+
+Debianパッケージとしては関連のものがいくつかあります。
+\begin{commandline}
+$ apt-cache search coffeescript 
+coffeescript - interpreter and compiler for the CoffeeScript language
+coffeescript-doc - documentation for the CoffeeScript language
+libjs-coffeescript - client-side interpreter for the CoffeeScript language
+\end{commandline}
+
+npm でインストールするのであれば \texttt{coffee-script} をインストールす
+ることになるでしょう。
+
+\begin{commandline}
+$ sudo npm install -g coffee-script
+\end{commandline}
+
+\subsubsection{サーバサイドでの利用}
+
+サーバ上でCoffeescriptで書いたものを利用するにはどうしたらよいでしょうか。
+
+\subsubsection{ブラウザ上での利用}
+
+ブラウザ上で利用する場合はどうするのがよいのでしょうか。
+libjs-coffeescriptパッケージとして minify されているcoffeescriptの処理系
+が配布されているのでこれを利用するのがよいでしょう。
+
+coffee-script.js がコードを一つのファイルにまとめたもの、
+coffee-script.min.js が minify (uglify?)されているものです。
+
+\begin{commandline}
+/usr/share/javascript/coffeescript/coffee-script.min.js
+/usr/share/javascript/coffeescript/coffee-script.js
+\end{commandline}
+
+scriptのtype=text/coffeescriptとなっているところを処理してくれるようです。
+例としてHTMLはこのようになるようです。minifyされているとはいえ169kB ある
+処理系をダウンロードしないといけないのでサーバサイドでコンパイルしてjsに
+してから利用するほうがよいきがします。
+
+\begin{commandline}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>Hello world</title>
+    <script type='application/javascript' src='coffee-script.min.js'></script>
+
+    <script type='text/coffeescript' src='./hello.coffee'></script>
+
+    <script type='text/coffeescript' >
+console.log 'This is a pen'
+    </script>
+  </head>
+  <body>
+    <h1>Hello world</h1>
+  </body>
+</html>
+
+\end{commandline}
+
+コンパイルするには\texttt{coffee -c }を利用します。
+\begin{commandline}
+$ coffee -c class.coffee 
+\end{commandline}
+
+\subsubsection{クライアントアプリケーション上での利用}
+
+ローカルマシンで動かす目的のCLIなどのアプリケーションの場合はどうなるで
+しょうか。
+
+coffeescriptパッケージにはいっているcoffee コマンドを利用するとスクリプ
+トをコンパイル・実行できます。coffeescriptでは\#がコメントとして扱われる
+ため、she-bang の指定が可能です。
+
+\begin{commandline}
+$ cat shebang.coffee
+#!/usr/bin/env coffee
+util = require 'util'
+util.log 'hello world'
+$ ./shebang.coffee
+8 May 17:08:25 - hello world
+\end{commandline}
+
+\subsection{おわりに}
+
+\begin{thebibliography}{0}
+\bibitem{coffeescriptlocalhtml} coffeescriptのソースコードと解説
+	\url{/usr/share/doc/coffeescript/html/}
+\bibitem{smoothcoffeescript} Smooth Coffeescript
+\end{thebibliography}
 
 \printindex
 
