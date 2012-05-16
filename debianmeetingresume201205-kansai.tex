@@ -113,11 +113,33 @@
 
 \clearpage
 
+%% -*-tex-*-
+%%
+%% Copyright (C) 2012 Hiroshi Kubo  all rights reserved.
+%% 本資料の著作権は、著者である久保博 <h-kubo@geisya.or.jp> にあります。
+%% Debian Policy とその日本語訳の引用があります。
+%%
+%% This document material is licensed under the GNU General Public License version 2.0.
+%% This document is originally in the form of LaTeX source code. This shall be referenced as the ``Corresponding Source''
+%% Any compiled forms including DVI, Postscript, and PDF from the original source code shall be reference as the ``Object code''.
+%%
+%%
+%% Debian Policy は、
+%%  1996, 1997, 1998, Ian Jackson and Christian Schwarz
+%%   1999, Software in the Public Interest, Inc.
+%%   1999-2012, many other Debian contributors
+%% による著作です。
+%% 取得元は : git://git.debian.org/git/dbnpolicy/policy.git です。
+%%
+%% Debian Policy 日本語訳は八田真行氏 mhatta@debian.or.jp 、かねこ氏 skanek@a2.mbn.or.jp、 森本氏 odin@sleipnir.dice.cache.waseda.ac.jp 
+%% による著作です。
+%% 取得元は : https://svn.debian.or.jp/repos/www/trunk/src/community/devel/debian-policy-ja/policy.ja.sgml  です。
 \dancersection{月刊 Debian Policy 第4回 「バイナリパッケージ」}{山城国の住人 久保博}
 
+%% 今回は、 ``Chapter 3 - Binary Package'' です。
 
 \subsection{内容の概観}
-３章には、「バイナリパッケージ」というタイトルがついて、バイナリパッケージの論理的な構造や約束毎について述べています。
+３章には、日本語訳で「バイナリパッケージ」というタイトルがついて、バイナリパッケージの論理的な構造や約束毎について述べています。
 
 バイナリパッケージは .deb ファイル形式で提供されています。
 .deb 形式はアーカイブファイルの一種で、展開すると複数のファイルが取り出されます。
@@ -130,13 +152,15 @@
   （制御情報ファイル）
 \end{itemize}
 
-
 続いて、割と細かく節毎に記述があるのですが、流れるような文章ではなく、 節一つ一つが箇条書の項目のようで、割と唐突な印象が拭えません。
 そこで、全体像をあぶり出して見ようと思います。
 
 まず、この章で述べられている範囲の概念を図\ref{fig:binary-package-class}に示すUMLのクラス図に書いてみました。
-\begin{figure}\label{fig:binary-package-class}
-\caption{３章のバイナリパッケージの概念的なクラス図}
+\begin{figure}[hbt]
+\caption{３章のバイナリパッケージの概念的なクラス図}\label{fig:binary-package-class}
+\hfil
+\begin{picture}(420,220)(-10,-10)
+\put(10,200){\makebox(0,0)[lt]{
 \begin{tabular}{|ll|}
 \hline
 \multicolumn{2}{|c|}{バイナリパッケージ} \\ \hline
@@ -144,18 +168,46 @@
 +バージョン & \\
 +メンテナ & \\
 +説明 & \\
-+依存関係 & \\
-+仮想パッケージ & \\
++依存関係[*] & \\
++仮想パッケージ[*] & \\
 +プライオリティ評価 & \\
  \hline
 \end{tabular}
-\mbox{
-\begin{picture}(100,80)
-\put(5,5){1}
-\put(90,5){*}
-\put(100,0){\vector(-1,0){100}}
+}}
+\put(130,170){
+\begin{picture}(140,10)
+\put(5,5){*}
+\put(25,5){Provides}
+\put(90,5){1\ldots{}*}
+\put(0,0){\line(1,0){140}}
 \end{picture}
 }
+\put(130,70){
+\begin{picture}(30,30)
+%%\put(0,-30){\framebox(200,30){}}
+\put(5,15){*}
+\put(0,0){\oval(30,30)[r]}
+\put(0,0){\oval(30,30)[b]}
+\put(22,-2){Depends, Pre-Depends, Conflicts, \ldots}
+\put(-23,-10){1}
+\end{picture}
+}
+\put(250,170){\makebox(0,0)[l]{
+\begin{tabular}{|ll|}
+\hline
+\multicolumn{2}{|c|}{仮想パッケージ} \\ \hline
++パッケージ名 &  \\ 
+ \hline
+\end{tabular}
+}}
+\put(130,110){
+\begin{picture}(80,10)
+\put(5,5){1}
+\put(60,5){*}
+\put(0,0){\line(1,0){70}}
+\end{picture}
+}
+\put(200,110){
 \begin{tabular}{|ll|}
 \hline
 \multicolumn{2}{|c|}{メンテナスクリプト} \\ \hline
@@ -164,35 +216,35 @@
 +プロンプト表示() &  \\ 
  \hline
 \end{tabular}
-
-\par
-\mbox{
-\begin{picture}(100,80)
-\put(50,80){\line(-1,-1){10}}
-\put(50,80){\line(1,-1){10}}
-\put(50,0){\line(0,1){80}}
-\put(40,70){\line(1,0){20}}
+}
+\put(20,35){
+\begin{picture}(50,40)
+\put(50,35){\line(-1,-1){10}}
+\put(50,35){\line(1,-1){10}}
+\put(50,0){\line(0,1){25}}
+\put(40,25){\line(1,0){20}}
 \end{picture}
 }
-\par
+\put(000,000){\makebox(0,0)[bl]{
 \begin{tabular}{|ll|}
 \hline
 \multicolumn{2}{|c|}{Essential バイナリパッケージ} \\ \hline
 +Essential &  \\ 
  \hline
 \end{tabular}
-\hfill
+}}
+\put(-10,-10){\framebox(420,220){ }}
+\end{picture}
+\hfil
 \end{figure}
 
-
-図\ref{fig:binary-package-class}から、
+図\ref{fig:binary-package-class}から、次に掲げる事がが読みとれるでしょうか。
 \begin{itemize}
 \item 「バイナリパッケージ」は、ひとつのクラスとみなせる
 \item 「バイナリパッケージ」には、いくつかの属性がある
 \item 「バイナリパッケージ」クラスの特別なもの（派生クラス）として、「Essential なバイナリパッケージ」クラスがある。
 \item 「バイナリパッケージ」には、複数の「メンテナスクリプト」が含まれる。
 \end{itemize}
-ということが読みとれるでしょうか。
 
 これを手がかりに３章を読んでみると、ここではバイナリパッケージが守るべき決め事をを次のような三つの側面から論じているように読みとることが出来るように思います。
 \begin{enumerate}
@@ -220,22 +272,295 @@
 3.9節 「メンテナスクリプト」だけは、バイナリパッケージの属性ではなく、パッケージに含まれるスクリプトが守るべき決め事が書かれています。
 
 \subsection{最近の変更点}
-日本語訳版がある Version 3.9.1.0 から Version 3.9.3.1 までに加えられた変更点を押さえておきましょう。
+次に、日本語訳版がある Version 3.9.1.0 から Version 3.9.3.1 までに加えられた変更点を押さえておきましょう。
 
 \begin{itemize}
 \item 「Debian GNU/Linux ディストリビューション」が「Debian ディストリビューション」と改められました。
-\item 「The maintainer of a package」の節の sect タグに id 属性値 ``maintainer'' が追加されました。
+%% \item 「The maintainer of a package」の節の sect タグに id 属性値 ``maintainer'' が追加されました。
 \item メンテナの責任について、詳しく具体的な記述が追加されました。
 \item メンテナのメールアドレスについて、詳しく具体的な記述が追加されました。
 \item Uploader コントロールフィールドについての記述が追加されしました。
 \item みなしごパッケージについての記述が書き改められました。
-\item 「Dependencies」の節の sect タグに id 属性値 ``dependencies'' が追加されました。
-\item Pre-Depend コントロールフィールドについての記述が書き改められました。
+%% \item 「Dependencies」の節の sect タグに id 属性値 ``dependencies'' が追加されました。
+\item Pre-Depends コントロールフィールドについての記述が書き改められました。
 \end{itemize}
+
+以下では、左に元の英文、右に日本語訳を並べて、バージョン間での変化を比べてみます。
+
+\clearpage
+
+\subsubsection{ 「Debian GNU/Linux ディストリビューション」が「Debian ディストリビューション」と改められました。}
+
+\vspace{1ex}
+\hrule
+\subsubsubsection{Version 3.9.1.0 policy.sgml:799}\par
+\parbox{0.48\linewidth}{
+	  The Debian GNU/Linux distribution is based on the Debian
+	  package management system, called {\tt dpkg}. Thus,
+	  all packages in the Debian distribution must be provided
+	  in the {\tt .deb} file format.
+}\hfil 
+\parbox{0.48\linewidth}{
+	  Debian ディストリビューションは {\tt dpkg}
+	  と呼ばれる Debian パッケージ管理システムに基礎を置いています。
+	  このため、Debian ディストリビューションに含まれる全てのパッケージは
+	   {\tt .deb}ファイル形式で提供されなければなりません。
+}
+\hrule
+
+\subsubsubsection{Version 3.9.3.1 policy.sgml:836}\par
+\parbox{0.48\linewidth}{
+	  The Debian distribution is based on the Debian
+	  package management system, called {\tt dpkg}. Thus,
+	  all packages in the Debian distribution must be provided
+	  in the {\tt .deb} file format.
+}\hfil 
+\parbox{0.48\linewidth}{
+	  Debian ディストリビューションは {\tt dpkg}
+	  と呼ばれる Debian パッケージ管理システムに基礎を置いています。
+	  このため、Debian ディストリビューションに含まれる全てのパッケージは
+	   {\tt .deb}ファイル形式で提供されなければなりません。
+}
+\hrule
+\vspace{1ex}
+
+\subsubsection{メンテナの責任について、詳しく具体的な記述が追加されました。}
+\vspace{1ex}
+\hrule
+\subsubsubsection{Version 3.9.1.0 policy.sgml:914}\par
+\parbox[t]{0.46\linewidth}{
+	    Every package must have a Debian maintainer (the
+	    maintainer may be one person or a group of people
+	    reachable from a common email address, such as a mailing
+	    list).  The maintainer is responsible for ensuring that
+	    the package is placed in the appropriate distributions.
+}\hfil 
+\parbox[t]{0.46\linewidth}{
+	    全てのパッケージには一人または一グループの Debian メンテナ
+	    (一名の個人であっても、メーリングリストなどの共通の一つのメールアドレスで連絡の取れるグループであってもかまいません) 
+	    を持たなければなりません。
+	    この人物は、そのパッケージが適切なディストリビューションに収録されていることに対する責任を持ちます。
+}
+\hrule
+
+\subsubsubsection{Version 3.9.3.1 policy.sgml:951}\par
+\parbox[t]{0.46\linewidth}{
+	  Every package must have a maintainer, except for orphaned
+	  packages as described below.  The maintainer may be one person
+	  or a group of people reachable from a common email address, such
+	  as a mailing list.  The maintainer is responsible for
+	  maintaining the Debian packaging files, evaluating and
+	  responding appropriately to reported bugs, uploading new
+	  versions of the package (either directly or through a sponsor),
+	  ensuring that the package is placed in the appropriate archive
+	  area and included in Debian releases as appropriate for the
+	  stability and utility of the package, and requesting removal of
+	  the package from the Debian distribution if it is no longer
+	  useful or maintainable.
+}\hfil 
+\parbox[t]{0.46\linewidth}{
+	    後ほど述べるようなみなしごパッケージを除いて、全てのパッケージには一人または一グループの Debian メンテナを持たなければなりません。
+メンテナは一名の個人であっても、メーリングリストなどの共通の一つのメールアドレスで連絡の取れるグループであってもかまいません。
+	    この人物は、そのDebianパッケージファイルを保守すること、
+	    不具合報告を評価して適切に応答すること、そのパッケージの新しいバージョンを（直接あるいはスポンサーを介して）アップロードすること、そのパッケージが適切なアーカイブ領域に設置されて、そのパッケージの安定性や利便性の観点で適切にDebianのリリースに含められることを保証すること、もはや役に立たないか保守できなくなったらDebian配布物からそのパッケージを削除する要求を出すことに対する責任を負います。
+}
+\hrule
+
+\clearpage
+
+\subsubsection{メンテナのメールアドレスについて、詳しく具体的な記述が追加されました。}
+
+\vspace{1ex}
+\hrule
+\subsubsubsection{Version 3.9.1.0 policy.sgml:922}\par
+\parbox[t]{0.48\linewidth}{
+ 	    The maintainer must be specified in the
+	    {\tt Maintainer} control field with their correct name
+	    and a working email address.  If one person maintains
+	    several packages, they should try to avoid having
+	    different forms of their name and email address in
+	    the {\tt Maintainer} fields of those packages.
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+	    Debian パッケージのメンテナは各パッケージの {\tt Maintainer}
+	    コントロールフィールドに、正しい名前と有効な電子メールアドレスの両方により指定されていなければなりません。
+	    もしその人がいくつかのパッケージを管理している場合、個々のパッケージの
+	    {\tt Maintainer} フィールドに異なった形式の名前と電子メールアドレスを記入することは避けるべきです。
+}
+\hrule
+
+\subsubsubsection{Version 3.9.3.1 policy.sgml:966}\par
+\parbox[t]{0.48\linewidth}{
+	  The maintainer must be specified in the {\tt Maintainer}
+	  control field with their correct name and a working email
+	  address.  The email address given in the {\tt Maintainer}
+	  control field must accept mail from those role accounts in
+	  Debian used to send automated mails regarding the package.  This
+	  includes non-spam mail from the bug-tracking system, all mail
+	  from the Debian archive maintenance software, and other role
+	  accounts or automated processes that are commonly agreed on by
+	  the project.$<$footnote$>$
+	    A sample implementation of such a whitelist written for the
+	    Mailman mailing list management software is used for mailing
+	    lists hosted by alioth.debian.org.
+	  $<$/footnote$>$
+	  If one person or team maintains several packages, they should
+	  use the same form of their name and email address in
+	  the {\tt Maintainer} fields of those packages.
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+	    Debian パッケージのメンテナは各パッケージの {\tt Maintainer}
+	    コントロールフィールドに、正しい名前と有効な電子メールアドレスの両方により指定されていなければなりません。
+	    {\tt Maintainer}コントロールフィールドに書かれた電子メールアドレスは、
+	    そのパッケージに関する自動送信メールに使われるDebian内の役割に応じたアカウントの
+	    メールを受領できないといけません。
+	    これにはバグ追跡システムからの迷惑メールでないメール、Debianアーカイブ保守用ソフトウェアや
+	    そのプロジェクトで共通に認められた役割に応じたアカウントもしくは自動処理からのすべてのメールを含みます。
+	    $<$footnote$>$
+		そのような一例として Mailman メーリングリスト管理ソフトウェア用のホワイトリストが
+	      alioth.debian.org でホストされているメーリングリストで使われています。
+	    $<$/footnote$>$
+	    もし一人の人もしくは一つのチームがいくつかのパッケージを管理している場合、それぞれのパッケージの
+	    {\tt Maintainer} フィールドでは同じ形式の名前と電子メールアドレスを記入するべきです。
+}
+\hrule
+\vspace{1ex}
+
+\clearpage
+
+\subsubsection{Uploader コントロールフィールドについての記述が追加されしました。}
+
+\vspace{1ex}
+\hrule
+\subsubsubsection{Version 3.9.1.0 policy.sgml:}\par
+\parbox[t]{0.48\linewidth}{
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+}
+\hrule
+
+\subsubsubsection{Version 3.9.3.1 policy.sgml:990}\par
+\parbox[t]{0.48\linewidth}{
+	  If the maintainer of the package is a team of people with a
+	  shared email address, the {\tt Uploaders} control field must
+	  be present and must contain at least one human with their
+	  personal email address.  See $<$ref id$=$"f-Uploaders"$>$ for the
+	  syntax of that field.
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+	    もしパッケージのメンテナが共通のメールアドレスを持つ人々からなるチームなら、
+	    少なくとも一人の人物とその人の個人用のメールアドレスが書かれた
+	    {\tt Uploaders} コントロールフィールドが必要です。
+	    このフィールドの書式については、$<$ref id$=$"f-Uploaders"$>$ を参照してください。
+}
+\hrule
+\vspace{1ex}
+
+
+\subsubsection{みなしごパッケージについての記述が書き改められました。}
+
+\vspace*{1ex}
+\hrule
+\subsubsubsection{Version 3.9.1.0 policy.sgml:936}\par
+\parbox[t]{0.48\linewidth}{
+	  If the maintainer of a package quits from the Debian
+	  project, "Debian QA Group"
+	  {\it packages@qa.debian.org} takes over the
+	  maintainer-ship of the package until someone else
+	  volunteers for that task. These packages are called
+	  {\em orphaned packages}.$<$footnote$>$
+		The detailed procedure for doing this gracefully can
+		be found in the Debian Developer's Reference,
+		see $<$ref id$=$"related"$>$.
+	  $<$/footnote$>$
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+	    もしあるパッケージのメンテナが Debian プロジェクトを辞めたなら、
+	    誰か他の人がその仕事に志願するまで Debian QA グループ
+	    {\it packages@qa.debian.org}
+	    がパッケージの管理を引き継ぎます
+	    $<$footnote$>$
+		これを丁寧に行うやり方の詳細は Debian Developer's
+		Reference (開発者の手引き) に書かれています。
+		$<$ref id$=$"related"$>$ を参照ください。
+	    $<$/footnote$>$ 。
+	    このようなパッケージは {\em orphaned パッケージ}
+	    と呼ばれます。
+}
+\hrule
+
+\subsubsubsection{Version 3.9.3.1 policy.sgml:}\par
+\parbox[t]{0.48\linewidth}{
+	  An orphaned package is one with no current maintainer.  Orphaned
+	  packages should have their {\tt Maintainer} control field set
+	  to {\tt Debian QA Group $<$packages@qa.debian.org$>$}.
+	  These packages are considered maintained by the Debian project
+	  as a whole until someone else volunteers to take over
+	  maintenance.$<$footnote$>$
+	    The detailed procedure for gracefully orphaning a package can
+	    be found in the Debian Developer's Reference
+	    (see $<$ref id$=$"related"$>$).
+	  $<$/footnote$>$
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+	  みなしごパッケージというのは、現在メンテナが不在のパッケージのことを言います。
+	  みなしごパッケージは、その{\tt Maintainer} コントロールフィールドを
+	   {\tt Debian QA Group $<$packages@qa.debian.org$>$} に設定することになっています。
+          これらのパッケージは、誰が別の人が保守を引き継ぐことを志願するまでは
+	   Debian プロジェクト全体で面倒を見ているとみなされます$<$footnote$>$パッケージを丁重にみなしご化するための詳しい手順は Debian Developer's Reference (開発者の手引き)に載っています（$<$ref id$=$"related"$>$を参照のこと）。$<$/footnote$>$。  
+}
+\hrule
+\vspace{1ex}
+
+\clearpage
+
+\subsubsection{Pre-Depends コントロールフィールドについての記述が書き改められました。}
+
+\vspace*{1ex}
+\hrule
+\subsubsubsection{Version 3.9.1.0 policy.sgml:1082}\par
+\parbox[t]{0.48\linewidth}{
+	    Sometimes, a package requires another package to be
+	    installed {\em and} configured before it can be
+	    installed. In this case, you must specify a
+	    {\tt Pre-Depends} entry for the package.
+            }\hfil 
+\parbox[t]{0.48\linewidth}{
+	    時々、あるパッケージが、それをインストールする前にもう一つのパッケージがインストールされ
+	    {\em かつ} 設定されていることを必要とすることがあります。
+	    この場合、そのパッケージには
+	    {\tt Pre-Depends} エントリを指定しなければなりません。
+}
+\hrule
+
+\subsubsubsection{Version 3.9.3.1 policy.sgml:1144}\par
+\parbox[t]{0.48\linewidth}{
+	  Sometimes, unpacking one package requires that another package
+	  be first unpacked {\em and} configured.  In this case, the
+	  depending package must specify this dependency in
+	  the {\tt Pre-Depends} control field.
+}\hfil 
+\parbox[t]{0.48\linewidth}{
+	    時々、あるパッケージを展開するためには、先に別のもう一つのパッケージが展開され
+	    {\em かつ} 設定されていないといけない場合があります。
+	    この場合、依存する側のパッケージに {\tt Pre-Depends} コントロールフィールドで
+	    この依存関係を指定しなければなりません。
+}
+\hrule
+\vspace{1ex}
+
+
+
+\subsection{引用元}
+
+\begin{list}{}{\setlength{\itemindent}{-2em}\setlength{\itemsep}{1ex plus 1ex}}
+\item ``Debian Policy Manual '', Ian Jackson ,  Christian Schwarz, and other contributors,\hfill \\  {\it git://git.debian.org/git/dbnpolicy/policy.git} ,Debian Project, 1996-
+
+\item ``Debian ポリシーマニュアル'', 八田真行, かねこ, 森本\hfill \\ {\it https://svn.debian.or.jp/repos/www/trunk/src/community/devel/debian-policy-ja/policy.ja.sgml} , Debian JP Project, 
+\end{list}
 
 \subsection{最後に}
 次回の月刊 Debian Policy は。。。
-
 
 \clearpage
 
