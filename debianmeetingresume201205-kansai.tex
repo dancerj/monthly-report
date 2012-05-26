@@ -109,7 +109,170 @@
 
 \clearpage
 
-\dancersection{ITP から始めるパッケージメンテナへの道}{よしだ}
+\dancersection{ITP から始めるパッケージメンテナへの道}{よしだ ともひろ}
+\subsection{はじめに}
+とある便利なソフトウェアを見つけて、それがまだDebianパッケージになっていなかった
+とき、RFP(Request For Package:パッケージ化の要求)をしてもよいのですが、自分でパッ
+ケージ化してDebianの一部として提供することもできます。そこで、ITP(Intent To Package:
+パッケージ化の宣言)〜アップロードまでの流れをまとめてみました。
+
+\subsection{まずはITP}
+\subsubsection{ITPの前に必要なこと}
+\subsubsubsection{既にパッケージ化されていないか？}
+\url{http://www.debian.org/distrib/packages}で探してみたり、aptitude searchや
+apt-cache searchで確認してみましょう。
+
+\subsubsubsection{既にITPされていないか？}
+他の誰かが同じようにパッケージ化しようと思って、ITPしているかもしれません。
+
+\url{http://www.debian.org/devel/wnpp/being\_packaged}をチェックしてみましょう。
+
+\subsubsubsection{既にRFPされていないか？}
+他の誰かが、パッケージ化して欲しいと思って、RFPしているかもしれません。
+RFPされている場合は、ITPすることでパッケージ化の宣言を行います。
+
+\url{http://www.debian.org/devel/wnpp/requested}をチェックしてみましょう。
+
+\subsection{ITPの仕方}
+パッケージをITPするのはreportbug(apt-get|aptitude install reportbug)で行う方法が
+\url{http://www.debian.org/devel/wnpp/}で紹介されています。また、電子メールでも
+行うことができます。ここでは、電子メールでITPを行う方法の一つ、Mewを使う方法を
+紹介します。
+
+まず、debian-elパッケージをインストールします。
+
+\begin{commandline}
+   $ sudo aptitude install debian-el
+\end{commandline}
+%$ for emacs font-lock
+ 
+   次に~/.emacsに以下を追加します。
+
+\begin{commandline}
+(autoload 'mew "mew" nil t)
+(autoload 'mew-send "mew" nil t)
+
+(if (boundp 'read-mail-command)
+	(setq read-mail-command 'mew))
+(autoload 'mew-user-agent-compose "mew" nil t)
+(if (boundp 'mail-user-agent)
+	(setq mail-user-agent 'mew-user-agent))
+(if (fboundp 'define-mail-user-agent)
+	(define-mail-user-agent
+		'mew-user-agent
+		'mew-user-agent-compose
+		'mew-draft-send-message
+		'mew-draft-kill
+		'mew-send-hook))
+\end{commandline}
+
+こうしておいてemacsを起動し、M-x debian-bug RETとします。
+ミニバッファに
+
+\begin{commandline}
+Report a bug for a [P]ackage or [F]ile: (default P) 
+\end{commandline}
+
+と表示されるので"P"を入力します。
+
+パッケージ名を聞いてきますのでwnppと入力します。wnppというのはWork-Needing and
+Prospective Packages(作業が望まれるパッケージ)という擬似パッケージのことで、ITP
+やRFPを行うときに使用する他、RFH(Request For Help:助力の要求)、RFA(Request For
+Adoption:養子引き取りの要求)、O(Orphan:みなしご)、ITA(Intent To Adopt:養子引き
+取りの表明)にも使います。
+
+次にActionを聞かれます。TABを押すと候補が表示されますのでITPとします。
+
+あとは、パッケージ名、パッケージの簡単な説明を入力します。debian-develへCCするか？
+も聞かれますので"y"と入力するとメールの雛形が表示されますので、残りのVersion、
+Upstream Author、URL or Web page、Licenseを入力してメールを送信します。
+
+\subsection{GnuPGキーサイン}
+Debian公式パッケージにするにはdscファイルとchangesファイルに署名が必要です。
+GnuPG(GPG)で署名しますが、信頼された鍵でないと意味がないのでキーサインパーティな
+どでDebian開発者の方とキーサインをしておきましょう。GPG公開鍵は後に説明する
+mentors.debian.netを使う時にも必要ですので、まだ、作成していない方は作っておくこ
+とをおすすめします。
+
+6月23日(土)の大統一Debian勉強会でもキーサインパーティが予定されていますので、
+是非参加しましょう。
+
+\subsection{パッケージ作成}
+パッケージの作成方法は過去のDebian勉強会などでも何度か紹介されていますので、
+ここでは詳細は割愛し注意する箇所のみとします。
+
+\subsubsection{lintian cleanにする}
+lintianはDebianパッケージを精査し、バグやポリシー違反を報告します。アップロードす
+る前に、必ずそのパッケージに対してlintianを実行してください。lintianを実行する際
+はオプションの -v を付けてchangesファイルを指定します。lintianが出力する情報がわ
+かりにくければ -i オプションを追加しましょう。出力される情報に "E:" や "W:"がなく
+なるように修正し、lintian cleanにしましょう。
+
+\subsubsection{パッケージに署名する}
+お試しでパッケージを作ったりする場合はパッケージへの署名を省略しますが、公式パッ
+ケージにするにはちゃんと署名することが必要です。debuildやdpkg-buildpackageで-us -uc
+オプションをつけずにパッケージ作成すると、dscファイルとchangesファイルにGnuPGで署
+名すためのパスフレーズを聞いてきますので入力すればOKです。
+
+\subsection{mentors.debian.netへ登録}
+\subsubsection{mentors.debian.netとは}
+Debianへのパッケージアップロード権限はDebian開発者のみが持っているのですが、Debian
+開発者でない人もアップーロードできる仕組みがあります。Debian開発者の方にスポンサー
+になっていただいて、助言をいただきながら修正していく場、といった感じです。
+
+\subsubsection{サインアップ}
+\url{http://mentors.debian.net/}に"Sign me up"という
+\url{http://mentors.debian.net/register/register}へのリンクがありますのでクリック
+します。
+
+Full name, E-mail, Password, Confirm passwordを入力し、Account typeはMaintainerを
+選択してSubmitを押下します。入力したE-mail Addressへ確認のメールが飛んできますの
+で、記載されたURLへアクセスしてActivateするとアカウントが使用可能になります。
+
+ログインして、My accountページのChange GPG keyでGPGキーを登録できますのでアスキー
+形式でエクスポートした公開鍵のファイルを選択して登録しておきます。
+
+\subsubsection{アップロード}
+mentors.debian.netにアップロードする方法は、duploadやdputなどのツールで行えます。
+今回はdputで行う方法をご紹介します。
+
+\begin{enumerate}
+\item 準備
+
+\textasciitilde/.dput.cfを作ります。内容は\url{http://mentors.debian.net/intro-maintainers}を
+参考にしました。httpとftpの設定が記載されているのですが、httpの設定としました。
+こんな感じです。
+
+\begin{commandline}
+[mentors]
+fqdn = mentors.debian.net
+incoming = /upload
+method = http
+allow_unsigned_uploads = 0
+progress_indicator = 2
+# Allow uploads for UNRELEASED packages
+allowed_distributions = .*
+\end{commandline}
+
+\item さあ、アップロード
+
+いよいよアップロードです。dput mentors changesファイル で行います。ここまでのパッ
+ケージ作成で問題がなければmentors.debian.netへのアップロードは成功するはずです。
+
+しばらくするとmentors.debian.netからメールが飛んできます。メールの内容は「スポン
+サーが必要ならスポンサーを探してるにしろ」とか、「RFS(request for sponsorship)で
+スポンサーを募集できるよ」というような内容ですので従います。
+\end{enumerate}
+
+\subsection{スポンサーを探す}
+無事 mentors.debian.net へアップロードできたら debian-mentors@lists.debian.org や
+debian-devel@debian.or.jp にRFS(request for sponsorship)を投げて、スポンサーになっ
+てくれる方を探しましょう。
+
+\subsection{おわりに}
+今回、はじめてITPして、mentors.debian.netにアップロードしてみました。色々調べたり
+しながらでしたので時間はかかりましたが、それほど難しくはないと思います。Debianパッ
+ケージになっていないソフトウェアを見つけたら是非ITPしましょう！
 
 \clearpage
 
