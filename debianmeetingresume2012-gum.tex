@@ -39,46 +39,270 @@
 
 \begin{document}
 
-\dancersection{タイトル}{発表者名}
+\dancersection{Gentoo/Prefix on Debian}{青田直大}
 \label{sec:your-label}
 
-メインセクション。
+\subsection{はじめに}
 
-\subsection{サブセクション}
+いきなりGentooが出てきて驚かれたかもしれません.ここではDebian下で
+Gentoo Prefixをインストールする方法について解説します.
 
-サブセクション。
+\subsection{Gentoo Prefix}
+\subsubsection{Gentooとは}
+GentooはDebianやRPMと違ったソースベースのディストリビューションです.
+ebuildというパッケージビルド方法や,パッケージの依存関係などを記述した
+bashスクリプト風のファイルが"カテゴリー/パッケージ名/パッケージ名-パッ
+ケージバージョン.ebuild"というファイル名で保管されています. emergeとい
+うコマンドは, この 「Portageツリー」というパッケージ情報ファイルツリー
+を読んで指定されたパッケージをビルド・インストールするパッケージ管理ソフ
+トになっています.
 
-\subsubsection{サブサブセクション}
+\subsubsection{Prefixサポート}
 
-サブサブセクション。
+Gentooも基本的にはLinux上のディストリビューションですが, Debianの
+Debian GNU/kFreeBSDと同様にFreeBSD上でのパッケージ管理を目的とした
+Gentoo/FreeBSDなどの開発も行なわれています. そういったLinux以外での
+Gentooのサポートを総称して, Gentoo/Altと呼んでいます.
+\footnote{http://www.gentoo.org/proj/en/gentoo-alt/} そのGentoo/Altの中
+にGentoo Prefixというものがあります.
+\footnote{http://www.gentoo.org/proj/en/gentoo-alt/prefix/index.xml} こ
+れはGentooのシステムを使って(基本的には)他のOS上で, 任意のディレクトリ
+にパッケージのインストールを行なえるようにするものです. たとえば, Mac
+OS X上で動かして, MacPortsやhomebrewの代わりに使ったり, あるいは
+FreeBSD上で使ったり, はたまたLinux上で使うことももちろんできます.
 
-\begin{commandline}
-コマンドラインとか。
-% apt-get
-\end{commandline}
+\subsection{Gentoo/Prefix on Debian}
 
-図\ref{fig:image01}として画像を入れる場合。
-\begin{figure}[ht]
-  \begin{center}
-    \includegraphics[width=1\hsize]{images/openlogo-nd.eps}
-  \end{center}
-  \caption{キャプション}
-  \label{fig:image01}
-\end{figure}
-
-フットノート\footnote{フットノートです。}
+さてここからが本題で, このGentoo/PrefixをDebianで使ってみます. おそらく
+なんでそんなことを…? と思われるかもしれません. 以下のような点があげら
+れるかと思います.
 
 \begin{itemize}
-\item リスト1
-\item リスト2
+\item 非rootユーザでも好きなところにインストールできる
+\item Debianにないパッケージをインストールする時に楽できる
+\item 技術的に楽しい?
 \end{itemize}
 
+Prefixインストールでは好きなディレクトリにインストールできるため, たと
+えば自分のホームディレクトリの中などにインストールするようにしてしまえ
+ばroot権限がなくともパッケージをインストールすることができます. また,
+(もし万が一) Debianにないパッケージがあったとして, それがGentooの方にあ
+れば, 自分でビルド方法や依存を調べることなく, Gentooのパッケージシステ
+ムにおまかせしてしまうことができる, というわけです.
+
+\subsubsection{インストール}
+
+では, さっそくDebian上にインストールしてみましょう. まずはビルドに必要
+なパッケージをインストールしておきます. 
+
+\begin{commandline}
+% apt-get install bzip2 build-essential bison libreadline-dev libncurses-dev autoconf xz-utils
+\end{commandline}
+
+つぎに, Prefixをインストールする場所を決めて,  変数EPREFIXに設定し, PATHも通しておきます.
+
+\begin{commandline}
+% export EPREFIX="$HOME/gentoo"
+% export PATH="$EPREFIX/usr/bin:$EPREFIX/bin:$EPREFIX/tmp/usr/bin:$EPREFIX/tmp/bin:/usr/bin:/bin:$PATH"
+\end{commandline}
+
+Prefixをインストールするためのスクリプトを取得し, そのスクリプトを使っ
+てパッケージ管理ソフトPortageと, パッケージ情報のPortageツリーをインス
+トールしていきます. 
+
+\begin{commandline}
+% wget http://overlays.gentoo.org/proj/alt/browser/trunk/prefix-overlay/scripts/bootstrap-prefix.sh?format=txt \
+  -O bootstrap-prefix.sh
+% chmod 755 bootstrap-prefix.sh
+% ./bootstrap-prefix.sh $EPREFIX tree
+% ./bootstrap-prefix.sh $EPREFIX portage
+\end{commandline}
+
+この時点でemergeコマンドが使えるようになります. ここからはemergeを使っ
+て, Prefix環境を整えていきます. このあたりはあまり今回の主題ではないの
+で残りはPrefixのドキュメン
+ト\footnote{http://www.gentoo.org/proj/en/gentoo-alt/prefix/bootstrap-solaris.xml}
+を参考にしてください. \footnote{いまのDebianだとmultiarchの影響でうまく
+  動かないところもあるかもしれません…}
+
+\begin{commandline}
+
+\end{commandline}
+
+\subsection{apt-emerge}
+
+ここまでで, Gentoo/Prefixを解説してきました. しかし, これではあまりに
+Gentooすぎますね. Gentoo/Prefixの中にもDebian側で入っているはずのプログ
+ラム・ライブラリがインストールされてしまってなんだか無駄なような気がし
+てしまいます. 特にDebianだとさくさくとバイナリパッケージからインストー
+ルされてしまうのに, Gentooだとソースからビルドされて待つのもなかなか大
+変なものです. なんとかDebianにあるものはDebianのものを使いつつ, Gentoo
+ではどうしても必要なものだけをインストールすることはできないでしょうか.
+
+Gentooではetc/portage/profile/package.providedファイルに以下のように書
+くことで, そのパッケージがインストールされていると「見做す」ことができます. 
+
+\begin{commandline}
+sys-power/acpi-1.6
+sys-power/acpid-2.0.16
+sys-process/at-3.1.13
+sys-devel/autoconf-2.69
+sys-devel/automake-1.11.3
+app-shells/bash-4.2
+\end{commandline}
+
+Debian側にあるパッケージをこうやってGentoo側のパッケージ名にマップして,
+package.providedファイルに書くことで, Gentoo側で依存としてパッケージが
+ビルド・インストールされることがなくなります. こうして
 
 \begin{enumerate}
-\item 番号付きリスト1
-\item 番号付きリスト2
+\item Gentooのemergeでの依存パッケージを把握
+\item Gentooでの依存パッケージ名をDebianのパッケージ名にマップ
+\item インストールされたDebianのパッケージ名をGentooのパッケージ名にマップ
+\item マップされたパッケージ名をpacakge.providedに追記
+\item 再度依存関係を計算しなおして2に戻る
+\item これ以上Debianからインストールできなければemergeを開始
 \end{enumerate}
 
+といったプロセスを行ない, 最小限のパッケージだけで目的のGentooのパッケー
+ジをインストールすることができます. この時に肝となるのが, 「Gentooでの
+  依存パッケージの把握」と「GentooとDebianとのパッケージの相互マップを
+  どうするのか」の二点です.
 
+\subsubsection{Gentooでの依存パッケージ}
+
+emergeに対して以下のオプションをつけて出力を解析します.
+
+\begin{itemize}
+\item -p (--pretend): インストールを実行せずインストールパッケージ一覧だけを出力します
+\item -q (--quiet): 無駄な情報を出力しないようにします
+\item -t (--tree): インストールするパッケージを依存関係のツリー状に出力します
+\end{itemize}
+
+-tが一番重要なところです. これを指定することでこのようにツリー状に出力されます
+
+\begin{commandline}
+%  emerge -pqt --quiet-repo-display chromium
+[ebuild  N    ] www-client/chromium-20.0.1132.21 
+...
+[nomerge      ] www-client/chromium-20.0.1132.21 
+[ebuild  N    ]  dev-libs/nss-3.13.4 
+[ebuild  N    ]   dev-libs/nspr-4.9 
+[ebuild  N    ]    sys-devel/autoconf-2.13 
+[ebuild  N    ]     sys-devel/autoconf-wrapper-12 
+[ebuild  N    ]   dev-db/sqlite-3.7.12.1 
+...
+\end{commandline}
+
+このツリーの浅いところからDebianのパッケージへとマップしていきます. 浅
+いところからマップしていくことで, できるだけ多くの依存解決をDebian側に
+おまかせします. つまり, たとえばここで dev-libs/nsprをDebian側でインス
+トールすることに成功すればこのツリーを
+
+\begin{commandline}
+[ebuild  N    ] www-client/chromium-20.0.1132.21 
+...
+[nomerge      ] www-client/chromium-20.0.1132.21 
+[ebuild  N    ]  dev-libs/nss-3.13.4 
+[ebuild  N    ]   dev-db/sqlite-3.7.12.1 
+...
+\end{commandline}
+
+ここまで一気に縮小することができるというわけです. 
+
+\subsubsection{GentooからDebianへのマップ}
+
+Gentooのパッケージ名からDebianのパッケージ名へのマッピングを行ないます.
+Gentooのパッケージ名にはカテゴリがついていますが, Debianの方にはそれが
+ないので, とりあえず外してしまいます. そして, 以下の順番で探索をかけます. 
+
+\begin{itemize}
+\item libパッケージ名-dev
+\item パッケージ名-dev
+\item パッケージ名
+\end{itemize}
+
+Gentooのパッケージでは一般にDebianの*-devに入るようなものがインストール
+されているので, *-devを優先してインストールするようにしています. 
+
+また, dev-rubyカテゴリのものにはruby-をパッケージ名につけるなどの工夫を
+したり, どうしてもこれでマップできないものは明示的にマッピングを書くな
+どの対処もしています.
+
+\subsubsection{DebianからGentooへのマップ}
+
+こうしてDebianへとパッケージをインストールできたら, インストールできた
+パッケージのバージョンを取得してGentooのパッケージ名へのマップをしてい
+きます. これは単純にdpkg -l ...の結果を使うだけですね. 現状Debianの仮想
+パッケージから選択される実際のパッケージのバージョンをとれず, うまくマッ
+プできていません….
+
+\subsubsection{実行サンプル}
+
+これらのアイデアを実装したのがapt-emergeスクリプトになります. このスク
+リプトは基本的に上記のemergeが使えるようになった段階で使えるようになっ
+ていますが, 一部のパッケージはGentooのコア部分に大きく食いこんでいるの
+でそれらはGentooで入れておかないといけません. また, Debianのmultiarchに
+対応するようにCFLAGS/LDFLAGSを調整します.
+ 
+\begin{commandline}
+% vi $EPREFIX/etc/make.conf
+CFLAGS="-O2 -I/usr/include/x86_64-linux-gnu"
+LDFLAGS="${LDFLAGS} -L/usr/lib/x86_64-linux-gnu"
+% FEATURES="-collision-protect" emerge -avg1 --nodeps bash eselect eselect-python python portage libffi
+\end{commandline}
+
+これでapt-emergeが動くようになるはずです. apt-emergeを動かすと自動的に必要なパッケージをapt-getに渡し, 可能な限りの依存を解決してから, emergeに処理を渡します.
+
+例としてTwitterクライアント
+mikutter\footnote{http://mikutter.hachune.net}をapt-emergeでインストー
+ルしてみましょう. これはRubyとRuby/Gtk2などを使ったパッケージなので, 普
+通にemergeするだけであれば, gtkなど大量にビルドされるはずです
+が……apt-emerge mikutter後にGentoo側になにがインストールされているかを
+リストアップしてみましょう(仮想パッケージは除いてあります)
+
+\begin{commandline}
+% eix -I -c |grep -v virtual
+[I] app-admin/eselect (1.3.1@06/03/2012): Gentoo's multi-purpose configuration and management tool
+[I] app-admin/eselect-python (20111108@06/03/2012): Eselect module for management of multiple Python versions
+[I] app-admin/python-updater (0.10-r2@06/04/2012): Script used to reinstall Python packages after changing of active Python versions
+[U] app-shells/bash (4.2_p28@06/03/2012 -> 4.2_p29): The standard GNU Bourne again shell
+[I] app-shells/push (1.5@06/04/2012): A POSIX shell function to treat a variable like an array, quoting args.
+[I] dev-lang/python (2.7.3-r2(2.7)@06/04/2012): Python is an interpreted, interactive, object-oriented programming language.
+[I] dev-libs/libffi (3.0.11@06/04/2012): a portable, high level programming interface to various calling conventions.
+[I] net-misc/mikutter (9999@06/04/2012): mikutter is simple, powerful and moeful twitter client
+[I] sys-apps/baselayout-prefix (1.12.14@06/04/2012): Baselayout for Gentoo Prefix installs
+[I] sys-apps/portage (2.2.01.20430@06/04/2012): Prefix branch of the Portage Package Manager, used in Gentoo Prefix
+[I] sys-apps/tcp-wrappers (7.6.22@06/04/2012): TCP Wrappers
+[I] sys-devel/gnuconfig (20120116@06/04/2012): Updated config.sub and config.guess file from GNU
+\end{commandline}
+
+ご覧のように10個程度しかGentoo側にはインストールされていませんが,
+mikutter-9999 (SVN trunkのバージョン)がしっかりとインストールされています.
+
+\subsection{これから}
+
+apt-emergeのスクリプトはまだコンセプトが実装されただけで, いろんな部分
+がad-hocになっています. よりDebianのパッケージ名とGentooのパッケージ名
+とのマッピングの推測を賢くしたり, 必要な固定マップデータを拡充し,
+Debianのvirtualパッケージをうまく処理したりするなど, より使いやすいビル
+ドシステムを作れればと思います. 自分自身Debianに深く知識を持っているわ
+けではないので, もしかするともっと効率のよい実装もあるかもしれません….
+もし興味を持っていただければ, 開発参加・アドバイスしていただけましたら
+幸いです. 
+
+%% 図\ref{fig:image01}として画像を入れる場合。
+%% \begin{figure}[ht]
+%%   \begin{center}
+%%     \includegraphics[width=1\hsize]{images/openlogo-nd.eps}
+%%   \end{center}
+%%   \caption{キャプション}
+%%   \label{fig:image01}
+%% \end{figure}
+
+%% \begin{enumerate}
+%% \item 番号付きリスト1
+%% \item 番号付きリスト2
+%% \end{enumerate}
 
 \end{document}
