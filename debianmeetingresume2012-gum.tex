@@ -487,4 +487,387 @@ Ubuntu 12.04ではどちらもパッケージとして提供されているため、
 wheezyではインストール作業が簡単になると思われます。
 これを機会にipythonを活用していただければ幸いです。
 
+\dancersection{Linux-PAMの設定について}{西山和広}
+\label{sec-1}
+\subsection{Introduction}
+\label{sec-1-1}
+\subsubsection{PAM とは何か?}
+\label{sec-1-1-1}
+
+Linux-PAM (Pluggable Authentication Modules for Linux) とは、アプリケーションがユーザーをどう認証するかをローカルシステムの管理者が設定できるようにするための共有ライブラリ一式です。
+
+PAM のおかげで、アプリケーションをコンパイルしなおさなくても、認証方法を変更したり、権限の付与の仕方を変更したりできるようになっています。
+\subsubsection{NSS とは何か?}
+\label{sec-1-1-2}
+
+PAM と関係の深いライブラリとして NSS (Name Service Switch) があります。
+NSS はユーザー名とユーザー ID との変換をしたり、ホスト名と IP アドレスとの変換をしたりするときに使われます。
+\subsubsection{PAM と NSS との違い}
+\label{sec-1-1-3}
+
+PAM は認証部分のみなので、基本的にはログインやログアウトのときとパスワード変更に関係します。 (厳密にはアプリケーション次第です。)
+
+ログイン中に \verb~id~ コマンドで表示されるユーザーIDとユーザー名の対応 \footnote{グループIDとグループ名も同様です。 } や \verb~ls -l~ でファイルシステムに記録されているユーザーIDからユーザー名への変換 \footnote{ファイルシステムには所有者はユーザーIDで記録されています。そのため、たとえばユーザーを削除して存在しないユーザーのファイルがある場合には、ユーザー名への変換が出来ないので数字で表示されます。 } などは \verb~/etc/nsswitch.conf~ で設定する NSS の機能になります。
+\subsubsection{PAM の設定}
+\label{sec-1-1-4}
+
+PAM は設定ファイルに実行したいモジュールを並べておいて、それを順番に実行していくようなものだと思えば良いでしょう。
+
+たとえば
+\begin{itemize}
+\item \verb~/etc/passwd~ などのローカルファイルでの認証
+\begin{itemize}
+\item 成功すれば認証成功をアプリケーションに返す
+\item 失敗すれば次へ
+\end{itemize}
+\item LDAP での認証
+\begin{itemize}
+\item 成功すれば認証成功をアプリケーションに返す
+\item 失敗すれば次へ
+\end{itemize}
+\item 次がないので認証失敗をアプリケーションに返す
+\end{itemize}
+という動作をします。
+\subsection{ファイル配置}
+\label{sec-1-2}
+\subsubsection{設定ファイル}
+\label{sec-1-2-1}
+
+\verb~/etc/pam.d/~ の下にアプリケーションごとの設定ファイルがあります。
+以下はその例です。
+
+
+\begin{commandline}
+% ls /etc/pam.d
+atd       chsh            common-password                cron      other   su
+chfn      common-account  common-session                 login     passwd  sudo
+chpasswd  common-auth     common-session-noninteractive  newusers  sshd
+\end{commandline}
+
+\begin{itemize}
+\item どの設定ファイルがどのアプリケーションのものなのかはファイル名から推測できます。
+\item ない場合は \verb~other~ が使われます。
+\item それぞれの中から \verb~@include~ で \verb~common-*~ で共通の設定を使うようになっています。
+\end{itemize}
+
+\verb~/etc/pam.d/~ がない場合は \verb~/etc/pam.conf~ が使われると \verb~/etc/pam.conf~ の中のコメントに書いてありますが、歴史的なもので最近の Linux では使われていません。
+\subsubsection{モジュール}
+\label{sec-1-2-2}
+
+以下は PAM モジュールの例です。
+
+
+\begin{commandline}
+% ls /lib/x86_64-linux-gnu/security
+pam_access.so     pam_keyinit.so    pam_nologin.so     pam_tally.so
+pam_debug.so      pam_lastlog.so    pam_permit.so      pam_tally2.so
+pam_deny.so       pam_ldap.so       pam_pwhistory.so   pam_time.so
+pam_echo.so       pam_limits.so     pam_rhosts.so      pam_timestamp.so
+pam_env.so        pam_listfile.so   pam_rootok.so      pam_umask.so
+pam_exec.so       pam_localuser.so  pam_securetty.so   pam_unix.so
+pam_faildelay.so  pam_loginuid.so   pam_selinux.so     pam_userdb.so
+pam_filter.so     pam_mail.so       pam_sepermit.so    pam_warn.so
+pam_ftp.so        pam_mkhomedir.so  pam_shells.so      pam_wheel.so
+pam_group.so      pam_motd.so       pam_stress.so      pam_xauth.so
+pam_issue.so      pam_namespace.so  pam_succeed_if.so
+\end{commandline}
+
+\begin{itemize}
+\item 設定ファイルに書かれる \verb~pam_unix.so~ などは \verb~dlopen(3)~ で動的に読み込まれます。
+\item そのため PAM の認証を使っているプログラムを入れた chroot 環境を作るときには気をつける必要があります。
+\item \verb~squeeze~ までは \verb~/lib/security/~ や \verb~/lib64/security/~ にあります。
+\item \verb~multiarch~ 対応で最近は \verb~/lib/x86_64-linux-gnu/security/~ などの \verb~/lib/<triplet>/security/~ にあります。
+  上記の例は wheezy (testing) なので \verb~/lib/security/~ ではなく
+  \verb~/lib/x86_64-linux-gnu/security/~ になっています。
+\end{itemize}
+\subsection{設定ファイルの書式}
+\label{sec-1-3}
+
+設定ファイルの例を載せておきます。(一部省略)
+
+\begin{commandline}
+% egrep '^[^#]' /etc/pam.d/cron
+@include common-auth
+session       required   pam_env.so
+session       required   pam_env.so envfile=/etc/default/locale
+@include common-account
+@include common-session-noninteractive
+session    required   pam_limits.so
+\end{commandline}
+
+\begin{itemize}
+\item 設定ファイルには以下の項目を指定します。詳細は後述します。
+\begin{description}
+\item[\verb~service~] アプリケーションに対応する名前
+\item[\verb~type~] PAM の分類
+\item[\verb~control~] 動作指定
+\item[\verb~modules-path~] PAM モジュールへのパス
+\item[\verb~module-arguments~] PAM モジュールの引数
+\end{description}
+\item \verb~#~ から行末まではコメントになります。
+\item \verb~\~ が改行 (\verb~<LF>~) の直前にあると継続行になります。
+\item \verb~/etc/pam.conf~ では「 \verb~service type control module-path module-arguments~ 」という書式で設定します。( \verb~service~, \verb~type~, \verb~control~ の大文字小文字は無視されます。)
+\item \verb~/etc/pam.d/~ では \verb~service~ がファイル名 (必ず小文字) になります。
+\item 残りの「 \verb~type control module-path module-arguments~ 」がファイルの内容になります。
+\end{itemize}
+\subsubsection{service}
+\label{sec-1-3-1}
+
+\begin{itemize}
+\item \verb~service~ は具体的には \verb~login~ や \verb~su~ になります。
+\item \verb~other~ という \verb~service~ 名はデフォルト設定用として予約されています。
+\item Debian では \verb~common-~ で始まる名前のファイルが共通設定用のファイルになっていて、他の設定ファイルから \verb~@include~ で読み込まれています。
+\end{itemize}
+\subsubsection{type}
+\label{sec-1-3-2}
+
+\begin{description}
+\item[account] 認証以外のアカウント管理に使われます。たとえば昼間だけログインできるようにしたり、 \verb~nologin~ ファイルがあるときは一般ユーザーにログインさせないようにしたりできます。
+\item[auth] アプリケーションにパスワード入力を要求するなどの方法でユーザー認証をします。グループ権限の付与などの機能もあります。
+\item[password] パスワード変更などの認証トークン変更機能を提供します。
+\item[session] サービス利用の前後に何かをするモジュールタイプです。ログを取ったり、ディレクトリをマウントしたり、 \verb~/etc/motd~ を表示したり、環境変数を設定したりできます。
+\item[\verb~@include~] Debian ではここに \verb~@include~ を指定することで別のファイルを読み込めるようになっています。
+\end{description}
+\subsubsection{control}
+\label{sec-1-3-3}
+
+PAM モジュールを実行してその結果、どうするのかの設定です。
+詳細については後述します。
+\subsubsection{module-path}
+\label{sec-1-3-4}
+
+PAM モジュールのファイルへのパスを絶対パスかデフォルトのモジュールの置き場所である \verb~/lib/security/~ などからの相対パスで指定します。
+\subsubsection{module-arguments}
+\label{sec-1-3-5}
+
+スペース区切りでモジュールへの引数を指定します。
+スペースを含む引数を指定する場合は以下の例のように \verb~[]~ でくくります。
+
+
+\begin{commandline}
+squid auth required pam_mysql.so user=passwd_query passwd=mada \
+      db=eminence [query=select user_name from internet_service \
+      where user_name='%u' and password=PASSWORD('%p') and \
+      service='web_proxy']
+\end{commandline}
+
+\verb~]~ を含めたい場合は \verb~\]~ と指定します。
+つまり以下のようになります。
+
+
+\begin{commandline}
+[..[..\]..]    -->   ..[..]..
+\end{commandline}
+\subsection{control の設定について}
+\label{sec-1-4}
+\subsubsection{PAM の内部状態}
+\label{sec-1-4-1}
+
+PAM はモジュールを実行していくときに内部的に
+\begin{itemize}
+\item 初期状態
+\item 成功状態
+\item 失敗状態
+\end{itemize}
+の3つの状態があり、最終的に成功状態なら成功をアプリケーションに返し、そうでなければ失敗をアプリケーションに返します。
+(初期状態のままのときも失敗を返します。)
+\subsubsection{control の省略形式}
+\label{sec-1-4-2}
+
+control の指定には、省略した形式として以下のものがあります。
+
+\begin{description}
+\item[required] 成功しても失敗しても続きを実行してから結果を返します。失敗状態以外で成功した場合は成功状態にします。失敗した場合は失敗状態にします。
+\item[requisite] 失敗した場合は失敗状態にして、すぐにアプリケーションに失敗を返します。失敗状態以外で成功した場合は成功状態にします。
+\item[sufficient] 失敗状態以外で成功した場合は、すぐにアプリケーションに成功を返します。失敗は無視して続きを実行します。
+\item[optional] 成功か失敗かは気にせず実行したいモジュールに使います。成功か失敗かは他のモジュールがないときだけ影響します。
+\item[include, substack] 省略形式ではありませんが、このような指定も出来ます。しかし Debian では上述の \verb~@include~ が使われていて、これらは普通は使われていないのと、内部状態の説明が複雑になるため省略します。
+\end{description}
+\subsubsection{control の省略しない形式}
+\label{sec-1-4-3}
+
+もっと複雑な形式として以下のものがあります。
+
+
+\begin{commandline}
+[value1=action1 value2=action2 ...]
+\end{commandline}
+\subsubsection{control の value}
+\label{sec-1-4-4}
+
+\verb~valueN~ は PAM モジュールからの返値で \verb~actionN~ はその返値のときにどうするかという設定です。
+
+\verb~valueN~ には \verb~success~, \verb~open_err~, \verb~symbol_err~, \verb~service_err~, \verb~system_err~, \verb~buf_err~, \verb~perm_denied~, \verb~auth_err~, \verb~cred_insufficient~, \verb~authinfo_unavail~, \verb~user_unknown~, \verb~maxtries~, \verb~new_authtok_reqd~, \verb~acct_expired~, \verb~session_err~, \verb~cred_unavail~, \verb~cred_expired~, \verb~cred_err~, \verb~no_module_data~, \verb~conv_err~, \verb~authtok_err~, \verb~authtok_recover_err~, \verb~authtok_lock_busy~, \verb~authtok_disable_aging~, \verb~try_again~, \verb~ignore~, \verb~abort~, \verb~authtok_expired~, \verb~module_unknown~, \verb~bad_item~, \verb~conv_again~, \verb~incomplete~, \verb~default~ が指定できます。
+\verb~default~ は名前からわかる通り明示的に \verb~valueN~ に指定されなかったときのデフォルト指定です。
+
+\verb~valueN~ に指定できる値の完全なリストは \verb~libpam0g-dev~ パッケージをインストールして
+\begin{itemize}
+\item \verb~/usr/include/security/_pam_types.h~
+\end{itemize}
+を参照してください。
+\subsubsection{control の action}
+\label{sec-1-4-5}
+
+\verb~actionN~ に指定できるものは以下の通りです。
+
+\begin{description}
+\item[ignore] 無視します。モジュールの返値はアプリケーションに返す値には影響しません。
+\item[bad] 失敗状態にします。
+\item[die] 失敗します。失敗状態にして、すぐにアプリケーションに失敗を返します。
+\item[ok] 失敗状態以外なら成功状態にします。すでに失敗状態のときは失敗状態のままです。
+\item[done] 失敗状態以外なら成功状態にして、すぐにアプリケーションに成功を返します。すでに失敗状態のときは失敗状態のままです。
+\item[N (1以上の整数)] 次の N 個のモジュールを実行せずに飛ばします。
+\item[reset] 内部状態を初期状態に戻します。
+\end{description}
+\subsubsection{省略形の展開}
+\label{sec-1-4-6}
+
+省略形は \verb~[...]~ の書式で書くと以下のようになります。
+
+\begin{description}
+\item[required] \verb~[success=ok new_authtok_reqd=ok ignore=ignore default=bad]~
+\item[requisite] \verb~[success=ok new_authtok_reqd=ok ignore=ignore default=die]~
+\item[sufficient] \verb~[success=done new_authtok_reqd=done default=ignore]~
+\item[optional] \verb~[success=ok new_authtok_reqd=ok default=ignore]~
+\end{description}
+\subsection{PAM 設定フレームワーク}
+\label{sec-1-5}
+
+Redhat 系 Linux には以前から PAM や NSS の自動設定用のコマンドとして \verb~authconfig~ があります。
+しかし、昔の Debian にはそういうフレームワークはありませんでした。
+
+Ubuntu では、そのようなフレームワークとして \verb~auth-client-config~ が使われるようになりました。
+その後 \verb~pam-auth-update~ が使われるように変わりました。
+そして Debian にも \verb~pam-auth-update~ が入って今は Debian でも Ubuntu でも \verb~pam-auth-update~ が標準の PAM の設定用フレームワークとして使われています。\footnote{Debian にはありませんが、 Ubuntu には \verb~auth-client-config~ パッケージはまだ存在しています。 \verb~pam-auth-update~ は PAM の設定のみなので、もしかすると NSS の設定には使われているのかもしれません。(使っていないので詳細は不明です。) }
+\subsubsection{pam-auth-update}
+\label{sec-1-5-1}
+
+\verb~pam-auth-update~ コマンドは \verb~libpam-runtime~ パッケージに入っています。
+PAM モジュールパッケージで \verb~/usr/share/pam-configs~ の中にプロファイルがインストールされます。
+\verb~pam-auth-update~ コマンドは、そのプロファイルを元に \verb~/etc/pam.d/common-*~ ファイルを更新します。
+\subsection{設定ファイルの例}
+\label{sec-1-6}
+
+\begin{itemize}
+\item \verb~pam-auth-update~ で生成された設定ファイルの一部と sshd の設定を例として説明をします。
+\end{itemize}
+\subsubsection{/etc/pam.d/common-auth}
+\label{sec-1-6-1}
+
+common-auth は認証の共通処理の設定ファイルです。
+\begin{enumerate}
+\item まず最初に ``Primary'' block のモジュールを \verb~pam_unix.so~, \verb~pam_ldap.so~ と順番に試して、どこかで成功したら \verb~pam_permit.so~ まで飛ばして成功状態にします。
+\item すべて失敗した場合は fallback の \verb~pam_deny.so~ の行で必ず失敗して、そのままアプリケーションに認証失敗を返します。
+\item 途中で成功して \verb~pam_permit.so~ の行に飛んできた場合は、そのまま続きの行を実行していきます。
+\item \verb~@include~ 元のファイルで続きの処理を用意していることもあるので \verb~sufficient~ で成功をすぐに返してしまうことは避けて \verb~success=N~ で飛ばして \verb~pam_permit.so~ で成功状態にするという手間をかけているようです。
+\item \verb~pam_ldap.so~ の \verb~use_first_pass~ は \verb~pam_unix.so~ の認証のときに入力されたパスワードを使って \verb~pam_ldap.so~ の認証も試すという意味です。 \verb~use_first_pass~ がないと \verb~pam_unix.so~ でパスワード入力が要求されて、さらに \verb~pam_ldap.so~ でもパスワード入力を要求されるということになります。(プロファイルで Auth-Initial と Auth にわかれているのはそういう設定を使いわけられるようにするためのようです。)
+\end{enumerate}
+
+\begin{commandline}
+# here are the per-package modules (the "Primary" block)
+auth    [success=2 default=ignore]      pam_unix.so nullok_secure
+auth    [success=1 default=ignore]      pam_ldap.so minimum_uid=1000 use_first_pass
+# here's the fallback if no module succeeds
+auth    requisite                       pam_deny.so
+# prime the stack with a positive return value if there isn't one already;
+# this avoids us returning an error just because nothing sets a success code
+# since the modules above will each just jump around
+auth    required                        pam_permit.so
+# and here are more per-package modules (the "Additional" block)
+auth    optional                        pam_cap.so
+# end of pam-auth-update config
+\end{commandline}
+\subsubsection{/etc/pam.d/common-session}
+\label{sec-1-6-2}
+
+\begin{itemize}
+\item この例の common-session では ``Primary'' block にモジュールがないために \verb~pam_permit.so~ でいきなり \verb~pam_deny.so~ を飛びこえるようになっています。
+\item その後 \verb~pam_unix.so~ と \verb~pam_ldap.so~ でも何か追加の処理をして \verb~pam_tmpdir.so~ で環境変数 TMPDIR などを設定しています。
+\end{itemize}
+
+\begin{commandline}
+# here are the per-package modules (the "Primary" block)
+session [default=1]                     pam_permit.so
+# here's the fallback if no module succeeds
+session requisite                       pam_deny.so
+# prime the stack with a positive return value if there isn't one already;
+# this avoids us returning an error just because nothing sets a success code
+# since the modules above will each just jump around
+session required                        pam_permit.so
+# and here are more per-package modules (the "Additional" block)
+session required        pam_unix.so
+session [success=ok default=ignore]     pam_ldap.so minimum_uid=1000
+session optional pam_tmpdir.so
+# end of pam-auth-update config
+\end{commandline}
+\subsubsection{/etc/pam.d/sshd}
+\label{sec-1-6-3}
+
+\begin{enumerate}
+\item まず \verb~pam_env.so~ で環境変数を設定しています。
+\item \verb~#~ で始まる行だけでなく、行の途中の \verb~#~ 以降もコメントです。
+\item 2個目の \verb~pam_env.so~ で \verb~/etc/default/locale~ を読み込んでいます。 \footnote{余談ですが、昔の Debian では \verb~/etc/default/locale~ は存在しなくて、アップグレードでも自動で作成はされず、ログをみるとエラーが出ていたということがあり、そのときは自分で \verb~/etc/default/locale~ を作成しました。今は \verb~update-locale~ というコマンドで更新するとチェックもしてくれて良い感じになるようです。 }
+\item \verb~pam_nologin.so~ では \verb~nologin~ ファイルがあるときにログインを認可しないようにしています。
+\item session では \verb~pam_motd.so~ で \verb~/etc/motd~ の表示をしています。最近の Debian や Ubuntu の \verb~pam_motd.so~ では \verb~/etc/update-motd.d~ があれば表示前に内容が更新されるようになっています。 Ubuntu のサーバーに ssh でログインしたときにいろいろな情報がでるのはそのためです。 Ubuntu の場合は update-notifier-common を入れておくとパッケージの更新や再起動が必要かどうかが ssh などでのログイン時に出るようになるのでおすすめです。 Debian では \verb~/etc/update-motd.d~ のファイルが入らない ( \href{http://bugs.debian.org/580286}{http://bugs.debian.org/580286} ) ため、自動では出ません。
+\item 他にはメールボックスの状態を表示したり、リソース制限を反映したりしているようです。
+\end{enumerate}
+
+\begin{commandline}
+# PAM configuration for the Secure Shell service
+
+# Read environment variables from /etc/environment and
+# /etc/security/pam_env.conf.
+auth       required     pam_env.so # [1]
+# In Debian 4.0 (etch), locale-related environment variables were moved to
+# /etc/default/locale, so read that as well.
+auth       required     pam_env.so envfile=/etc/default/locale
+
+# Standard Un*x authentication.
+@include common-auth
+
+# Disallow non-root logins when /etc/nologin exists.
+account    required     pam_nologin.so
+
+# Uncomment and edit /etc/security/access.conf if you need to set complex
+# access limits that are hard to express in sshd_config.
+# account  required     pam_access.so
+
+# Standard Un*x authorization.
+@include common-account
+
+# Standard Un*x session setup and teardown.
+@include common-session
+
+# Print the message of the day upon successful login.
+session    optional     pam_motd.so # [1]
+
+# Print the status of the user's mailbox upon successful login.
+session    optional     pam_mail.so standard noenv # [1]
+
+# Set up user limits from /etc/security/limits.conf.
+session    required     pam_limits.so
+
+# Set up SELinux capabilities (need modified pam)
+# session  required     pam_selinux.so multiple
+
+# Standard Un*x password updating.
+@include common-password
+\end{commandline}
+\subsection{設定変更時の注意事項}
+\label{sec-1-7}
+
+設定を変更するときは root 権限のシェルを開いたままにしておくことをお勧めします。
+もし設定を間違えてしまうと sudo も su もコンソールからの root でのログインも出来なくなって困ることになります。
+
+ただし \verb~pam-auth-update~ を使ってパッケージでインストールされた設定の有効無効を切り替えるだけの場合は問題が起きる可能性は低いので、そこまでしなくても普通は大丈夫だと思います。
+\subsection{参考文献}
+\label{sec-1-8}
+
+\begin{itemize}
+\item \href{http://linux-pam.org/Linux-PAM-html/Linux-PAM_SAG.html}{http://linux-pam.org/Linux-PAM-html/Linux-PAM\_SAG.html} The Linux-PAM System Administrators' Guide Version 1.1.2, 31. August 2010
+\item \href{http://archive.linux.or.jp/JF/JFdocs/User-Authentication-HOWTO/}{http://archive.linux.or.jp/JF/JFdocs/User-Authentication-HOWTO/} User Authentication HOWTO 2000/05/02
+\item \href{https://wiki.ubuntu.com/PAMConfigFrameworkSpec}{https://wiki.ubuntu.com/PAMConfigFrameworkSpec} PAMConfigFrameworkSpec - Ubuntu Wiki
+\item \href{https://wiki.ubuntu.com/AuthClientConfig}{https://wiki.ubuntu.com/AuthClientConfig} AuthClientConfig - Ubuntu Wiki
+\end{itemize}
+
 \end{document}
