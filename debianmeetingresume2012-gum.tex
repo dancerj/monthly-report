@@ -1486,4 +1486,228 @@ deb http://cdn.debian.or.jp/debian/ unstable/debug main
 buildd にこのシステムを入れてもらい、dak で ディストリビューション/debug として
 処理してもらうことが今後の大きな課題になっています。このことについて来月開催される Debconf 12 
 でBOF またはFTPチーム、wanna-builddチームと話ができればと思っています。
+
+\dancersection{Rabbit: 時間内に終われるプレゼンツール}{須藤功平}
+\label{sec:kou}
+
+Debian GNU/Linux上で動作するプレゼンテーションツールRabbitを紹介します。
+まず、Rabbitの代表的な機能である時間内に終われるための機能を紹介し、そ
+の後、Debian GNU/Linux上でRabbitをインストールする方法とスライドを作る
+方法を簡単に紹介します。
+
+\subsection{Rabbitとは}
+
+RabbitはRubyとGTK+で実装されたプレゼンテーションツールです。Debian
+GNU/Linuxを含む多くのプラットフォーム上で動作します。
+
+Debian GNU/Linux上で動作するプレゼンテーションツールはたくさんあります。
+
+\begin{itemize}
+\item GUIでスライドを作成するデスクトップアプリケーション
+  （LibreOfficeのImpressなど）
+\item テキストで作成したスライドを表示するデスクトップアプリケーション
+  （MagicPointやRabbitなど）
+\item \LaTeX{}のBeamerクラス + PDFビューアー（Evinceやpdfcubeなど）
+\item JavaScript + Webブラウザ（Impress.jsやshowoffなど）
+\item Webサービス（Google DocsやPreziなど）
+\end{itemize}
+
+それぞれのツールは特徴が大きく異なっており、それぞれよいところがありま
+す。Rabbitにもまた特徴があり、他のツールにはない便利な機能があります。
+それが「プレゼンテーションを時間内に終われるための機能」です。この機能
+は一般的にタイマー機能と呼ばれているもので、プレゼンテーション中に残り
+時間を表示して、発表者に進み具合を伝える機能です。多くのツールでこの機
+能を提供していますが、Rabbitのタイマー機能はどう違うのでしょうか。一言
+でいうとUI（ユーザーインターフェイス。見た目）が違います。他は同じで
+す。
+
+\subsubsection{RabbitのUI}
+
+タイマー機能はMagicPointも提供していますし、Impressも提供しています。
+図\ref{fig:normal-timer-ui}のように、MagicPointはスライド下部にとても目
+立たないように緑のバーを表示します。Impressはスライド表示用のモニターと
+は別のモニターに経過時間を表示します。このように発表者にだけわかるよう
+に表示するUIが一般的なタイマー機能のUIです。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=1\hsize]{images/normal-timer-ui.eps}
+  \end{center}
+  \caption{従来のタイマー機能のUI}
+  \label{fig:normal-timer-ui}
+\end{figure}
+
+一方、RabbitのUIは発表者だけではなく観客にもわかりやすく表示します。
+図\ref{fig:rabbit-timer-ui}のように、スライド下部にうさぎとかめを表示し
+ます。それも誰が見ても気づくくらいの大きさで表示します。このようにタイ
+マー機能を観客からもわかりやすく表示するUIは既存のプレゼンテーションツー
+ルとは一線を画します。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=0.5\hsize]{images/rabbit-timer-ui.eps}
+  \end{center}
+  \caption{Rabbitのタイマー機能のUI}
+  \label{fig:rabbit-timer-ui}
+\end{figure}
+
+それでは、このUIがどうして時間内に終わるための効果を提供するかを考えて
+みましょう。
+
+\subsubsection{みんなにわかるUI}
+
+このRabbitのUIの特徴は発表者だけではなく、観客にも発表の進み具合がわか
+りやすいという点です。発表時間を過ぎれば経過時間を表しているかめが画面
+の右側に走りすぎていきます。もちろん、かめなので徐々に画面の右側に進ん
+でいきます。そのため、観客が気づかないうちに発表時間を過ぎていたという
+ことは起きません。発表時間を過ぎても終わらないと、たとえどれだけ魅力的
+な話であっても気まずい空気になってきます\footnote{要出典。}。
+
+発表者は観客の反応がよいとよりすばらしい発表ができますが、逆に反応が悪
+いと、準備してきた成果を発揮しづらいものです。発表時間が過ぎても終わら
+ない場合、観客の反応が悪くなります。この状態でさらに続けることはとても
+つらいため自然と終わらせようという力が働きます。
+
+このように、タイマー機能を発表者だけではなく観客からもわかりやすいUIに
+することにより、観客から残り時間に関するフィードバックを受け取ることが
+できます。発表者が残り時間を意識するだけではなく、観客からのフィードバッ
+クもあわせることで自然と時間内に終われる発表になります。ただし、観客に
+わかりやすいタイマー機能のUIなので、発表内容よりもうさぎとかめの競争に
+集中してしまい、肝心の発表内容に集中してもらえないという危険性がありま
+す。時間内に終わることだけではなく、魅力的な発表内容を用意することにも
+十分注意してください。
+
+\subsection{インストール方法}
+
+ここまでの紹介でRabbitを使いたくなっているはずです。ここからはRabbitの
+使い方を紹介します。
+
+まず、RabbitをDebian GNU/Linuxへインストールする方法を紹介します。イン
+ストール方法は2種類あります。
+
+\begin{itemize}
+\item aptを使う
+\item RubyGemsを使う
+\end{itemize}
+
+最新バージョンを使いたい場合やフル機能を使いたい場合はRubyGemsを使う方
+法がオススメです。簡単にインストールしたい場合はaptを使う方法がオススメ
+です。
+
+\subsubsection{aptでインストール}
+
+1つ目の方法は、aptを使う方法です。Rabbitのdebパッケージは公式aptリポジ
+トリに含まれている\footnote{大統一Debian勉強会の実行委員でもある佐々木
+  洋平さんがパッケージメンテナー。}ので以下のようにすれば簡単にインストー
+ルできます。
+
+\begin{commandline}
+% sudo apt-get -V -y install rabbit
+\end{commandline}
+
+以下のコマンドを実行してスライドが表示されたら正常にインストールできています。
+
+\begin{commandline}
+% rabbit https://raw.github.com/shockers/rabbit/master/sample/theme-bench.rab
+\end{commandline}
+
+\subsubsection{RubyGemsでインストール}
+
+2つ目の方法はRubyGemsを使う方法です。RabbitはGTK+などたくさんのライブラ
+リを利用しています。そのため、まず、関連ライブラリをaptでインストールし
+ます。
+
+\begin{commandline}
+% sudo apt-get -V -y install \
+    ruby1.9.1 ruby1.9.1-dev libgtk2.0-dev librsvg2-dev libpoppler-glib-dev \
+    libxml2-dev libxslt1-dev
+\end{commandline}
+
+関連ライブラリをインストールしたらRubyGemsでRabbitをインストールします。
+
+\begin{commandline}
+% sudo gem1.9.1 install rabbit twitter-stream twitter_oauth
+\end{commandline}
+
+以下のコマンドを実行してスライドが表示されたら正常にインストールできています。
+
+\begin{commandline}
+% PATH="/var/lib/gems/1.9.1/bin:$PATH"
+% rabbit https://raw.github.com/shockers/rabbit/master/sample/theme-bench.rab
+\end{commandline}
+
+\subsection{スライドの作り方}
+
+Rabbitを使う準備ができたので自分でスライドを作る方法を紹介します。
+
+RabbitはMagicPointのようにテキストでスライドを作成します。テキストの
+フォーマットにはRD\footnote{Ruby Documentの略。}やWiki形式、Markdownな
+どいくつもの有名なフォーマットをサポートしています。ここでは、RDでのス
+ライドの書き方を紹介します。
+
+\subsubsection{RDでのスライドの作り方}
+
+RDでスライドを作る場合、以下のように「\tt{=}」でスライドを区切ります。
+「\tt{=}」の行に書いているテキストがそのスライドのタイトルになります。
+「\tt{\#}」から始まる行はコメントです。シンプルですね。
+
+\begin{commandline}
+# slide.rab
+
+= タイトルスライド
+
+# 持ち時間
+: allotted-time
+   5m
+
+= 最初のスライド
+
+  * 1枚目のスライドの内容
+
+= 2枚目のスライド
+
+  * 2枚目のスライドの内容
+\end{commandline}
+
+最初のスライドは特別でタイトルスライドになります。ここにはスライド全体
+のメタデータを指定することができます。「\tt{allotted-time}」というのは
+このプレゼンテーションの持ち時間で、「\tt{5m}」は5分\footnote{5
+  Minutes}という意味です。持ち時間を指定するとうさぎとかめタイマーが表
+示されるので、持ち時間が決まっているプレゼンテーションのときは指定しま
+しょう。
+
+作成したスライドは以下のように実行します。2ページ目を表示するとうさぎと
+かめタイマーが動きだします。
+
+\begin{commandline}
+% rabbit slide.rab
+\end{commandline}
+
+\subsubsection{PDFで作成したスライドの表示方法}
+
+Rabbitはスライドを表示する機能だけを提供しているため、スライド作成を支
+援する機能はありません。Debian GNU/Linuxを使っている人はエディターでテ
+キストを編集することに慣れているでしょうが、たまにはImpressなどを使っ
+てGUIでグラフィカルにスライドを作成したくなるかもしれません。そのときは
+そのようなツールでスライドを作成してください。Rabbitはテキストだけでは
+なくPDFファイルも読むこむことができます。Impressなどでスライドを作成
+しPDFで出力すれば、Rabbitで表示することができます。
+
+PDFを表示するときはコマンドラインから持ち時間を指定します。
+「\tt{--allotted-time 5m}」と指定すると持ち時間が5分という意味になりま
+す。2ページ目を表示するとうさぎとかめタイマーが動きだします。
+
+\begin{commandline}
+% rabbit --allotted-time 5m slide.pdf
+\end{commandline}
+
+\subsection{さいごに}
+
+Debian GNU/Linux上で動作する時間内に終われるプレゼンテーションツー
+ルRabbitを紹介しました。Debian GNU/Linuxでプレゼンテーションをする人た
+ちの参考になることを期待しています。
+
+もっとRabbitを知りたくなった人は公式サイ
+ト\url{http://rabbit-shockers.org/}をのぞいてみてください。
+
 \end{document}
