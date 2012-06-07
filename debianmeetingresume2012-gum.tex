@@ -2324,20 +2324,345 @@ autoconfを使ったupstreamのソースをdhを使って、簡単なパッケージを
 \subsection{$Bまとめ}
 Debian multiarchは、1つのシステムに複数のアーキティクチャのライブラリ、プログラムをインストール、実行するためのしくみです。この文書では、multiarchの使い方と、しくみ、multiarchに対応した共有ライブラリパッケージの作成方法を説明しました。multiarchは、wheezyのRelease Goalです。次期リリースではすべてのひとが、debian multiarchを使うことができます。
 
-\begin{thebibliography}{9}
+\begin{thebibliography}{8}
 \bibitem{spec} MultiarchSpec \url{https://wiki.ubuntu.com/MultiarchSpec}
 \bibitem{impl} Multiarch Implementation \url{http://wiki.debian.org/Multiarch/Implementation}
 \bibitem{toolchain} Multiarch paths and toolchain implications \url{http://wiki.debian.org/Multiarch/LibraryPathOverview}
-%\bibitem{build-toolchain} BuildingCrossCompilers \url{http://wiki.debian.org/BuildingCrossCompilers}
 \end{thebibliography}
-%図\ref{fig:image01}として画像を入れる場合。
-%\begin{figure}[ht]
-%  \begin{center}
-%    \includegraphics[width=1\hsize]{images/openlogo-nd.eps}
-%  \end{center}
-%  \caption{キャプション}
-%  \label{fig:image01}
-%\end{figure}
 
+\dancersection{TeXLive2011(2012/dev) in Debian}{佐々木洋平}
+\label{sec:TeXLive2011}
+
+\subsection{はじめに}
+
+発表要旨を
+「DebianにおけるTeX環境(特に日本語処理)の導入や設定
+および次期安定版Wheezyでの変更点および開発状況について解説します。」
+としたので、その順番で解説してみます。
+%
+ちなみに佐々木はあくまで {\TeX}({\pLaTeX}) のユーザであって、
+開発に関してはあまり関与しておりません。
+%
+また「{\TeX}でナベアツ」とか「{\TeX}で数値計算」とか
+そういう話はしませんので、あらかじめご了承下さい。
+
+\subsection{{\TeX}環境(特に日本語処理)って?}
+\label{subsec:history}
+
+
+先ずは「{\TeX}環境、特に日本語処理」について簡単に触れておきます。
+%
+{\TeX}はDonald E. Knuthさんによって作成された組版(くみはん)システムであり、現在のバージョン番号は 3.1415926 です\footnote{%
+  Knuth先生は1990年に{\TeX}の開発終了を宣言しており、
+  今後は変更は行なわれません。
+  バグフィックスなどでバージョン番号を変更する場合には、
+  バージョン番号は$\pi$に漸近していきます(開発終了時のバージョンは$3.1$でした)。
+}。
+%
+通常{\TeX}を使用してなんらかの文書を記述する際に
+素の{\TeX}を使うことはあまり無く、多くの場合、
+Laslie Lamportさんによる{\TeX}の拡張である{\LaTeX}、
+もしくは{\LaTeX}を(株)アスキー(現:アスキーメディアワークス)が日本語化し
+た{\pTeX},{\pLaTeX}が使われます\footnote{%
+  {\pLaTeX}の''p''は publishing を意味しています。
+  % アスキーさんでは{\pTeX}, {\pLaTeX}およびこれらに基づく編集支援システムで
+  % ある EWB を公開し書籍の制作に利用されています(いました$\cdots$? %
+  % 現状は良く知りません。すみません)。
+  % EWB は以下の URL で公開されています。
+  % \\
+  % EWB HOME PAGE: {\tt{http://ascii.asciimw.jp/ascii/EWB/}}
+}。
+ちなみに{\TeX}を日本語化したものには
+NTT j{\TeX}, j{\LaTeX}やこれらの多言語版である{MuL\TeX}も存在します。
+
+{\pTeX},{\pLaTeX}やj{\TeX}, j{\LaTeX}によって行なわれた「日本語の処理」と
+はどういったものなのかを簡単にまとめてみましょう。一言で済ますのであれば
+「複数バイト文字コードの処理」と「日本語の組版への対応」です。
+
+\subsubsection{{\TeX}における日本語処理}
+
+先ず「複数バイト文字コードの処理に」ついて。
+%
+{\pTeX}ではJIS X 0208を文字集合とした(ISO-2022-JP, EUC-JP, Shift\_JIS)を
+直接扱えるように拡張がおこなわれました。
+この結果として、{\pLaTeX}文書をtypesetした結果として出力される
+DVI(DeVice Independent format)ファイルには16bit以上の文字コードが
+格納される事になり、
+{\pTeX}の出力したDVIファイルを処理するためのソフトウェアとして
+{\tt{xdvik-ja}} (DVIファイルの X 上での表示) や
+{\tt{dvipsk-ja}} (DVIファイルの PostScriptへの変換) なども提供されています
+\footnote{%
+  DVIのファイル形式自体には16bit以上の文字コードが含まれていても
+  問題無いのですが、
+  欧文のdviware(DVI処理系)では16bit以上が想定されていませんでした。
+  ちなみに、ここでのdviwareの名称はDebian固有の名称であり、
+  実際には配布される形態によって名前が異なっていたりします。
+}。
+%
+一方j{\TeX}では、複数の文字コードをそれぞれ1byte文字セットに分割して取り
+扱うことで日本語(だけではなく多言語)を処理できるような拡張が行なわれました。
+結果としてNTT j{\TeX}はオリジナルの{\TeX}からの変更点が小さい、
+という利点があります。
+
+次に「日本語の組版への対応」について。
+%
+日本語の組版は「JIS X 4051(日本語文書の組版方法)」として、禁則処理やルビ、
+縦書きや横書きの扱いがかなり細く規定されています\footnote{%
+  JIS X 4051 の策定は 1993 年。
+  最新版は2004年に改訂された「JIS X 4051:2004」。
+}。
+%
+組版の結果として得られる文書はこの規格に沿っていることが望ましいのですが、
+そもそもj{\TeX}は縦書きに対応していませんでした。
+現在は日本語処理系として{\pTeX}系列が一般的になっているのはここに理由があるでしょう。
+%
+また現在では、当初{\pTeX,\pLaTeX}で提供されていたスタイルファイルを
+奥村晴彦さんがさらに改良した新ドキュメントクラスを用いるのが一般的になってきました%
+\footnote{%
+  \pLaTeX2e 新ドキュメントクラス: {\tt{http://oku.edu.mie-u.ac.jp/~okumura/jsclasses/}}
+}。
+{\pLaTeX}付属のクラスファイル({\tt{jarticle}})と
+奥村さんの新ドキュメントクラス({\tt{jsarticle}})による組版の例を図\ref{fig:jisx0451}に示します。
+%
+\begin{figure}[htbp!]
+  \centering
+  \includegraphics[width=.4\linewidth]{./images/Okumura2011.png}
+  \caption{日本語組版の例。上が{\pLaTeX}を用いた場合。下が奥村さんの新ドキュメントクラスを用いた場合(奥村, 2011)。}
+  \label{fig:jisx0451}
+  \vspace{-1em}
+\end{figure}
+句読点や括弧の処理が細かく調整されている様子が見てとれます。
+
+最後に Unicode 対応について。
+先ずお断りとして、{\TeX}における多言語処理についてはここでは割愛します\footnote{
+  興味のある方は以下の URL を参照して下さい\\
+  「pTeXと多言語処理」{\tt{http://oku.edu.mie-u.ac.jp/~okumura/texwiki/?pTeXと多言語処理}}
+}。
+%
+「ファイルの文字コードとして UTF-8 を使いたい」つまり「多言語混在の UTF-8 のファイルを直接処理したい」という
+場合にも、最新の{\pLaTeX}(正確には $\varepsilon-$拡張がなされた $\varepsilon-$\pTeX)であれば、
+そのまま処理できます。つまり、次の安定版(Wheezy)では、UTF-8 で保存されたソースをそのまま \pLaTeX で処理できるようになる……はずです%
+(残念ながら squeeze では処理できません)。
+
+\subsubsection{世界情勢}
+
+ここで一端日本語を離れて、
+日本語以外の{\TeX}(とその拡張)および多言語処理がどの様に発展しているのか、について簡単に触れてみましょう。
+%
+Knuthさんの{\TeX}開発終了宣言の後でも、
+最下層の処理系としての{\TeX}は進化を続けており、$\varepsilon-$\TeX、そして pdf\TeX へと進展しています。
+現在では{\LaTeX}として{pdf\LaTeX}が使われるのが一般的です
+% \footnote{%%
+%   お手元の環境で{\tt{latex}}と打ってみて下さい。おそらくエンジンとして{\tt{pdftex}}が起動するでしょう。
+% }
+。
+pdf{\TeX}はその名の通り DVI ファイルを経ずに直接 PDF ファイルを出力する{\TeX}エンジンです。
+この結果として、今後は DVI ファイルは過去の遺物になっていくのかもしれません
+\footnote{
+  これは日本語処理としてはある意味ありがたい話です。
+  DVIファイルにはフォントの「参照」しか表れないため、表示が環境によって異なり、DeVice Independent が実現されません。
+  PDF の場合はどうか、といえば、そもそも欧文のPDFの場合にはフォントを埋め込むのが一般的であり、
+  和文のみが参照名({\tt{Ryumin-Light, GothicBBB-Medium}})のみで実フォントは埋め込まない、という状況でした。
+  しかしながら、
+  JIS2004前後で同じコードポイントに別のグリフが割り当てられているため、
+  フォントを埋め込んでいない PDF では表示が異なる、という問題が発生します。
+  %
+  今後は欧文和文区別なく、フォントを埋め込んだ PDF を出力する、というのが一般的になるでしょう。
+}
+。
+また、$\varepsilon-$\TeX は元々の \TeX に対して多くの拡張がなされています。
+現在既に多くの拡張機能が$\varepsilon-${\TeX}に依存しているため、
+$\varepsilon-${\TeX}に対応していないエンジンは時代遅れになりかねません%
+\footnote{%
+  幸いな事に北川弘典さんを中心に$\varepsilon-$\pTeX(=\pTeX + $\varepsilon-$TeX)が公開されており、
+  TeXLive 本体にも同梱されています。本原稿執筆時点では既に
+  Debian unstable で日本語環境を導入すると \pLaTeX のエンジンとして $\varepsilon-$\pTeX が使われています。
+}
+
+多言語処理系としては、壮大な試みであった$\Omega$が頓挫(?)した後、
+現在ではXeTeX(=$\varepsilon-$\TeX + Unicode + OpenType) を用いるのが一般的になってきました。
+Unicode での入出力を処理し、システムのフォントを利用して直接 PDF を出力します。
+%
+また、pdf{\TeX}の後継としてLua{\TeX}(pdf\TeX + $\Omega$ + Lua + METAPOST + OpenType)の開発が進められています。
+Lua による柔軟な拡張が可能となっており、今後の進展が楽しみではあります。
+
+なお、現時点では Xe(La)TeX および LuaTeX を用いて、
+JIS X 4051 で規定された日本語の組版を実現するためには別パッケージが必要だったり、
+プリアンブルをそれなりに修正する必要があるので一筋縄ではいきません。
+%
+今後に備えて動向を確認しておくのも良いでしょう
+\footnote{
+  \noindent
+  XeTeX に関しては「XeLaTeXで日本語する件について」{\tt{http://zrbabbler.sp.land.to/xelatex.html}} \\
+  LuaTeX-ja に関しては「LuaTeX-ja プロジェクト」{\tt{http://sourceforge.jp/projects/luatex-ja/wiki/FrontPage}}
+}。
+
+\subsubsection{{\TeX}Live について}
+
+最後に、{\TeX}Liveについて。
+{\TeX}に関するソフトウェアを提供する「ディストリビューション」として、以前は te\TeX がリリースされていました。
+しかしながら、2009年に te\TeX としてリリースを停止した後\footnote{%
+   teTeX: no next release
+   「{\tt{http://article.gmane.org/gmane.comp.tex.tetex.beta/812}}」
+}、
+{\TeX}Live が{\TeX}のディストリビューションとしてリリースされるようになりました。
+%
+{\TeX}Live のリリースマネージャは Norbert Preining さんで、
+彼は Debian の {\TeX} 関連パッケージのメンテナでもあります。
+{\TeX}Live では {\tt{tpm2deb}} や {\tt{tpm2rpm}} といったパッケージ変換スクリプトも提供されており、
+現在では多くの Linux ディストリビュータが {\TeX}Live を元に各々のパッケージを作成しています。
+%
+日本語関連については、2010年以降に {\TeX}Live本体への \pTeX、j{\TeX} のマージが開始され、
+本原稿執筆時点では、patch の著作権者にコンタクトの取れていない {\tt{xdvik-ja}} 以外は
+ほぼマージが完了しています。
+
+\subsection{Debianにおける(日本語){\TeX}環境}
+
+さてここまでのお話を踏まえた上で、ようやく Debian の{\TeX}環境について触れていきます。
+%
+ちなみに、「Debianでの{\pLaTeX}の設定」みたいな話はぐぐると結構でてくるので、あまり触れません
+\footnote{%
+  発表時および発表後は Q\&A および設定のお手伝いは行ないます。
+}。
+
+\subsubsection{Squeeze における(日本語){\TeX}環境}
+
+Squeeze にて配布されている {\TeX}Live のバージョンは 2009 です。
+ですので \pTeX および j{\TeX} 関連は、
+$\varepsilon-$\TeX 拡張前の{\bf{UTF-8}}
+のファイルを処理できないバージョンです。
+具体的には、{\tt{ptex-buildsupport}} パッケージで te{\TeX}のソースを提供し、
+これに patch を当てることで \pTeX や j{\TeX} のパッケージが構築されています。
+%
+また、ベースとなっているte{\TeX}のバージョンも 2007 であり、
+セキュリティフィックスはなされているものの、
+大雑把に言えば{\bf{2007年から更新されていません}}\footnote{%
+  Squeeze リリース前に xdvik-ja の 64bit 対応の必要があり、
+  佐々木が patch を当ててパッケージを再構築したりしました。
+}。
+
+導入後にも、
+DVI ファイルの表示や PostScript/PDF への変換のために
+幾つかおまじないが必要だったりします。
+%
+例えば
+\begin{enumerate}
+\item dvipsk-ja 用の VF ファイルの準備のために、インストール後に以下を唱える。
+  \begin{commandline}
+    $ sudo jisftconfig add
+  \end{commandline}
+  % $
+\item xdvik-ja での表示のために
+  \begin{commandline}
+    # 明朝系の表示に使用するフォント
+    $ fc-match serif:lang=ja
+    # ゴシック系の表示に使用するフォント
+    $ fc-match sans-serif:lang=ja
+  \end{commandline}
+  \noindent を確認し
+  % \footnote{%
+  %   {\tt{ttf-tamil-fonts}} や
+  %   {\tt{ttf-devanagari-fonts}} がインストールされている場合には、
+  %   これらが返ってきてしまい、
+  %   結果として DVI の表示にこれらのフォントが使われる。
+  % }
+  、
+  必要に応じて、{\tt{$\tilde{}$/.fonts.conf}} に
+  {\tt{serif, sans-serif}}のエントリを追記して
+  \begin{commandline}
+    $ sudo update-vfontmap
+  \end{commandline}
+  % $
+\item フォントが埋め込まれていない
+  PDF の表示のために、{\tt{Ryumin, Gothic-BBB}}のエントリを
+  {\tt{$\tilde{}$/.fonts.conf}}に追記する。
+\item フォントを埋め込んだ PDF を生成するためには、
+  {\tt{/etc/texmf/texmf.d/75DviPS.cnf}} の {\tt{TTFONTS}}、
+  もしくは{\tt{\%OSFONTDIR}} に埋め込みたいフォントのパスを追加した後に
+  \begin{commandline}
+    $ sudo update-texmf
+  \end{commandline}
+  % $
+  を唱えて、さらに map ファイルを適当に用意しておく。
+\end{enumerate}
+\vspace{-.8em}
+などです。
+
+\subsubsection{Squeezeで{\tt{{\TeX}Live(>=2011)}}を使う!?}
+
+Debianのパッケージではありませんが、amd64 もしくは i386 の場合には
+Norbert さんを中心に提供されている「tlptexlive リポジトリ\footnote{
+  tlptexlive リポジトリ「{\tt{http://tutimura.ath.cx/ptexlive/?tlptexlive\%A5\%EA\%A5\%DD\%A5\%B8\%A5\%C8\%A5\%EA}}」
+}」から、
+TeXLive 全体のコンパイル済みバイナリを取得して使用する、という方法もあります。
+%
+この場合には
+\begin{enumerate}
+\item 既存の Debian パッケージの依存関係解消のために {\tt{equivs}} でダミーパッケージを作成する
+\item {\TeX}Live のパッケージマネージャである{\tt{tlmpgr}}でのバイナリ導入先を、
+  管理しやすい所に追いておく。
+\end{enumerate}
+なんて工夫が必要でしょう。佐々木は Squeeze 環境で
+は {\tt{stow}} で tlptexlive リポジトリでのインストール物を管理しています。
+
+ちなみに tlptexlive の配布物は {\tt{{\TeX}Live (>= 2011)}} 相当ですので、
+フォント周りの設定は後述の Wheezy の場合と同じです。
+
+\subsubsection{Wheezy の現状}
+
+既に{\TeX}Live 2011(2012/dev) が Sid に upload されています。しかしながら、
+本原稿執筆時点ではまだ Wheezy には更新された{\TeX}関連のパッケージは落ち
+てきていません。
+発表時には Wheezy に落ちてきていることを期待しつつ、
+変更点を簡単に述べてみます。
+
+このバージョンの {\TeX}Live には既に\pTeX などがマージされているため、
+Squeeze までで提供していた te\TeX ベースのパッケージ群{\tt{ptex-bin, ptex-base, ...}}は軒並 obsolete となります\footnote{%
+  {\TeX}Live 本体にマージされていない{\tt{xdvik-ja}}のみが残ることになります。
+}。
+%
+現状では \pTeX 関連は {\tt{texlive-binaries, texlive-lang-cjk}} を導入することで一括で install される予定です。
+また、フォント関連の扱いも {\tt{updmap-setup-kanji}} というコマンドによって、一括で設定できるようになります。
+%
+たとえば
+\begin{commandline}
+  $ sudo updmap-setup-kanji nofont
+\end{commandline}
+%$
+\noindent といった塩梅です(上記の設定は、フォントをまったく埋め込まない場合です)。
+このコマンドにより、{\tt{xdvik-ja, dvips, dvipdfmx}} のフォントマップが一括して更新されます。
+%
+{\TeX}Live ではフォントマップファイルとして、
+1)埋め込まない場合、 2)IPAex を使う場合、3)ヒラギノを使う場合、4)小塚フォントを使う場合
+の 4 つを提供しており、Debian のパッケージでもこれらのマップファイルを提供しています。
+Debian の main セクションのみで作業をする場合には 1) or 2) を使うことになるでしょう。
+
+現時点では、
+\begin{itemize}
+\item Conflicts, Replace, Provides の設定が半端で
+  Squeeze からの upgrade がうまくできない(パッケージがある)。
+\item {\TeX}Live 本体でも配布されているフォントがあり、
+  既存のパッケージと重複しているため、Depends を追加して適宜 symbolic link に
+  置換する必要がある。
+\end{itemize}
+といった問題があって、今後の修正が大変ですが、
+Wheezy のリリースまでにはちゃんと直る(直す?)でしょう。
+
+\subsection{最後に}
+
+駆け足でしたが、日本語{\TeX}の現状および
+Debian での{\TeX}関連の現状をまとめてみました。
+%
+まだまだ修正すべき点もありますが、
+今後は{\tt{updmap-setup-kanji}}によるフォント関連の一括管理が有効になるため、
+おまじないのような、
+ともすればバッドノウハウと扱われがちな煩雑な設定は不要になるでしょう。
+%
+Wheezy からは、UTF-8 へ対応した \pTeX が、
+もっと言えばJIX X 4051の組版要件を満たしつつ多言語処理も可能となった
+日本語{\TeX}環境が非常に簡単に手に入るようになる予定です\footnote{%
+  本来であればここで参考文献を列記すべきですが、
+  紙面の都合上脚注に記す無作法をお許し下さい。
+}。
 
 \end{document}
