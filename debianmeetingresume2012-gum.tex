@@ -1897,4 +1897,238 @@ OpenOffice.org Writer/Calc to LaTeX/XHTML converter
 \url{http://gihyo.jp/lifestyle/column/newyear/2012/libreoffice-prospect}
 \end{enumerate}
 
+\dancersection{U-Bootについてあれこれ}{野島 貴英}
+\label{sec:u-boot-arekore}
+
+ Debianは組み込み用途の開発にも非常に便利の良い開発環境を作る事ができます。
+ここでは、組み込み用途の開発では最も基本的なソフトウェアであるブートローダ
+をDebianの環境を用いてU-Bootを用いて開発してみます。最後に、電子書籍端末に
+ブートローダを実際に搭載して起動を試みます。
+
+\subsection{U-Bootとは}
+
+　U-Bootとは、DENX Software Engineering社（本家）で主にメンテされている
+ブートローダです。Das U-Bootともいう\footnote{ドイツ語で潜水艦の意。この場合直訳すると「ザ・潜水艦」と言う感じです。}そうです。
+
+　元はPowerPC用途のブートローダだった模様ですが、様々な人が拡張を加え、現在では216種類の組み込み機材に対応しており、さらに対応数は増えつづけてている模様です。\cite{cite:u-boothistory}
+
+\subsection{U-Bootの特徴}
+
+以下に示す沢山の特徴があります。
+
+\begin{itemize}
+\item ソフトウェアライセンスはGPL v2です。
+\item 沢山のCPU、組み込み機材に対応しています。例：PowerPC,ARM,AVR32,Blackfin,m68k,x86,...
+\item U-Bootのソース本体は単機能の部品の塊であり、ディレクトリも十分に整理され、マクロも整理されている為、開発対象の機材に合わせた改造をするにも、直感的で非常にわかりやすいです。
+\item U-Boot独自仕様のちょっとしたスクリプト言語を使う事により、ブートに関して機材に合わせた制御が可能です。また、対話的にOSをブートさせる事ができます。
+\item tftp経由のOSブート、シリアル経由のOSブート、NFS経由のOSブート、数々の種類のFlashメモリからのOSブート等、様々な方法でOSをブートすることが可能です。
+\item OSイメージを様々な形式のファイルシステム上に置いて起動させることができます。例：fat/vfat形式、ext2/3形式、cramfs形式
+\item ELF/バイナリ形式/圧縮形式で出来ているOSのイメージに対応しています。
+\end{itemize}
+
+\subsection{試しにDebian上で動かしてみる}
+
+　まず、Intel 64bit対応版 Debian sidの動作するのPCを用意します。
+
+　ここで、端末を開き（端末A）、experimental版のQEMUを導入します。
+
+\begin{commandline}
+端末A % cat /etc/apt/sources.list
+deb http://ftp.jp.debian.org/debian/ sid main contrib non-free
+deb-src http://ftp.jp.debian.org/debian/ sid main contrib non-free
+deb http://ftp.jp.debian.org/debian/ experimental main contrib non-free
+deb-src http://ftp.jp.debian.org/debian/ experimental main contrib non-free
+端末A % sudo apt-get update
+端末A % sudo apt-get install qemu-system/experimental  <--experimental版導入
+\end{commandline}
+
+　次にARM用のクロスコンパイル環境を用意します。ここではemdebianを利用
+することにします。なお、現在、emdebianのパッケージは安定版のDebianでないと
+導入ができないものが多い(特にgcc)ため、クロスコンパイル環境として安定版の
+Debianのchroot環境を用意して導入することにします。
+
+\begin{commandline} 
+端末A % mkdir cross-compile
+端末A % sudo debootstrap --arch amd64 --include emdebian-archive-keyring,\
+        sudo,lv,build-essential,binutils-multiarch squeeze \
+        `pwd`/cross-compile http://ftp.jp.debian.org/debian
+ ...しばらく待つ...
+端末A % env LANG=C sudo chroot `pwd`/cross-compile /bin/bash
+(ここからは安定版のDebianとなる)
+端末A # echo 'deb http://www.emdebian.org/debian/ squeeze main' >> /etc/apt/sources.list
+端末A # echo 'deb-src http://www.emdebian.org/debian/ squeeze main' >> /etc/apt/sources.list
+端末A # apt-get update
+端末A # groupadd -g <your-gid> <your-id>
+端末A # useradd -m -s /bin/bash -u <your-uid> -g <your-gid> -c 'your name' <your-id>
+端末A # passwd <your-id>
+端末A # echo '127.0.0.1  localhost <your-hostname>' > /etc/hosts
+端末A # echo '<your-id> ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/<your-id>
+端末A # chmod 440 /etc/sudoers.d/<your-id>
+端末A # su - <your-id>
+端末A % sudo apt-get install gcc-4.4-arm-linux-gnueabi
+\end{commandline}
+　
+　次に別の端末（端末B)をsid側で開き、u-bootのソースコードを端末Aのディレクトリへ
+直接ダウンロードします。
+
+\begin{commandline} 
+端末B % cd cross-compile/home/<your-id>/u-boot
+端末B % apt-get source u-boot <---unstable版のu-bootのソースがダウンロードされる。
+\end{commandline}
+
+　端末AにてARM versatilepb QEMU用にクロスコンパイルします\footnote{versatilepb用のu-boot.binイメージはDebianではパッケージ化されていません}。
+
+\begin{commandline} 
+端末A % cd u-boot/u-boot-2012.04.01
+端末A % make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- versatileqemu_config
+端末A % make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- 
+\end{commandline}
+
+　出来上がったu-boot.binを端末Bにて、QEMUを使ってARM versatilepb環境で
+動作させます。\cite{cite:qemu-u-boot}
+
+\begin{commandline} 
+端末B % qemu-system-arm -M versatilepb -nographic -kernel u-boot.bin
+
+U-Boot 2012.04.01 (Jun 05 2012 - 22:34:41)
+
+DRAM:  128 MiB
+WARNING: Caches not enabled
+Using default environment
+
+In:    serial
+Out:   serial
+Err:   serial
+Net:   SMC91111-0
+
+VersatilePB # printenv
+baudrate=38400
+...中略...
+\end{commandline}
+
+無事U-Bootが動作しています。U-Bootのコマンドラインをいろいろいじってみると
+色々分かってよいかと思います。もちろんですが、\$(src)/include/configs/versatile.hや、\$(src)/boards/armltd/verrsatile以下をいじってみていろいろ試すのも非常に簡単に
+できてしまいますので、大変おすすめです。
+
+\subsection{実機で動かしてみる}
+
+　実機として、Barnes \& Noble社(以下B\&N社)のNook Color端末を使います。
+
+\subsubsection{下準備}
+
+\label{sec:u-boot-sitajunbi}
+　東京エリアDebian勉強会2012年5月資料の「Android機でDebian」を参照して、
+B\&N社のNook Color端末でブート可能なmini-SDカードを作成
+しておきます。\cite{cite:android-debian}
+
+　B\&N社より配布されているU-Bootのソースに簡単なパッチを当てて、U-Bootのprintf()などがLCDへ表示が出来るようにしてしまいます。また、ついでに、LCDのテストということでカラーバーを表示するようにしてしまいます。
+
+※先ほどの端末A、端末Bを環境として使います。
+
+\begin{commandline} 
+端末B % cat u-boot-nook-patch.patch
+diff -ru u-boot/common/lcd.c u-boot-nozzy/common/lcd.c
+--- u-boot/common/lcd.c 2011-04-20 19:19:16.000000000 +0000
++++ u-boot-nozzy/common/lcd.c   2012-06-05 18:26:47.000000000 +0000
+@@ -363,11 +363,11 @@
+ 
+        strcpy (lcddev.name, "lcd");
+        lcddev.ext   = 0;                       /* No extensions */
+-#ifdef CONFIG_3621EVT1A
+-    lcddev.flags = 0; /* Use only for splash */
+-#else
++// #ifdef CONFIG_3621EVT1A
++//    lcddev.flags = 0; /* Use only for splash */
++// #else
+        lcddev.flags = DEV_FLAGS_OUTPUT;        /* Output only */
+-#endif
++// #endif
+        lcddev.putc  = lcd_putc;                /* 'putc' function */
+        lcddev.puts  = lcd_puts;                /* 'puts' function */
+ 
+diff -ru u-boot/include/configs/omap3621_evt1a.h u-boot-nozzy/include/configs/om
+ap3621_evt1a.h
+--- u-boot/include/configs/omap3621_evt1a.h     2011-04-20 19:19:16.000000000 +0
+000
++++ u-boot-nozzy/include/configs/omap3621_evt1a.h       2012-06-05 19:15:52.0000
+00000 +0000
+@@ -211,6 +211,12 @@
+ // Recovery mode boot commands
+ //  androidboot.hardware=omapzoom2
+ #define CONFIG_EXTRA_ENV_SETTINGS              \
++"stdout=lcd" \
++       "\0" \
++\
++"stderr=lcd" \
++       "\0" \
++\
+ "mmcbootdev=0" \
+        "\0" \
+ \
+@@ -556,7 +562,11 @@
+ /* Enable LCD driver support for Encore device */
+ #define CONFIG_LCD  1
+ #define CONFIG_LCD_LOGO 1
+-#define CONFIG_LCD_NOT_ENABLED_AT_INIT
++// #define CONFIG_LCD_NOT_ENABLED_AT_INIT
++#define LCD_TEST_PATTERN
++
++/* enable console to lcd */
++#define CFG_CONSOLE_IS_IN_ENV
+ 
+ /* define early driver board init to allow board initialization after i2c*/
+ #define CONFIG_DRV_BOARD_INIT 1
+\end{commandline} 
+
+上のパッチをあてます。
+
+\begin{commandline}
+端末B % wget http://images.barnesandnoble.com/PResources/download/Nook/source-code/nookcolor_1.4.tgz
+端末B % tar xzf nookcolor_1.4.tgz
+端末B % cd nookcolor-1.4/distro/u-boot
+端末B % patch -p1 < ../../../u-boot-nook-patch.patch
+\end{commandline} 
+
+パッチをあてたU-Bootのソースをクロスコンパイルしてu-boot.binを作ります。\cite{cite:orig-kernel-nook}
+
+\begin{commandline} 
+端末A % cd nookcolor-1.4/distro/u-boot
+端末A % make -j2 ARCH=arm  CROSS_COMPILE=arm-linux-gnueabi- omap3621_evt1a_config
+端末A % make -j2 ARCH=arm  CROSS_COMPILE=arm-linux-gnueabi- 
+\end{commandline} 
+
+出来たu-boot.binを\ref{sec:u-boot-sitajunbi}章で作成しておいたmini-SD上の
+u-boot.binと入れ替えます。これで準備完了です。
+
+\subsubsection{起動する}
+
+いよいよmini-SDをNook Color端末に挿入し、電源ボタンを長押しします。
+無事、図\ref{fig:u-boot-booting}のとおりU-Bootの起動画面がLCDに出ました。
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=1\hsize]{images/u-boot-nook.png}
+  \end{center}
+  \caption{U-Bootが起動している様子}
+  \label{fig:u-boot-booting}
+\end{figure}
+
+なお、ここで紹介するU-Bootの改造は、まだ不十分なため、続くuImageをmini-SDから
+ロードしてカーネルを実際に立ち上げるところまでは出来ていません。しかしながら、
+U-Bootのprintf()に記載した結果はLCDに出力できているので、こちらを
+元にU-Bootの改造を続ける事ができそうです。
+
+\subsection{終わりに}
+
+　今回ブートローダであるU-Bootを使い、Debian上でクロスコンパイル環境を作って
+実際にU-Bootが起動するまで試してみました。PCほどにはBIOSも無い、デバッグ用ポートも無い
+実環境で、大した改造や試行錯誤もなく、いきなりLCDにprintf()出来るのはU-Bootが
+よくできている証拠だと思います。また、適当な実環境が無くても、Debianさえあれば
+組み込み機対応のハックを欲望のままに試すこともできます。
+
+　昨今Android端末の普及のおかげで、ものすごい勢いで巷に「不自由」なソフトウェア環境で
+固められたARM CPU搭載の情報端末があふれています。これをきっかけにDebianを使って
+これらの端末を「自由」なソフトウェア環境へ変えててみませんか？
+
+
 \end{document}
