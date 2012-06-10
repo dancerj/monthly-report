@@ -2873,6 +2873,588 @@ Enter the desired patch name: 01_fix-pkg-config-path.patch
 % 大統一ここまで
 %-------------------------------------------------------
 
+%------------------------------------------------------------------------------
+\dancersection{家庭内LANを高速に！ - InfiniBand on Debian}{やまだ}
+\label{sec:ibdebian}
+%------------------------------------------------------------------------------
+
+\subsection{はじめに}
+InfiniBand(IB)はかつてPCI/PCI-Xの後継規格として登場し敗れた後、
+HPC分野を足場に復権してきた10Gbps級インタコネクトです。
+当時はノードの内部も外部もInfiniBandで統一するという野心的すぎる計画が
+災いしたか敗北となりましたが、Ethernetがサーバ系への10GbEの導入で
+伸び悩んでいる隙を突いてHPC分野で大きく普及し、Ethernetを上回る低価格化が
+進行しています。
+
+そして個人ユーザーにとって嬉しいことに、どうやら各所のHPCセンターが
+機材更新をするとeBayに流れてくるようで、10Gbps程度のLANであれば
+数百ドルで自宅構築できるようになりました。すでに色々な記事が出ているので、
+ここではそれらに載っていない点を中心に導入経験を報告します。
+
+\subsection{InfiniBandの特徴と全体像}
+最初にIBに触れて戸惑うのは、規定されている範囲がL1-L7と幅広く、
+慣れ親しんできたL2:Ethernet、L3:IP、L4:TCP/...という階層構造に収まる
+単なる「新しいL2規格」ではないことです。また、用語の登場具合が
+\begin{screen}
+iSERはDA概念に基づくDIとして策定されたiSCSIトランスポートで、
+RDMAネットワーク上でiSCSI PDUを転送します。RDMAネットワークには
+VIA概念に基づいたIB/RoCE/iWARPがあり、前2者はIB-HCAやRoCE対応NICが
+必要です。iWARPは必要な機能をRDMAP/DDP/MPAの概念に整理した上で
+TCP/IP上で実現するもので、こちらはiWARP対応のNIC(RNIC)が必要です。
+いずれもAPIとしてはIB Verbsを元に拡張されたVerbs APIで駆動されます（
+RoCEは途上）。
+（略）。
+更に下って、IBのL4にあたる部分にはRC/RD/UC/UD/XRCなどがあります。
+RCがTCP、UDがUDPに相当します。IPやMACに対応する要素がGID/LID、
+ポートに相当する要素はQPという両端のHCA上に確保されるキュー(WQ)の
+組と言えます。そしてWQが1対1対応する形でQPを形成するものがRC/UC、
+1対N対応する形のものがRD/UD/XRCという分類になります。iSERなどの
+ULPはWQに各種VerbをWQに送り込み、HCAを駆動してRDMAを実現しています。
+\end{screen}
+などとTLAが分野横断かつ詰め込み気味なのに悩まされます
+\footnote{上は本資料に含まれない内容を詰め込んで書き下したサンプル。セッションでは図で解説予定}
+。
+
+紙面の関係から詳しくはスライドでとなりますが、資料を読む上では背景として
+\begin{itemize}
+\item RDMAのためOSバイパスが必要となり、整理・規定範囲がL7まで及ぶこと
+\item 既存レイヤへのRDMA導入のため概念＋規格＋APIと整理が細かくなっていること
+\item L2-L3相当の要素にはIB/RoCE/iWARPの三種があり、Verbsで抽象化されること
+\end{itemize}
+という点までを押さえた上で、同じIBでもどのレイヤ位置の話なのか、
+また、本当の意味でIB固有なのかRDMA系各種規格に適用できる話かを
+考えながら読み進めると混乱しにくくなります。
+
+なお、上の通りIBと言っても、既にL3以上はIB/RoCE/iWARPとEthernetまで
+意識した形で規格化が進められています。このため策定団体名も昔はOpenIB
+AllianceだったのがOpenFabrics Alliance(OFA)と改名されたという経緯があります。
+いわゆる「InfiniBand」だけの話だと思い込んで読まないようにしましょう。
+
+\subsection{InfiniBand on Debianの現状}
+プロトコルスタックやドライバは素のLinux kernelにも概ね入っているの
+ですが、管理ツールなども含めた形ではOFAがOFED(OpenFabrics Enterprise
+Distribution)を開発・配布しています。OFEDのLinux版はRedHat向けですが、
+実際にはこれを元に各社が移植・独自拡張を行ったものを再配布しており、
+有力なものにMellanox社のMLNX\_OFEDパッケージがあります。
+
+DebianではOFED Infiniband Distribution project
+\footnote{http://pkg-ofed.alioth.debian.org/}
+がパッケージングを行っており、squeeze向けにはOFED-1.4.2が、そして
+wheezy/sid向けにOFED-1.5のパッケージングが遅れ気味ですが進んでいます。
+なお、プロジェクトページには
+\begin{commandline}
+deb     http://pkg-ofed.alioth.debian.org/apt/ofed-X.Y.Z ./
+deb-src http://pkg-ofed.alioth.debian.org/apt/ofed-X.Y.Z ./
+\end{commandline}
+のapt-lineを追加した上で apt-get install ofed で入るとありますが、
+ここには1.4.2までしかないため、現状ではwheezy/sidから先取りするか
+自分でビルドします\footnote{以降の説明はsid環境、また、紹介する
+機能の関係でLinux 3.4.0ベースとなります}。
+
+さらに、現在OFEDではリリースポリシを見直しており、
+\begin{itemize}
+\item OFAでカーネル内、ユーザーランドの双方の開発を進め、
+\item カーネル周りはOFAよりupstreamにフィードバックし、
+\item 採用するカーネルにあわせたユーザーランドツール群を集めてOFEDをリリース
+\end{itemize}
+とLinux側に合わせたOFED-3.2の開発を進めています\footnote{Linuxの
+次の長期保守版カーネルは3.4と決まったので、OFED-3.4もあるかも？}。
+
+家庭で使う分にはOFED-1.4で問題ないのですが、例えばIB-FDR
+\footnote{IBはシリアルリンクを束ねる方式で、リンク当たり速度を
+SDR(2Gbps), DDR(4Gbps), QDR(8Gbps), FDR(14Gbps), EDR(26Gbps), ...と
+高速化して帯域を増やします。またリンク数もx1, x4, x12が
+規定されています（x4のタイプが主流）}
+への対応は1.5.4以降が必要になり、また、さらに新しい機能やカーネルを
+使うのであればOFED-3.2や開発中リポジトリ
+\footnote{https://beany.openfabrics.org/downloads/MAINTAINERS}
+ベースでのリビルドが必要になるなど、試行錯誤が必要です。
+
+\subsection{使ってみよう - 基本的なIB/IPoIB環境の構築}
+それでは使ってみましょう。最初の手順としては
+\begin{itemize}
+\item パッケージの導入と初期セットアップ
+\item サブネットマネージャの稼動 - opensm
+\item 稼動状態の確認とパラメータチューニング
+\end{itemize}
+になります。
+
+\subsubsection{パッケージの導入と初期セットアップ}
+プロジェクトのリポジトリであればofedパッケージがあるのですが、
+これは現状broken dependencyの状態のため、sidの方より個別に導入します：
+
+\begin{commandline}
+// 基本ツール群
+# apt-get install opensm ibverbs-utils infiniband-diags perftest
+// HCA固有のパッケージ群（Mellanox InfiniHost/ConnectX HCA用）
+# apt-get install libmlx4-1 libmthca1 mstflint
+// 追加ツール群（入れなくてもあまり困らない）
+# apt-get install ibutils rdmacm-utils rds-tools libsdp1 dapl2-utils
+// 開発ライブラリ群
+# apt-get install libibumad-dev libibverbs-dev librdmacm-dev libibcm-dev libdapl-dev
+\end{commandline}
+
+さて、これでインストールはされましたが、このままでは使えません。
+どのようなULP、例えばIPoIBを使うのかどうか、またユーザーランドから
+RDMAを叩く使い方をするのかなどは導入ポリシ次第なので、それに
+合わせて明示的に構成する必要があります。
+
+素のOFEDにはこれに使えるinitスクリプト(openibd.conf + openibd)が
+入っているのですが、やっていることはモジュールロードとsysctl等の
+パラメータ設定なので、今回は/etc/moduleに直接書いて対応します。
+
+\begin{commandline}
+# /etc/modules
+# === Mellanox HCAの（IBモード用の）ドライバ ===
+mlx4_ib
+ib_mthca
+
+# === ユーザーランドからIBを叩くためのデバイスファイル用 ===
+ib_uverbs
+ib_umad
+ib_ucm
+rdma_ucm
+
+# === 各種ULP（使わないものは外してよい） ===
+ib_ipoib
+ib_sdp
+ib_srp
+rds
+rds_rdma
+rds_tcp
+\end{commandline}
+
+これでモジュールをロードして /dev/infiniband/ の下にデバイスファイルが
+作成されていれば、次のステップに進む準備が整いました：
+
+\begin{commandline}
+# ls /dev/infiniband/
+total 0
+0 issm0  0 issm1  0 rdma_cm  0 ucm0  0 umad0  0 umad1  0 uverbs0
+\end{commandline}
+
+\subsubsection{サブネットマネージャの稼動 - opensm}
+次はサブネットマネージャ(SM)の稼動です。
+
+IBとEthernetの大きな違いとして、IBでは系内のトポロジをIBレベルで
+一元管理し、HCAやスイッチのポート設定やフォーワーディング
+テーブルの構成管理を行っています。これによって設計トポロジに
+適した経路でパケットが流れるよう制御します。これを担当するのがSMです。
+
+SMはIBスイッチ内で稼動している場合は起動不要なのですが、
+系内に複数あっても構わないのと、新しいものはより機能が多いようなので
+起動してしまいましょう。
+\begin{commandline}
+# ibstat -p                   <- opensmに使わせたいHCAのGUIDを調べる
+0x0008f1040399d831
+0x0008f1040399d832
+# cat /etc/defaults/opensm
+#PORTS="0x0008f1040399d831 0x0008f1040399d832"
+PORTS=ALL                     <- 明示的に指定してもよいが、今回はALLで
+# /etc/init.d/opensm start
+\end{commandline}
+
+これでopensmが立ち上がると、系内の通信可能状態にあるポートが
+GID/LIDの割り当てを受けてActive状態となります。
+
+\begin{commandline}
+# ibstat
+CA 'mlx4_0'
+    CA type: MT25408
+    Number of ports: 2
+    ...
+    Node GUID: 0x0008f1040399d830
+    System image GUID: 0x0008f1040399d833
+    Port 1:
+            State: Down
+            Physical state: Polling
+            ...
+    Port 2:
+            State: Active
+            Physical state: LinkUp
+            Rate: 8     <- ？。ibstatus(1)で見るとIBのライン数のようだが…
+            Base lid: 4 <- 自分のLID
+            LMC: 0      <- マルチパス時に複数のLIDを束ねるためのマスク値
+            SM lid: 2   <- 自分を管理しているSMのLID
+            Capability mask: 0x0251086a <- サポート機能群のビットベクトル
+            Port GUID: 0x0008f1040399d832
+\end{commandline}
+
+また、IBポートがActiveとなったことで、対応するIPoIBインタフェースも
+有効になっているはずです。確認しましょう：
+\begin{commandline}
+# ip link show dev ib1
+5: ib1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 2044 qdisc pfifo_fast state UP qlen 256
+    link/infiniband 80:00:00:49:fe:80:00:00:00:00:00:00:00:08:f1:04:03:99:d8:32
+                brd 00:ff:ff:ff:ff:12:40:1b:ff:ff:00:00:00:00:00:00:ff:ff:ff:ff
+\end{commandline}
+
+\subsubsection{稼動状態の確認とパラメータチューニング}
+IPoIBを有効にすれば以後は/etc/network/interfacesで通常の
+LANインタフェースとして設定・利用できるのですが、そのままでは
+性能を発揮できません。実際に使うULPにもよりますが、以下の設定を
+するのがお勧めとなります：
+
+\begin{commandline}
+// 以下の2行はinterfacesあたりに仕込むとよい
+# echo connected > /sys/class/net/ib1/mode
+# ip link set ib1 mtu 65520
+// TCP/IPスタックへのリクエストを効率よくIB側にマップできるようにする
+# cat <<EOF > /etc/sysctl.d/network.conf
+net.ipv4.tcp_timestamps = 0
+net.ipv4.tcp_sack = 0
+net.core.netdev_max_backlog = 250000
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.core.rmem_default = 16777216
+net.core.wmem_default = 16777216
+net.core.optmem_max = 16777216
+net.ipv4.tcp_mem = 16777216 16777216 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+EOF
+# sysctl -qp/etc/sysctl.d/network.conf
+\end{commandline}
+
+IPアドレスの設定も終わったら、最後にIPベースの通信はnetperf、
+IBベースの通信はib\_read\_bwにて性能を確認しましょう：
+
+\begin{commandline}
+// 二台の間で上記構成を作った上でnetperfで確認した結果
+hc07# /etc/init.d/netperf start
+hc06# netperf -H 10.254.1.17 -c -C -- -m 65536
+MIGRATED TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to 10.254.1.17 (10.254.1.17) port 0 AF_INET : demo
+Recv   Send    Send                          Utilization       Service Demand
+Socket Socket  Message  Elapsed              Send     Recv     Send    Recv
+Size   Size    Size     Time     Throughput  local    remote   local   remote
+bytes  bytes   bytes    secs.    10^6bits/s  % S      % S      us/KB   us/KB
+ 87380  65536  65536    10.01      7867.23   4.66     9.87     0.388   0.822
+\end{commandline}
+
+\begin{commandline}
+// 二台の間で上記構成を作った上でib_read_rwで確認した結果
+hc07# ib_read_bw -i 2 -a
+hc06# ib_read_bw -i 2 -a 10.254.1.17
+------------------------------------------------------------------
+                    RDMA_Read BW Test
+Connection type : RC
+  local address:  LID 0x04, QPN 0xc004d, PSN 0x620c92 RKey 0x72042701 VAddr 0x007f9bff322000
+  remote address: LID 0x03, QPN 0x70004e, PSN 0xb4940a, RKey 0x48019601 VAddr 0x007f92c55af000
+Mtu : 2048
+------------------------------------------------------------------
+ #bytes #iterations    BW peak[MB/sec]    BW average[MB/sec]
+      2        1000               3.58                  3.53
+      4        1000               7.27                  7.21
+      8        1000              14.54                 14.40
+     16        1000              29.29                 29.08
+     32        1000              58.17                 57.67
+     64        1000             113.63                112.76
+    128        1000             213.98                211.90
+    256        1000             392.42                387.75
+    512        1000             665.41                658.66
+   1024        1000             911.18                870.06
+   2048        1000             930.35                930.35
+^C
+\end{commandline}
+いずれも900MB/sを超えており、十分性能が出ていることが確認できました。
+
+\subsection{もっと使ってみよう - SAN構築}
+さて、ここまでで基本的な通信性能は確保できたので、次はサーバとして
+SANを構築してみましょう。今回はiSCSI over IPoIBとSRPの2通りで行い
+比較してみます。
+
+\subsubsection{iSCSI over IPoIB}
+こちらは完全にIPの世界での話となるので、普通のiSCSI SANの導入と
+手順は同じです。今回は
+\begin{itemize}
+\item target: Linux-iSCSI (LIO)
+\item initiator: open-iscsi
+\end{itemize}
+の組み合わせで構築します。以下が実際のコマンド例です。
+
+\begin{commandline}
+=== ターゲット側にパッケージ導入 ===
+# apt-get install targetcli lio-utils
+
+=== 試験用の512GBのダミーディスクを用意し・・・ ===
+# echo 0 $((2 * 1024 * 1024 * 512)) zero | dmsetup create ramdisk
+
+=== 管理用コマンドの targetcli で上記ディスクを認識させる ===
+# targetcli
+/> cd /backstores/iblock
+/backstores/iblock> create ramdisk /dev/mapper/ramdisk
+Generating a wwn serial.
+Created iblock storage object ramdisk using /dev/mapper/ramdisk.
+Entering new node /backstores/iblock/ramdisk
+/backstores/iblock/ramdisk> cd /iscsi
+\end{commandline}
+
+\begin{commandline}
+=== ターゲットのiqnを作成 ===
+/iscsi> create iqn.2003-01.org.linux-iscsi:ramdisk
+Created target iqn.2003-01.org.linux-iscsi:ramdisk.
+Selected TPG Tag 1.
+Successfully created TPG 1.
+Entering new node /iscsi/iqn.2003-01.org.linux-iscsi:ramdisk/tpgt1
+\end{commandline}
+
+\begin{commandline}
+=== 今回はテストなので認証はオフで書き放題にする ===
+/iscsi/iqn.20...ramdisk/tpgt1> set attribute authentication=0
+Parameter authentication is now '0'.
+/iscsi/iqn.20...ramdisk/tpgt1> set attribute generate_node_acls=1
+Parameter generate_node_acls is now '1'.
+/iscsi/iqn.20...ramdisk/tpgt1> set attribute demo_mode_write_protect=0
+Parameter demo_mode_write_protect is now '0'.
+\end{commandline}
+
+\begin{commandline}
+=== 先のダミーディスクを割り当てる ===
+/iscsi/iqn.20...ramdisk/tpgt1> cd luns
+/iscsi/iqn.20...sk/tpgt1/luns> create /backstores/iblock/ramdisk 0
+Successfully created LUN 0.
+Entering new node /iscsi/iqn.2003-01.org.linux-iscsi:ramdisk/tpgt1/luns/lun0
+/iscsi/iqn.20...gt1/luns/lun0>
+\end{commandline}
+
+\begin{commandline}
+=== IPoIBインタフェースのアドレスを portal に割り当てる ===
+/iscsi/iqn.20...gt1/luns/lun0> cd ../../portals
+/iscsi/iqn.20...tpgt1/portals> create 10.254.1.16
+Using default IP port 3260
+Successfully created network portal 10.254.1.16:3260.
+Entering new node /iscsi/iqn.2003-01.org.linux-iscsi:ramdisk/tpgt1/portals/10.254.1.16:3260
+\end{commandline}
+
+淡々とコマンドを打つだけでしたが、以上で設定は完了です。
+最後に全体を確認して、保存します：
+
+\begin{commandline}
+/iscsi/iqn.20...254.1.16:3260> cd /
+/> ls
+o- / ........................................................... [...]
+  o- backstores ................................................ [...]
+  | o- fileio ..................................... [0 Storage Object]
+  | o- iblock ..................................... [1 Storage Object]
+  | | o- ramdisk ..................... [/dev/mapper/ramdisk activated]
+  | o- pscsi ...................................... [0 Storage Object]
+  | o- rd_dr ...................................... [0 Storage Object]
+  | o- rd_mcp ..................................... [0 Storage Object]
+  o- iscsi ................................................ [1 Target]
+  | o- iqn.2003-01.org.linux-iscsi:ramdisk ................... [1 TPG]
+  |   o- tpgt1 ............................................. [enabled]
+  |     o- acls .............................................. [0 ACL]
+  |     o- luns .............................................. [1 LUN]
+  |     | o- lun0 ............. [iblock/ramdisk (/dev/mapper/ramdisk)]
+  |     o- portals ........................................ [1 Portal]
+  |       o- 10.254.1.16:3260 ................................... [OK]
+  o- loopback ............................................. [0 Target]
+  o- tcm_fc ............................................... [0 Target]
+/> saveconfig
+\end{commandline}
+
+ターゲット側はこれで稼動を始めたので、次はイニシエータ側です。
+open-iscsiデーモン（iscsid）を導入・起動した上で、iscsiadm コマンドで
+ターゲット側を照会し、エクスポートされているストレージにアタッチします。
+
+\begin{commandline}
+# apt-get install open-iscsi
+# /etc/init.d/open-iscsi start
+
+=== ターゲットIQNの照会を行う ===
+# iscsiadm -m discovery -t sendtargets -p 10.254.1.16
+10.254.1.16:3260,1 iqn.2003-01.org.linux-iscsi:ramdisk
+
+=== 提供IQNにログインしセッション確立し、ディスクを認識させる ===
+# iscsiadm -m node -T iqn.2003-01.org.linux-iscsi:ramdisk -l
+Logging in to [iface: default, target: iqn.2003-01.org.linux-iscsi:ramdisk, portal: 10.254.1.16,3260] (multiple)
+Login to [iface: default, target: iqn.2003-01.org.linux-iscsi:ramdisk, portal: 10.254.1.16,3260] successful.
+
+=== 認識結果を確認 ===
+# iscsiadm -m session
+tcp: [1] 10.254.1.16:3260,1 iqn.2003-01.org.linux-iscsi:ramdisk
+# dmesg
+...
+[ 1403.238057] scsi6 : iSCSI Initiator over TCP/IP
+[ 1403.551708] scsi 6:0:0:0: Direct-Access     LIO-ORG  IBLOCK           4.0  PQ: 0 ANSI: 5
+[ 1403.648803] [2430]: scst: scst_register_device:985:Attached to scsi6, channel 0, id 0, lun 0, type 0
+[ 1403.758261] sd 6:0:0:0: [sde] 1073741824 512-byte logical blocks: (549 GB/512 GiB)
+[ 1403.849642] sd 6:0:0:0: [sde] Write Protect is on
+[ 1403.905865] sd 6:0:0:0: [sde] Mode Sense: 2f 00 80 00
+[ 1403.906208] sd 6:0:0:0: [sde] Write cache: disabled, read cache: enabled, doesn't support DPO or FUA
+[ 1404.017537]  sde: unknown partition table
+[ 1404.067053] sd 6:0:0:0: [sde] Attached SCSI disk
+\end{commandline}
+
+さて、性能はどんなものでしょうか？
+
+\begin{commandline}
+# JOBS=4 OP=write DEV=/dev/sde BS=1m fio bench.ini
+...
+Run status group 0 (all jobs):
+  WRITE: io=6254.0MB, aggrb=210869KB/s, minb=53870KB/s, maxb=54137KB/s, mint=30287msec, maxt=30370msec
+\end{commandline}
+
+正直な所、あまり振るいません。さすがに改善の余地があるとは思われますが、
+今回の主眼は次なのでそのままSRPに進みます。
+
+\subsubsection{SRP (SCSI RDMA Protocol)}
+さて、次は比較のためRDMA上で直接SCSIを提供するSRPで構築してみます。
+\begin{itemize}
+\item target: SCST (ib\_srpt)
+\item initiator: LIO (ib\_srp) ← カーネル標準のもの
+\end{itemize}
+の組み合わせで構築します。SRPはターゲット、イニシエータの双方とも
+Linux-3.4以降には含まれていますが、ターゲットについてはSCSTから
+コードの取り込み途上で未熟なため、今回はSCSTを使っています。
+
+DebianにはSCSTのパッケージがないため、まずはこれのビルドが必要です。
+
+\begin{commandline}
+$ svn co https://scst.svn.sourceforge.net/svnroot/scst/trunk
+$ cd trunk
+$ make KDIR=/d/src/linux/master scst iscsi srpt scst_local usr
+...
+  CC [M]  /d/src/scst/trunk/scst/src/scst_main.o
+  /d/src/scst/trunk/scst/src/scst_main.c:59:2: warning: #warning
+  Patch scst_exec_req_fifo-<kernel-version> was not applied on your kernel.
+  Pass-through dev handlers will not work. [-Wcpp]
+  ...
+make[1]: Leaving directory `/d/src/scst/trunk/usr/fileio'
+$ echo $?
+0
+\end{commandline}
+
+SCSTの全機能をフルに使うにはカーネルパッチを当てる必要があるのですが、
+今回のテストには影響しないためこのまま進みます。最終的に、以下のように
+インストールしています：
+
+\begin{commandline}
+# ls /var/lib/scst/pr/ <- このフォルダがない場合、作成して下さい
+# ls /lib/modules/3.4.0-rc1-tai-4f7e834f-next-20120405/extra/scst/
+total 12480
+ 676 ib_srpt.ko        296 scst_disk.ko        300 scst_tape.ko
+3712 iscsi-scst.ko     460 scst_local.ko       620 scst_user.ko
+4308 scst.ko           296 scst_modisk.ko      704 scst_vdisk.ko
+ 292 scst_cdrom.ko     272 scst_processor.ko
+ 272 scst_changer.ko   272 scst_raid.ko
+# ls /usr/local/bin/
+total 720
+132 fileio_tgt*   64 iscsi-scst-adm*  372 iscsi-scstd*  152 scstadmin*
+\end{commandline}
+
+それではSCSTでSRP構成を作って見ましょう。iSCSIの場合は
+iSCSI daemonを起動した上で管理コマンドで設定を操作する形になりますが、
+SRPの場合はdaemonはおらず、scstadminコマンドでカーネルモジュールの
+ロードと設定を行うだけになります。
+
+\begin{commandline}
+# echo 0 $((2 * 1024 * 1024 * 512)) zero | dmsetup create zero
+# cat > scst-test.conf
+# 本ファイルは手動作成でもよいが、scstadminコマンドで構成を作った上で、
+# scstadmin -write_config scst-test.conf でダンプしてもよい。以降の
+# コメントでは設定エントリに対応するコマンドを示す。
+#
+# CMD: scstadmin -open_dev zero -handler vdisk_blockio --attributes filename=/dev/mapper/zero
+HANDLER vdisk_blockio {
+        DEVICE zero {
+                filename /dev/mapper/zero
+        }
+}
+# CMD: scstadmin -add_lun 0 -driver ib_srpt -target ib_srpt_target_0 -device zero
+TARGET_DRIVER ib_srpt {
+        TARGET ib_srpt_target_0 {
+                enabled 1
+                rel_tgt_id 2
+                LUN 0 zero
+        }
+}
+^D
+# modprobe scst
+# modprobe scst_vdisk
+# modprobe ib_srpt
+# scstadmin -config scst-test.conf
+\end{commandline}
+
+これでターゲット側は設定完了です。次はイニシエータ側ですが、これは
+ibsrpdmコマンドでターゲット側にクエリを投げ、戻ってきたキー情報などを
+ib\_srp.koにsysfs経由で受け渡します。
+
+\begin{commandline}
+# ibsrpdm -c -d /dev/infiniband/umad1
+id_ext=0008f1040399d858,ioc_guid=0008f1040399d858,dgid=fe800000000000000008f1040399d85a,pkey=ffff,service_id=0008f1040399d858
+# for i in $(ibsrpdm -c -d /dev/infiniband/umad1); do echo $i > /sys/class/infiniband_srp/srp-mlx4_0-2/add_target; done
+# dmesg
+...
+[1493616.773716] scsi host8: ib_srp: new target: id_ext 0008f1040399d858 ioc_guid 0008f1040399d858 pkey ffff service_id 0008f1040399d858 dgid fe80:0000:0000:0000:0008:f104:0399:d85a
+[1493617.766923] scsi8 : SRP.T10:0008F1040399D858
+[1493618.663499] scsi 8:0:0:0: Direct-Access     SCST_BIO zero              300 PQ: 0 ANSI: 5
+[1493620.243323] sd 8:0:0:0: [sdf] 1073741824 512-byte logical blocks: (549 GB/512 GiB)
+[1493620.335945] sd 8:0:0:0: [sdf] 4096-byte physical blocks
+[1493620.400862] sd 8:0:0:0: [sdf] Write Protect is off
+[1493620.460220] sd 8:0:0:0: [sdf] Mode Sense: 83 00 10 08
+[1493620.522829] sd 8:0:0:0: [sdf] Write cache: enabled, read cache: enabled, supports DPO and FUA
+[1493620.627780]  sdf: unknown partition table
+[1493620.678542] sd 8:0:0:0: [sdf] Attached SCSI disk
+\end{commandline}
+
+というわけでSRPでも認識できました。実際の運用では上記のibsrpdm出力を
+/etc/srp\_daemon.confに取り込み、起動時にsrp\_daemonが自動的に同様の
+処理をするようにしてディスクにアタッチできます。
+
+さて、性能はどうでしょうか？
+
+\begin{commandline}
+# JOBS=4 OP=write DEV=/dev/sdf BS=1m fio bench.ini
+...
+Run status group 0 (all jobs):
+  WRITE: io=26387MB, aggrb=898250KB/s, minb=223059KB/s, maxb=233121KB/s, mint=30048msec, maxt=30081msec
+\end{commandline}
+
+圧倒的じゃないか、我が軍は・・・という所でしょうか。
+ブロックサイズが大きくないと出せない速度なので割り引いて
+受け取る必要はありますが、オーバーヘッドの少ないRDMAの威力を
+垣間見ることができました。
+
+\begin{thebibliography}{0}
+\bibitem{IBSPEC} InfiniBandArchitecture Specification Release 1.2.1, \\
+\url{http://members.infinibandta.org/kwspub/specs/register/publicspec/}
+
+\bibitem{OFEDMAN} Mellanox OFED for Linux User Manual, \\
+\url{http://www.mellanox.com/related-docs/prod\_software/Mellanox%20OFED%20Linux%20User%20Manual%201\_5\_3-3\_0\_0.pdf}
+
+\bibitem{DEBIANIB} Infiniband HOWTO, \\
+\url{http://pkg-ofed.alioth.debian.org/howto/infiniband-howto.html}
+
+\bibitem{LINUXIB} Introduction to the InfiniBand Core Software, \\
+\url{http://www.kernel.org/doc/ols/2005/ols2005v2-pages-279-290.pdf}
+
+\bibitem{ALTIMA} Altima - Mellanox 技術紹介, \\
+\url{http://www.altima.co.jp/products/mellanoxtechnologies/mellanox\_techinfo.html}
+
+\bibitem{ATMARK1} 松本直人, InfiniBandで変わるデータセンター内通信, 2011/2, \\
+\url{http://www.atmarkit.co.jp/fnetwork/tokusyuu/51ib01/01.html}
+
+\bibitem{ATMARK2} 松本直人, InfiniBandで変わるデータセンター内通信, 2011/7, \\
+\url{http://www.atmarkit.co.jp/fnetwork/tokusyuu/61ib02/01.html}
+
+\bibitem{ITOHRDMA} 伊藤雅則, プログラマ目線から見たRDMAのメリットとその応用例について, Nov. 2010 \\
+\url{http://www.slideshare.net/thatsdone/rdma}
+
+\bibitem{IBHIST} Brief History of InfiniBand: Hype to Pragmatism, \\
+\url{https://blogs.oracle.com/RandomDude/entry/history\_hype\_to\_pragmatism}
+
+% \bibitem{RDMAPROG} RDMA Aware Networks Programming User Manual, \\
+% \url{http://www.mellanox.com/related-docs/prod\_software/RDMA\_Aware\_Programming\_user\_manual.pdf}
+
+% \bibitem{RSOCKETS} RSockets, \\
+% \url{https://beany.openfabrics.org/ofa-documents/presentations/doc\_download/495-rsockets.html}
+
+% \bibitem{GREGORYAPI} Kerr, Gregory. ``Dissecting a Small InfiniBand Application Using the Verbs API.'', 10 May 2011, \\
+% \url{http://arxiv.org/abs/1105.1827}
+
+\end{thebibliography}
+
 \newpage
 \clearpage
 
