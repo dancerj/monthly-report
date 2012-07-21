@@ -140,6 +140,234 @@ Debconf12 のセッション一覧\footnote{\url{http://penta.debconf.org/dc12_sch
 
 \dancersection{月刊 Debian Policy 第5回 「ソースパッケージ」}{甲斐 正三}
 
+\subsection {Debian ポリシーとは}
+\begin{enumerate}
+\item Debian ディストリビューションに要求されるいくつかの必要条件。
+\item Debian アーカイブの構成と内容、オペレーティングシステムとしての Debian の設計に関するいくつかの事項
+\item それぞれのパッケージがディストリビューションに受け入れられるために満たさなければならない技術的な必要条件。
+\end{enumerate}
+
+\subsection{ソースパッケージとは}
+\begin{enumerate}
+\item Debian バイナリパッケージの元になるパッケージである。\\
+  (例)  シェルスクリプトの bash は bash というソースパッケージからビルドされる。
+\item 一つのソースパッケージから複数のソースパッケージがビルドされるとがある。\\
+  (例)  bash ソースパッケージは bash バイナリパッケージ、bash-builtins*3、及び bash-doc*4 パッケージもビルドされる。
+\end{enumerate}
+
+\subsection{ソースパッケージにおけるデビアンポリシーとは}
+上記1と2から、
+
+「 Debian GNU/Linux のソースパッケージの内部構成や、Debian GNU/Linux として必要なソースパッケージの設計指針についてまとめられたものである」
+
+といえるのではないでしょうか。
+
+\subsection{ソースパッケージに対するデビアンポリシーの実際}
+それでは、「Debianポリシーマニュアル Chapter4 - ソースパッケージ」を見ながら、各項目を外観していくことにします。
+以下の項目番号はマニュアルのそれに対応させています。なお、バージョン 3.9.1.0以降の更新された版については言及しません。
+
+
+\begin{itemize}
+\item 4.01 基準への準拠
+  \begin{enumerate}
+  \item 最新のパッケージング基準のバージョンを指定する。
+  \item Standards-Version コントロールフィールドで指定。\\
+    このフィールドの場所は？
+  \item 最新版を次のURLでチェックすること。\\
+    \url{http://www.debian.org/doc/debian-policy/ch-scope.html#s1.2}
+  \item 2012年7月21日現在の最新バージョン： \\
+    'version 3.9.3.1, 2012-03-04'
+  \end{enumerate}
+  
+\item 4.02 パッケージ同士の依存関係
+  \begin{enumerate}
+  \item ビルド時に必要なバイナリパッケージを明記すること。
+  \item ビルド時にインストールされていてはいけないパッケージも明記のこと。
+  \item ただしbuild-essential パッケージは記載する必要は無い。
+  \item 以下のパッケージのみで構成された環境でビルドできなければならない。
+    \begin{description}
+    \item essentialパッケージ、
+    \item build-essentialパッケージ、
+    \item 依存関係を満たすパッケージ。
+    \end{description}
+  \end{enumerate}
+
+  \begin{itembox}[l]{'build-essentialパッケージ'とは何か見てみよう。}
+    \url{http://packages.debian.org/ja/sid/amd64/build-essential/download}
+    \begin{commandline}
+# apt-get install build-essential && view /usr/share/doc/build-essential/essential-packages-list
+  base-files base-passwd bash coreutils dash debianutils diffutils
+  dpkg e2fsprogs findutils grep gzip hostname ncurses-base
+  ncurses-bin perl-base sed login sysvinit-utils sysvinit
+  tar bsdutils mount util-linux
+    \end{commandline}
+  \end{itembox}
+
+\item 4.03 アップストリームのソースへの変更
+  \begin{enumerate}
+  \item パッケージをDebianまたはLinux向けにする際、ソースコード変更が生じた場合は、それがDebian固有の理由でないならアップストリームの作者へ変更依頼すべきである。
+  \item 'Makefile'を修正したい場合は'Makefile.in'ファイルを修正する。'Makefile'を修正しても'configure'実行で消えてしまうので再現できない。
+  \end{enumerate}
+
+  \begin{itembox}[l]{ビルド手順の一例}
+    \begin{commandline}
+$ autoconf     // 'configure'スクリプトを生成。
+$ ./configure  -> Makefile.inを読み込んでMakefileを生成。
+$ make         // Malefileを読み込んでmakeする。
+    \end{commandline}
+    %$ for emacs font-lock
+    * 各unix系OSの違いを自動的に吸収する手段
+  \end{itembox}
+
+\item 4.04 Debian changelog: debian/changelog
+  \begin{enumerate}
+  \item changelog への記載事項を規定
+    \begin{itemize}
+    \item 当該パッケージに対する修正や更新
+    \item 上流の版に加えたDebian向けの修正や更新
+    \item chanegelogへの記載フォーマットは厳密に決まっている。
+    \end{itemize}
+  \end{enumerate}
+
+  \begin{itembox}[l]{実際にビルドしてみよう。}
+    参照先(下記)の通りにやってみる。\\
+    参照先：\url{http://www.debian.org/doc/manuals/maint-guide/build.ja.html}
+  \end{itembox}
+
+\item 4.05 著作権表記: debian/copyright
+  \begin{enumerate}
+  \item 各パッケージには著作権と配布条件のライセンス文書を元のままの形式で'/usr/share/doc/package/copyright'に収録すること。
+  \end{enumerate}
+
+\item 4.06 makefile でのエラーを捕捉する
+  \begin{enumerate}
+  \item makeする場合は上流で作られたmakefileにせよdebian/rulesにせよ、shを
+    使うがshのエラー処理は不完全なため、debian/rulesはエラーを確実に捕捉
+    できるようスクリプトを記述すること。\\
+    (例) 2つ以上のコマンドをつなぐときは';'ではなく'\&\&'で。
+  \end{enumerate}
+
+\item 4.07 タイムスタンプ
+  \begin{enumerate}
+  \item 上流のソースファイルのタイムスタンプは可能な限り変更しないこと。
+  \end{enumerate}
+
+\item 4.08 ソースパッケージに含まれるものに対する制限
+  \begin{enumerate}
+  \item ソースパッケージに次のものは含まないこと。
+    \begin{itemize}
+    \item ハードリンク
+    \item デバイスファイル
+    \item ソケットファイル
+    \item setuidやsetgidされたファイル
+    \end{itemize}
+  \end{enumerate}
+
+\item 4.09 debian/rules - メイン構築スクリプト
+  \begin{enumerate}
+  \item debian/rulesとはソースパッケージからバイナリパッケージを構築する
+    スクリプトである。
+  \item  このファイルの先頭は'\#! /usr/bin/make -f'と記述すること。
+  \item  スクリプトは非対話形式であること。
+  \item  非対話的である必要最小限のターゲットは以下の5つ。\\
+    (dpkg-buildpackageで呼び出されるターゲット)
+    \begin{itemize}
+    \item clean: 
+    \item binary:
+    \item binary-arch:
+    \item binary-indep: 
+    \item build: ビルド（コンパイル)を行いバイナリパッケージを構築する。
+    \end{itemize}
+    (詳細は割愛)
+  \end{enumerate}
+
+\item 4.10 変数置換 debian/substvars
+  \begin{enumerate}
+  \item  dpkg-gencontrolがDEBIAN/controlファイルを生成するが、このファイルに
+    書き込む前に変数置換を行う。
+  \item  事前に変数置換定義をdebian/subtvarsファイルに記述しておく。
+  \item  変数置換は \${変数名} の書式を持つ。
+  \item  変数置換の詳細の参照先： deb-substvars(5)
+  \end{enumerate}
+
+\item 4.11 上流のソースの場所の設定 (オプション) - debian/watch
+  \begin{enumerate}
+  \item 目的は新しく提供されたパッケージのアップデートをhttpまたはftpで
+    走査できるようにすることである。
+  \item このファイルはuscanユーティリティで使う。
+  \item パッケージ品質管理とディストリビューション全体の保守のために
+    使われている。
+  \item 使用例
+    \url{http://dehs.alioth.debian.org/} および他のDebian QA ツール。
+  \end{enumerate}
+
+\item 4.12 debian/files
+  \begin{enumerate}
+  \item このファイルはパッケージビルド中に生成されたファイルを記録する
+    ための一時ファイルである。
+  \item dpkg-genchanges は、'.changes' ファイルを生成するときにこれを用いる。
+  \item このファイルをアップロードされるソースパッケージに含めてはいけない。
+  \item これらのファイルは、clean ターゲットによって削除すること。
+  \item binary ターゲットを開始する際には、これらのファイルを削除するか空に
+    すること。
+  \item dpkg-gencontrol を実行した際に、debian/files に追加されるエントリも
+    clean ターゲットで削除すること。
+  \item ソースパッケージと、 dpkg-gencontrol によってコントロールファイルが
+    生成されたバイナリパッケージ以外のファイルはパッケージのトップ階層
+    ディレクトリの親ディレクトリに置くこと。
+  \item debian/files のリストにファイルを追加する場合はdpkg-distaddfile を
+    呼ぶこと。 
+  \end{enumerate}
+
+\item 4.13 コードの便宜的写し
+  \begin{enumerate}
+  \item Debian パッケージに、他のパッケージのコードの写しを直接組み込むことは
+    しないこと。
+  \item もし、組み込みたいコードが Debian アーカイブライブラリであるなら、
+    バイナリパッケージからライブラリ参照を行なうとよい。
+  \item もし組み込みたいコードが Debian に収録されていない場合は、可能ならば
+    そのコードを、前提の依存関係を付けて別にパッケージングすべきである。 
+  \end{enumerate}
+
+\item 4.14 ソースパッケージの処理: debian/README.source
+  \begin{enumerate}
+  \item dpkg-source: Debian ソースアーカイブの作成、展開を行う。
+  \item dpkg-source -x filename.dsc [output-directory]:\\
+    ソースパッケージをDebian ソースコントロールファイル (.dsc) 名として
+    展開先ディレクトリoutput-directoryに展開する。
+  \item dpkg-buildpackage :  バイナリパッケージおよびソースパッケージをビルドする。
+  \item dpkg-source -x をソースパッケージに対して実行しても、直ぐ編集可能で、
+    変更を加えた後修正されたパッケージを追加作業なしに dpkg-buildpackage で
+    作成できるようなパッケージのソースが得られない場合には、
+    debian/README.source 解説ファイルの追加をする。
+  \item debian/README.source 解説ファイルには、以下のすべての手順が説明されて
+    いなければならない。
+    \begin{itemize}
+    \item 全部のパッチが当たったソースを作成する方法。(debian/rules の
+      patch ターゲットで行なえるようにする。)
+    \item ソースを変更し、その変更をセーブしてパッケージ作成の際に適用できる
+      ようにする方法。
+    \item パッケージをビルドする際に、現在当てられているソース修正をすべて元に
+      戻す方法。
+    \item 新しい上流の版が出た場合、Debianソースパッケージをアップグレードする
+      手順。(可能なら)
+    \item この説明は具体的なコマンド名やパッケージ名にまで言及すべきである。
+    \item この説明はDebianパッケージシステムや管理ツールを熟知していなくても
+      理解できるように記述すべきである。
+    \end{itemize}
+  \end{enumerate}
+\end{itemize}
+
+以上
+
+\subsection{参考文献}
+\begin{enumerate}
+\item dpkg-source: Debian ソースアーカイブの作成、展開を行う。
+\item Debian ポリシーマニュアル バージョン 3.9.1.0, 2011-07-05\\
+  \url{http://www.debian.or.jp/community/devel/debian-policy-ja/policy.ja.html/ch-source.html}
+\item 2006 年 4 月 15 日 「第 15 回 東京エリア Debian 勉強会 事前資料」
+\end{enumerate}
+
 \clearpage
 
 \dancersection{大統一 Debian 勉強会の報告}{Debian JP}
