@@ -66,28 +66,26 @@
 \end{minipage} 
 \begin{minipage}[t]{0.45\hsize}
  \begin{itemize}
+  \item Debian Conference 2012参加報告
   \item 月刊Debhelper
   \item ソフト開発以外の簡単Debian contribution(ドラフト版!)
+  \item DebianでのC++11開発環境
  \end{itemize}
 \end{minipage}
 \end{frame}
 
 \section{事前課題}
 \emtext{事前課題}
-%{\footnotesize
-% \input{image201208/prework.tex}
-%}
+{\footnotesize
+ \input{image201208/prework.tex}
+}
+
+\section{Debian Conference 2012参加報告}
+\emtext{Debian Conference 2012参加報告}
+
 
 \section{月刊Debhelper}
 \emtext{月刊Debhelper}
-\begin{frame}{今回のお題は！}
-
-\begin{itemize}
-\item dh\_makeshlibs
-\item dh\_shlibdeps
-\end{itemize}　
-
-\end{frame}
 
 \begin{frame}{今回のお題は！}
 
@@ -98,8 +96,22 @@
 
 \end{frame}
 
+\begin{frame}{今回のお題は！}
 
-\begin{frame}{予備知識}
+\begin{itemize}
+\item dh\_makeshlibs
+\item dh\_shlibdeps
+\end{itemize}　
+
+\begin{center}
+\Large
+俺にとっては、まさに魔窟!秘境!\\
+(ズガーン!)
+\end{center}
+
+\end{frame}
+
+\begin{frame}{地図を手に入れた! ピロ〜ン♪}
 
 　共有ライブラリの構造と流儀、動的リンクの方法、オブジェクトファイルの構造、debパッケージの構造について。
 
@@ -114,6 +126,213 @@ ISBN10 4274064379
 \end{enumerate}
 
 \end{frame}
+
+\begin{frame}{今回のコマンドはそもそも何の為に!？}
+
+{
+ \Large
+　バイナリとバイナリに必要な共有ライブラリとの関係を適切に自動生成する為\\
+(依存関係算出はそもそも人手では「もう、やっとられんわーっ」という量にすぐになる為...)
+ }
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{「依存関係地獄（Dependency Hell）」からの攻撃!}
+
+まあ、aptitude showとかで見ればわかる気がします...
+
+\begin{commandline}
+$ aptitude show gnome-shell
+...中略...
+依存: gir1.2-atk-1.0, gir1.2-clutter-1.0 (>= 1.9.16), 
+　　　gir1.2-cogl-1.0, 
+     gir1.2-coglpango-1.0,...中略...
+　　　gnome-bluetooth (>= 3.0.0), 
+     libatk1.0-0 (>= 1.12.4), libc6 (>= 2.7), 
+　　　libcairo-gobject2 (>= 1.10.0), 
+     libcairo2 (>= 1.10.0), libcanberra0 (>= 0.2), 
+     libclutter-1.0-0 (>= 1.10.0), 
+　　　libcogl-pango0 (>= 1.7.4),
+     libcogl9 (>= 1.7.4), libcroco3 (>= 0.6.2), 
+　　　libdbus-1-3 (>= 1.0.2), 
+...「依存」の行は「まだまだまだ」続くぜ...
+\end{commandline}
+%$
+
+\begin{center}
+\Large
+...祖はまさに「地獄」の名にふさわしい...
+\end{center}
+
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{debian/controlファイル中のマクロ（その1)}
+
+ソースパッケージに入ってるdebian/control見ると...
+
+\begin{commandline}
+$ apt-get source gnome-shell
+$ cd gnome-shell-3.2.1
+$ less debian/control
+...中略...
+Package: gnome-shell
+Architecture: any
+Depends: ${gir:Depends},
+         gjs (>= 1.29.18),
+         ${shlibs:Depends},
+         ${misc:Depends},
+...中略...
+\end{commandline}
+
+なんか、マクロっぽいものがいっぱい。dh\_shlibdepsは、この場合、
+\$\{shlibs:Depends\}を置き換えて、将来構築するDEBIAN/control(debパッケージに入る制御情報っすね）を生成します。
+\end{frame}
+
+\begin{frame}[containsverbatim]{debian/controlファイル中のマクロ（その2)}
+
+補足：dh\_shlibdepsは能力的には、
+\begin{itemize}
+\item \$\{shlibs:Depends\}
+\item \$\{shlibs:Suggests\}
+\item \$\{shlibs:Recommends\}
+\item \$\{shlibs:Pre-Depends\}
+\end{itemize}
+
+を依存関係算出して書き換える事が可能。が、\$\{shlibs:Depends\}以外は、どう使うのか自分的にはまだわからず..
+
+\end{frame}
+
+\begin{frame}{dh\_shlibdepsの動作}
+
+\begin{center}
+\Large
+ 次のスライドからとりあえず追ってみます。
+\end{center}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{召喚! objdump その1}
+\begin{commandline}
+$ objdump -p /bin/ls | fgrep -A5 'Dynamic Section:'
+Dynamic Section:
+  NEEDED               libselinux.so.1
+  NEEDED               librt.so.1
+  NEEDED               libacl.so.1
+  NEEDED               libc.so.6
+  INIT                 0x0000000000402298
+$ objdump -p /lib/x86_64-linux-gnu/libglib-2.0.so.0  |
+ fgrep -A5 'Dynamic Section:'
+Dynamic Section:
+  NEEDED               libpcre.so.3
+  NEEDED               libpthread.so.0
+  NEEDED               librt.so.1
+  NEEDED               libc.so.6
+  SONAME               libglib-2.0.so.0
+  INIT                 0x000000000001ba40
+
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}{召喚! objdump その2}
+
+キーワード：
+
+\begin{description}
+\item [NEEDED] この項目で指定されるSONAMEを持つライブラリが必要という意味
+\item [SONAME] ローダがライブラリを探すときに使う共有ライブラリの名前。本当の名前(real name)というのも別であるからややこしい...
+（細かいこというと、本当はsonameは、libc.so.6なら、'c'がsoname。lib+'soname'+'.so.'+
+'バージョン番号'となる。が、ここでは大文字でSONAMEとすればこちらのキーワードの値を指すことにする)
+\end{description}
+
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{召喚! objdump その3}
+
+ライブラリの中の何が必要か？を表示してみる。
+
+\begin{commandline}
+$ objdump -T /bin/ls 
+　　　...中略...
+DYNAMIC SYMBOL TABLE:
+...中略... GLIBC_2.3   __ctype_toupper_loc
+...中略... GLIBC_2.2.5 getenv
+...中略... GLIBC_2.2.5 sigprocmask
+...中略...　GLIBC_2.2.5 raise
+　　　...中略...
+$
+\end{commandline}
+
+(ちょっと、行長くてプレゼン資料に入りきらんので、各行の頭の部分は「...中略...」とさせてもらってます）
+
+\end{frame}
+
+\begin{frame}{召喚! shlibsファイル　その1}
+
+ すぐ思いつく（かもしれない）発想：\\
+とりあえず、objdump -pの結果のNEEDEDのSONAMEから直接依存関係起こしちゃえば
+いいんじゃね？？
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{召喚! shlibsファイル　その2}
+
+で、shlibsファイルが作られた。
+
+\begin{commandline}
+$ dpkg-query --control-path libgtk2.0-0
+/var/lib/dpkg/info/libgtk2.0-0:amd64.shlibs
+...中略...
+$ cat /var/lib/dpkg/info/libgtk2.0-0:amd64.shlibs
+libgtk-x11-2.0 0 libgtk2.0-0 (>= 2.24.0)
+libgdk-x11-2.0 0 libgtk2.0-0 (>= 2.24.0)
+udeb: libgtk-x11-2.0 0 libgtk2.0-0-udeb (>= 2.24.0)
+udeb: libgdk-x11-2.0 0 libgtk2.0-0-udeb (>= 2.24.0)
+\end{commandline}
+
+意味は、例えばlibgtk-x11-2.0.so.0というSONAMEを見つけたら、依存情報として、
+「libgtk2.0-0 ($>=$ 2.24.0)」と書け！という単純な構造。
+
+（上の例の1行めの意味はlibgtk-x11-2.0+'.so.'+0 がSONAMEという意味）
+
+\begin{center}
+\Large
+依存関係地獄は自動でやっつけれる！
+\end{center}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{召喚! shlibsファイル　その3}
+
+ debian-policyマニュアルでは、
+\begin{commandline}
+$ git clone \
+  http://anonscm.debian.org/git/dbnpolicy/policy.git
+\end{commandline}
+%$
+するとshlibsについて定義が読めるよ！
+
+\end{frame}
+
+\begin{frame}{依存関係地獄復活!}
+
+一見よさそうにみえるshlibsを使った方法は実は以下の問題が...
+
+\begin{itemize}
+\item 実はこのshlibsに記載されている依存関係の情報はパッケージ毎に固定のデータなので、
+
+\end{itemize}
+
+\end{frame}
+
+
+\section{ソフト開発以外の簡単Debian contribution(ドラフト版!)}
+\emtext{ソフト開発以外の簡単Debian contribution(ドラフト版!)}
+
+\section{DebianでのC++11開発環境}
+\emtext{DebianでのC++11開発環境}
 
 
 \end{document}
