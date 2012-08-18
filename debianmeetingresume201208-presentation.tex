@@ -315,20 +315,225 @@ $ git clone \
 
 \end{frame}
 
-\begin{frame}{依存関係地獄復活!}
+\begin{frame}{依存関係地獄復活! その1}
 
-一見よさそうにみえるshlibsを使った方法は実は以下の問題が...
+ 一見よさそうにみえるshlibsを使った方法は実は以下の問題が...
 
 \begin{itemize}
-\item 実はこのshlibsに記載されている依存関係の情報はパッケージ毎に固定のデータなので、
-
+\item 実はこのshlibsに記載されている依存情報はパッケージ毎に固定のデータなので、ライブラリパッケージのバージョンが上がると、ライブラリに新たに追加されたシンボルを利用するバイナリの為に、依存情報にあるバージョンを上げざるを得ない。すると、新たに追加されたシンボルを使う必要の無いバイナリのパッケージは依存関係が満たせなくなってしまうのでインストール出来なくなる。
 \end{itemize}
 
 \end{frame}
 
+\begin{frame}{依存関係地獄復活! その2}
+
+\begin{itemize}
+\item NEEDEDに記載されているSONAMEは、共有ライブラリのみが依存している他の共有ライブラリですら含んでしまっている。そのため、バイナリから見れば、直接リンクに関係無い共有ライブラリのバージョンが変わっても、パッケージはインストール出来なくなる。
+\end{itemize}
+
+　→このままでは、sid環境から、testing環境へバイナリパッケージだけを移動して動作させる事ができなくなっていく...
+
+\end{frame}
+
+\begin{frame}{依存関係地獄復活! その3}
+
+ 本当はこうなると良かった...
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[scale=0.3]{image201208/symbols-advantage.png}
+\end{center}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{魔法使い(Wizard)現る! その1}
+
+ Raphael(eはウムラウトね) Hertzogさんにより、
+\begin{itemize}
+\item shlibsファイルを使った依存関係の問題と解決の為の提案がなされる。\\
+　Projects ImprovedDpkgShlibdeps\\
+\url{http://wiki.debian.org/Projects/ImprovedDpkgShlibdeps}
+\item　2007/9/25に、debian-devel-announceに、
+この問題を解決する為の改造を施したdpkgコマンド群のリリースがアナウンスされた。\\
+  New dpkg in experimental\\
+　\url{http://lists.debian.org/debian-devel-announce/2007/09/msg00004.html}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{魔法使い(Wizard)現る! その2}
+
+ 参考：関係ないけど、Hertzogさんのblogサイトの名前は：\\
+``apt-get install debian-wizard''\\
+\url{http://raphaelherzog.com/}
+
+ ...The DEBIAN ADMINISTRATOR'S HANDBOOKの著者ですね...
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{召喚! symbolsファイル　その1}
+
+　さらに賢い依存関係を算出するために、symbolsファイルが導入された。
+
+\begin{commandline}
+$ dpkg-query --control-path libgtk2.0-0
+...中略...
+/var/lib/dpkg/info/libgtk2.0-0:amd64.symbols
+...中略...
+$ cat /var/lib/dpkg/info/libgtk2.0-0:amd64.symbols
+libgdk-x11-2.0.so.0 libgtk2.0-0 #MINVER#
+* Build-Depends-Package: libgtk2.0-dev
+ gdk_add_client_message_filter@Base 2.8.0
+ gdk_add_option_entries_libgtk_only@Base 2.8.0
+ gdk_app_launch_context_get_type@Base 2.14.0
+...中略...
+\end{commandline}
+
+ 共有ライブラリのExportしているシンボルに、最初にシンボルが現れた時のdebパッケージバージョンがついている。
+
+\end{frame}
+
+\begin{frame}{召喚! symbolsファイル　その2}
+
+　前ページの例でいくと、バイナリに含まれるNEEDEDに、libgdk-x11-2.0.so.0が
+入っていれば、依存情報として、''libgtk2.0-0 \#MINVER\#''を記載しなさいという意味。
+
+　ここで、''\#MINVER\#''は、バイナリが必要とするシンボルが全部含まれるときのバージョンで置き換える。例えば、バイナリが gdk\_add\_client\_message\_filter, gdk\_add\_option\_entries\_libgtk\_only,gdk\_app\_launch\_context\_get\_typeのみを利用しているのであれば、''libgtk2.0-0 ( $>=$ 2.14.0 )''を依存関係として記載することになる。
+
+\end{frame}
+
+\begin{frame}{召喚! symbolsファイル　その3}
+
+　さらに、バイナリのNEEDEDに、libgtk2.0のみが利用している他のライブラリが
+記載されていたとしても、バイナリの必要とするシンボルが含まれていなければ、
+依存関係の候補として除外する。
+
+--->以上がdpkg-shlibdepsに実装された。\\
+dh\_shlibdepsはこの新しい版のdpkg-shlibdepsをまるごとそっくり利用して依存関係を更新する。
+
+\begin{center}
+\Large
+依存関係地獄は滅んだ!
+\end{center}
+
+\end{frame}
+
+\begin{frame}{召喚! symbolsファイル　その4}
+
+ 補足：このやり方だと、ライブラリのバージョンが上がってシンボルが廃止
+になった場合は、自動で対応出来ないので、注意。
+
+\end{frame}
+
+\begin{frame}{dh\_makeshlibs}
+
+ dh\_makeshlibsは、shlibsファイルを新規に生成し、symbolsファイルをメンテナが用意したものから、新しいものへ更新します。なお、symbolsファイルの更新に、dpkg-gensymbolsコマンドをそのまま用いています。
+
+　なお、前ページで述べた問題を避ける為、dh\_makeshlibsは、symbolsファイルから、何かシンボルが消えた事を検知すると、エラー終了するように出来ています。（何が消えたかはdiff形式で標準出力に出力されます）
+ 
+\begin{center}
+\Large
+dh\_makeshlibsの説明は以上っ
+\end{center}
+
+\end{frame}
+
+\begin{frame}{次回}
+
+\begin{center}
+\Large
+次回の発表者は...?
+\end{center}
+
+\end{frame}
 
 \section{ソフト開発以外の簡単Debian contribution(ドラフト版!)}
 \emtext{ソフト開発以外の簡単Debian contribution(ドラフト版!)}
+
+\begin{frame}{ソフト開発以外の例 その1}
+
+\begin{itemize}
+\item DDTSSの日本語訳をレビューしてみる、日本語に訳してみる。\\
+(詳しくは「第53回東京エリアDebian勉強会資料」\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume200906.pdf}を参照ください。非常に良い解説とチュートリアルとなっています。)
+\item BTSへBUG報告/何かの改善提案をしてみる。\\
+(詳しくは「第43回 関西Debian勉強会資料」\url{http://wiki.debian.org/KansaiDebianMeeting/20110123}を参照ください。非常に良い解説とチュートリアルとなっています。)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{ソフト開発以外の例 その2}
+\begin{itemize}
+\item \url{http://screenshots.debian.net/}へスクリーンショットを投稿しまくってみる。
+\item \url{http://debtags.debian.net/edit/}でdebtagsをひたすら打ち込む。
+\item \url{http://www.debianart.org/cchost/}へオリジナルの絵を送ってみる。
+\item \url{debian-doc@debian.or.jp}にて投稿された翻訳のレビューをしてみる、未だ日本語に訳されていない文章を翻訳して投稿してみる。
+\item \url{debian-users@debian.or.jp}にて投稿された質問に回答をしてみる。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{screenshots.debian.net　その1}
+
+\begin{itemize}
+\item synapticパッケージでパッケージ調べて「screenshotsを見る」を押すと
+screenshots.debian.netからスクリーンショットを落として表示します。
+\item ユーザ登録もなしに、誰でもスクリーンショットを登録できます。（軽い審査はされますが...)
+\end{itemize}
+
+ 使い方は、東京エリアDebian勉強会資料に記載しました。超簡単に投稿出来ます。
+
+\end{frame}
+
+\begin{frame}{screenshots.debian.net　その2}
+
+　自分もやってみた。
+
+実例：
+\begin{itemize}
+\item renpy \\
+\url{http://screenshots.debian.net/package/renpy}
+\item renpy-demo \\
+\url{http://screenshots.debian.net/package/renpy-demo}
+\item zaz \\
+\url{http://screenshots.debian.net/package/zaz}
+\end{itemize}
+等など...(実はゲームばっかりです）
+
+\end{frame}
+
+\begin{frame}{debianart.org}
+
+\begin{itemize} 
+\item   Debianに使われる様々なグラフィック/サウンドデータの投稿サイト。直近では、wheezyの起動画面の背景画像、GNOME環境のデフォルトの背景画像などのコンテストが行われた。
+\item 　最近では、Debianプロジェクトにマスコットキャラクタが必要ということで、マスコットキャラクタの図案の募集が行われていたようです。
+\item デスクトップ用のファンファーレなどのサウンドアイコンもありました。
+\end{itemize}
+
+ 絵心のある方/写真撮影に興味のある方/サウンドアイコンに興味ある方で、我こそはと
+いう方はぜひ活用すると良いかもしれません。
+
+\end{frame}
+
+\begin{frame}{最後に}
+
+ 補足として、投稿したもの、提供したものは基本フリーなライセンスとなります。
+ですので、以下は注意点となります。
+ 
+\begin{itemize}
+\item ライセンスで揉めそうなものは基本NGです。\\
+例：有料ゲームのエミュレータのスクリーンショット、
+ライセンスがよく分からない画像を利用などは避けるべきかと...
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{ではネタだしを...}
+
+\begin{center}
+\Large
+他にあったらぜひ教えて
+\end{center}
+
+\end{frame}
 
 \section{DebianでのC++11開発環境}
 \emtext{DebianでのC++11開発環境}
