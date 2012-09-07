@@ -16,7 +16,7 @@ fi
 # 句読点は「。、」を使い、「．，」は使わない。
 
 if lgrep -Ij -Ku8 -Ou8 -i -n \
-    'debain\|．\|，\|東京Debian勉強会' \
+    '．\|，\|東京Debian勉強会' \
     /dev/null "$@"  ; then
     echo 'ERROR: lgrep for wrong keyword failed. Please check.'
     exit 1
