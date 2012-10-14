@@ -141,6 +141,108 @@ GNOMEの設定画面
 
 \includegraphics{image201211/bt2.png}
 
+%-------------------------------------------------------------------------------
+\dancersection{perf でパフォーマンスチューニング}{}
+%-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+perf コマンドは linux-base パッケージにはいっていてたいていの環境では標準
+でインストールされているのですが、カーネルにあったバージョンのバイナリを
+追加でインストールする必要があります。
+
+\begin{commandline}
+ $ uname -r
+3.2.0-3-amd64
+ $ sudo apt-get install linux-tools-3.2
+\end{commandline}
+
+\subsection{perf stat}
+
+とりあえず time コマンドの代わりにつかえそうなツールとして、 perf statが
+あります。CPU周波数が可変なシステムにおいてパフォーマンスの測定のために実
+行時間の計測というのは難しい問題なのですが、これでみるとだいたい重要な指
+数が見えてきます。
+
+\begin{commandline}
+$ perf stat ./apt-index-cmd debian_dists_sid_main_binary-amd64_Packages  debian > /dev/null
+ Performance counter stats for './apt-index-cmd debian_dists_sid_main_binary-amd64_Packages debian':
+
+       1741.828818 task-clock                #    0.997 CPUs utilized          
+               165 context-switches          #    0.000 M/sec                  
+                 6 CPU-migrations            #    0.000 M/sec                  
+            27,392 page-faults               #    0.016 M/sec                  
+     4,990,934,326 cycles                    #    2.865 GHz                     [83.29%]
+     1,681,297,382 stalled-cycles-frontend   #   33.69% frontend cycles idle    [83.27%]
+     1,096,373,883 stalled-cycles-backend    #   21.97% backend  cycles idle    [66.62%]
+     7,738,965,303 instructions              #    1.55  insns per cycle        
+                                             #    0.22  stalled cycles per insn [83.51%]
+     1,784,494,907 branches                  # 1024.495 M/sec                   [83.49%]
+        32,701,183 branch-misses             #    1.83% of all branches         [83.32%]
+
+       1.746581711 seconds time elapsed
+\end{commandline}
+  
+\subsection{perf record}
+
+\begin{commandline}
+$ perf record ./apt-index-cmd debian_dists_sid_main_binary-amd64_Packages  debian > /dev/null
+[ perf record: Woken up 1 times to write data ]
+[ perf record: Captured and wrote 0.087 MB perf.data (~3800 samples) ]
+$ ls -l perf.data
+-rw------- 1 dancer dancer 93560 10月 10 07:03 perf.data
+
+\end{commandline}
+
+perf record -g オプションをつけるとコールグラフも記録するようです。
+
+\subsection{perf report}
+
+メニュー形式になっていて、気になるシンボルを選択してソースコードのアノテー
+ションを見ることができます。
+
+\begin{commandline}
+$ perf report
+Events: 1K cycles                                                              
+ 18.65%  apt-index-cmd  apt-index-cmd        [.] available_parser::AptIndexSpiri
+  7.38%  apt-index-cmd  libc-2.13.so         [.] _int_malloc
+  6.64%  apt-index-cmd  libc-2.13.so         [.] malloc
+  5.17%  apt-index-cmd  libstdc++.so.6.0.17  [.] std::string::_M_replace_aux(uns
+  4.03%  apt-index-cmd  libc-2.13.so         [.] _int_free
+  4.02%  apt-index-cmd  libstdc++.so.6.0.17  [.] __cxxabiv1::__vmi_class_type_in
+  3.81%  apt-index-cmd  libstdc++.so.6.0.17  [.] std::string::_M_mutate(unsigned
+  3.59%  apt-index-cmd  libstdc++.so.6.0.17  [.] std::ctype<char> const& std::us
+  3.00%  apt-index-cmd  libc-2.13.so         [.] __strcmp_sse42
+  2.74%  apt-index-cmd  apt-index-cmd        [.] boost::detail::function::functi
+  2.72%  apt-index-cmd  libstdc++.so.6.0.17  [.] __dynamic_cast
+  2.67%  apt-index-cmd  libc-2.13.so         [.] free
+  2.46%  apt-index-cmd  libc-2.13.so         [.] __memcmp_sse4_1
+
+[エンターを押す]
+
+available_parser::AptIndexSpirited::MakeIndex()::{lambda(std::vector<char, std::
+    0.00 :          40368a:       je     4036ac <available_parser::AptIndexSpir
+         :                                                                     
+         :          const std::string& get() const { return my_string_; }      
+         :                                                                     
+         :          // for 'map' comparison.                                   
+         :          bool operator<(const OrderedHashedString& b) const {       
+         :            if (ordered_hash_ == b.ordered_hash_) {                  
+    2.87 :          40368c:       mov    0x28(%rbx),%rdx                       
+         :              return my_string_ < b.my_string_;                      
+         :            } else {                                                 
+         :              return ordered_hash_ < b.ordered_hash_;                
+   34.96 :          403690:       cmp    %rbp,%rdx                             
+    1.43 :          403693:       setb   %cl                                   
+         :                                                                     
+         :          const std::string& get() const { return my_string_; }      
+         :                                                                     
+         :          // for 'map' comparison.                                   
+         :          bool operator<(const OrderedHashedString& b) const {       
+         :            if (ordered_hash_ == b.ordered_hash_) {                  
+  
+ \end{commandline}
+
 \printindex
 
 \cleartooddpage
