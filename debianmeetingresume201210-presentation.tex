@@ -1,0 +1,384 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{東京エリアDebian勉強会}
+\subtitle{第93回 2012年10月度}
+\author{上川純一\\dancer@debian.org}
+\date{2012年10月20日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\begin{frame}{設営準備にご協力ください。}
+会場設営よろしくおねがいします。
+\end{frame}
+
+\begin{frame}{Agenda}
+\begin{minipage}[t]{0.45\hsize}
+  \begin{itemize}
+  \item 注意事項
+	\begin{itemize}
+	 \item 飲食禁止
+	 \item 宗教禁止
+	 \item 営利活動禁止
+	\end{itemize}
+   \item 最近あったDebian関連のイベント報告
+	\begin{itemize}
+        \item 第91回 東京エリアDebian勉強会
+        \item 第0回Debianパッケージング道場
+	\end{itemize}
+   \item DWN quiz
+   \item 事前課題紹介
+ \end{itemize}
+\end{minipage} 
+\begin{minipage}[t]{0.45\hsize}
+ \begin{itemize}
+  \item Haskell の Debian packaging 周辺について語ります
+  \item レゴでなめこ収穫期
+  \item xf86-input-mtrack
+
+ \end{itemize}
+\end{minipage}
+\end{frame}
+
+
+\section{DWN quiz}
+\emtext{DWN quiz}
+\begin{frame}{Debian 常識クイズ}
+
+Debian の常識、もちろん知ってますよね?
+知らないなんて恥ずかしくて、知らないとは言えないあんなことやこんなこと、
+みんなで確認してみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.deban.org},
+\url{debian-devel@lists.deban.org} に投稿された
+内容とDebian Project Newsなどからです。
+
+\end{frame}
+
+\subsection{問題}
+\input{image201210/quiz.tex}
+
+
+\emtext{事前課題}
+{\footnotesize
+ \input{image201210/prework.tex}
+}
+
+\emtext{xf86-input-mtrack}
+
+\begin{frame}{xf86-input-mtrack}
+
+\begin{itemize}
+\item 昔の Macbook \\
+pre-multitouchサポート
+\item 最近の Macbook pro / air /Magic Trackpad\\
+マルチタッチサポート。\\
+synaptics ドライバでは動作しなかった。\\
+xserver-xorg-input-mrack / multitouch を使う必要があります。
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{synaptics と mtrack}
+\begin{itemize}
+\item synaptics では、プロトコルA のみのサポート（だった？）\\
+これはタッチIDを持っていないため、トラッキングコンタクトを管理できません。
+%ステートレス
+%ステートフル
+
+\item mtrack では、タッチIDをサポートしたプロトコルB をサポート。
+これによりより細かいタッチパッドの制御ができるようになっています。
+
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+\begin{itemize}
+\item また、「プロトコルB」をLinuxカーネルから受信し、それをXドライバにわかりやすい
+（人間にとってわかりやすい）形にデータを形成するライブラリ mtdev を
+使います。
+\end{itemize}
+\begin{center}
+\includegraphics[width=0.3\hsize]{image201210/mtrack.eps}
+\end{center}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+
+\begin{minipage}[t]{0.45\hsize}
+\begin{commandline}
+ABS_MT_POSITION_X x[0]
+ABS_MT_POSITION_Y y[0]
+SYN_MT_REPORT
+ABS_MT_POSITION_X x[1]
+ABS_MT_POSITION_Y y[1]
+SYN_MT_REPORT
+SYN_REPORT
+\end{commandline}
+\end{minipage}
+
+\begin{minipage}[t]{0.45\hsize}
+\begin{commandline}
+ABS_MT_SLOT 0
+ABS_MT_TRACKING_ID 45
+ABS_MT_POSITION_X x[0]
+ABS_MT_POSITION_Y y[0]
+ABS_MT_SLOT 1
+ABS_MT_TRACKING_ID 46
+ABS_MT_POSITION_X x[1]
+ABS_MT_POSITION_Y y[1]
+SYN_REPORT
+\end{commandline}
+\end{minipage}
+
+\end{frame}
+
+\begin{frame}{multitouch と mtrack}
+
+\begin{itemize}
+\item multitouch\\
+基本的な設定
+\item mtrack\\
+multitouch からのフォーク。\\
+細かい機能のサポート。\\
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian で使う}
+
+\begin{itemize}
+\item Debian では既にパッケージ化されており、APT でインストールできます。
+
+\begin{commandline}
+$ sudo apt-get install xserver-xorg-input-mtrack
+\end{commandline}
+%$
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{デフォルトの設定}
+
+\begin{commandline}
+Section "InputClass"
+    MatchIsTouchpad "true"
+    Identifier "Multitouch Touchpad"
+    Driver "mtrack"
+EndSection
+\end{commandline} 
+
+\end{frame}
+
+\begin{frame}[containsverbatim]
+
+\begin{itemize}
+
+\item インストールした段階では、デフォルトの設定で動作します。
+
+\begin{table}[htb]
+  \begin{tabular}{llc}
+    項目 & 内容 & デフォルト値 \\
+    TrackpadDisable & トラックパッド機能の動作内容と無効化 & 0 \\
+    Sensitivity & トラックパッドのスピード & 1 \\
+    FingerHigh & 指がタッチとして検知される圧力 & 5 \\
+    FingerLow & 指がリリースとして検知される圧力 & 5 \\
+    IgnoreThumb & 親指であるとわかるタッチを無視するか & False \\
+    IgnorePalm & 手の平であるとわかるタッチを無視するか & False \\
+    DisableOnThumb & 親指がさわっているとき全てのトラックパッドを無効にするか & False \\
+    DisableOnPalm & 手の平ががさわっているとき全てのトラックパッドを無効にするか & False \\
+    ThumbRatio & 親指の幅/長比率 & 70 \\
+    ThumbSize & 親指の最小限のサイズ & 25 \\
+    PalmSize & 手の平の最小限のサイズ & 10 \\
+%    ButtonIntegrated & 物理ボタンはトラックパッドに統合するか & 有効 \\
+%    ButtonMoveEmulate & ボタンクリックをエミュレートする時、動いている指を数えるか & True \\
+%    ButtonZonesEnable & ボタン領域を有効にするか & False  \\
+%    ButtonTouchExpire & ボタンエミュレーションを認識するための時間 & 100 \\
+    BottomEdge & トラックパッドの無視する領域をパーセンテージで指定。 & 10\\
+    ButtonEnable & トラックパッドの物理ボタンを無効にするか & True \\
+    ClickFinger1 & 1本指でのクリック動作 & 3 \\
+    ClickFinger2 & 2本指でのクリック動作 & 2 \\
+    ClickFinger3 & 3本指でのクリック動作 & 0 \\
+    TapButton1 & 1本指でのダブルタップ動作 & 1（クリック＆コピー）\\
+    TapButton2 & 2本指でのダブルタップ動作 & 3（ペースト）\\
+    TapButton3 & 3本指のダブルタップ動作 & 2（右クリック）\\
+    TapButton4 & 4本指でのダブルタップ動作 & 0 （無効）\\
+    MaxTapTime & タップを認識する最大時間 （値を小さくすると早くタップする必要がある。）& 120 \\
+%    MaxTapMove & 不明 & 400\\
+%   GestureClickTime && 10\\
+%    GestureWaitTime && 100\\
+    ScrollDistance & スクロールを有効にするために動かす距離 & 150\\
+    ScrollUpButton & 2本指でのスクロールアップ& 4（スクロールアップ）\\
+    ScrollDownButton & 2本指でのスクロールダウン & 5（スクロールダウン）\\
+    ScrollLeftButton & 2本指でのスクロールレフト& 6（スクロールレフト）\\
+    ScrollRightButton & 2本指でのスクロールライト& 7（スクロールライト）\\
+    SwipeDistance & スワイプを有効にするために動かす距離 & 700\\
+    SwipeUpButton & スワイプ（3本指）アップ & 8（ALT + $\rightarrow$/進む） \\
+    SwipeDownButton & スワイプ（3本指）アップ& 9（ALT + $\leftarrow$/戻る） \\
+    SwipeLeftButton & スワイプ（3本指）レフト & 10（不明） \\
+    SwipeRightButton & スワイプ（3本指）ライト& 11（不明） \\
+    Swipe4Distance & スワイプを有効にするために動かす距離 & 700\\
+    Swipe4UpButton & スワイプ（4本指）アップ　& 8 \\
+    Swipe4DownButton & スワイプ（4本指）ダウン　& 9 \\
+    Swipe4LeftButton & スワイプ（4本指）レフト　& 10\\
+    Swipe4RightButton & スワイプ（4本指）ライト　& 11\\
+%    ScaleDistance & ピンチを有効にするため動かす距離 & 150\\
+%    ScaleUpButton & ピンチアップ（スプレッド？） & 12 \\
+%    ScaleDownButton & ピンチダウン（ピンチ）& 13 \\
+%    RotateDistance & 回転（2本指）を有効にするために動かす距離 & 15 \\
+%    RotateLeftButton & 左回転（2本指）時の動作 & 14 \\
+%    RotateRightButton & 右回転（2本指）時の動作  & 14 \\
+%    TapDragEnable & タップドラッグを有効にする & True \\
+%    TapDragTime & タップドラッグの時間 & 350 \\
+%    TapDragWait & & 40 \\
+%    TapDragDist & & 200 \\
+    AxisXInvert & X軸を逆にするか & false \\
+    AxisXInvert & Y軸を逆にするか & false \\
+  \end{tabular}
+\end{table}
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{有効な設定}
+
+トラックパッドのシングルタップを無効にする\\
+トラックパッドに触っても（シングルタップしても）何も起きなくなります。
+\begin{commandline}
+Option "TapButton1" "0"
+Option "TapButton2" "0"
+Option "TapButton3" "0"
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{有効な設定}
+
+２本指スクロールの動きををOS Xと同じにする
+\begin{commandline}
+Option "ScrollUpButton" "5"
+Option "ScrollDownButton" "4"
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{その他の情報}
+
+\begin{itemize}
+
+\item 現在の mtrack ドライバは synaptics のように設定値を動的に変更できません。
+
+\item これでは細かい設定等を行う時に大変なので常に設定を変更できるようにするためのパッチを
+作成し、アップストリームに送りました。
+\url{https://github.com/BlueDragonX/xf86-input-mtrack/pull/41}
+
+パッチを適用し、以下の設定を行なってXサーバを立ち上げると
+動的に設定を変更できるようになります。
+\begin{commandline}
+Option "SHMConfig" "true"
+\end{commandline}
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{設定ツール}
+
+肝心の設定用のツールですが、適当に作ったので後日公開します。
+
+\end{frame}
+
+\begin{frame}{Debianでマルチタッチを使う場合にはどうしたらいいのか}
+
+\begin{itemize}
+\item 大統一Debian勉強会での赤部さんの発表\footnote{\url{http://gum.debian.or.jp/download/debian-gum-presentation.akabe.pdf}}
+にもあったように、Debian ではまだマルチタッチを
+提供するツール等が十分ではありません。
+
+\item X や GTK+ などでは既にマルチタッチは対応していますが、
+それを使うアプリケーションがなく、Ubuntu で採用されている utouch \footnote{\url{https://wiki.ubuntu.com/Multitouch}}
+関連のライブラリもまだパッケージになっていない状態です（ITPはされています）。
+\item よって Debian ではまだ iPad や Android タブレット相当の操作はできないと思われます。
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{まとめ}
+
+\begin{itemize}
+\item mtrack ドライバでマルチタッチの制御はできるようになっていますが、アプリケーションが
+追いついていないのが現状です。
+\item ユニバーサルオペレーティングシステムを目指す以上、マルチタッチは避けて通れない機能なので早くサポートされてほしいものです。
+\end{itemize}
+
+\end{frame}
+
+
+
+
+
+
+
+\section{今後のイベント}
+\emtext{今後のイベント}
+\begin{frame}{今後のイベント}
+\begin{itemize}
+ \item 2012年/11月 Debian勉強会 \\
+BSP やるらしいですが？
+\end{itemize}
+\end{frame}
+
+\section{今日の宴会場所}
+\emtext{今日の宴会場所}
+\begin{frame}{今日の宴会場所}
+未定
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
