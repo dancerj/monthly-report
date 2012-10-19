@@ -29,6 +29,7 @@ Library
                    newtype    == 0.2.*,
                    pretty     == 1.1.*
 ...
+    Build-Tools:    happy, alex
 \end{commandline}
 
 \subsection{Cabal\protect\footnote{http://hackage.haskell.org/package/Cabal} ライブラリと
@@ -66,13 +67,50 @@ HackageのソースをDebianのソースパッケージに変換できる。
 % cabal-debian --debianize
 \end{commandline}
 
-現在のところ、ライブラリのパッケージだと自動的に機能としては問題がない
-パッケージが生成
+\begin{commandline}
+% cat debian/control
+Source: haskell-language-objc
+Priority: extra
+Section: haskell
+...
+Build-Depends: debhelper (>= 7.0),
+               haskell-devscripts (>= 0.8),
+               cdbs,
+               ghc,
+               ghc-prof,
+               libghc-newtype-dev (>= 0.2) | libghc-newtype-dev (<< 0.3),
+               libghc-newtype-prof (>= 0.2) | libghc-newtype-prof (<< 0.3),
+               libghc-syb-dev (>= 0.3) | libghc-syb-dev (<< 0.4),
+               libghc-syb-prof (>= 0.3) | libghc-syb-prof (<< 0.4),
+               happy,
+               alex
+Build-Depends-Indep: ghc-doc,
+                     libghc-newtype-doc (>= 0.2) | libghc-newtype-doc (<< 0.3),
+                     libghc-syb-doc (>= 0.3) | libghc-syb-doc (<< 0.4)
+...
+\end{commandline}
+
+以上のような感じでうまく依存関係の情報が変換されている。
+
+ライブラリのパッケージだと、そのまま利用できる程度のものが自動的に生成される。
+実行ファイルがあるものについてはrulesにインストール先を書く必要がある。
 
 %% -Debhelper との連携のためのスクリプトである haskell-devscripts
 
 \subsection{haskell-devscripts}
 
 cabal-debian で作られたDebianのソースパッケージは
-haskell-devscripts に含まれている Makefile とツールを利用するように
-構成されている。
+haskell-devscripts に含まれている cdbs用のMakefileを利用するように
+構成されている。dh\_haskell\_* のコマンド群はこのMakefileから利用されている。
+
+\begin{commandline}
+% cat debian/rules
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/hlibrary.mk
+
+# How to install an extra file into the documentation package
+#binary-fixup/libghc-language-objc-doc::
+#	echo "Some informative text" > debian/libghc-language-objc-doc/usr/share/doc/libghc-language-objc-doc/AnExtraDocFile
+\end{commandline}
+
