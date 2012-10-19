@@ -1,0 +1,259 @@
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+\setbeamertemplate{footline}{\hskip1mm\insertshortdate\hfill\hbox{\insertpagenumber /\insertdocumentendpage }\hspace*{1mm}\vskip1mm}
+
+\newcommand<>{\fullsizegraphic}[1]{
+  \begin{textblock*}{0cm}(-1cm,-3.78cm)
+  \includegraphics[width=\paperwidth]{#1}
+  \end{textblock*}
+}
+
+\newcommand<>{\minisectiontilte}[2]{
+  {\fontsize{40pt}{40pt}\selectfont\color{#1}#2}
+}
+
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+
+\title{Haskell周辺のDebian packaging}
+\subtitle{-- 月刊 DebHelper --}
+\author{日比野 啓}
+\date{2012年10月20日}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\begin{frame}[fragile]
+\frametitle{HackageDB}
+http://hackage.haskell.org/
+
+\begin{itemize}
+\item Haskellのパッケージ群HackageDBの配布元
+\item それぞれのパッケージをHackageと言ったりする
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{HackageDB}
+
+\begin{commandline}
+http://hackage.haskell.org/package/<hackageの名前>
+\end{commandline}
+
+たとえば
+
+\begin{commandline}
+http://hackage.haskell.org/package/language-objc
+\end{commandline}
+
+\begin{itemize}
+\item package description
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{HackageDB}
+
+\begin{commandline}
+Name:          language-objc
+Version:       0.4.2.5
+...
+Library
+...
+    Build-Depends: base       >= 3 && < 5,
+                   filepath   >= 1.1 && < 1.4,
+                   process    == 1.1.*,
+                   directory  >= 1.1 && < 1.3,
+                   array      == 0.4.*,
+                   containers >= 0.4     && < 0.6,
+                   newtype    == 0.2.*,
+                   pretty     == 1.1.*
+...
+    Build-Tools:    happy, alex
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - Cabal, cabal-install}
+
+\begin{description}
+\item[Cabal] 依存関係にしたがってパッケージをHackageのサイトから取ってきたり、
+パッケージのソースツリーと手元の環境からパッケージをbuildしたりする
+\item[cabal-install] Cabalライブラリをコマンドラインから呼び出すためのツール
+\end{description}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - Cabal, cabal-install}
+
+\begin{commandline}
+% cabal unpack language-objc
+   ## hackage.haskell.orgからの取得と展開
+% cd language-objc-0.4.2.5
+% cabal configure
+   ## 依存関係の検査
+% cabal build
+   ## コンパイル
+% cabal copy
+   ## インストール
+% cabal register
+   ## インストール管理情報を処理系に登録
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - Cabal, cabal-install}
+
+\begin{commandline}
+% cabal install language-objc
+  ## 再帰的にインストールを全て実行
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - debian, cabal-debian}
+
+\begin{description}
+\item[debian] Debianソースパッケージの情報をハンドリングするためのライブラリ
+\item[cabal-debian] debianライブラリを使って作られている。HackageのソースをDebianのソースパッケージに変換
+\end{description}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - debian, cabal-debian}
+
+\begin{commandline}
+% cabal unpack language-objc
+% cd language-objc-0.4.2.5
+% cabal-debian --debianize
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - debian, cabal-debian}
+
+\begin{commandline}
+% cat debian/control
+Source: haskell-language-objc
+Priority: extra
+Section: haskell
+...
+Build-Depends: debhelper (>= 7.0),
+ haskell-devscripts (>= 0.8),
+ cdbs,
+ ghc,
+ ghc-prof,
+ libghc-newtype-dev (>= 0.2)
+  | libghc-newtype-dev (<< 0.3),
+...
+ happy,
+ alex
+Build-Depends-Indep: ghc-doc,
+ libghc-newtype-doc (>= 0.2)
+  | libghc-newtype-doc (<< 0.3),
+...
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+\begin{commandline}
+    Build-Depends: base       >= 3 && < 5,
+                   filepath   >= 1.1 && < 1.4,
+                   process    == 1.1.*,
+                   directory  >= 1.1 && < 1.3,
+                   array      == 0.4.*,
+                   containers >= 0.4     && < 0.6,
+                   newtype    == 0.2.*,
+                   pretty     == 1.1.*
+...
+    Build-Tools:    happy, alex
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hackage - debian, cabal-debian}
+
+\begin{itemize}
+\item ライブラリのパッケージだとそのまま利用できる程度のものが自動的に生成される
+\item 実行ファイルがあるものについてはrulesにインストール先を書く必要あり
+\item \verb|libghc-<hackageの名前>-{dev,prof,doc}| という名前でDebianパッケージが作られる
+ \begin{itemize}
+ \item haddockというツールでソースコード内の特定の形式のコメントがドキュメントに変換される(libghc-*-doc)
+ \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{haskell-devscripts}
+
+cabal-debian で作られたDebianのソースパッケージは
+haskell-devscripts に含まれているcdbs用のMakefile (hlibrary.mk)を利用する
+
+\begin{commandline}
+% cat debian/rules
+#!/usr/bin/make -f
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/hlibrary.mk
+
+# How to install an extra file into ...
+#binary-fixup/libghc-language-objc-doc::
+#	echo "Some informative text" > ...
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{haskell-devscripts}
+haskell-devscriptsは他にも dh\_haskell\_* コマンド群を含んでいる
+\begin{itemize}
+\item 基本的にはGHCのインストール情報管理用のファイル
+(debian/*/var/lib/ghc/package.conf.d/*.conf)を利用しつつ、*.substvarsを出力
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{haskell-devscripts}
+
+\begin{description}
+\item[dh\_haskell\_depends]
+Haskellのライブラリの依存関係をDebianの依存関係に変換
+\item[dh\_haskell\_extra\_depends]
+データのパッケージや実行プログラムのパッケージといった、
+ライブラリの依存関係では解決できない依存関係をDebianの依存関係に変換
+\item[dh\_haskell\_provides]
+HaskellのライブラリのDebian仮想パッケージも含めた提供情報を計算
+\item[dh\_haskell\_shlibdeps]
+Haskellのライブラリが依存している
+ライブラリアーカイブ(*.a)を提供しているパッケージを
+検索しDebianの依存関係として出力
+\end{description}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{まとめ}
+HackageのDebian化は簡単なので気になるライブラリがあったらやってみましょう
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Discussion}
+{\Huge Discussion}
+\end{frame}
+
+\end{document}
