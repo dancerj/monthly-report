@@ -138,7 +138,190 @@
 \clearpage
 
 \dancersection{本気で "使える" 翻訳環境を構築してみた（い）}{八津尾}
+\subsection{はじめに - 今日の主旨}
+アプリケーションのローカライズに man ページ、wiki 等々、普段何気にお世話に
+なっている翻訳ですが、OSS の世界では (当然ですが) 有志によって行われています。
+しかし、日本の OSS コミュニティにおいて翻訳者の不足はどのプロジェクトでも共通
+の課題らしいということをよく耳にします。翻訳は高い技術力を必要とせず、誰でも簡
+単に参加できます。翻訳支援ツールを使い、翻訳のプロセスを簡略かつ明確にすること
+で、さらに参加する為の敷居が下がるのではないでしょうか？ということで、翻訳ツー
+ルを利用した翻訳環境の構築事例を紹介していきたいと思います。
 
+今回は翻訳ネタ2本立てという事で、トランスレータとして各プロジェクトに参加中
+の皆さん、またこれから翻訳に参加してみようかとお考えの皆さんと一緒に、
+翻訳環境について議論していきたいと思いますので積極的な発言をお願いします。
+
+\subsection{DPN の翻訳効率化}
+Debian Project News (以下、DPN ) の翻訳に参加しはじめてから半年が過ぎま
+した。DPN を翻訳していくなかで、いくつか気づいた事があります。
+
+\begin{itemize}
+    \item ほぼ同じ内容の文章を何度も訳している
+    \item 担当者が過去記事を参照せず、同一の事象での訳語が統一できていない
+    \item グロッサリが存在せず、担当者間で訳語が統一できていない
+    \item 明確なスタイルガイドラインが存在せず、暗黙のルールで運営されている
+    \item 過去に訳した膨大な量の訳文 (=資産) を活かしきれていない
+\end{itemize}
+
+このような無駄を無くし、翻訳を効率化するために{\tt 翻訳メモリ}が活用できるの
+ではないかと考え、現在快適な翻訳環境作りに取り組んでいるころです。私が考える
+翻訳環境の柱は次のようになります。
+
+\begin{itemize}
+    \item 訳語を意識せずに揃えること
+    \item 誰が翻訳しても同一の品質を保てること
+    \item 過去の翻訳結果を再利用できること
+    \item 翻訳プロジェクトのメンバ内でこれらの結果を共有できること
+\end{itemize}
+
+\subsubsection{翻訳メモリとは?}
+{\tt 翻訳メモリ}とは、"ソースの言語とターゲットの言語を 1 対 1 で保存した
+データベースのようなもの"です。
+{\tt 翻訳メモリツール}は、翻訳メモリから類似の文章を探し出しヒット率が高い
+文章の訳文を提示したり自動挿入や置換をする事で翻訳の支援を行うツールです。
+
+よく勘違いされるのですが、{\tt 翻訳メモリツール}は勝手に翻訳してくれる機械翻
+訳のようなものではありません。{\tt 翻訳メモリ}は自分で育てる必要があり初期状
+態では全く使いものになりません。また、{\tt 翻訳メモリツール}は訳文の正確性の
+判断はできないので、翻訳メモリに誤訳が混入しそれが繰り返し利用されてしまう可能
+性がある事を常に念頭に置いておきましょう。
+
+{\tt 翻訳メモリ}には{\tt TMX (Translation Memory eXchange)}という 
+XML ベースの規格があり、広く利用されています。
+\footnote{もともと LISA (Localization Industry Standards Associa
+	tion) によって策定された規格。2011年、LISA は破産宣告によって解散し、
+	LISA で策定された他の規格と共にパブリックドメインへと帰した。}
+
+産業翻訳でデファクトスタンダードとなっている
+{\tt SDL TRADOS \textregistered}\footnote{http://www.trados.com}
+や、本セッションで紹介予定の {\tt OmegaT}
+\footnote{http://www.omegat.org} もこの{\tt TMX}を採用しています。
+{\tt 翻訳メモリ}の更に詳しい概要と {\tt OmegaT} の操作方法については、
+2010 年 10 月の関西 Debian 勉強会資料に掲載されている拙著「翻訳で Debian 
+に貢献しよう」も参考にしてください。
+
+\subsubsection{定型記事と翻訳メモリ}
+翻訳メモリがその真価を発揮できるのが、ある程度定型化された記事を
+翻訳する場合です。以下の文例を見て下さい。
+
+\begin{itembox}[c]{DPN2012 issue 15 より}
+    \begin{verbatim}
+<toc-add-entry name="newcontributors">New Debian Contributors</toc-add-entry>
+	<p>
+    Seven applicants have been
+    <a href="https://nm.debian.org/public/nmlist#done">accepted</a>
+    as Debian Developers, nine applicants have been
+    <a href="http://lists.debian.org/E1Sta5X-0005lb-Ap@franck.debian.org">accepted</a>
+    as Debian Maintainers, and six people have 
+    <a href="http://udd.debian.org/cgi-bin/new-maintainers.cgi">started to
+    maintain packages</a> since the previous issue of the Debian Project News.
+    Please welcome (著者注：中略 ここで人名が列挙される) into our project!</p>
+    \end{verbatim}
+\end{itembox}
+\begin{itembox}[c]{DPN2012 issue 17 より}
+    \begin{verbatim}
+<toc-add-entry name="newcontributors">New Debian Contributors</toc-add-entry>
+	<p>
+    Three applicants have been
+    <a href="https://nm.debian.org/nmlist.php#newmaint">accepted</a>
+	as Debian Developers,and two people have
+    <a href="http://udd.debian.org/cgi-bin/new-maintainers.cgi">started to 
+    maintain packages</a> since the previous issue of the Debian Project News. 
+    Please welcome (著者注：中略 ここで人名が列挙される) into our project!</p>
+    \end{verbatim}
+\end{itembox}
+
+これらの記事はほぼ同じ内容であり、毎月必ず掲載される記事です。にも関わらず、
+Debian-www メーリングリストで配布される原文に添付されている、おそらく何かの
+スクリプト処理によって生成されたと思われる試訳では全く訳されません。翻訳メモリ
+で一度でも訳しておけば、以降は訳文候補として過去の訳が参照できるのでこのような
+記事をシームレスに翻訳することができます。では、実際に {\tt OmegaT} でどの
+程度効率化できるのか試してみましょう。なお、ここでは {\tt OmegaT} の詳しい
+使い方は説明しませんが、起動時に表示されるお手軽スタートガイドに目を通すだけで
+一通りの作業はこなせるようになるでしょう。
+
+\begin{itembox}[l]{DPN2012 issue 15 の日本語訳}
+    \includegraphics{image201210/omegat_demo1.eps}
+\end{itembox}
+
+\begin{itembox}[l]{DPN2012 issue 17 を訳しているところ}
+    \includegraphics{image201210/omegat_demo2.eps}
+\end{itembox}
+
+このように、翻訳メモリを利用することで訳語の揺れを減らし訳文の品質を高めること
+ができます。
+
+\subsubsection{訳語の統一}
+
+担当者が変わったり単に翻訳者が以前当てた訳語を忘れてしまい、訳語から統一感が失
+われてしまうという問題はしばしば発生します。この問題に対処する為にはグロッサリ
+のメンテが必要不可欠です。
+
+訳語を決めたらグロッサリに登録しておきましょう。{\tt OmegaT} の場合は UTF-8 の
+タブ区切り形式でグロッサリを作成しておくことができます。
+\footnote{複合語に難があったりとあまり洗練されていない}
+残念ながら、現在メンテされていませんが{\tt OmegaT} で利用できる Debian 翻訳用
+のグロッサリも入手可能です。
+\footnote{Debian JP Doc/WWW 対訳表：http://www.debian.or.jp/community/translate/}
+私は現在個人でグロッサリの作成とメンテをしていますが、本来であればプロジェクト
+単位で準備すべきものです。グロッサリを整備しておくことで、新規参入者が迷わずに
+翻訳を始められるのではないでしょうか。
+
+\subsubsection{マークアップと翻訳メモリ}
+DPN は {\tt wml} という {\tt html} によく似た {\tt xml} の拡張フォーマットで
+記述されたものがメーリングリストで配布され、それを各担当者が訳しています。
+{\tt OmegaT} を利用する時に注意が必要な事は、{\tt wml} がサポートされていない
+という事です。
+{\tt OmegaT} でサポートされていないファイルフォーマットは翻訳対象ファイルから
+見えません。他にも、古いドキュメント類に散見される {\tt sgml} などはサポート
+されていないので、ちょっとしたトリックでこれを翻訳できるようにしましょう。
+
+もっとも簡単な方法はテキスト形式にしてしまうことです。翻訳対象ファイルの拡張子
+を *.txt にしても良いですし、*.txt のファイルフィルタに翻訳したいファイルを登
+録する方法もあります。しかしこの方法を使うと、タグの中まで翻訳対象となってしま
+い翻訳メモリの能力を最大限引きだす事ができません。テキスト形式にしてしまう前に、
+近いフォーマットのフィルタを試してみると良いでしょう。
+私は {\tt wml} に {\tt html} のフィルタを使用しています。いまのところ
+問題なく使えています。
+\footnote{OmegaT の Okapi プラグインで対応ファイルを増やす方法もある}
+
+\subsubsection{翻訳ツール} 
+翻訳メモリを導入することで、私が必要としていることの大半は実現できましたが、
+理想の環境とはほど遠いのが現状です。まだまだ試行錯誤の段階では
+ありますが、私が現在 DPN の翻訳に使用しているツールを紹介します。
+
+\begin{itemize}
+\item DPNToolKit.py - 
+	自作の python スクリプトです。{\tt wml} ファイルを分解し {\tt OmegaT}
+	 のプロジェクトフォルダに配置したり、{\tt OmegaT} が生成した訳文から
+	査読メール用の文章を生成したりします。
+\item Debian JP Doc/WWW 対訳表
+    一応導入し、個人的にメンテしています。{\tt OmegaT} から参照可能です。
+\item 英辞郎 - 
+    言わずと知れたオンライン辞書です。第3版とオンライン版を適宜使い分けていま
+    す。{\tt OmegaT} から参照可能です。
+\item Google翻訳 - 
+    私が知っている機械翻訳の中で、最も精度の高い翻訳結果を出すのが Google翻訳
+    です。機械翻訳はあくまで参考に使用する程度にしましょう。
+\item vim - 
+    ちょっとした文章は vim で訳してしまうことが多いかも。
+    W3m プラグインで英辞郎や WikiPedia を参照でき、重宝しています。
+    OmegaT の外部エディタとして vim や emacs が使えれば最高なのですが…
+\item translate-toolkit - 
+    今後使用してみたいツール群です。特に {\tt po2tmx} が気になっています。
+    {\tt po} ファイルから {\tt tmx} 形式の翻訳メモリを生成できます。これ
+    を活用すれば、ソフトウェアのローカライゼーションが一気に楽になるのではな
+    いでしょうか？
+\end{itemize}
+
+\subsection{今後の課題}
+\begin{itemize}
+    \item 翻訳メモリをプロジェクト内で共有する方法
+    \item OmegaT の残念なインタフェースをどうするか
+    \item OmegaT 以外翻訳メモリを調査する
+    \item GlobalSight について調査する
+    \item 翻訳スタイルガイドラインみたいなもの作りたい
+\end{itemize}
 \clearpage
 
 \dancersection{DSA翻訳の舞台裏}{久保}
