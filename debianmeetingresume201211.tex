@@ -369,6 +369,360 @@ TUIじゃないインタフェースにするともっと表示されますが、いまいち全体は表示
  const*, std::string> > const, int> > >, __gnu_cxx::__normal_iterator
 \end{commandline}
 
+
+\dancersection{systemd}{岩松 信洋}
+
+\subsection{はじめに}
+世の中の主要なLinuxディストリビューションは SysVinit の init scripts から
+他のinit システムに移行しつつあります。
+FedoraやArch Linuxがsystemd に移行を始めたということもあり、一部で盛り上がっている
+（阿鼻叫喚ともいう）ようです。
+まさか いまだに SysVinit を使っている Debian勉強会参加者がいるとは思えませんが、
+盛り上がっているようなのでDebianとSystemdについてまとめてみました。
+
+\subsection{systemdとは？}
+
+RedHat に勤めている Lennart Poettering 氏によって開発されている init の代替プログラムです。
+実際には init の代替だけではなく、Linux のサービス（デーモン）管理フレームワークとなっ
+ています。
+%Linux カーネル用のデバイス管理ツールである udev が systemd のソースにマージ
+%されています。ログシステムもある。将来は cron や acpid などの代替え機能を
+%提供する予定らしい。
+今までのinitシステムの違いはサービスのプロセス管理を pid ではなく、cgroups を使う点と
+サービスの起動をソケットとバスを使う点があります。これらは D-Bus を使って行います。これによってシステム立ち上げ処理をより並列的に行えるようになっています。
+また、System V スタイルとBSDスタイルの両方をサポートしています。
+
+開発は freedesktop.org
+\url{http://cgit.freedesktop.org/systemd/systemd/}
+で行われており、開発は活発で週に一度はバージョンアップしています。
+最新バージョンは v195となっています。
+
+\subsubsection{systemd の利点}
+systemd は SysVinit と比べて次のような利点があります。
+
+\begin{itemize}
+\item 設定が容易。\\
+SysVinit はシェルスクリプトで記述していたため、開発者によって書き方が異なります。
+よって設定や内容の理解が難しいことがあります。systemd は設定方法や項目等が決まっているため、
+設定しやすくなっています。
+
+\item 起動が早い。 \\
+シェルに依存していないのとデーモンが並列起動するため起動が早いです。
+
+\item カーネルモジュールの操作、セッション管理、ログ管理、ディスクの暗号化などを
+統合。
+
+\end{itemize}
+
+その他、作者による説明を\url{http://0pointer.de/blog/projects/why.html}から参照できます。
+
+\subsection{Debianで使う}
+
+systemd はもちろん Debian でも提供されており、testing / unsable で v44 が
+利用できます。最新版とバージョンに差がありますが、アップストリームで
+頻繁にバージョンアップするのでバージョンはあまり問題ではありません。
+v44 でも systemd を十分に使うことができます。
+
+いまのところ Debianに関する情報は \url{http://wiki.debian.org/systemd}
+にまとまっていますが情報が少なく、内容も古いです。
+
+\subsubsection{インストール}
+先にも書いたように Debianでは v44 が最新版です。
+apt-get / aptitude でインストールできます。
+
+また、Linux カーネルは 2.6.39 以上、devtmpfs, fanotify, autofs4, cgroups が有効になっている
+必要があります。
+
+%\begin{commandline}
+%$ uname -a 
+%Linux debian 3.2.0-4-amd64 #1 SMP Debian 3.2.32-1 x86_64 GNU/Linux
+%\end{commandline}
+%$
+
+インストールは以下のように実行します。
+
+\begin{commandline}
+$ sudo apt-get install systemd
+\end{commandline}
+%$
+
+以下のパッケージが依存関係でインストールされます。
+\begin{commandline}
+libsystemd-daemon0
+libsystemd-id128-0
+libsystemd-journal0
+libpam-systemd
+\end{commandline}
+%$
+
+次に ブートローダにinit指定追加します。grub を使っている場合、/etc/default/grub の
+GRUB\_CMDLINE\_LINUX\_DEFAULT に {\bf init=/lib/systemd/systemd} を追記します。 
+
+\begin{commandline}
+変更前:
+GRUB_CMDLINE_LINUX_DEFAULT="quiet"
+変更後:
+GRUB_CMDLINE_LINUX_DEFAULT="quiet init=/lib/systemd/systemd"
+\end{commandline} 
+%$
+変更後、{\bf update-grub}を実行し、grub に設定を反映します。
+そしてリブートします。
+設定が間違っていないければ systemd で立ち上がるはずです。
+
+\begin{commandline}
+$ sudo update-grub
+.....
+$ sudo reboot 
+\end{commandline}
+%$
+
+\subsubsection{起動速度}
+
+systemd はアナライザをデフォルトでサポートしています。
+起動にかかった時間を確認するには \texttt{systemd-analyze} を実行します。
+また、画像で確認したい場合には \texttt{prop} オプションを指定して実行します。
+SVG フォーマットで出力されるので、リダイレクトしてファイルに保存します。
+
+\begin{commandline}
+$ systemd-analyze 
+Startup finished in 1831ms (kernel) + 5669ms (userspace) = 7500ms
+$ systemd-analyze plot > systemd-boot.svg
+\end{commandline}
+%$
+
+試しにGnomeが起動する環境で起動時間を測定したところ、
+sysvinit は約xxxx秒、systemd は約xxxx秒でした。 
+
+\subsection{用語}
+
+専門用語が出てきますので、まず専門用について説明します。
+
+\begin{itemize}
+\item ユニット\\
+systemd ではデーモンなどの制御対象のことをユニットと呼びます。
+ユニットにはサービス、デバイス、マウントポイントなど、いくつかの種類があります。
+このユニットはテキストファイルで記述され、\texttt{/lib/systemd/system/} 以下に格納されています。
+各ユニットは拡張子を持ち、サービスの場合は\texttt{.service}
+となっています。
+
+
+\begin{table}[htb]
+\begin{center}
+  \begin{tabular}{ll}
+    ユニットの種類 & 説明 \\
+    service & デーモン \\
+    socket & ソケットによるデーモン \\
+    target & multi-user.target \\
+    device & udev で管理するデバイス \\
+    snapshot & ある時点のinit の状態 \\
+    timer & イベントから時間経過 \\
+    path & 監視するパス \\
+    mount & マウントポイント \\
+    swap & スワップ \\
+    automaount & 自動マウントポイント \\
+  \end{tabular}
+\caption{systemd で提供するユニット}
+\label{tbl:unit}
+\end{center}
+\end{table}
+
+mount, swap, automout は起動時に /etc/fstab から自動的に
+ユニットを生成してくれます。
+
+\item ターゲット\\
+ターゲットとはSysVinit の runlevel 相当のものです。
+これはディストリビューションによって異なります。
+Debianの場合は以下のようになっています。
+
+\begin{table}[htb]
+\begin{center}
+  \begin{tabular}{ll}
+    run level & systemd のターゲット \\
+    0 & poweroff.target \\
+    1 & rescue.target \\
+    2 - 5 & multi-user.target \\
+    6 & reboot.target \\
+  \end{tabular}
+\caption{run levelとターゲットの対応}
+\label{tbl:target}
+\end{center}
+\end{table}
+
+この他にgraphical.target と emergency.target があります。
+前者は X による起動を行うときに呼ばれるターゲット、後者は障害が起こった時に
+起動できるようにするためのターゲットです。
+ターゲットはカーネルのブートオプションに \texttt{systemd.unit=}で指定でき
+ます。何も指定しない場合はdefault.target が呼ばれるようになっています。
+
+\end{itemize}
+
+\subsection{ユニットの操作方法}
+systemd に移行した後、デーモン等の制御は /etc/init.d/ 以下を実行するのではなく、{\bf systemctl}
+コマンドを使って操作します。以下にユニットの操作方法について説明します。
+
+\subsubsection{起動しているユニットを表示する}
+
+起動しているユニットを表示するには sytemctl を実行します。
+
+\begin{commandline}
+$ systemct
+...
+console-setup.service     loaded active exited        LSB: Set console font and 
+cron.service              loaded active running       LSB: Regular background pr
+dbus.service              loaded active running       D-Bus System Message Bus
+debian-fixup.service      loaded active exited        Various fixups to make sys
+exim4.service             loaded active running       LSB: exim Mail Transport A
+getty@tty1.service        loaded active running       Getty on tty1
+ifup@eth0.service         loaded active exited        ifup for eth0
+...
+\end{commandline}
+%$
+
+\subsubsection{全てのユニットを表示する}
+
+操作できるユニットを表示するには \texttt{--all} を指定します。
+ 
+\begin{commandline}
+$ systemctl --all
+UNIT                      LOAD   ACTIVE   SUB       JOB DESCRIPTION
+proc-sys...misc.automount loaded active   waiting       Arbitrary Executable Fil
+dev-cdrom.device          loaded active   plugged       QEMU_DVD-ROM
+dev-disk...QM00003.device loaded active   plugged       QEMU_DVD-ROM
+dev-disk...QM00001.device loaded active   plugged       QEMU_HARDDISK
+dev-disk...2dpart1.device loaded active   plugged       QEMU_HARDDISK
+dev-disk...2dpart2.device loaded active   plugged       QEMU_HARDDISK
+...
+\end{commandline}
+%$
+
+\subsubsection{ユニットの状態を確認する}
+
+ユニットの状態を確認するには、\texttt{status} オプションに確認したいユニット名を
+指定して実行します。
+
+以下に rsyslog.service ユニットの状態を確認する例を示します。
+\begin{commandline}
+$ systemctl status rsyslog.service
+    Loaded: loaded (/lib/systemd/system/rsyslog.service; enabled)
+    Active: active (running) since Wed, 14 Nov 2012 00:37:18 -0800; 22h ago
+   Process: 474 ExecStartPre=/bin/systemctl stop systemd-kmsg-syslogd.service (code=exited, status=0/SUCCESS)
+  Main PID: 483 (rsyslogd)
+    CGroup: name=systemd:/system/rsyslog.service
+           └ 483 /usr/sbin/rsyslogd -n -c5
+\end{commandline}
+%$
+
+これにより、このユニットは \texttt{/lib/systemd/system/rsyslog.service}によって
+\texttt{Wed, 14 Nov 2012 00:37:18 -0800}に起動していることが分かります。
+
+\subsubsection{ユニットを起動する}
+
+起動していないユニットを起動するには、 \texttt{start}オプションにユニット名を指定して実行します。
+これは \texttt{/etc/init.d/サービス start}と同様の動きとなります。
+\begin{commandline}
+$ sudo systemctl start ユニット名
+\end{commandline}
+%$
+
+\subsubsection{ユニットを停止する}
+
+起動しているユニットを停止するには、\texttt{stop}オプションにユニット名を指定して実行します。
+これは \texttt{/etc/init.d/サービス stop}と同様の動きとなります。
+\begin{commandline}
+$ sudo systemctl stop ユニット名
+\end{commandline}
+%$
+
+\subsubsection{ユニットの設定を再読み込みする}
+
+ユニットの設定を再読み込みするには、\texttt{daemon-reload}オプションにユニット名を指定して実行します。
+\begin{commandline}
+$ sudo systemctl daemon-reload ユニット名
+\end{commandline}
+%$
+
+実際に動いているデーモンの設定、例えばhttpdの設定を再読み込みし、再起動するには \texttt{reload}オプションを使います。
+
+\subsubsection{ユニットの自動起動を有効にする}
+
+ユニットの自動起動を有効にするには \texttt{enable} オプションにユニット名を指定して実行します。
+
+有効にすると \texttt{/etc/systemd/system/ターゲット.wants/}に\texttt{/lib/systemd/system/}にあるユニット
+へのシンボリックリンクが作成されます。
+どのターゲットで自動起動が有効になるかは、ユニットファイルの \texttt{Install}セクションで指定します。
+
+\begin{commandline}
+$ sudo systemctl enable ユニット名
+\end{commandline}
+%$
+
+\subsubsection{ユニットの自動起動を無効にする}
+
+ユニットの自動起動を無効にするには \texttt{disable} オプションにユニット名を指定して実行します。
+無効にすると、/etc/systemd/system/ターゲット.wants/にあるシンボリックリンクが削除されます。
+
+\begin{commandline}
+$ sudo systemctl disabe ユニット名
+\end{commandline}
+%$
+
+\subsubsection{ユニットの詳細を確認する}
+
+ユニットの詳細を確認するには \texttt{show} オプションにユニット名を指定して実行します。
+これにより指定したユニットと他のユニット、ターゲットの関係などが分かります。
+
+\begin{commandline}
+$ sudo systemctl show rsyslog.service
+Id=rsyslog.service
+Names=syslog.service rsyslog.service
+Requires=basic.target
+Wants=syslog.socket
+WantedBy=multi-user.target
+Conflicts=shutdown.target
+...                                                           
+\end{commandline}                                                                                    
+%$
+
+\subsection{ユニットについて}
+ユニットには各ユニット間の依存関係を記述することができます。
+依存関係の指定として以下があります。
+
+\begin{table}[htb]
+\begin{center}
+  \begin{tabular}{ll}
+    定義 & 説明 \\
+    Before & そのユニットの後に起動されるべきユニット。 \\
+    After & そのユニットの前に起動されるべきユニット。 \\
+    Conflicts & 同時に起動できないユニット。 \\
+    service & ソケットによる起動を行うユニット。 \\
+    socket & ソケットによるユニットの起動を行う場合のソケット情報 \\
+    Wants  & 同時に起動してほしいユニット。成功、失敗は関係ない。\\
+    Requires & 同時に起動されなければならないユニット。ユニットの起動が失敗した場合は要求元も失敗する \\
+    BindTo & ユニットをグループとしてまとめる。
+%ユニットがなくなった場合、グループで指定されているユニットは停止される。\\
+  \end{tabular}
+\caption{ユニットの依存定義}
+\label{tbl:unit-depends}
+\end{center}
+\end{table}
+
+例えば、default.target の内容は以下のようになっています。
+\begin{commandline}
+[Unit]
+Description=Graphical Interface
+Requires=multi-user.target
+After=multi-user.target
+Conflicts=rescue.target
+AllowIsolate=yes
+\end{commandline}
+
+このターゲットはmulti-user.targetの後に呼ばれる必要があり、resque.target
+と同時に起動できないようになっています。また、multi-user.targetと同時に
+起動されます。
+
+\subsection{参考文献}
+\url{http://www.slideshare.net/moriwaka/systemd}
+
 \printindex
 
 \cleartooddpage
