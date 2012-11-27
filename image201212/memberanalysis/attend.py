@@ -12,7 +12,7 @@ select year, month, sum(type='attendance'), sum(type='prework'), sum(type='postw
 from pychart import *
 import csv
 
-NUM_YEARS=7
+NUM_YEARS=8
 
 theme.use_color=True
 theme.default_font_size=16
@@ -26,6 +26,10 @@ halfyear = [] # half-year moving average.
 halfyear2 = []
 halfyear3 = []
 i = 1
+
+# skip the header.
+csv_reader.next()
+
 for row in csv_reader:
     halfyear.append(int(row[2]))
     if len(halfyear) > 12:

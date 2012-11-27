@@ -3,5 +3,14 @@
 sqlite3 debmtg.db <<EOF
 .mode csv
 .output attend.csv
-select year, month, sum(type='attendance'), sum(type='prework'), sum(type='postwork') from attend group by year,month order by year, month ;
+.headers on
+select
+  year, 
+  month, 
+  sum(type='attendance') as attendance, 
+  sum(type='prework') as prework,
+  sum(type='postwork') as postwork 
+from attend 
+group by year, month 
+order by year, month;
 EOF
