@@ -1,4 +1,4 @@
-all: attend.png attend-r.csv
+all: attend.eps
 
 debmtg.db: memberls.csv postwork.csv prework.csv
 	./sqlite-import.py
@@ -6,11 +6,8 @@ debmtg.db: memberls.csv postwork.csv prework.csv
 attend.csv: debmtg.db sqlite-attend.sh
 	./sqlite-attend.sh
 
-attend.png: attend.csv attend.py
-	./attend.py
-
-attend-r.csv: attend.csv
-	(echo "year,month,attend,prework,postwork"; cat attend.csv ) > attend-r.csv
+attend.eps: attend.csv tokyograph.R
+	./tokyograph.R
 
 kansai.png: kansai.csv attend-kansai.py
 	./attend-kansai.py
