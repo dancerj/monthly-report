@@ -406,6 +406,300 @@ usermod -G inet,net\_raw,net\_admin cuzic
 
 \dancersection{月刊 Debian Policy「パッケージ管理スクリプトとインストールの手順」}{かわだ てつたろう}
 
+月刊 Debian Policy、今回読むのは第 6 章の「パッケージ管理スクリプトとインストールの手順」です。
+この章ではパッケージをインストール、アップグレード、削除する際にパッケージ管理システムが走らせるスクリプトとその手順について説明されています。
+
+さて、事前課題で内容は読んで理解していただいていると思いますのでざっと内容をみていきましょう。
+
+\subsection{パッケージ管理スクリプト}
+パッケージ管理スクリプトは次の 4 つの制御情報ファイルで、パッケージの一部として供給されます。
+
+\begin{itemize}
+\item preinst
+\item postinst
+\item prerm
+\item postrm
+\end{itemize}
+
+
+
+\subsubsection{ファイル構成}
+パッケージ管理スクリプトは実行可能ファイルでなければならず、ファイルのパーミッションは、誰でも読むことと実行可能でなければならないが誰でも書き込み可能ではいけない、{\tt 755} でなければいけません。
+また、スクリプトであることが推奨されており、その場合は {\tt \#!} (shebang) で始まってなければなりません。
+
+\subsubsection{終了ステータス}
+パッケージ管理システムは終了ステータスコードを参照するので正しく終了ステータスコードを返すことが重要です。
+処理が成功すれば 0 を、失敗すれば 0 以外を返さなければなりません。0 以外のステータスコードが返された場合、パッケージ管理システムはエラーと判断し以降の処理を停止します。
+
+パッケージ管理スクリプトがシェルスクリプトなら常に {\it set -e} を使用する必要があります。
+
+\subsubsection{PATH 環境変数}
+{\tt PATH} 環境変数内から見つかることが期待できるプログラムは絶対パスで呼びだすべきではありません。
+また、{\tt PATH} 環境変数はリセットすべきではありませんが、前後に付け加えることはかまいません。
+
+\subsubsection{再入結果の同一性}
+パッケージ管理スクリプトは、一度成功した処理を何度呼び出しても無害でなければならず、
+失敗や中断した処理を再度呼び出しても前回の残された状態から実行しなければなりません。
+いずれにせよ全ての処理が成功した場合にはパッケージ管理スクリプトは成功ステータスで終了しなければなりません。
+
+これは、ひどく壊れたパッケージが残らないようにするためにとても重要です。
+
+\subsubsection{パッケージ管理スクリプトからのターミナルの制御}
+パッケージ管理スクリプトは、制御端末がある状態での実行が保証されていません。
+ユーザとの対話ができない場合がありますので、非対話型で処理できるようにしなければなりません。
+
+どうしても対話が必要な場合(優先順位が高く、妥当な標準回答がないなど)に制御端末が無ければパッケージ管理スクリプトは異常終了してもかまいません。
+ただ、できるだけこのような状況は避けるべきです。たいていの場合、パッケージのバグと判断されます。
+
+{\tt debconf} を用いる場合はの詳細は「3.9.1 メンテナスクリプト中のプロンプト使用について」を参照してください。
+
+
+\subsection{パッケージ管理スクリプトの呼ばれ方のまとめ}
+パッケージ管理スクリプトがそれぞれ呼ばれるタイミングをおおまかにいうと次のようになります。
+
+\begin{itemize}
+\item preinst  … パッケージ展開前
+\item postinst … パッケージ展開後
+\item prerm    … パッケージ削除前
+\item postrm   … パッケージ削除後
+\end{itemize}
+
+ここからは、パッケージ管理スクリプトのすべての呼ばれ方と、呼ばれる際に依存して良い機能についてのまとめです。
+{\it new-} はインストール/更新/ダウングレード対象の新バージョンのパッケージから呼ばれるもの、
+{\it old-} は更新/ダウングレードされる対象の旧バージョンのパッケージから呼ばれるものです。
+
+
+\subsubsection{preinst}
+
+\begin{itemize}
+\item {\it new-preinst} install
+\item {\it new-preinst} install {\it old-version}
+\item {\it new-preinst} upgrade {\it old-version}
+  \begin{itemize}
+  \item パッケージは展開前
+  \item essential パッケージと Pre-Depends パッケージのファイルのみがある
+  \item Pre-Depends パッケージは展開された直後か Half-Configured の可能性がある
+  \end{itemize}
+\end{itemize}
+
+\begin{itemize}
+\item {\it old-preinst} abort-upgrade {\it new-version}
+  \begin{itemize}
+  \item アップグレードに失敗した場合に呼ばれる
+  \item 展開されたファイルに依存してはいけない
+  \item パッケージの依存関係は満たされていないかもしれない
+  \item Pre-Depends は上記と同様
+  \end{itemize}
+\end{itemize}
+
+
+\clearpage
+
+\subsubsection{postinst}
+
+\begin{itemize}
+\item {\it postinst} configuire {\it most-recently-configured-version}
+  \begin{itemize}
+  \item パッケージと依存パッケージのファイルは展開されている
+  \item 巡回依存関係になければ依存パッケージは設定されている
+  \end{itemize}
+\end{itemize}
+
+\begin{itemize}
+\item {\it old-postinst} abort-upgrade {\it new-version}
+\item {\it conflictor's-postinst} abort-remove in-favour {\it package} {\it new-version}
+\item {\it postinst} abort-remove
+\item {\it deconfigured's-postinst} abort-deconfigure in-favour {\it failed-install-package} {\it version} [removing {\it conflicting-package} {\it version}]
+  \begin{itemize}
+  \item パッケージのファイルは展開されている
+  \item 依存する全てのパッケージは少くとも Half-Installed 状態、完全に展開されていないこともある
+  \item 依存関係が必要となる処理は実行するべきである、依存関係が満たされていないたいていの場合 {\tt postinst} を異常終了させるのがエラー処理を考慮すると適切な処理である
+  \end{itemize}
+\end{itemize}
+
+
+\subsubsection{prerm}
+
+\begin{itemize}
+\item {\it prerm} remove
+\item {\it old-prerm} upgrade {\it new-version}
+\item {\it conflictor's-prerm} remove in-favour {\it package} {\it new-version}
+\item {\it deconfigured's-prerm} deconfigure in-favour {\it package-being-installed} {\it version} [removing {\it conflicting-package} {\it version}]
+  \begin{itemize}
+  \item パッケージは Half-Installed 状態
+  \item 依存する全てのパッケージは少くとも Half-Installed 状態、完全に展開されていないエラー状態なこともある
+  \end{itemize}
+\end{itemize}
+
+\begin{itemize}
+\item {\it new-prerm} failed-upgrade {\it old-version}
+  \begin{itemize}
+  \item {\it prerm} upgrade が失敗した際に呼び出される
+  \item 新しいパッケージは展開されておらず {\it preinst} upgrade と同じ制約下にある
+  \end{itemize}
+\end{itemize}
+
+
+\subsubsection{postrm}
+
+\begin{itemize}
+\item {\it postrm} remove
+\item {\it postrm} purge
+\item {\it old-postrm} upgrade {\it new-version}
+\item {\it disappearer's-postrm} disappear {\it overwriter} {\it overwriter-version}
+  \begin{itemize}
+  \item パッケージのファイルが削除、置き換えられた後に呼び出される
+  \item 依存関係は考慮されていない状態
+  \item essential パッケージのみに依存した処理とすること
+  \item 依存関係が必要な処理で依存関係が満たされていない場合はすべて丁寧に処理を飛ばすようにしなければいけない
+  \end{itemize}
+\end{itemize}
+
+
+\begin{itemize}
+\item {\it new-postrm} failed-upgrade {\it old-version}
+  \begin{itemize}
+  \item 古いパッケージの {\it postrm} upgrade が失敗した場合に呼ばれる
+  \item 新しいパッケージのファイルは展開されているが、essential パッケージと Pre-Depends パッケージのみへ依存できる
+  \end{itemize}
+\end{itemize}
+
+\begin{itemize}
+\item {\it new-postrm} abort-install
+\item {\it new-postrm} abort-install {\it old-version}
+\item {\it new-postrm} abort-upgrade {\it old-version}
+  \begin{itemize}
+  \item preinst が失敗したエラー処理の一環で新しいパッケージを展開する前に呼ばれる
+  \item preinst と同じ制約下
+  \end{itemize}
+\end{itemize}
+
+
+
+\subsection{各段階の詳細}
+ここでは流れを掴みやすくするためエラー処理を省いたパッケージのインストール、設定、削除の詳細をみていきます。
+エラー処理について元のポリシーに記述されていますので参照してください。
+
+
+\subsubsection{インストール時とアップグレート時のパッケージの展開段階の詳細}
+\begin{enumerate}
+
+\item インストールされたパッケージがある場合
+  \begin{itemize}
+  \item {\it old-prerm} upgrade {\it new-version}
+  \end{itemize}
+
+\item 衝突するパッケージが削除されようとしているか、壊れたパッケージ(Breaks のため)の場合
+  \begin{enumerate}
+  \item --auto-deconfigure が指定されていた場合
+    \begin{enumerate}
+    \item Breaks で設定破棄されるパッケージに対して
+      \begin{itemize}
+      \item {\it deconfigured's-prerm} deconfigure in-favour {\it package-being-installed} {\it version}
+      \end{itemize}
+    \item 削除されようとしている衝突するパッケージが依存するパッケージに対して
+      \begin{itemize}
+      \item {\it deconfigured's-prerm} deconfigure in-favour {\it package-being-installed} {\it version} removing {\it conflicting-package} {\it version}
+      \end{itemize}
+    \end{enumerate}
+  \item 衝突して削除されるパッケージに対して
+    \begin{itemize}
+    \item {\it conflictor's-prerm} remove in-favour {\it package} {\it new-version}
+    \end{itemize}
+  \end{enumerate}
+
+\item 
+  \begin{enumerate}
+  \item アップグレードの場合
+    \begin{itemize}
+    \item {\it new-preinst} upgrade {\it old-version}
+    \end{itemize}
+  \item 設定ファイルが残っていた場合
+    \begin{itemize}
+    \item {\it new-preinst} install {\it old-version}
+    \end{itemize}
+  \item それ以外(purge された状態)の場合
+    \begin{itemize}
+    \item {\it new-preinst} install
+    \end{itemize}
+  \end{enumerate}
+
+\item 新しいパッケージのファイルを展開し上書き(古いファイルはバックアップされる)
+  \begin{itemize}
+  \item Replace 指定なしに既にシステムにある他のパッケージのファイルを含んでいるとエラー
+  \item 同じく Replace 指定なしに他のパッケージのディレクトリと同名のファイルやディレクトリ以外のものを含んでいるとエラー
+    \begin{itemize}
+    \item --force-overwrite-dir でエラーを無効にできるが、勧められない
+    \item ディレクトリがシンボリックリンクで置き換えられることはないし、逆もまたない
+    \end{itemize}
+  \end{itemize}
+ 
+\item アップグレードされた場合
+  \begin{itemize}
+  \item {\it old-postrm} upgrade {\it new-version}
+  \end{itemize}
+
+{\underline {\Large ここが戻れなくなるポイント}}
+
+
+\item 新しいパッケージで使われなくなった古いパッケージのファイルを削除
+
+\item 新しいファイルリストに更新
+
+\item 新しいパッケージ管理スクリプトに更新
+
+\item 全てのファイルが上書きされ、要求も依存もされなくなったパッケージがあった場合(削除されたとみなされ次の処理が行われる)
+  \begin{enumerate}
+  \item {\it disappearer's-postrm} disappear {\it overwriter} {\it overwriter-version}
+  \item パッケージ管理スクリプトの削除
+  \item パッケージがインストールされていない状態となる。(conffile は無視され、prerm も呼び出されない)
+  \end{enumerate}
+
+\item 新しいパッケージのファイルが他のパッケージのファイルリストに記されていれば、それらをリストから削除
+
+\item バックアップファイルを削除
+
+\item 新しいパッケージを unpacked 状態にする\\
+{\underline {\Large もう一つの戻れなくなるポイント}}
+
+\item 衝突するパッケージがあればそれらの削除処理へ
+
+\end{enumerate}
+
+\subsubsection{設定の詳細}
+\begin{enumerate}
+\item conffile を更新して
+  \begin{itemize}
+  \item {\it postinst} configure {\it most-recently-configured-version}
+  \end{itemize}
+  エラーが起こっても回復処理は行なわれず Failed Config 状態になる
+\end{enumerate}
+
+
+\subsubsection{削除と設定の完全削除の詳細}
+\begin{enumerate}
+\item {\it prerm} remove
+
+\item パッケージのファイルを削除(conffile を除く)
+
+\item {\it postrm} remove
+
+\item postrm を除く全パッケージ管理スクリプトの削除\\
+  purge でなければここで終了。purge でなくても postrm と conffile がなければ purge と同じ状態になる。
+
+\item conffile とバックアップファイルを削除
+
+\item {\it postrm} purge
+
+\item パッケージのファイルリストを削除(postrm もここで削除)
+
+\end{enumerate}
+
+
+\subsection{最後に}
+次回の月刊 Debian Policy は。。。
+
+
 \clearpage
 
 \dancersection{2012年の振り返りと2013年の企画}{Debian JP}
