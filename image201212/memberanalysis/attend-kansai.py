@@ -1,4 +1,4 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
 """
 Generates graph for attendance and pre/post work.
 Processes the output of:
@@ -12,7 +12,7 @@ select year, month, sum(type='attendance'), sum(type='prework'), sum(type='postw
 from pychart import *
 import csv
 
-NUM_YEARS = 5
+NUM_YEARS = 7
 
 theme.use_color=True
 theme.default_font_size=16
@@ -43,11 +43,10 @@ xaxis = axis.X(tic_interval = 12, label="Year Month",
 yaxis = axis.Y(tic_interval = 10, label="Attendees")
 chart_object.set_defaults(area.T, size = (480, 300))
 ar = area.T(x_axis=xaxis, y_axis=yaxis, x_range=(1,12*NUM_YEARS),
-            y_range=(0,None), legend = legend.T(loc=(30,240)))
+            y_range=(0,None), legend = legend.T(loc=(20,240)))
 plot1 = line_plot.T(label="n. of attendees", data=data, ycol=1)
-plot2 = line_plot.T(label="n. of attendees(1 yr avg)", data=data, ycol=2)
+plot2 = line_plot.T(label="n. of attendees(0.5 yr avg)", data=data, ycol=2)
 
-#ar.add_plot(plot, plot2, plot3, plot4, plot5, plot6)
 ar.add_plot(plot1, plot2)
 can = canvas.init("kansai.png")
 ar.draw(can)
