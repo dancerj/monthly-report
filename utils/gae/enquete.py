@@ -3,10 +3,11 @@
 from google.appengine.api import users
 from google.appengine.api import taskqueue
 
+import StringIO
+import csv
 import schema
 import send_notification
 import webapp_generic
-
 
 class EnqueteAdminEdit(webapp_generic.WebAppGenericProcessor):
     """Admin edits the enquete questionnaire."""
@@ -258,11 +259,20 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
         """Generate a key string used for question.
 
         The string should be reasonably unique and also readable for
-        later analysis with R."""
-        return event.title + '-' + question_text + '-' + eventid[:4]
+        later analysis with R.
+
+        Returns utf-8 string."""
+        return (
+            event.title + '-' + question_text + '-' + eventid[:4]
+            ).encode('utf-8')
 
     def get(self):
         """List all enquete results in a big matrix."""
+
+        # Output csv buffer for doing output in csv format.
+        string_io = StringIO.StringIO()
+        csv_writer = csv.writer(string_io)
+
         user = users.get_current_user()
         events = self.load_event_with_owners(user)
 
@@ -319,13 +329,13 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
         self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
 
         sorted_list_of_questions = sorted(list_of_questions.keys())
-        out_string = ','.join(sorted_list_of_questions) + '\n'
+
+        csv_writer.writerow(sorted_list_of_questions)
 
         for user_email in enquete_map.iterkeys():
-            out_string += (
-                # user_email + ',' +
-                ','.join([self.conditional_get_enquete_map(enquete_map[user_email], x) 
-                            for x in sorted_list_of_questions])
-                + '\n')
+            csv_writer.writerow(
+                [self.conditional_get_enquete_map(
+                        enquete_map[user_email], x) 
+                 for x in sorted_list_of_questions])
 
-        self.response.out.write(out_string)
+        self.response.out.write(string_io.getvalue())
