@@ -326,7 +326,8 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
                         {})[question_key] = (
                         enquete_response.question_response[i])
 
-        self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
+        self.response.headers['Content-type'] = 'text/csv; charset=utf-8'
+        self.response.headers['Content-Disposition'] = 'attachment; filename=enquete.csv'
 
         sorted_list_of_questions = sorted(list_of_questions.keys())
 
