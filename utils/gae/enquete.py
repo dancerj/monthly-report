@@ -254,6 +254,13 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
             return 'NA'
         return value
 
+    def generate_question_key(self, event, question_text, eventid):
+        """Generate a key string used for question.
+
+        The string should be reasonably unique and also readable for
+        later analysis with R."""
+        return event.title + '-' + question_text + '-' + eventid[:4]
+
     def get(self):
         """List all enquete results in a big matrix."""
         user = users.get_current_user()
@@ -267,12 +274,21 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
 
         for event in events:
             eventid = event.eventid
+
+            # load event information for the title. If an event didn't
+            # exist, that's weird, but allow for an error.
+            event = self.load_event_with_eventid_cached(eventid)
+            if event == None:
+                self.http_error_message('Event id %s not found' % (eventid))
+                continue
+
             enquete = self.load_enquete_with_eventid(eventid)
             if enquete == None:
                 # There wasn't an enquete for this eventid, which is a
                 # reasonable error condition before enquete is
                 # created.
                 continue
+
             enquete_responses = self.load_enquete_responses_with_eventid(eventid)
             if enquete_responses == None:
                 # It's also possible that there is no enquete response
@@ -284,7 +300,9 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
                 # a key to use for the map. Use the first 4 letters of
                 # the hash and question name to make it reasonably
                 # unique.
-                question_key = eventid[:4] + enquete.question_text[i]
+                question_key = self.generate_question_key(event, 
+                                                          enquete.question_text[i], 
+                                                          eventid)
 
                 list_of_questions[question_key] = True
 
