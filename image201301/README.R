@@ -943,3 +943,9 @@ X8ef7事前課題紹介..Debian.で今いまいちサポートされていない
 "f456Debian勉強会アンケートシステム",0.0407822091113403
 "f456Kinect",1.35485585833327
 "f456事前課題紹介",-0.360319896232299
+
+
+> plot(density(enquete_frame$raw_standard_deviation, na.rm=TRUE))
+> plot(density(enquete_frame$raw_average_score, na.rm=TRUE))
+> plot(enquete_frame$raw_average_score)
+> plot(enquete_frame$scaled_average_score)

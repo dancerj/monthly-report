@@ -4,13 +4,54 @@
 #
 # use "source('getenquete.R')" to use this script interactively.
 enquete <- read.csv('enquete.csv')
-# scale scores to normal distribution for each user.
-scaled <- t(scale(t(enquete), apply(t(enquete), 2, mean, na.rm=TRUE), apply(t(enquete), 2, sd, na.rm=TRUE)))
-# summary(scaled)
-average_score <- apply(scaled, 2, mean, na.rm=TRUE)
-# summary(average_score)
-# get number of non-na reponse
+
+# get number of non-na reponse from enquete. Useful for understanding the statistical significance along with SD.
 enquete_response <- colSums(!is.na(enquete))
-# create a dataframe to join them.
-enquete_frame <- data.frame(average_score = average_score, enquete_response = enquete_response)
+
+# get average numbers for event.
+raw_average_score <- apply(enquete, 2, mean, na.rm=TRUE)
+
+# get standard deviation for event score.
+raw_standard_deviation <- apply(enquete, 2, sd, na.rm=TRUE)
+
+# scale scores to normal distribution for each user, so that each user's pattern only contributes as much.
+scaled <- t(scale(t(enquete), apply(t(enquete), 2, mean, na.rm=TRUE), apply(t(enquete), 2, sd, na.rm=TRUE)))
+scaled_average_score <- apply(scaled, 2, mean, na.rm=TRUE)
+
+# create a dataframe to join them for easy consumption.
+
+enquete_frame <- data.frame(
+	      raw_average_score = raw_average_score, 
+	      raw_standard_deviation = raw_standard_deviation, 
+	      scaled_average_score = scaled_average_score, 
+	      enquete_response = enquete_response)
+
 write.csv(enquete_frame)
+
+# plot a few diagrams.
+postscript('scaled_average_score_density.eps')
+plot(density(enquete_frame$scaled_average_score, na.rm=TRUE), 
+  xlab='scaled average score',
+  ylab='density')
+dev.off()
+
+postscript('raw_average_score_density.eps')
+plot(density(enquete_frame$raw_average_score, na.rm=TRUE), 
+  xlab='raw average score',
+  ylab='density')
+dev.off()
+
+postscript('raw_standard_deviation_density.eps')
+plot(density(enquete_frame$raw_standard_deviation, na.rm=TRUE),
+  xlab='standard deviation of score per event',
+  ylab='density')
+dev.off()
+
+postscript('enquete_boxplot.eps')
+boxplot(enquete)
+dev.off()
+
+postscript('raw_average_score_growth.eps')
+plot(enquete_frame$raw_average_score)
+dev.off()
+ 
