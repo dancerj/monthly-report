@@ -1,3 +1,4 @@
+#!/usr/bin/Rscript
 # graph plotting code.
 
 source('getenquete.R')
@@ -29,3 +30,10 @@ postscript('raw_average_score_growth.eps')
 plot(enquete_frame$raw_average_score)
 dev.off()
  
+postscript('score_hist_8.eps')
+hist(t(enquete)[,8], breaks=c(0,1,2,3,4,5))
+dev.off()
+
+postscript('score_hist_9.eps')
+hist(t(enquete)[,9], breaks=c(0,1,2,3,4,5))
+dev.off()
