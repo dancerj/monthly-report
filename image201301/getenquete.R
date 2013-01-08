@@ -28,3 +28,14 @@ enquete_frame <- data.frame(
 
 write.csv(enquete_frame)
 
+dump_for_session <- function(name) {
+  # Dump information for a session.
+  # 'name' should be the session key.
+  write.csv(array(c(
+    "raw average score", 
+    "raw standard deviation",
+    "enquete response",
+    raw_average_score[name],
+    raw_standard_deviation[name],
+    enquete_response[name]), c(3,2)))
+}

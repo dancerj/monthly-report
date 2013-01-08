@@ -160,23 +160,122 @@ Debian開発者の興味のある内容を偏った感じでカバーしているという印象です。
 %-------------------------------------------------------------------------------
 \index{Debianべんきょうかいよやくしすてむ@Debian勉強会予約システム}
 \index{あんけーと@アンケート}
+\index{R}
 
 東京エリアDebian勉強会ではアンケートをとっています。集計結果を眺めてみま
-しょう。
+しょう。データは
+\url{http://debianmeeting.appspot.com/enquete/showallresults}から取得し
+ます\footnote{取得したファイルを \url{image201301/enquete.CV} において
+おきます。}
+出力形式は各行がDebian勉強会予約システムに登録している個人で、各列がそれ
+ぞれのセッションです。各コラム名は一意なキーとして扱えるようにするためイベン
+ト名とセッション名を足してかつイベントのハッシュ値の一部を追加したものを
+採用しています。
+
+R で処理するためにデータを読み込み前処理を行うのには便利なスクリプトを用
+意しているのでそれを利用します。
+
+\begin{commandline}
+> source('getenquete.R')
+\end{commandline}
+
+まず全体的なスコアのつき方から紹介しましょう。
+\fgref{fig:enquete-score-distribution}にすべてのお題のスコアの分布を並べ
+ています。時系列にならんではいますがそれぞれのテーマごとに並んでいるので
+時系列とは限りません。
+
+\fgref{fig:all-enquete-score-distribution}に平均点がどういう分布をしてい
+るのかを図示しています。八割くらいは4点になり、一割づつ5点と3点があるよう
+なスコア分布であることが見て取れます。特にひどいときには平均点が2点になっ
+てるような気もします。
+
+気になるので例をみてみましょう。2010年12月の勉強会のDebian Miniconf企画
+会議はぐだぐだだったので仕方がないでしょう。一方、
+2012年1月の勉強会に辛口の評価が多かったのが気になります。n=4 なのでそん
+なに少数派でもないようです。
+
+\begin{commandline}
+> raw_average_score[!is.na(raw_average_score) & raw_average_score < 3]
+                第71回東京エリアDebian勉強会.2010年12月勉強会.Debian.Miniconf.企画.2eca 
+                                                                               2.333333 
+              第84回東京エリアDebian勉強会.2012年1月勉強会.事前課題紹介.2012年企画.f447 
+                                                                               2.500000 
+第84回東京エリアDebian勉強会.2012年1月勉強会.第3回月刊Debhelper.dh_auto_..dh_build.f447 
+                                                                               2.500000 
+> enquete_response[!is.na(raw_average_score) & raw_average_score < 3]
+                第71回東京エリアDebian勉強会.2010年12月勉強会.Debian.Miniconf.企画.2eca 
+                                                                                      6 
+              第84回東京エリアDebian勉強会.2012年1月勉強会.事前課題紹介.2012年企画.f447 
+                                                                                      4 
+第84回東京エリアDebian勉強会.2012年1月勉強会.第3回月刊Debhelper.dh_auto_..dh_build.f447 
+
+> scaled_average_score['第84回東京エリアDebian勉強会.2012年1月勉強会.事前課題紹介.2012年企画.f447']
+第84回東京エリアDebian勉強会.2012年1月勉強会.事前課題紹介.2012年企画.f447 
+                                                                -1.289405 
+                                                                                      4 
+\end{commandline}
+
+一方でハイスコア側を眺めてみましょう。最高のスコアは「第79回東京エリア
+Debian勉強会.2011年8月勉強会.Debianパッケージのビルド方法」と「第91回東京
+エリアDebian勉強会.2012年8月勉強会.月刊.Debhelper.共有ライブラリ編」です。
+それぞれn=2とn=3で全員最高点を指定した結果です。アンケートに回答してくれ
+た人数が少ないのが気になりますが、力作で聞いてておもしろいものでした。
+「第72回東京エリアDebian勉強会.2011年1月勉強会.Kinect」$ 4.875 (sd=0.35,
+n=8）$ と「第95回東京エリアDebian勉強会.2012年12月勉強会.著作権法改正」
+$4.75 (sd=0.5, n=4)$ が比較的投票数も高くてスコアの高いものです。Kinectは
+デモ満載でやっていることもぶっ飛んでました。著作権法改正については問題意
+識を刺激する内容だったのではないでしょうか。
+
+\begin{commandline}
+
+>  raw_average_score[!is.na(raw_average_score) & raw_average_score > 4.5]
+      第71回東京エリアDebian勉強会.2010年12月勉強会.CACertの準備に何が必要か.2eca 
+                                                                         4.600000 
+       第71回東京エリアDebian勉強会.2010年12月勉強会.俺のlibsaneが火をふくぜ.2eca 
+                                                                         4.666667 
+                         第72回東京エリアDebian勉強会.2011年1月勉強会.Kinect.f456 
+                                                                         4.875000 
+   第79回東京エリアDebian勉強会.2011年8月勉強会.Debianパッケージのビルド方法.5dff 
+                                                                         5.000000 
+            第91回東京エリアDebian勉強会.2012年8月勉強会.DebianでC..11を使う.9796 
+                                                                         4.666667 
+第91回東京エリアDebian勉強会.2012年8月勉強会.月刊.Debhelper.共有ライブラリ編.9796 
+                                                                         5.000000 
+                  第95回東京エリアDebian勉強会.2012年12月勉強会.著作権法改正.3f15 
+                                                                         4.750000 
+> enquete_response[!is.na(raw_average_score) & raw_average_score > 4.5]
+      第71回東京エリアDebian勉強会.2010年12月勉強会.CACertの準備に何が必要か.2eca 
+                                                                                5 
+       第71回東京エリアDebian勉強会.2010年12月勉強会.俺のlibsaneが火をふくぜ.2eca 
+                                                                                3 
+                         第72回東京エリアDebian勉強会.2011年1月勉強会.Kinect.f456 
+                                                                                8 
+   第79回東京エリアDebian勉強会.2011年8月勉強会.Debianパッケージのビルド方法.5dff 
+                                                                                2 
+            第91回東京エリアDebian勉強会.2012年8月勉強会.DebianでC..11を使う.9796 
+                                                                                3 
+第91回東京エリアDebian勉強会.2012年8月勉強会.月刊.Debhelper.共有ライブラリ編.9796 
+                                                                                3 
+                  第95回東京エリアDebian勉強会.2012年12月勉強会.著作権法改正.3f15 
+                                                                                4 
+ 
+\end{commandline}
 
 \begin{figure}[h]
 \begin{center}
   \includegraphics[angle=270,width=0.8\hsize]{image201301/enquete_boxplot.eps}
 
 \end{center}
- \caption{毎回のスコアの分布}
+ \caption{毎回のスコアの分布}\label{fig:enquete-score-distribution}
 \end{figure}
+
 
 \begin{figure}[h]
 \begin{center}
  \includegraphics[angle=270,width=0.8\hsize]{image201301/raw_average_score_density.eps}
 
- \caption{すべての回を通してのスコアの分布}
+ \caption{すべての回を通しての平均点の分布}
+ \label{fig:all-enquete-score-distribution}
 \end{center}
 \end{figure}
 
