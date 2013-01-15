@@ -452,7 +452,7 @@ PACKAGE CONTENTS
 ...中略...
 \end{commandline}
 
- また、gdbのpython拡張についての詳しい説明は、info gdbにて
+ また、gdbのpython拡張についてのさらに詳しい説明は、info gdbにて
 Extending GDB章のpythonの項目から参照できます。
 
 \subsection{module gdbに定義されているオブジェクト群}
@@ -509,18 +509,26 @@ HelloWorld()
 -----hello.pyの中身ここまで-----
 \end{commandline}
 
- 実行してみます。
+ 追加したコマンドについていろいろ実行してみます。
 
 \begin{commandline}
 (gdb) source hello.py
 (gdb) hello-[ここでTABを押すと補完される]
 (gdb) hello-world foo,bar,com
 Hello, World! arg=[foo,bar,com]
-(gdb) 
+(gdb) help obscure
+Obscure features.
+
+List of commands:
+
+...中略...
+hello-world --  Greet the whole world 
+...中略...
 \end{commandline}
 
 　コマンド hello-worldが追加されています。また、引数はinvoke()のargに文字列として
-まとめて入ります。
+まとめて入ります。また、コマンドカテゴリのOBSCUREに登録されている事がhelp obscure
+にて判ります。
 
 \subsection{作ったpythonスクリプトを自動で読み込ませるには}
 
@@ -553,7 +561,7 @@ source /home/foo/bar/my-gdb-func.py
 asm\{\}命令で.debug\_gdb\_scriptsセクションを直接指定しています。
 
 \begin{commandline}
-hello.cの中身ここから:
+------hello.cの中身ここから------
 #include <stdio.h>
 
 asm(
@@ -568,8 +576,9 @@ int main(int argc,char **argv)
         printf("hi there!");
         return 0;
 }
+------hello.cの中身ここまで------
 
-コンパイル：
+実行結果:
 $ gcc -o hello hello.c
 $ ls -l
 hello hello.py hello.c
@@ -628,15 +637,179 @@ Hello, World! arg=[]
 \end{commandline}
 %$
 
-\subsubsection{gdbのコマンドの実行結果をpythonに取り込んでみる}
+\subsection{break/finishと応用例について}
 
- コマンド追加も、pythonスクリプトのロードもできるようになったら、
-次は、gdbのコマンドの実行結果をpythonに取り込んでみます。この場合、
-gdb.exec
+ デバッガの基本機能にbreakpointがあります。こちらの機能を
+pythonから利用するには gdb.Breakpoint class及び、
+gdb.FinishBreakpoint classを継承する事により行います。
+これらclassを用いれば、gdbのbreak/watch/finishコマンドを独自拡張できます。
 
-　
+ ここでは、応用としてバイナリ内部の関数呼び出しの記録を取るようなpythonスクリプト
+を書いてみます。
 
+\begin{commandline}
+-------calltracer.pyここから---------
+# -*- coding: utf-8 -*-
+# coding:utf-8
+import gdb
+class _CallTracerFinishBreakpoint(gdb.FinishBreakpoint):
+        def __init__(self, name, stack):
+                super(_CallTracerFinishBreakpoint, self).__init__(internal=True)
+                self._stack_ptr=stack
+                self._name=name
+                self.silent=True
+        def stop(self):
+                print (" " * (len(self._stack_ptr)))+"<="+self._name
+                self._stack_ptr.pop()
+                return False
+        def out_of_scope(self):
+                print "Abnormal jump out frame"
+                print (" " * (len(self._stack_ptr)))+"<="+self._name
+                self._stack_ptr.pop()
+                return False
 
+class _CallTracerBreakpoint(gdb.Breakpoint):
+        def __init__(self, spec, name, stack):
+                super(_CallTracerBreakpoint, self).__init__(spec, 
+                                                            gdb.BP_BREAKPOINT,
+                                                            internal = False)
+                self._stack_ptr=stack
+                self._name=name
+                self.silent=True
+        def stop(self):
+                self._stack_ptr.append(self._name)
+                print (" " * (len(self._stack_ptr)))+"=>"+self._name
+                try:
+                        _CallTracerFinishBreakpoint(self._name, self._stack_ptr)
+                except:
+                        print "uh? cant put finish break on "+self._name
+                return False
+
+class _PrepareCallTracer(gdb.Command):
+        """ prepare call tracer for c """
+        def __init__(self):
+                super(_PrepareCallTracer, self).__init__('prepcalltracer',
+                                                         gdb.COMMAND_OBSCURE)
+                self._stack=[]
+        def _retrive_ptrs(self):
+                info=gdb.execute("info break",False, True)
+                info_lines=info.splitlines()
+                ptrs={}
+                for idx in range(0,len(info_lines[1:])):
+                        tokens=info_lines[idx+1].split()
+                        if len(tokens) > 5:
+                                if ptrs.has_key(tokens[4]) == False:
+                                        ptrs[tokens[4]]=" ".join(tokens[5:])
+                return ptrs
+
+        def invoke(self, arg, from_tty):
+                gdb.execute("rbreak",False, True)
+                break_info=self._retrive_ptrs()
+                gdb.execute("delete",False, True)
+                gdb.execute("set pagination off")
+                for addr,name in break_info.iteritems():
+                        _CallTracerBreakpoint(r'*'+addr,
+                                              name,self._stack)
+                print "prepare done!"
+
+_PrepareCallTracer()
+-------calltracer.pyここまで---------
+-------デバッグ対象：chkfunc.c ここから-------
+#include<stdio.h>
+
+void foo_a(const char *str)
+{
+	printf("%s\n",str);
+
+}
+void caller_bar(void)
+{
+	foo_a("caller is bar!");
+}
+int main(int argc,char **argv)
+{
+	foo_a("caller is main!");
+	caller_bar();
+	return(0);
+}
+-------デバッグ対象：chkfunc.c ここまで-------
+\end{commandline}
+\begin{commandline}
+実行結果：
+$ gcc -O0 -g -o chkfunc chkfunc
+$ ls
+chkfunc.c chfunc calltracer.py
+$ gdb ./chkfunc
+GNU gdb (GDB) 7.4.1-debian
+Copyright (C) 2012 Free Software Foundation, Inc.
+...中略...
+Reading symbols from /home/foo/bar/chkfunc...done.
+(gdb) source calltracer.py
+(gdb) prepcalltracer 
+Breakpoint 18 at 0x4003e0
+Breakpoint 19 at 0x4003f0
+Breakpoint 20 at 0x400518: file chkfunc.c, line 12.
+...中略...
+Breakpoint 31 at 0x4004e0
+Breakpoint 32 at 0x4003b8
+prepare done!
+(gdb) run
+Starting program: /home/nojima/prog/my-works/gdb-python/test-function/chkfunc 
+ =><_start>
+uh? cant put finish break on <_start>
+  =><__libc_start_main@plt>
+   =><__libc_csu_init>
+    =><_init>
+     =><call_gmon_start>
+     <=<call_gmon_start>
+    <=<_init>
+    =><frame_dummy>
+     =><register_tm_clones>
+     <=<frame_dummy>
+    <=<register_tm_clones>
+   <=<__libc_csu_init>
+   =>in main at chkfunc.c:21
+uh? cant put finish break on in main at chkfunc.c:21
+    =>in foo_a at chkfunc.c:12
+     =><puts@plt>
+caller is main!
+     <=<puts@plt>
+    <=in foo_a at chkfunc.c:12
+    =>in caller_bar at chkfunc.c:17
+     =>in foo_a at chkfunc.c:12
+      =><puts@plt>
+caller is bar!
+      <=<puts@plt>
+     <=in foo_a at chkfunc.c:12
+    <=in caller_bar at chkfunc.c:17
+    =><__do_global_dtors_aux>
+     =><deregister_tm_clones>
+     <=<deregister_tm_clones>
+    <=<__do_global_dtors_aux>
+    =><_fini>
+    <=<_fini>
+[Inferior 1 (process 6413) exited normally]
+Abnormal jump out frame
+   <=<__libc_start_main@plt>
+warning: Error removing breakpoint -5
+(gdb)
+\end{commandline}
+%$
+
+無事、バイナリ内部の関数呼び出しの記録が取れているかと思います。
+
+\subsection{終わりに}
+
+ 今回gdbのpython拡張のいくつかを紹介してみました。pythonを
+用いる事で、いろいろなデバッグ手法が取れるかと思います。
+
+　次回は、Frame class/Value class等の応用について紹介したいと思います。
+
+\begin{thebibliography}{98}
+\bibitem{infogdb} Free Software Foundation, ``info gdb''
+\bibitem{gdbpytutor} ``PythonGdbTutorial'',\url{http://sourceware.org/gdb/wiki/PythonGdbTutorial}
+\bibitem{gdbpytest} Free Software Foundation, \verb!$(GDBSRC)/gdb/testsuite/gdb.python!以下のテスト用ファイル群
+\end{thebibliography}
 
 \printindex
 
