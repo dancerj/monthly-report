@@ -431,7 +431,8 @@ sys.version_info(major=2, minor=7, micro=3, releaselevel='final', serial=0)
 pythonドキュメントについては、gdb上でpythonからhelp(gdb)を呼び出す必要
 があります。
 
- 以下に読み方を示します。なお、(gdb)はgdbのプロンプトを示します。
+ 以下に読み方を示します。なお、以降、(gdb)はgdbのプロンプトを示します。
+
 \begin{commandline}
 (gdb) python help(gdb)
 Help on package gdb:
@@ -483,7 +484,157 @@ gdbとのデータのやりとり、あるいは、操作を行います。
 \subsection{gdbのコマンドを増やしてみる}
 
  gdbのpython拡張は柔軟な機能を持つため、いろいろな使い方ができます。
-ここでは、gdbのコマンドを増やしてみます。
+ここでは、試しにgdbのコマンドを増やしてみます。
+
+　gdbのコマンドをpythonから増やすには、gdb.commandクラスを継承したクラスを
+用意し、gdb.command.\_\_init\_\_()にてコマンド名と共に登録する事により行います。
+
+　info gdbのExtending GDB→Python→Python API→Commands In Pythonに
+記載されている方法を試して、hello-worldコマンドを登録してみます。
+
+\begin{commandline}
+-----hello.pyの中身ここから-----
+# -*- coding: utf-8 -*-
+# coding:utf-8
+import gdb
+class HelloWorld (gdb.Command):
+  """ Greet the whole world """
+  def __init__ (self):
+     super(HelloWorld, self).__init__ ("hello-world",gdb.COMMAND_OBSCURE)
+
+  def invoke (self,arg, from_tty):
+     print "Hello, World! arg=["+str(arg)+"]"
+
+HelloWorld()
+-----hello.pyの中身ここまで-----
+\end{commandline}
+
+ 実行してみます。
+
+\begin{commandline}
+(gdb) source hello.py
+(gdb) hello-[ここでTABを押すと補完される]
+(gdb) hello-world foo,bar,com
+Hello, World! arg=[foo,bar,com]
+(gdb) 
+\end{commandline}
+
+　コマンド hello-worldが追加されています。また、引数はinvoke()のargに文字列として
+まとめて入ります。
+
+\subsection{作ったpythonスクリプトを自動で読み込ませるには}
+
+ ところで、gdbのpython拡張を理解するにつれ、高度なデバッグ用スクリプトを用意するように
+なってくると思います。すると、作ったpythonスクリプトをいつもgdbに自動で読み込ませ
+ておきたくなるかと思います。方法としては、以下の3つの方法があります。
+
+\subsubsection{\$\{HOME\}/.gdbinitを使う方法}
+
+ 以下のようなファイルを\verb!${HOME}/.gdbinit!に記載しておきます。
+
+\begin{commandline}
+----${HOME}/.gdbinitここから-----
+source /home/foo/bar/my-gdb-func.py
+----${HOME}/.gdbinitここまで-----
+\end{commandline}
+
+こうすると、\verb!${HOME}!にホームディレクトリがあるようなユーザがgdbを起動した時に、
+自動的に/home/foo/bar/my-gdb-func.pyがロードされて評価されるようになります。
+
+\subsubsection{セクション名：.debug\_gdb\_scriptsを使う方法}
+
+ バイナリ形式によりますが、任意のセクション名を持つ事が可能なバイナリ形式
+（例：ELF,DWARF)にて、.gdb\_gdb\_scriptsセクションを作成し、ここにスクリプト名
+を打ち込んでおく事ができる場合があります。この場合、カレントディレクトリにある、
+同名のスクリプトをgdbが自動的にロードしてくれます。
+なお、本機能は、gdb変数のauto-load-scriptがonの時に有効です（デフォルトはon。）
+
+　以下に例を示します。ここでは先ほどのhello.pyを自動でロードするように
+asm\{\}命令で.debug\_gdb\_scriptsセクションを直接指定しています。
+
+\begin{commandline}
+hello.cの中身ここから:
+#include <stdio.h>
+
+asm(
+".pushsection \".debug_gdb_scripts\",\"MS\",@progbits,1\n"
+".byte 1\n"
+".asciz \"hello.py\"\n"
+".popsection \n"
+);
+
+int main(int argc,char **argv)
+{
+        printf("hi there!");
+        return 0;
+}
+
+コンパイル：
+$ gcc -o hello hello.c
+$ ls -l
+hello hello.py hello.c
+$ gdb hello
+GNU gdb (GDB) 7.4.1-debian
+Copyright (C) 2012 Free Software Foundation, Inc.
+...中略...
+<http://www.gnu.org/software/gdb/bugs/>...
+Reading symbols from /home/xxxx/hello...done.
+(gdb) info auto-load-scripts
+Loaded  Script                                                                 
+Yes     hello.py                                                         
+	full name: /home/xxxx/hello.py
+(gdb) hello-world 
+Hello, World! arg=[]
+\end{commandline}
+%$
+
+\subsubsection{``バイナリ名''-gdb.pyをスクリプト名に使う方法}
+
+ ファイル名として、''バイナリ名''-gdb.pyをファイル名に持つpythonスクリプトを
+カレントディレクトリに置いておくと、gdbがバイナリ名のファイルをロードした時、
+自動でロードしてくれます。なお、本機能は、gdb変数のauto-load-scriptがonの時に
+有効です（デフォルトはon）
+
+ 以下の例では、gdb helloとすると、無事先ほどのhello.pyが読み込まれ、
+hello-worldコマンドが登録されている事がわかります。
+
+\begin{commandline}
+------hello.cの中身ここから------
+#include <stdio.h>
+
+int main(int argc,char **argv)
+{
+        printf("hi there!");
+        return 0;
+}
+------hello.cの中身ここまで------
+
+コンパイル：
+$ gcc -o hello hello.c
+$ mv hello.py hello-gdb.py (←先ほどのhello.pyの名前を"バイナリ名"-gdb.pyへ変更）
+$ ls -l
+hello hello-gdb.py hello.c
+$ gdb hello
+GNU gdb (GDB) 7.4.1-debian
+Copyright (C) 2012 Free Software Foundation, Inc.
+...中略...
+<http://www.gnu.org/software/gdb/bugs/>...
+Reading symbols from /home/xxxx/hello...done.
+(gdb) info auto-load-scripts
+Loaded  Script                                                                 
+Yes     /home/xxxx/hello-gdb.py
+(gdb) hello-world 
+Hello, World! arg=[]
+\end{commandline}
+%$
+
+\subsubsection{gdbのコマンドの実行結果をpythonに取り込んでみる}
+
+ コマンド追加も、pythonスクリプトのロードもできるようになったら、
+次は、gdbのコマンドの実行結果をpythonに取り込んでみます。この場合、
+gdb.exec
+
+　
 
 
 
