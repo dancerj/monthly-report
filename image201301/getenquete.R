@@ -30,17 +30,18 @@ compute_enquete_stats <- function(enquete) {
   enquete_frame
 }
 
-
-dump_for_session <- function(name) {
+dump_for_session <- function(df, name) {
   # Dump information for a session.
   # 'name' should be the session key.
+  # 
+  # e.g. dump_for_session(enquete_frame, "第95回東京エリアDebian勉強会.2012年12月勉強会.著作権法改正.3f15")
   write.csv(array(c(
     "raw average score", 
     "raw standard deviation",
     "enquete response",
-    raw_average_score[name],
-    raw_standard_deviation[name],
-    enquete_response[name]), c(3,2)))
+    df$raw_average_score[name],
+    df$raw_standard_deviation[name],
+    df$enquete_response[name]), c(3,2)))
 }
 
 enquete_frame <- compute_enquete_stats(enquete)
@@ -49,3 +50,18 @@ write.csv(enquete_frame)
 high_confidence_enquete <- subset(enquete, rowSums(!is.na(enquete)) > 5)
 high_confidence_enquete_frame <- compute_enquete_stats(high_confidence_enquete)
 write.csv(high_confidence_enquete_frame)
+
+# limit to those with enquete results that are answered by experienced enquete answers more than 3 times.
+high_confidence_enquete_remove_na <- t(subset(t(high_confidence_enquete), colSums(!is.na(high_confidence_enquete)) > 3))
+
+vector_affinity <- function (a, b) {
+  # compute the affinity of two vectors. If they contain NA's, they are ignored.
+  # affinity is as in 'cos t'.
+  stopifnot(is.vector(a), 
+    is.vector(b), 
+    length(a) == length(b))
+
+  sum((a * b), na.rm=TRUE) / (
+    sqrt(sum(a * a, na.rm=TRUE)) *
+    sqrt(sum(b * b, na.rm=TRUE)))
+}
