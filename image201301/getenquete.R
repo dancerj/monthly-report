@@ -22,10 +22,10 @@ compute_enquete_stats <- function(enquete) {
   # create a dataframe to join them for easy consumption.
 
   enquete_frame <- data.frame(
-	      raw_average_score = raw_average_score, 
-	      raw_standard_deviation = raw_standard_deviation, 
-	      scaled_average_score = scaled_average_score, 
-	      enquete_response = enquete_response)
+                     raw_average_score = raw_average_score, 
+                     raw_standard_deviation = raw_standard_deviation, 
+                     scaled_average_score = scaled_average_score, 
+                     enquete_response = enquete_response)
 
   enquete_frame
 }
@@ -35,13 +35,12 @@ dump_for_session <- function(df, name) {
   # 'name' should be the session key.
   # 
   # e.g. dump_for_session(enquete_frame, "第95回東京エリアDebian勉強会.2012年12月勉強会.著作権法改正.3f15")
-  write.csv(array(c(
-    "raw average score", 
-    "raw standard deviation",
-    "enquete response",
-    df$raw_average_score[name],
-    df$raw_standard_deviation[name],
-    df$enquete_response[name]), c(3,2)))
+  write.csv(array(c("raw average score", 
+                    "raw standard deviation",
+                    "enquete response",
+                    df$raw_average_score[name],
+                    df$raw_standard_deviation[name],
+                    df$enquete_response[name]), c(3,2)))
 }
 
 enquete_frame <- compute_enquete_stats(enquete)
@@ -58,10 +57,16 @@ vector_affinity <- function (a, b) {
   # compute the affinity of two vectors. If they contain NA's, they are ignored.
   # affinity is as in 'cos t'.
   stopifnot(is.vector(a), 
-    is.vector(b), 
-    length(a) == length(b))
+            is.vector(b), 
+            length(a) == length(b))
 
   sum((a * b), na.rm=TRUE) / (
-    sqrt(sum(a * a, na.rm=TRUE)) *
-    sqrt(sum(b * b, na.rm=TRUE)))
+                 sqrt(sum(a * a, na.rm=TRUE)) *
+                 sqrt(sum(b * b, na.rm=TRUE)))
 }
+
+
+# Obtain the correlation between different sessions.
+write.csv(cor(enquete, use="pairwise"))
+# Obtain the correlation between different users.
+write.csv(cor(t(enquete), use="pairwise"))
