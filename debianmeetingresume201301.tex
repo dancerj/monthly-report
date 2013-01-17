@@ -824,27 +824,187 @@ warning: Error removing breakpoint -5
 \index{debhelper}
 \subsection{今回のコマンド}
 
-　以下のコマンドを今回は取り上げようと思います。
+　以下のコマンドを今回は取り上げます。
 
 \begin{itemize}
 \item dh\_gencontrol
-\item dh\_listpackage
+\item dh\_listpackages
 \end{itemize}
-
- 特にdh\_gencontrolは、バイナリパッケージ用のcontrolファイルを生成するという
-大変重要な役目を持ちます。
 
 \subsection{dh\_gencontrol}
 
-\subsubsection{予備知識}
+ dh\_gencontrolコマンドは、dhコマンドなどから提供される情報を引き継ぎ、
+dpkg-gencontrolコマンドを呼び出して、DEBIAN/controlファイルと、
+debian/filesファイルを生成します\footnote{本質的な動作ではないので、本
+文中には記載しませんが、dhコマンドが処理を再開できるように
+debian/パッケージ名.debhelper.logに完了記録も残します}。
 
- debian policyマニュアル\cite{debpolicy}を参照すると、
-controlファイルの役割とフォーマットの説明として5章が、また、
-controlファイルの中にあるパッケージの依存関係を示す各フィールドの説明に
-7章がまるごと割り当てられているというぐらい、controlファイルは
-パッケージについて様々な影響を及ぼすファイルとなります。
+ 次に、dh\_gencontrolコマンドが取り扱うファイルの説明を記載します。
 
+\subsubsection{controlファイル}
 
+ controlファイルは、debianパッケージシステムでは極めて重要な役割を持ちます。
+
+ controlファイルは２つの用途があり、１つはソースパッケージ用のdebian/control
+ファイルと、もう１つは、バイナリパッケージ用のDEBIAN/controlファイルとが
+あります。このどちらのファイルについても、Debian Policy Manual\cite{debpolicy}や、
+man deb-controlに詳しい説明があります。
+ 
+ ちなみに、ソースパッケージ用のdebian/controlファイルは、バイナリパッケージを構築
+するときにどんなバイナリパッケージが必要か、あるいは、どんな名前の
+バイナリパッケージを生成するかが記載されています。
+
+ さらに、ソースパッケージから生成されたバイナリパッケージには、
+DEBIAN/controlファイルが含まれています。このファイルは、該当のパッケージの
+動作にあたって必要な他のバイナリパッケージがバージョン情報と共に列挙されています。
+また、インストールしようとすると、他のバイナリパッケージの内容物に影響をあたえ
+てしまう場合にも、こちらを防ぐための情報などが記載されています。
+
+　実際のソースパッケージ用のdebian/controlファイルは、
+''apt-get source パッケージ名''で取得したソースパッケージの
+展開された構築用ディレクトリ以下で見る事ができます。
+
+\begin{commandline}
+$ apt-get source xgalaga
+パッケージリストを読み込んでいます... 完了
+（...中略...)
+dpkg-source: info: applying 0003-obsolete-xf86dga.patch
+$ lv xgalaga-2.1.1.0/debian/control
+Source: xgalaga
+Section: games
+Priority: optional
+Build-Depends: autotools-dev,
+               debhelper (>= 5),
+               dpkg-dev (>= 1.9.0),
+...debian/controlの各行が続く...
+\end{commandline}
+
+ 一方バイナリパッケージ用のDEBIAN/controlファイルは、
+バイナリパッケージを入手し、''dpkg-deb -e バイナリパッケージファイル''とすることで
+カレントディレクトリ以下に取り出すことが出来ます。
+
+\begin{commandline}
+$ apt-get download xgalaga
+取得:1 xgalaga 2.1.1.0-4 をダウンロードしています [285 kB]   
+285 kB を 3秒 で取得しました (84.9 kB/s)    
+$ dpkg-deb -e ./xgalaga_2.1.1.0-4_amd64.deb
+$ lv DEBIAN/control
+Package: xgalaga
+Version: 2.1.1.0-4
+Architecture: amd64
+Maintainer: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Installed-Size: 690
+Depends: libc6 (>= 2.7), libx11-6, libxext6, libxmu6, libxpm4, libxt6, libxxf86vm1
+Section: games
+...DEBIAN/controlの各行が続く...
+\end{commandline}
+%$
+
+ また、Debianシステムへバイナリパッケージをインストールすると、DEBIAN/control
+ファイルの中身は/var/lib/dpkg/以下のstatusファイルなどに追記されていきます。
+こちらはapt-get/aptitude/dpkg等のパッケージ管理コマンドにとって、
+導入済みパッケージに関するデータベース等として後々利用されていきます。
+
+\subsubsection{debian/files}
+
+  debian/filesファイルは、ソースパッケージから生成したバイナリパッケージ
+ の名前、セクション名、重要度が記録されているファイルとなります。
+
+  このファイルは後に、バイナリパッケージのアップロードのための情報であ
+ る.changesファイルを生成する際に利用されるファイルとなります。
+
+ Debian Policy Manual\cite{debpolicy}に詳しい説明があります。
+
+\subsubsection{debian/substvars}
+
+ debian/substvarsファイルは、debian/controlファイルのバイナリパッケージ用定義
+に含まれる\verb!${shlibs:Depends}!マクロ、\verb!${misc:Depends}!マクロ
+等を、実際の内容に置換するための情報が格納されているファイルとなります。
+
+ こちらのファイルは、バイナリパッケージ構築中にて、
+他のdebhelperコマンド（例:dh\_shlibdepsコマンド等)により、
+順次debian/substvarsファイルへ置換すべき情報が追記されていきます。
+
+ 詳しい内容については、Debian Policy Manual\cite{debpolicy}や、
+man deb-substvarsに説明があります。
+
+\begin{commandline}
+debian/substvarsの中身の例：
+shlibs:Depends=libc6-amd64 (>= 2.3.2)
+misc:Depends=
+\end{commandline}
+
+\subsubsection{debian/changelog}
+
+ debian/changelogファイルは、Debianパッケージのバージョンに対する変更点の
+説明、変更に伴いcloseしたバグの番号の情報、変更者の名前とメールアドレス、日時
+が記録されたファイルとなります。
+
+ 詳しい説明については、Debian Policy Manual\cite{debpolicy}にあります。
+
+\subsubsection{dh\_gencontrolの動作詳細}
+
+ 以下にdh\_gencontrolが呼び出すdpkg-gencontrolも含んだ動作詳細を記載します。
+
+\begin{description}
+\item [Step 1.] dhコマンドから引き継がれた情報（環境変数等）を元に、パッケージの構築用ディレクトリ名、debian/substvarsの正確なファイル名、debian/changelogの正確なファイル名を得ます。
+\item [Step 2.] debian/changelogから、ソースパッケージ及びバイナリパッケージの、バージョン情報を得ます。
+\item [Step 3.] debian/substvarsから置換する予定の値（主に他パッケージに対する依存情報)を取り出します。
+\item [Step 4.] debian/controlから構築予定のバイナリパッケージに関する情報を集めます。
+\item [Step 5.] debian/substvarsから得た他パッケージに関する依存情報をまとめ、
+  \begin{itemize}
+    \item 依存情報が完全に重複しているもの、
+    \item 同じ名前のパッケージに依存しているのに、バージョン違いで複数指定されているようなもの
+  \end{itemize}
+  を適宜まとめて、必要最小限の依存情報に修正します。
+\item [Step 6.] バイナリパッケージ構築ディレクトリから、インストールするデータの総容量を計測します。
+\item [Step 7.] debian/filesを作成します。
+\item [Step 8.] DEBIAN/controlをStep.2〜Step.6で得た情報を用いて生成します。
+\end{description} 
+
+\subsection{dh\_listpackages}
+
+ dh\_listpackagesコマンドは、debian/controlファイルを参照して、構築予定となる
+バイナリパッケージの名前の一覧を得ます。
+
+　以下に実際に実行してみた結果を載せます。
+
+\begin{commandline}
+$ apt-get source dpkg
+$ cd dpkg-1.16.9
+$ dh_listpackages
+libdpkg-dev
+dpkg
+dpkg-dev
+libdpkg-perl
+dselect
+$
+\end{commandline}
+
+参考までに、上の例について、debian/controlファイル中で
+''Package: ``というフィールドを行頭に持つような行をすべて検索してみます。
+
+\begin{commandline}
+$ egrep '^Package' debian/control
+Package: libdpkg-dev
+Package: dpkg
+Package: dpkg-dev
+Package: libdpkg-perl
+Package: dselect
+$ 
+\end{commandline}
+
+となり、先の結果と一致します。
+
+　なお、dh\_listpackagesは、dhコマンドから呼び出された場合には、
+dhコマンドから引きついた情報を元に、構築予定のバイナリパッケージ
+の一覧を得る事ができます。つまり、dhコマンドから呼び出される
+他のdebhelperコマンドが、どんなパッケージに対して作用する予定
+かを、dh\_listpackagesを使って知ることができます。
+
+\subsection{おわりに}
+
+ 今回はcontrolファイルに関わるdebhelperコマンドについて説明をしてみました。
 
 \begin{thebibliography}{99}
 \bibitem{debpolicy} The Debian Policy Mailing List,``Debian Policy Manual'',version 3.9.4.0, 2012-09-19
