@@ -210,7 +210,7 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
         mail_title = "[Debian登録システム] イベント %s のアンケート結果" % event.title.encode('utf-8')
 
         send_notification.send_notification_to_user_and_owner(
-            user.email(),
+            'noreply@debianmeeting.appspotmail.com',
             user.email(),
             event.owner.email(),
             event.owners_email,

@@ -139,10 +139,11 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
             'event_url': 'http://%s/event?eventid=%s' % (self.request.host, eventid),
             }
         mail_message = self.template_render(mail_template, 'UserCommitEventRegistration.txt')
-        send_notification.send_notification_to_user_and_owner(user.email(), 
-                                                              user.email(), 
-                                                              event.owner.email(), 
-                                                              event.owners_email,
-                                                              mail_title, mail_message)
+        send_notification.send_notification_to_user_and_owner(
+            'noreply@debianmeeting.appspotmail.com',
+            user.email(), 
+            event.owner.email(), 
+            event.owners_email,
+            mail_title, mail_message)
         self.redirect('/thanks?eventid=%s' % (eventid))
 
