@@ -108,7 +108,6 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         mail_message = self.template_render(mail_template, 'RegisterEvent.txt')
 
         send_notification.send_notification_to_user_and_owner(
-            'noreply@debianmeeting.appspotmail.com',
             user.email(), 
             event.owner.email(),
             event.owners_email,

@@ -117,7 +117,6 @@ class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
 
         # don't try sending notification to every owner, but one.
         send_notification.send_notification(
-            'noreply@debianmeeting.appspotmail.com',
             self.request.get('to'),
             event.owner.email(),
             self.request.get('mail_title'),
@@ -210,7 +209,6 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
         mail_title = "[Debian登録システム] イベント %s のアンケート結果" % event.title.encode('utf-8')
 
         send_notification.send_notification_to_user_and_owner(
-            'noreply@debianmeeting.appspotmail.com',
             user.email(),
             event.owner.email(),
             event.owners_email,
