@@ -14,14 +14,14 @@ class EnqueteAdminEdit(webapp_generic.WebAppGenericProcessor):
     def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
             self.http_error_message('Not your event')
             return
-        enquete = self.load_enquete_with_eventid(eventid)
+        enquete = self.enquete_cache.get_uncached(eventid)
         if enquete == None:
             enquete = schema.EventEnquete()
         template_values = {
@@ -39,20 +39,21 @@ class EnqueteAdminEditDone(webapp_generic.WebAppGenericProcessor):
     def post(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
             self.http_error_message('Not your event')
             return
-        enquete = self.load_enquete_with_eventid(eventid)
+        enquete = self.enquete_cache.get_uncached(eventid)
         if enquete == None:
             enquete = schema.EventEnquete()
         enquete.eventid = eventid
         enquete.overall_message = self.request.get('overall_message')
         enquete.question_text = self.request.get('question_text').splitlines()
         enquete.put()
+        self.enquete_cache.invalidate_cache(eventid)
         template_values = {
             'eventid': eventid,
             }
@@ -65,14 +66,14 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
     def get(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
             self.http_error_message('Not your event')
             return
-        enquete = self.load_enquete_with_eventid(eventid)
+        enquete = self.enquete_cache.get_cached(eventid)
         if enquete == None:
             self.http_error_message('Enquete for event id %s not found' %
                                     (eventid))
@@ -110,7 +111,7 @@ class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
     Used for enquete mail sending."""
     def post(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
@@ -134,11 +135,11 @@ class EnqueteRespond(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('User not registered in event %s' %
                                     (eventid))
             return
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
-        enquete = self.load_enquete_with_eventid(eventid)
+        enquete = self.enquete_cache.get_cached(eventid)
         if enquete == None:
             self.http_error_message('Enquete for event id %s not found' %
                                     (eventid))
@@ -165,7 +166,7 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
     def post(self):
         eventid = self.request.get('eventid')
         user = users.get_current_user()
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
@@ -174,7 +175,7 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('User not registered in event %s' %
                                     (eventid))
             return
-        enquete = self.load_enquete_with_eventid(eventid)
+        enquete = self.enquete_cache.get_cached(eventid)
         if enquete == None:
             self.http_error_message('Enquete for event id %s not found' %
                                     (eventid))
@@ -218,14 +219,14 @@ class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
     """Admin lists enquete results summary."""
     def get(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
         if not self.check_auth_owner(event):
             self.http_error_message('Not your event')
             return
-        enquete = self.load_enquete_with_eventid(eventid)
+        enquete = self.enquete_cache.get_cached(eventid)
         if enquete == None:
             self.http_error_message('Enquete for event id %s not found' %
                                     (eventid))
@@ -285,12 +286,12 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
 
             # load event information for the title. If an event didn't
             # exist, that's weird, but allow for an error.
-            event = self.load_event_with_eventid_cached(eventid)
+            event = self.event_cache.get_cached(eventid)
             if event == None:
                 self.http_error_message('Event id %s not found' % (eventid))
                 continue
 
-            enquete = self.load_enquete_with_eventid(eventid)
+            enquete = self.enquete_cache.get_cached(eventid)
             if enquete == None:
                 # There wasn't an enquete for this eventid, which is a
                 # reasonable error condition before enquete is

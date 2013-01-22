@@ -26,7 +26,7 @@ class EditEvent(webapp_generic.WebAppGenericProcessor):
     """Load from the existing data and edit the event"""
     def get(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid(eventid)
+        event = self.event_cache.get_uncached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
@@ -79,7 +79,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
             event.eventid = eventid
             event.owner = user
         else:
-            event = self.load_event_with_eventid(eventid)
+            event = self.event_cache.get_uncached(eventid)
             if event == None:
                 self.http_error_message('Event id %s not found' % (eventid))
                 return
@@ -97,7 +97,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         event.event_date = self.request.get('event_date')
         event.capacity = int(self.request.get('capacity'))
         event.put()
-        self.invalidate_event_with_eventid(eventid)
+        self.event_cache.invalidate_cache(eventid)
 
         mail_title = "[Debian登録システム] イベント %s が更新されました" % event.title.encode('utf-8')
         mail_template = {
@@ -120,7 +120,7 @@ class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
     """View summary of registered users for a given event."""
     def get(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if not event:
             self.http_error_message('Event id %s not found' % (eventid))
             return
@@ -145,7 +145,7 @@ class PreworkLatex(webapp_generic.WebAppGenericProcessor):
     """View prework from registered users in LaTeX format."""
     def get(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if not event:
             self.http_error_message('Event id %s not found' % (eventid))
             return

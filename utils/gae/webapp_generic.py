@@ -1,19 +1,22 @@
 # Wrappers for webapp.RequestHandler.
 import os
 
-from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 
 import schema
+import memcache_util
 
 NO_SHOW_REMAINING_SEATS = -1 # return a fake value so that UI won't show the limit.
-MEMCACHE_EXPIRE_TIME = 24 * 60 * 60 # Make it so that cache expires after 24 hours. Should be good enough?
 
 class WebAppGenericProcessor(webapp.RequestHandler):
     """Convenience class to collect all methods that seem generally useful.
     """
+    def __init__(self):
+        """Constructor, initializes utility classes for use with this class."""
+        self.enquete_cache = memcache_util.EnqueteCache()
+        self.event_cache = memcache_util.EventCache()
 
     def fixup_attendance(self, attendance):
         """Fixup attendance after loading.
@@ -22,21 +25,6 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         """
         if attendance.prework_text is None:
             attendance.prework_text = attendance.prework
-
-    def fixup_event(self, event):
-        """Fixup event after loading.
-
-        Try to cover migration where event.prework -> prework_text, and content -> content_text
-        """
-        if event.content_text is None:
-            event.content_text = event.content
-        if event.prework_text is None:
-            event.prework_text = event.prework
-
-    def event_memcache_key(self, eventid):
-        """obtain memcached key for event."""
-        key = 'load_event_with_eventid_v2 %s' % eventid
-        return key
 
     def load_event_with_owners(self, user):
         """Look into owner and owners field and load event which match
@@ -48,38 +36,10 @@ class WebAppGenericProcessor(webapp.RequestHandler):
                   + schema.Event.gql(
                 'WHERE owners_email = :1 ORDER BY timestamp DESC', user.email()).fetch(1000))
         for event in events:
-            self.fixup_event(event)
+            self.event_cache.fixup_event(event)
         
         # Sort by timestamp, to mix events that are owned by somebody else.
         return sorted(events, key=lambda x: x.timestamp, reverse=True)
-
-    def load_event_with_eventid(self, eventid):
-        """Load an event with the eventid.
-        """
-        events = schema.Event.gql('WHERE eventid = :1 ORDER BY timestamp DESC LIMIT 1', eventid)
-        event = events.get()
-        if event is not None:
-            self.fixup_event(event)
-        return event
-
-    def load_event_with_eventid_cached(self, eventid):
-        """Load an event with the eventid, with memcache.
-        """
-        key = self.event_memcache_key(eventid)
-        data = memcache.get(key)
-        if data is not None:
-            return data
-        else:
-            data = self.load_event_with_eventid(eventid)
-            memcache.add(key, data, MEMCACHE_EXPIRE_TIME)
-            return data
-
-    def load_enquete_with_eventid(self, eventid):
-        """Load an enquete with the eventid.
-        """
-        enquetes = schema.EventEnquete.gql('WHERE eventid = :1 ORDER BY timestamp DESC LIMIT 1', eventid)
-        enquete = enquetes.get()
-        return enquete
 
     def load_enquete_responses_with_eventid(self, eventid):
         """Load enquete responsees for the eventid.
@@ -88,11 +48,6 @@ class WebAppGenericProcessor(webapp.RequestHandler):
             'WHERE eventid = :1 ORDER BY timestamp DESC', 
             eventid).fetch(1000)
         return enquete_responses
-
-    def invalidate_event_with_eventid(self, eventid):
-        """Invalidate an event memcache for eventid, should be called when data is updated."""
-        key = self.event_memcache_key(eventid)
-        memcache.delete(key)
 
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""
@@ -106,7 +61,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
     def load_event_title_with_eventid_cached(self, eventid):
         """Load an event title with the eventid.
         """
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         return event.title
 
     def load_user_realname_with_userid(self, user):

@@ -46,7 +46,7 @@ class Thanks(webapp_generic.WebAppGenericProcessor):
     """Show a thanks page"""
     def get(self):
         eventid = self.request.get('eventid')
-        event = self.load_event_with_eventid_cached(eventid)
+        event = self.event_cache.get_cached(eventid)
         if event == None:
             self.http_error_message('Event id %s not found' % (eventid))
             return
