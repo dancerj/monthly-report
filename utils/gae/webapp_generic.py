@@ -17,6 +17,7 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         """Constructor, initializes utility classes for use with this class."""
         self.enquete_cache = memcache_util.EnqueteCache()
         self.event_cache = memcache_util.EventCache()
+        self.enquete_response_cache = memcache_util.EnqueteResponseCache()
 
     def fixup_attendance(self, attendance):
         """Fixup attendance after loading.
@@ -40,14 +41,6 @@ class WebAppGenericProcessor(webapp.RequestHandler):
         
         # Sort by timestamp, to mix events that are owned by somebody else.
         return sorted(events, key=lambda x: x.timestamp, reverse=True)
-
-    def load_enquete_responses_with_eventid(self, eventid):
-        """Load enquete responsees for the eventid.
-        """
-        enquete_responses = schema.EventEnqueteResponse.gql(
-            'WHERE eventid = :1 ORDER BY timestamp DESC', 
-            eventid).fetch(1000)
-        return enquete_responses
 
     def load_attendance_with_eventid_and_user(self, eventid, user):
         """Load an attendance with the eventid and user."""

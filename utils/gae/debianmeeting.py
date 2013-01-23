@@ -25,13 +25,22 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
         attendances = schema.Attendance.gql(
             'WHERE user = :1 ORDER BY timestamp DESC',
             user).fetch(1000)
-        # look up the titles of events.
+        # loop to get necessary information about event.
+        # - look up the titles of events.
+        # - whether user has responded to enquete.
         attendance_titles = []
         for attendance in attendances:
-            title = self.load_event_title_with_eventid_cached(attendance.eventid)
+            title = self.load_event_title_with_eventid_cached(
+                attendance.eventid)
+            has_enquete = self.enquete_cache.get_cached(
+                attendance.eventid) != None
+            has_enquete_response = self.enquete_response_cache.get_cached_for_user(
+                attendance.eventid, user) != None
+
             attendance_titles.append({ 
                     'title': title,
                     'eventid': attendance.eventid,
+                    'want_enquete': has_enquete and not has_enquete_response,
                     })
         template_values = {
             'nickname': user.nickname(),

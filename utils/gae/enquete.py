@@ -187,6 +187,8 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
         for sequence, question_item in enumerate(enquete.question_text):
             enquete_response.question_response.append(long(self.request.get('question' + str(sequence))))
         enquete_response.put()
+        self.enquete_response_cache.invalidate_cache(eventid)
+
         template_values = {
             'eventid': eventid,
             }
@@ -231,7 +233,7 @@ class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
             self.http_error_message('Enquete for event id %s not found' %
                                     (eventid))
             return
-        enquete_responses = self.load_enquete_responses_with_eventid(eventid)
+        enquete_responses = self.enquete_response_cache.get_cached(eventid)
         if enquete_responses == None:
             self.http_error_message('Event id %s has not enquete response' % (eventid))
             return
@@ -298,7 +300,7 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
                 # created.
                 continue
 
-            enquete_responses = self.load_enquete_responses_with_eventid(eventid)
+            enquete_responses = self.enquete_response_cache.get_cached(eventid)
             if enquete_responses == None:
                 # It's also possible that there is no enquete response
                 # for an enquete.

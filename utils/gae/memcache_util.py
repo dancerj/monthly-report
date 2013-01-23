@@ -48,6 +48,28 @@ class EnqueteCache(MemcacheManager):
     def memcache_key(self, eventid):
         return 'enquete %s' % eventid
 
+
+class EnqueteResponseCache(MemcacheManager):
+    """Cache for enquete, keyed by eventid. This is a list of responses.
+    Use extract_user for extracting the specific user's response."""
+    def get_uncached(self, eventid):
+        enquete_responses = schema.EventEnqueteResponse.gql(
+            'WHERE eventid = :1 ORDER BY timestamp DESC', 
+            eventid).fetch(1000)
+        return enquete_responses
+
+    def memcache_key(self, eventid):
+        return 'enquete_response %s' % eventid
+
+    def get_cached_for_user(self, eventid, user):
+        """Return the enquete response for the particular user."""
+        enquete_responses = self.get_cached(eventid)
+        for enquete_response in enquete_responses:
+            if enquete_response.user == user:
+                return enquete_response
+        return None
+
+
 class EventCache(MemcacheManager):
     """Cache for event."""
     def get_uncached(self, eventid):

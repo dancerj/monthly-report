@@ -312,23 +312,34 @@ question 3'''):
         app = TestApp(application)
         eventid = self.createPageCommitHelper(app)
 
+        # user joins the event
+        self.login(LOGGED_IN_USER)
+        self.userEventEntry(app, eventid)
+        # does not see enquete request because there is no enquete yet.
+        response = app.get('/', {
+                'eventid': eventid,
+                })
+        self.assertFalse('アンケートに回答する' in response)
+
         # be the admin and create the enquete.
         self.login(LOGGED_IN_ADMIN)
         self.createEnquete(app, eventid)
 
-        # user joins the event
-        self.login(LOGGED_IN_USER)
-        self.userEventEntry(app, eventid)
-
         # admin sends out the enquete mail.
-        self.login(LOGGED_IN_ADMIN)
         response = app.get('/enquete/sendmail', {
                 'eventid': eventid,
                 })
         self.assertEqual('200 OK', response.status)
 
         # user responds to enquete
+        # user sees top page with enquete requirement.
         self.login(LOGGED_IN_USER)
+        response = app.get('/', {
+                'eventid': eventid,
+                })
+        self.assertTrue('アンケートに回答する' in response)
+
+        # user responds to enquete
         response = app.get('/enquete/respond', {
                 'eventid': eventid,
                 })
@@ -345,6 +356,12 @@ question 3'''):
                 'overall_comment': 'hello world',
                 })
         self.assertEqual('200 OK', response.status)
+
+        # user no longer sees top page with enquete requirement
+        response = app.get('/', {
+                'eventid': eventid,
+                })
+        self.assertFalse('アンケートに回答する' in response)
 
         # admin views the list
         self.login(LOGGED_IN_ADMIN)
