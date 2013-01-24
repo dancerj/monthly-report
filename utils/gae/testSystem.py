@@ -13,7 +13,6 @@ from google.appengine.api import mail_stub
 from google.appengine.api import user_service_stub
 from google.appengine.api.memcache import memcache_stub
 from google.appengine.api.taskqueue import taskqueue_stub
-from google.appengine.api.xmpp import xmpp_service_stub
 
 from debianmeeting import application
 
@@ -56,10 +55,6 @@ class SystemTest(unittest.TestCase):
         apiproxy_stub_map.apiproxy.RegisterStub(
             'mail', mail_stub.MailServiceStub())
         
-        # xmpp
-        apiproxy_stub_map.apiproxy.RegisterStub(
-            'xmpp', xmpp_service_stub.XmppServiceStub())
-
         # memcache
         apiproxy_stub_map.apiproxy.RegisterStub(
             'memcache', memcache_stub.MemcacheServiceStub())
