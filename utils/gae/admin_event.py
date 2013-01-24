@@ -63,6 +63,13 @@ def generate_eventid(event_title, username, time):
     return h.hexdigest()
 
 
+def timedelta_to_second(timedelta):
+    """Convert timedelta to total seconds because total_seconds() is
+    not supported before 2.7 and we're using older version of python
+    on appengine for now."""
+    return timedelta.seconds + timedelta.days * 86400
+
+
 class RegisterEvent(webapp_generic.WebAppGenericProcessor):
     """Load from the existing database and edit the event content.
     Handler for /eventadmin/register
@@ -130,6 +137,11 @@ You are not allowed to see a summary""")
             return
 
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
+
+        # Normalize timestamp to time since event was created; let's see if that's a useful signal to look at.
+        for attendance in attendances:
+            attendance.delta_seconds = timedelta_to_second(
+                attendance.timestamp - event.timestamp)
 
         template_values = {
             'eventid': eventid,
