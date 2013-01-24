@@ -369,10 +369,7 @@ question 3'''):
                 'eventid': eventid,
                 })
         self.assertEqual('200 OK', response.status)
-        self.assertEquals('''question 1,question 2,question 3,自由記入
-NA,5,4,hello world
-
-''', response.body)
+        self.assertEquals("question 1,question 2,question 3,自由記入\r\nNA,5,4,hello world\r\n", response.body)
 
         # admin views all the results
         self.login(LOGGED_IN_ADMIN)
