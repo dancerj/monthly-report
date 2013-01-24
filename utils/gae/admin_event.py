@@ -156,8 +156,13 @@ You are not allowed to see a summary""")
 
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
 
+        escaped_attendances = [
+            { 'user_realname': attendance.user_realname.replace('_', '\_{}'),
+              'prework_text': attendance.prework_text.replace('_', '\_{}'),
+              } for attendance in attendances]
+
         template_values = {
-            'attendances': attendances,
+            'attendances': escaped_attendances,
             'num_attend': num_attend,
             'num_enkai_attend': num_enkai_attend,
             }
