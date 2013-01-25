@@ -5,6 +5,7 @@
 import cgi
 import wsgiref.handlers
 import os
+import time
 
 from google.appengine.api import users
 from google.appengine.ext import webapp
@@ -15,16 +16,42 @@ import schema
 import user_registration
 import webapp_generic
 
+class TimingHolder:
+    """Hold timing information as list of reason/time_sec pair."""
+    def __init__(self):
+        self.t = []
+        self.start_time = time.time()
+        self.prev_time = self.start_time
+
+    def add(self, reason):
+        """Add reason."""
+        now_time = time.time()
+        self.t.append({
+                'reason': reason,
+                'total_time_sec': now_time - self.start_time,
+                'time_sec': now_time - self.prev_time,
+                })
+        self.prev_time = now_time
+
+    def get(self):
+        return self.t
+
 class TopPage(webapp_generic.WebAppGenericProcessor):
     """The top page for the site. 
     Has a form to create a new event."""
+
     def get(self):
+        timing = TimingHolder()
         user = users.get_current_user()
         
         events = self.load_event_with_owners(user)
+        timing.add('own_event')
+
         attendances = schema.Attendance.gql(
             'WHERE user = :1 ORDER BY timestamp DESC',
             user).fetch(1000)
+        timing.add('attendances')
+
         # loop to get necessary information about event.
         # - look up the titles of events.
         # - whether user has responded to enquete.
@@ -32,10 +59,15 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
         for attendance in attendances:
             title = self.load_event_title_with_eventid_cached(
                 attendance.eventid)
+            timing.add('event_' + attendance.eventid[:4])
+
             has_enquete = self.enquete_cache.get_cached(
                 attendance.eventid) != None
+            timing.add('enquete_' + attendance.eventid[:4])
+
             has_enquete_response = self.enquete_response_cache.get_cached_for_user(
                 attendance.eventid, user) != None
+            timing.add('attendance_' + attendance.eventid[:4])
 
             attendance_titles.append({ 
                     'title': title,
@@ -46,7 +78,8 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
             'nickname': user.nickname(),
             'events': events,
             'attendance_titles': attendance_titles,
-            'logout_url': users.create_logout_url(self.request.uri)
+            'logout_url': users.create_logout_url(self.request.uri),
+            'timings': timing.get()
             }
         self.template_render_output(template_values, 'TopPage.html')
 
