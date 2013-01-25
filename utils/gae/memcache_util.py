@@ -4,6 +4,10 @@ import schema
 
 MEMCACHE_EXPIRE_TIME = 24 * 60 * 60 # Make it so that cache expires after 24 hours. Should be good enough?
 
+class ErrorNotImplemented:
+    """Error when something is not implemented properly."""
+
+
 class MemcacheManager:
     """Convenience class to have memcache managed.
 
@@ -14,15 +18,20 @@ class MemcacheManager:
     """
     def get_uncached(self, key):
         """Get something uncached."""
-        return None # TODO: make it error
+        raise ErrorNotImplemented()
 
-    def memcache_key(self, key):
-        """Get key for use with memcache."""
-        return None # TODO: make it error
+    def _memcache_key(self, key):
+        """Get key for use with memcache. For internal use of this
+        class."""
+        raise ErrorNotImplemented()
 
     def get_cached(self, key):
-        """Get something cached."""
-        cached_data = memcache.get(self.memcache_key(key))
+        """Get something cached.
+
+        key is the original key, I will be preorocessing the key with
+        memcache_key to obtain the memcache key.
+        """
+        cached_data = memcache.get(self._memcache_key(key))
         if cached_data is not None:
             return cached_data['value']
         data = self.get_uncached(key)
@@ -30,13 +39,13 @@ class MemcacheManager:
             'value': data
             }
         memcache.add(
-            self.memcache_key(key), 
+            self._memcache_key(key), 
             cached_data, 
             MEMCACHE_EXPIRE_TIME)
         return data
 
     def invalidate_cache(self, key):
-        memcache.delete(self.memcache_key(key))
+        memcache.delete(self._memcache_key(key))
 
 class EnqueteCache(MemcacheManager):
     """Cache for enquete."""
@@ -45,7 +54,7 @@ class EnqueteCache(MemcacheManager):
         enquete = enquetes.get()
         return enquete
 
-    def memcache_key(self, eventid):
+    def _memcache_key(self, eventid):
         return 'enquete %s' % eventid
 
 
@@ -58,7 +67,7 @@ class EnqueteResponseCache(MemcacheManager):
             eventid).fetch(1000)
         return enquete_responses
 
-    def memcache_key(self, eventid):
+    def _memcache_key(self, eventid):
         return 'enquete_response %s' % eventid
 
     def get_cached_for_user(self, eventid, user):
@@ -79,7 +88,7 @@ class EventCache(MemcacheManager):
             self.fixup_event(event)
         return event
 
-    def memcache_key(self, eventid):
+    def _memcache_key(self, eventid):
         return 'load_event_with_eventid_v3 %s' % eventid
 
     def fixup_event(self, event):
