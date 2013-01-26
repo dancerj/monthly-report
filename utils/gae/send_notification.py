@@ -1,8 +1,7 @@
-# notification code. Send email and XMPP notifications.
+# notification code. Send email notifications.
 # coding=utf-8
 import logging
 
-from google.appengine.api import xmpp
 from google.appengine.api import mail
 
 def send_notification(address, owner_address, title, mail_body):
@@ -10,9 +9,6 @@ def send_notification(address, owner_address, title, mail_body):
 
     The mail will always come from the application mail address.
     """
-    # send XMPP message containing just the short title
-    xmpp.send_message(address + "," + owner_address, title)
-
     # sending mail with full body
     mail.send_mail(
         'noreply@debianmeeting.appspotmail.com', 

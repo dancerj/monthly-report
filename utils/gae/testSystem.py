@@ -13,7 +13,6 @@ from google.appengine.api import mail_stub
 from google.appengine.api import user_service_stub
 from google.appengine.api.memcache import memcache_stub
 from google.appengine.api.taskqueue import taskqueue_stub
-from google.appengine.api.xmpp import xmpp_service_stub
 
 from debianmeeting import application
 
@@ -56,10 +55,6 @@ class SystemTest(unittest.TestCase):
         apiproxy_stub_map.apiproxy.RegisterStub(
             'mail', mail_stub.MailServiceStub())
         
-        # xmpp
-        apiproxy_stub_map.apiproxy.RegisterStub(
-            'xmpp', xmpp_service_stub.XmppServiceStub())
-
         # memcache
         apiproxy_stub_map.apiproxy.RegisterStub(
             'memcache', memcache_stub.MemcacheServiceStub())
@@ -128,7 +123,8 @@ class SystemTest(unittest.TestCase):
         """Check remaining seats value for event entry form."""
         self.assertTrue(str(remaining_seats) in response)
 
-    def userEventEntry(self, app, eventid, capacity=CAPACITY):
+    def userEventEntry(self, app, eventid, capacity=CAPACITY, 
+                       user_realname=USER_REALNAME):
         """Register user to event.
         Check that state changes before and after the event.
         """
@@ -147,7 +143,7 @@ class SystemTest(unittest.TestCase):
                 'user_prework': USER_PREWORK,
                 'user_attend': 'attend',
                 'user_enkai_attend': 'enkai_attend',
-                'user_realname': USER_REALNAME,
+                'user_realname': user_realname,
                 })
         self.assertEqual('302 Moved Temporarily', response.status)
         self.assertTrue('/thanks?eventid=%s' % eventid
@@ -305,6 +301,24 @@ question 3'''):
         self.assertTrue(LOGGED_IN_USER in response)
         self.assertTrue(USER_PREWORK in response)
 
+    def testLatexEnqueteEscape(self):
+        app = TestApp(application)
+        eventid = self.createPageCommitHelper(app)
+
+        # user joins the event
+        self.login(LOGGED_IN_USER)
+        self.userEventEntry(app, eventid,
+                            user_realname='man_with_underscore')
+        
+        # be the admin and create the enquete.
+        self.login(LOGGED_IN_ADMIN)
+        response = app.get('/eventadmin/preworklatex', {
+                'eventid': eventid,
+                })
+        self.assertEqual('200 OK', response.status)
+        self.assertTrue('man\_{}with\_{}underscore' in response.body)
+
+
     def testEnqueteCreate(self):
         """Test Enquete creation flow.
         """
@@ -369,10 +383,7 @@ question 3'''):
                 'eventid': eventid,
                 })
         self.assertEqual('200 OK', response.status)
-        self.assertEquals('''question 1,question 2,question 3,自由記入
-NA,5,4,hello world
-
-''', response.body)
+        self.assertEquals("question 1,question 2,question 3,自由記入\r\nNA,5,4,hello world\r\n", response.body)
 
         # admin views all the results
         self.login(LOGGED_IN_ADMIN)

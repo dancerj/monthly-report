@@ -217,6 +217,12 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
             event.owners_email,
             mail_title, mail_message)
 
+def convert_score_to_string(value):
+    """Convert score to string for processing with R. 0 is converted to NA."""
+    if value == 0:
+        return 'NA'
+    return str(value)
+
 class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
     """Admin lists enquete results summary."""
     def get(self):
@@ -237,13 +243,23 @@ class EnqueteAdminShowEnqueteResult(webapp_generic.WebAppGenericProcessor):
         if enquete_responses == None:
             self.http_error_message('Event id %s has not enquete response' % (eventid))
             return
-        template_values = {
-            'event': event,
-            'question_text': enquete.question_text,
-            'enquete_responses': enquete_responses,
-            }
-        self.response.headers['Content-type'] = 'text/plain; charset=utf-8'
-        self.template_render_output(template_values, 'EnqueteAdminShowEnqueteResult.txt')
+
+        # Output csv buffer for doing output in csv format.
+        string_io = StringIO.StringIO()
+        csv_writer = csv.writer(string_io)
+
+        csv_writer.writerow([x.encode('utf-8') for x in enquete.question_text] + 
+                            ['自由記入'])
+        for enquete_response in enquete_responses:
+            csv_writer.writerow(
+                [convert_score_to_string(x)
+                 for x in enquete_response.question_response] +
+                [enquete_response.overall_comment.encode('utf-8')]
+                )
+
+        self.response.headers['Content-type'] = 'text/csv; charset=utf-8'
+        self.response.headers['Content-Disposition'] = 'attachment; filename=enquete.csv'
+        self.response.out.write(string_io.getvalue())
 
 
 class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
@@ -251,10 +267,7 @@ class EnqueteAdminShowAllEnqueteResults(webapp_generic.WebAppGenericProcessor):
 
     def conditional_get_enquete_map(self, enquete_map_of_user_key, key):
         """Get the key from enquete map with optional mapping of 0 to NA."""
-        value = str(enquete_map_of_user_key.get(key, 'NA'))
-        if value == '0':
-            return 'NA'
-        return value
+        return convert_score_to_string(enquete_map_of_user_key.get(key, 'NA'))
 
     def generate_question_key(self, event, question_text, eventid):
         """Generate a key string used for question.
