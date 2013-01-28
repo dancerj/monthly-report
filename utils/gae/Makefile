@@ -2,7 +2,7 @@
 # there is a dev_appserver.py symlink to binary in $PATH
 GAE_PATH:=$(dir $(realpath $(shell which dev_appserver.py)))
 
-TESTFILES=testSystem.py
+TESTFILES=testSystem.py test_admin_event.py
 TESTSTAMP=$(patsubst %.py,%.py-stamp,$(TESTFILES))
 
 all:

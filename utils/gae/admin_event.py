@@ -123,6 +123,26 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         self.redirect('/thanks?eventid=%s' % eventid)
 
 
+NUM_BUCKETS = 10
+
+def get_bucket_delta_seconds(delta_seconds):
+    """Take an array of delta seconds, and bucket them as histogram
+    for output."""
+    min_delta_seconds = min(delta_seconds)
+    max_delta_seconds = max(delta_seconds)
+    time_range = max_delta_seconds - min_delta_seconds
+
+    # If there's no range, I can't bucket it.
+    if time_range == 0:
+        return []
+
+    bucket_interval = (time_range + 1) / float(NUM_BUCKETS)
+    bucketed_count = [0] * NUM_BUCKETS
+    for delta_second in delta_seconds:
+        bucket = int((delta_second - min_delta_seconds) / bucket_interval)
+        bucketed_count[bucket] += 1
+    return bucketed_count
+
 class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
     """View summary of registered users for a given event."""
     def get(self):
@@ -139,15 +159,18 @@ You are not allowed to see a summary""")
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
 
         # Normalize timestamp to time since event was created; let's see if that's a useful signal to look at.
-        for attendance in attendances:
-            attendance.delta_seconds = timedelta_to_second(
+        bucket_delta_seconds = get_bucket_delta_seconds(
+            [timedelta_to_second(
                 attendance.timestamp - event.timestamp)
+             for attendance in attendances])
 
         template_values = {
             'eventid': eventid,
             'attendances': attendances,
             'num_attend': num_attend,
             'num_enkai_attend': num_enkai_attend,
+            'bucket_delta_seconds': [ '*' * bucket_delta_second
+                                      for bucket_delta_second in bucket_delta_seconds],
             }
 
         self.template_render_output(template_values, 'ViewEventSummary.html')
