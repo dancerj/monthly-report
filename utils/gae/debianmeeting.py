@@ -15,6 +15,7 @@ import enquete
 import schema
 import user_registration
 import webapp_generic
+import throttled_mail_sender
 
 class TimingHolder:
     """Hold timing information as list of reason/time_sec pair."""
@@ -98,6 +99,9 @@ class Thanks(webapp_generic.WebAppGenericProcessor):
         self.template_render_output(template_values, 'Thanks.html')
 
 application = webapp.WSGIApplication([
+    # batch jobs require admin privilege.
+    ('/batch/throttledmailsender', throttled_mail_sender.ThrottledMailSender),
+    # normal pages are useable from any logged in user.
     ('/', TopPage),
     ('/newevent', admin_event.NewEvent),
     ('/enquete/edit', enquete.EnqueteAdminEdit),
@@ -105,7 +109,6 @@ application = webapp.WSGIApplication([
     ('/enquete/showresult', enquete.EnqueteAdminShowEnqueteResult),
     ('/enquete/showallresults', enquete.EnqueteAdminShowAllEnqueteResults),
     ('/enquete/sendmail', enquete.EnqueteAdminSendMail),
-    ('/enquete/sendmailworker', enquete.EnqueteAdminSendMailWorker),
     ('/enquete/respond', enquete.EnqueteRespond),
     ('/enquete/responddone', enquete.EnqueteRespondDone),
     ('/event', user_registration.UserEventRegistrationPage),

@@ -3,7 +3,7 @@
 from google.appengine.api import users
 
 import schema
-import send_notification
+import throttled_mail_sender
 import webapp_generic
 
 class UserEventRegistrationPage(webapp_generic.WebAppGenericProcessor):
@@ -129,10 +129,6 @@ class UserCommitEventRegistration(webapp_generic.WebAppGenericProcessor):
             'event_url': 'http://%s/event?eventid=%s' % (self.request.host, eventid),
             }
         mail_message = self.template_render(mail_template, 'UserCommitEventRegistration.txt')
-        send_notification.send_notification_to_user_and_owner(
-            user.email(), 
-            event.owner.email(), 
-            event.owners_email,
-            mail_title, mail_message)
+        throttled_mail_sender.send_mail(eventid, user.email(), mail_title, mail_message)
         self.redirect('/thanks?eventid=%s' % (eventid))
 

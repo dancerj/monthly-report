@@ -1,13 +1,12 @@
 # Enquete page editing and submitting.
 # coding=utf-8
 from google.appengine.api import users
-from google.appengine.api import taskqueue
 
 import StringIO
 import csv
 import schema
-import send_notification
 import webapp_generic
+import throttled_mail_sender
 
 class EnqueteAdminEdit(webapp_generic.WebAppGenericProcessor):
     """Admin edits the enquete questionnaire."""
@@ -91,37 +90,14 @@ class EnqueteAdminSendMail(webapp_generic.WebAppGenericProcessor):
                 mail_template, 'EnqueteAdminSendMail.txt')
             mail_title = "[Debian登録システム] イベント %s のアンケートの依頼" % event.title.encode('utf-8')
 
-            taskqueue.add(url = '/enquete/sendmailworker',
-                          queue_name = 'enquetemail',
-                          params = {
-                    'eventid': eventid,
-                    'to': attendance.user.email(),
-                    'mail_title': mail_title,
-                    'mail_message': mail_message,
-                    }
-                          )
+            throttled_mail_sender.send_mail(
+                eventid,
+                attendance.user.email(),
+                mail_title,
+                mail_message)
+
             # show page content
             self.response.out.write(mail_message)
-
-
-class EnqueteAdminSendMailWorker(webapp_generic.WebAppGenericProcessor):
-    """Taskqueue email handler. This is the worker job which will
-    actually send mail.
-
-    Used for enquete mail sending."""
-    def post(self):
-        eventid = self.request.get('eventid')
-        event = self.event_cache.get_cached(eventid)
-        if event == None:
-            self.http_error_message('Event id %s not found' % (eventid))
-            return
-
-        # don't try sending notification to every owner, but one.
-        send_notification.send_notification(
-            self.request.get('to'),
-            event.owner.email(),
-            self.request.get('mail_title'),
-            self.request.get('mail_message'))
 
 
 class EnqueteRespond(webapp_generic.WebAppGenericProcessor):
@@ -211,11 +187,11 @@ class EnqueteRespondDone(webapp_generic.WebAppGenericProcessor):
             mail_template, 'EnqueteRespondDone.txt')
         mail_title = "[Debian登録システム] イベント %s のアンケート結果" % event.title.encode('utf-8')
 
-        send_notification.send_notification_to_user_and_owner(
+        throttled_mail_sender.send_mail(
+            eventid,
             user.email(),
-            event.owner.email(),
-            event.owners_email,
-            mail_title, mail_message)
+            mail_title,
+            mail_message)
 
 def convert_score_to_string(value):
     """Convert score to string for processing with R. 0 is converted to NA."""

@@ -6,7 +6,7 @@ import hashlib
 from google.appengine.api import users
 
 import schema
-import send_notification
+import throttled_mail_sender
 import webapp_generic
 
 DEFAULT_CAPACITY = 30
@@ -114,12 +114,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
             }
         mail_message = self.template_render(mail_template, 'RegisterEvent.txt')
 
-        send_notification.send_notification_to_user_and_owner(
-            user.email(), 
-            event.owner.email(),
-            event.owners_email,
-            mail_title, mail_message)
-
+        throttled_mail_sender.send_mail(eventid, user.email(), mail_title, mail_message)
         self.redirect('/thanks?eventid=%s' % eventid)
 
 
