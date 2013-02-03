@@ -30,7 +30,7 @@ class TimingHolder:
         self.t.append({
                 'reason': reason,
                 'total_time_sec': now_time - self.start_time,
-                'time_sec': now_time - self.prev_time,
+                'time_msec': int((now_time - self.prev_time)*1000),
                 })
         self.prev_time = now_time
 
