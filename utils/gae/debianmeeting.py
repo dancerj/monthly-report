@@ -44,10 +44,12 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
     def get(self):
         timing = TimingHolder()
         user = users.get_current_user()
-        
+
+        # events contains the events that the user owns.
         events = self.load_event_with_owners(user)
         timing.add('own_event')
 
+        # attendances are the events that the user attended.
         attendances = schema.Attendance.gql(
             'WHERE user = :1 ORDER BY timestamp DESC',
             user).fetch(1000)
@@ -78,6 +80,7 @@ class TopPage(webapp_generic.WebAppGenericProcessor):
         template_values = {
             'nickname': user.nickname(),
             'events': events,
+            'any_events': len(events) > 0,
             'attendance_titles': attendance_titles,
             'logout_url': users.create_logout_url(self.request.uri),
             'timings': timing.get()
