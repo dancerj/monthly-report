@@ -119,10 +119,13 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
 
 
 NUM_BUCKETS = 10
-
+WIDTH = 500
+HEIGHT = 100
 def get_bucket_delta_seconds(delta_seconds):
     """Take an array of delta seconds, and bucket them as histogram
-    for output."""
+    for output.
+
+    returns an array of index, frequency and bucket representative value."""
     min_delta_seconds = min(delta_seconds)
     max_delta_seconds = max(delta_seconds)
     time_range = max_delta_seconds - min_delta_seconds
@@ -132,11 +135,19 @@ def get_bucket_delta_seconds(delta_seconds):
         return []
 
     bucket_interval = (time_range + 1) / float(NUM_BUCKETS)
-    bucketed_count = [0] * NUM_BUCKETS
+    bucketed_frequency = [0] * NUM_BUCKETS
     for delta_second in delta_seconds:
         bucket = int((delta_second - min_delta_seconds) / bucket_interval)
-        bucketed_count[bucket] += 1
-    return bucketed_count
+        bucketed_frequency[bucket] += 1
+    max_bucketed_frequency = max(bucketed_frequency)
+
+    return [{ 'index': i, 
+              'frequency': frequency, 
+              'bucket': i * bucket_interval + min_delta_seconds,
+              'x': i * (WIDTH / NUM_BUCKETS),
+              'y': HEIGHT - (frequency / max_bucketed_frequency) * HEIGHT,
+              } for i, frequency in enumerate(bucketed_frequency)]
+
 
 class ViewEventSummary(webapp_generic.WebAppGenericProcessor):
     """View summary of registered users for a given event."""
@@ -164,8 +175,7 @@ You are not allowed to see a summary""")
             'attendances': attendances,
             'num_attend': num_attend,
             'num_enkai_attend': num_enkai_attend,
-            'bucket_delta_seconds': [ '*' * bucket_delta_second
-                                      for bucket_delta_second in bucket_delta_seconds],
+            'bucket_delta_seconds': bucket_delta_seconds,
             }
 
         self.template_render_output(template_values, 'ViewEventSummary.html')
