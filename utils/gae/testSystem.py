@@ -202,7 +202,9 @@ question 3'''):
 
     def testCreatePageCommit(self):
         app = TestApp(application)
-        self.createPageCommitHelper(app)
+        eventid = self.createPageCommitHelper(app)
+        # basic sanity checking of the event ID value.
+        self.assertEqual(len(eventid), 40)
 
     def testListKnownAdminEvents(self):
         """Check admin dashboard if the newly created event can be seen.

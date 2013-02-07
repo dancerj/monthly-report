@@ -13,12 +13,15 @@ import graph
 
 DEFAULT_CAPACITY = 30
 
+# New events do not have an ID yet, so special ID is used to mark it is not yet defined.
+NEW_EVENT_ID='na'
+
 class NewEvent(webapp_generic.WebAppGenericProcessor):
     """Form to create a new event."""
     def get(self):
         template_values = {
             'nickname': users.get_current_user().nickname(),
-            'eventid': "na", # set it to N/A to later set it to something else...?
+            'eventid': NEW_EVENT_ID,
             'new_entry': True,
             'capacity': DEFAULT_CAPACITY,
             }
@@ -81,7 +84,7 @@ class RegisterEvent(webapp_generic.WebAppGenericProcessor):
         title = self.request.get('title')
         user = users.get_current_user()
 
-        if eventid == 'na':
+        if eventid == NEW_EVENT_ID:
             # if it's new, create a new item
             event = schema.Event()
             eventid = generate_eventid(title, user.email(), datetime.datetime.now().isoformat(' '))
