@@ -2,6 +2,7 @@
 # coding=utf-8
 import datetime
 import hashlib
+import time
 
 from google.appengine.api import users
 
@@ -135,17 +136,15 @@ You are not allowed to see a summary""")
         attendances, num_attend, num_enkai_attend = self.load_users_with_eventid(eventid)
 
         # Normalize timestamp to time since event was created; let's see if that's a useful signal to look at.
-        bucket_delta_seconds = graph.get_bucket_delta_seconds(
-            [timedelta_to_second(
-                attendance.timestamp - event.timestamp)
-             for attendance in attendances])
+        bucket_seconds = graph.get_bucket_seconds(
+            [attendance.timestamp for attendance in attendances])
 
         template_values = {
             'eventid': eventid,
             'attendances': attendances,
             'num_attend': num_attend,
             'num_enkai_attend': num_enkai_attend,
-            'bucket_delta_seconds': bucket_delta_seconds,
+            'bucket_seconds': bucket_seconds,
             }
 
         self.template_render_output(template_values, 'ViewEventSummary.html')
