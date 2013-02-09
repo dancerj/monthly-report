@@ -2,9 +2,6 @@
 # there is a dev_appserver.py symlink to binary in $PATH
 GAE_PATH:=$(dir $(realpath $(shell which dev_appserver.py)))
 
-TESTFILES=testSystem.py test_admin_event.py
-TESTSTAMP=$(patsubst %.py,%.py-stamp,$(TESTFILES))
-
 all:
 
 clean:
@@ -12,14 +9,11 @@ clean:
 	# stamp files.
 	rm -f *~ *.pyc *-stamp
 
-check: ${TESTSTAMP}
+check: 
+	set -e; for A in test*.py; do \
+		PYTHONPATH=${GAE_PATH}:${GAE_PATH}/lib/django_0_96:. \
+		python $$A; \
+	done
 
-%.py-stamp: %.py
-	PYTHONPATH=${GAE_PATH}:${GAE_PATH}/lib/django_0_96:. \
-		python $<
-	touch $@ # If test succeeded, update the stamp
-
-# system test depends on everything.
-testSystem.py-stamp: testSystem.py $(wildcard *.py) $(wildcard *.html) $(wildcard *.txt)
 
 .PHONY: check
