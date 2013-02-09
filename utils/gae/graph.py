@@ -37,7 +37,7 @@ def get_bucket_seconds(timestamps):
                     'frequency': frequency, 
                     'bucket': i * bucket_interval + min_seconds['seconds'],
                     'x': i * (WIDTH / NUM_BUCKETS),
-                    'y': HEIGHT - (frequency / max_bucketed_frequency) * HEIGHT,
+                    'y': HEIGHT - (frequency / float(max_bucketed_frequency)) * HEIGHT,
                     } for i, frequency in enumerate(bucketed_frequency)],
              }
 
