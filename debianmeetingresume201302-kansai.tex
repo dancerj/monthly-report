@@ -313,6 +313,301 @@ TitanPad に資料がまとめられていますので参照してみてください。
 
 \dancersection{Debian Installer トラブルシューティング}{Yuryu}
 
+\subsection{自己紹介}
+\begin{itemize}
+\item Yuryu (twitter: @Yuryu)
+\item 某社でインフラエンジニアしてます
+\item potato → woody → (浮気) → Ubuntu(Gusty) → ... → Ubuntu(Precise)
+\item 会社では Debian 使ってます
+\item 好きなコマンドは xargs
+\end{itemize}
+
+\subsection{Preseed}
+\subsubsection{Preseed とは}
+\begin{itemize}
+\item Debian Installer の応答ファイル
+\item すべての選択肢が選べる
+\item PXE と組み合わせると強い
+\item 単体でも使えます(少々面倒)
+\end{itemize}
+
+\begin{commandline}
+locale=en_US language=en country=JP
+console-keymaps-at/keymap=jp106
+keyboard-configuration/xkb-keymap=jp106
+interface=eth0 hostname=debian
+domain=local url=http://holo.yuryu.jp/
+preseed.cfg DEBCONF_DEBUG=5
+\end{commandline}
+
+\subsubsection{bootオプションの必要性}
+\begin{itemize}
+\item Preseed ファイルが読まれるのは、ネットワークの設定が終わってから
+\item ネットワーク設定前にもインストーラーの質問はある
+\item →ブートオプションとして渡す
+\item 長いので手打ちは無理、PXE を使う
+\end{itemize}
+
+\subsubsection{expert install}
+\begin{itemize}
+\item expert options → automated install
+\item 途中で preseed ファイルを指定できる
+\item とりあえず試すにはこっち
+\end{itemize}
+
+\subsubsection{url}
+\begin{itemize}
+\item preseed ファイルの場所
+\item http, ftp, tftp で指定
+\item https は使えない(!)
+\end{itemize}
+
+\subsubsection{ファイルの中身}
+\begin{itemize}
+\item 「d-i 項目名 指定」の羅列
+\end{itemize}
+
+\begin{commandline}
+### Clock and time zone setup
+# Controls whether or not the hardware clock is set to UTC.
+d-i clock-setup/utc boolean true
+
+# You may set this to any valid setting for $TZ; see the contents of
+# /usr/share/zoneinfo/ for valid values.
+d-i time/zone string Asia/Tokyo
+
+# Controls whether to use NTP to set the clock during the install
+d-i clock-setup/ntp boolean true
+# NTP server to use. The default is almost always fine here.
+d-i clock-setup/ntp-server string ntp.nict.go.jp
+\end{commandline}
+%$
+
+\subsubsection{ファイルの書き方}
+\begin{itemize}
+\item 基本的にはサンプル通り
+\item でも、いくつか落とし穴が...
+  \begin{itemize}
+  \item 一番大変なのが partitioning
+  \end{itemize}
+\end{itemize}
+
+\subsection{partitioning}
+
+\subsubsection{partitioning}
+\begin{itemize}
+\item d-i partman-auto/choose\_recipe
+  \begin{itemize}
+  \item atomic - / 一発
+  \item home - /home だけ分ける
+  \item multi - /home, /usr, /var, /tmp
+  \end{itemize}
+\item d-i partman-auto/expert\_recipe
+\end{itemize}
+
+\subsubsection{recipe}
+\begin{commandline}
+d-i partman-auto/expert_recipe string                         \
+      boot-root ::                                            \
+              40 50 100 ext2                                  \
+                      $primary{ } $bootable{ }                \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext2 }    \
+                      mountpoint{ /boot }                     \
+              .                                               \
+              500 10000 -1 ext4                               \
+                      method{ format } format{ }              \
+                      use_filesystem{ } filesystem{ ext4 }    \
+                      mountpoint{ / }                         \
+              .                                               \
+              64 512 300% linux-swap                          \
+                      method{ swap } format{ }                \
+              .
+\end{commandline}
+
+\clearpage
+
+\subsubsection{レシピ形式}
+
+レシピ名 ::
+
+\ 最低容量(MB) 優先度 最大容量 FS
+
+\ パーティション内容 .
+
+\begin{commandline}
+ 500 1000 -1 ext4 \
+ method{ format } format{ } \
+ use_filesystem{ } filesystem{ ext4 } \
+ mountpoint{ /home }
+\end{commandline}
+
+\subsubsection{容量}
+\begin{itemize}
+\item 最大を -1 にすると空き容量をすべて使う
+\item 優先度は数字が大きなほうが低い
+\item 最小=最大にせず100MB程度の幅をもたせる
+\end{itemize}
+
+\subsubsection{method}
+\begin{itemize}
+\item format
+  \begin{itemize}
+  \item 通常通りフォーマットして使用
+  \end{itemize}
+\item swap
+  \begin{itemize}
+  \item スワップパーティションとして使用
+  \end{itemize}
+\item keep
+  \begin{itemize}
+  \item 何もせず区画だけ作る
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{ファイルシステム}
+\begin{itemize}
+\item 容量の右側に書くものと、filesystem\{ \}
+\item 基本的には同じ
+\item ext[2-4], xfs, btrfs, jfs, linux-swap
+\item keep のときは無視される(free でもok)
+\end{itemize}
+
+\subsubsection{お約束}
+\begin{itemize}
+\item 冗長に見えても、省略できないもの
+\item format\{ \}
+\item use\_filesystem\{ \}
+\item filesystem\{ ext4 \}
+\end{itemize}
+
+\subsection{ハマりました}
+
+\subsubsection{primary}
+\begin{itemize}
+\item \$primary\{ \} プライマリ必須指定
+\item \$logical\{ \} もありそう?
+  \begin{itemize}
+  \item 実は無い
+  \item 省略すると logical になる
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{一行で書く}
+\begin{itemize}
+\item 行末に \textbackslash を書いて、一行につなげて書く
+\item \textbackslash の後にスペースがあるとそこで切れます
+\end{itemize}
+ 
+\subsubsection{レシピ名}
+\begin{itemize}
+\item レシピ名が必須
+\item partman-auto/choose\_recipe とは無関係
+  \begin{itemize}
+  \item expert recipe 使うなら書いてはいけない
+  \end{itemize}
+\item 何を書いても動作に関係なし...
+\end{itemize}
+
+\begin{commandline}
+d-i partman-auto/expert_recipe string                         \
+      boot-root ::                                            \
+\end{commandline}
+
+\subsubsection{スペースの扱い}
+\begin{itemize}
+\item 基本的にはスペース必須
+\item 開きカッコの手前はスペース不可
+  \begin{itemize}
+  \item ○ method\{\_format\_\}
+  \item × method\_\{\_format\_\}
+  \end{itemize}
+\item grep でパースしてるので厳格です...
+\end{itemize}
+
+\subsubsection{レシピ、認識されてる?}
+\begin{itemize}
+\item /tmp/expert\_recipe
+\item 実際に使われたレシピが入る
+\end{itemize}
+
+\subsection{その他troubleshoot}
+\subsubsection{d-i じゃない行もある}
+\begin{itemize}
+\item d-i で始まらない行もある
+\item tasksel
+  \begin{itemize}
+  \item popularity-contest
+  \item コピペ事故に注意
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{止まったら}
+\begin{itemize}
+\item syslog を確認
+\item INPUT ... の行がパラメーター名
+\end{itemize}
+
+\subsubsection{ログ}
+\begin{itemize}
+\item Alt+F4 のログ
+\item インストール中 /var/log/syslog
+\item インストール後 /var/log/installer/syslog
+\item DEBCONF\_DEBUG が必須
+\end{itemize}
+
+\subsubsection{こわくないよ}
+\begin{itemize}
+\item debian installer の実態はシェルスクリプト
+\item 各ディレクトリを for で順に呼んでる
+\item 項目名で grep してみるとヒントが
+\end{itemize}
+
+\subsubsection{debian/*.templates}
+\begin{itemize}
+\item debian-installer の各種パッケージの debian/*.templates
+\item 変数名、型、説明が揃ってる
+\item リファレンス代わりになります
+\end{itemize}
+
+\begin{commandline}
+Template: partman-partitioning/bootable_logical
+Type: boolean
+Default: false
+# :sl2:
+_Description: Are you sure you want a bootable logical partition?
+ You are trying to set the bootable flag on a logical partition. The
+\end{commandline}
+
+\subsubsection{debconf-get-selections}
+\begin{itemize}
+\item インストール済みOSから設定を取得
+\item debconf-get-selections --installer
+\item デフォルト値も含めて大量に出る
+  \begin{itemize}
+  \item 必要な物を取捨選択する必要あり
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{Ubuntu 対応}
+\begin{itemize}
+\item 基本的には同じ
+\item いくつか追加の質問
+  \begin{itemize}
+  \item d-i pkgsel/update-policy select none
+  \item d-i user-setup/allow-password-weak boolean true
+  \item d-i user-setup/encrypt-home boolean false
+  \end{itemize}
+\item 詳しくは \url{https://help.ubuntu.com/lts/installation-guide/i386/preseed-contents.html}
+\end{itemize}
+
+\subsection{まとめ}
+\begin{itemize}
+\item 困ったら syslog を観る
+\item recipe はスペースに気をつける
+\item DEBCONF\_DEBUG=5 重要!
+\end{itemize}
+
 \clearpage
 
 \dancersection{Ruby In Wheezy}{佐々木洋平}
