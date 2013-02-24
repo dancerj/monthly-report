@@ -107,7 +107,7 @@
 ト以降は次回となりましたので続きが楽しみです。
 
 初の奈良開催でしたが、会場は奈良公園内近くの雰囲気のよい場所でした。今
-年は大阪以外の場所でも勉強会を開催したいですね。 
+年は大阪以外の場所でも勉強会を開催したいですね。
 
 
 \subsection{第 97 回東京エリア Debian 勉強会 2013年2月勉強会 2013 OSC出張}
@@ -246,13 +246,171 @@ TitanPad に資料がまとめられていますので参照してみてください。
 
 \dancersection{Ruby In Wheezy}{佐々木洋平}
 
+\vspace{1em}
+
+次期安定版 Debian 7.0 (Wheezy) における Ruby 環境について、%
+特に複数の Ruby 実装の共存と Gem とのお付き合いの仕方について、
+簡単にお話しします。
+
+\subsection{``Ruby'' in Wheezy}
+
+Ruby には複数の実装が存在しています。
+Debian Wheezy では以下の Ruby インタープリタが使用できます:
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{lll}
+    インタープリタ & パッケージ名       & 注意書き \\
+    MRI 1.8.7      & \texttt{ruby1.8}   &          \\
+    MRI 1.9.3      & \texttt{ruby1.9.3} & \texttt{ruby1.9.1} パッケージの実態は \texttt{ruby1.9.3} だったりします。 \\
+    JRuby          & \texttt{jruby}     & パッケージは Debian Java Maintainers によって管理されています \\
+    Rubinius       & \texttt{rubinius}  & 現在作業中です. ITP\#591817 \\
+    mruby          & \texttt{mruby}     & 現在作業中です. ITP\#697835 \\
+  \end{tabular}
+\end{table}
+%
+\newline
+「\texttt{ruby1.9.1} パッケージの実態は \texttt{ruby1.9.3} だったりします。」について、
+Ruby の soname が変わっていないので \texttt{libruby1.9.1} 等のパッケージが残っており、
+\texttt{ruby1.9.3} パッケージは \texttt{/usr/bin/ruby1.9.1} への
+symbolic link を提供するだけだったりします。
+\begin{commandline}
+% dpkg -S ruby1.9.3
+ruby1.9.3: /usr/bin/ruby1.9.3
+ruby1.9.3: /usr/share/man/man1/ruby1.9.3.1.gz
+ruby1.9.3: /usr/share/doc/ruby1.9.3
+ruby1.9.3: /usr/share/doc/ruby1.9.3/NEWS.Debian.gz
+ruby1.9.3: /usr/share/doc/ruby1.9.3/NEWS.gz
+ruby1.9.3: /usr/share/doc/ruby1.9.3/changelog.Debian.gz
+ruby1.9.3: /usr/share/doc/ruby1.9.3/changelog.gz
+ruby1.9.3: /usr/share/doc/ruby1.9.3/copyright
+ruby1.9.3: /usr/share/doc/ruby1.9.3/README.gz
+% ls -la /usr/bin/ruby1.9.3
+lrwxrwxrwx 1 root root 9 Feb 23 23:44 /usr/bin/ruby1.9.3 -> ruby1.9.1*
+\end{commandline}
+他にも、\texttt{Topaz} や \texttt{HPC Ruby Compiler} など、(個人的に)気になる実装がありますが、まだ Debian でどうこうというお話にはなっていません。
+
+\subsection{複数の Ruby 実装の切り替え}
+
+さて, これだけ複数の Ruby 実装があると、それを切り替えて使いたくなるのが人情だと思います。
+Debian には、同じ機能を提供するソフトウェアをきりかえる \texttt{update-alternatives} という仕組みが既にあります。
+ですが、\texttt{/usr/bin/ruby} を切り替えたら \texttt{gem} や \texttt{irb} なんかも切り替えたくなるでしょう。
+そのため、これらを一度に変換するためのコマンドが提供されています。
+
+\subsubsection{システム全体でデフォルトの Ruby を切り替えるには?: \texttt{ruby-switch}}
+
+システム全体でデフォルトの Ruby インタープリタを選択するために、ruby-switch パッケージが使用可能です。 これは root として(もしくは sudo を使って)実行する必要があります。
+\begin{commandline}
+# ruby -v
+ruby 1.8.7 (2011-06-30 patchlevel 352) [x86_64-linux]
+# ruby-switch --list
+ruby1.8
+ruby1.9.1
+# ruby-switch --set ruby1.9.1
+update-alternatives: using /usr/bin/gem1.9.1 to provide /usr/bin/gem (gem) in manual mode.
+update-alternatives: using /usr/bin/ruby1.9.1 to provide /usr/bin/ruby (ruby) in manual mode.
+# ruby -v
+ruby 1.9.3p0 (2011-10-30 revision 33570) [x86_64-linux]
+# ruby-switch --auto
+update-alternatives: using /usr/bin/ruby1.8 to provide /usr/bin/ruby (ruby) in auto mode.
+update-alternatives: using /usr/bin/gem1.8 to provide /usr/bin/gem (gem) in auto mode.
+# ruby -v
+ruby 1.8.7 (2011-06-30 patchlevel 352) [x86_64-linux]
+\end{commandline}
+
+\subsubsection{ユーザ毎にデフォルトの Ruby インタープリタを選択するには: \texttt{rbenv}}
+
+ユーザアカウント毎にデフォルトの Ruby インタープリタを切り替えるには、rbenv パッケージを使うのが良いでしょう。
+\begin{commandline}
+% ruby -v
+ruby 1.8.7 (2011-06-30 patchlevel 352) [x86_64-linux]
+% rbenv init
+# Load rbenv automatically by adding
+# the following to ~/.bash_profile:
+
+eval ``$(rbenv init -)"
+% echo 'eval ``$(rbenv init -)"' >> ~/.bash_profile # or ~/.bashrc, depends on your setup
+% rbenv versions
+% rbenv alternatives
+% rbenv versions
+  1.8.7-debian
+  1.9.3-debian
+% rbenv global 1.9.3-debian
+% ruby -v
+ruby 1.8.7 (2011-06-30 patchlevel 352) [x86_64-linux]
+\end{commandline}
+%%$
+一見ちゃんと動作していないように見えますが、これは現在実行中のシェルが "ruby" の位置として /usr/bin/ruby をキャッシュしているからです。新しいシェルを開始した後には、デフォルトの Ruby を行ったり来たり切り替えることができます。
+\begin{commandline}
+% ruby -v
+ruby 1.8.7 (2011-06-30 patchlevel 352) [x86_64-linux]
+% rbenv global 1.9.3-debian
+% ruby -v
+ruby 1.9.3p0 (2011-10-30 revision 33570) [x86_64-linux]
+% rbenv global 1.8.7-debian
+% ruby -v
+ruby 1.8.7 (2011-06-30 patchlevel 352) [x86_64-linux]
+\end{commandline}
+
+\subsubsection{Debian パッケージになっていない Ruby をインストールするには: \texttt{ruby-build}}
+
+\texttt{ruby-build} を使用することで、Debian でまだ使用可能になっていない Ruby インタープリタをインストールすることができます。
+しかしながら、このパッケージの README.Debian ファイルに書かれている内容に注意して下さい:
+\begin{commandline}
+  While ruby-build is a great tool to build Ruby versions that are not
+  available via APT, you should still use the Debian-packaged versions
+  of Ruby whenever possible since they are tested and supported by the
+  Debian community.
+
+  Please do not report bugs you encounter while using your homebuilt
+  Rubies to the Debian team; Rubies built by yourself are not supported.
+\end{commandline}
+% とはいえ \texttt{ruby2.0} がそろそろ出ますし、\texttt{ruby-build} を使う人も多いと思います.
+% \footnote{個人的には \texttt{backports} する予定ですが.}.
+というわけで、詳細は \texttt{man ruby-build} ということで。
+
+\subsection{Debian における Ruby パッケージング}
+
+Debian では Ruby 本体のパッケージングは \texttt{pkg-ruby} チーム、
+Gem 等で配布されている(拡張)ライブラリやアプリケーションは
+\texttt{pkg-ruby-extras} チームによってメンテされています。
+次の話題は
+\texttt{pkg-ruby-extras} チームが良くやっていること、
+すなわち Gem で配布されている Ruby (拡張)ライブラリの Debian パッケージ化について、です。
+
+\subsection{Gem パッケージを Debian パッケージに: \texttt{gem2deb}}
+
+Gem で配布されている Ruby (拡張)ライブラリは
+\texttt{gem2deb} を用いることで Debian パッケージに変換可能です。\textbf{たいていの場合は}。
+\texttt{gem2deb} によるお手軽パッケージングの成功率は perl の\texttt{dh\_make\_perl}
+\footnote{%
+  CPAN にある perl ライブラリ/モジュールを Debian パッケージにするコマンド
+}
+ぐらい、だと思って下さい(もっと低いかも)。
+
+たとえば \texttt{hogehoge} という gem を Debian パッケージにしたい場合には
+\begin{commandline}
+% sudo apt-get install gem2deb
+...
+% gem fetch hogehoge
+...
+% gem2deb hogehoge[version].gem
+...
+% sudo dpkg -i ruby-hogehoge_[version].deb
+\end{commandline}
+で良い筈です。
+ちなみにこれらは MRI 1.8.7, MRI 1.9.3 向けのパッケージとなります。
+
+\subsection{まとめ...?}
+
+当日の demo をふまえて、後日加筆修正する予定です。
+
 \clearpage
 
-\dancersection{月刊 Debian Policy 「オペレーティングシステム」その2}{担当：のがた}
+% \dancersection{月刊 Debian Policy 「オペレーティングシステム」その2}{担当：のがた}
 
-すみません。今回お休みです。
+% すみません。今回お休みです。
 
-\clearpage
+% \clearpage
 
 \dancersection{今後の予定}{Debian JP}
 
@@ -274,7 +432,7 @@ TitanPad に資料がまとめられていますので参照してみてください。
 % \mbox{}\newpage
 
 \printindex
- \cleartooddpage
+%\cleartooddpage
 
  \begin{minipage}[b]{0.2\hsize}
   \rotatebox{90}{\fontsize{80}{80} {\gt 関西 Debian 勉強会} }
