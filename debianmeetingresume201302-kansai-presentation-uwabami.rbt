@@ -1,0 +1,399 @@
+# -*- mode: rabbit; coding: utf-8; indent-tabs-mode: nil -*-"
+= Ruby in Wheezy
+
+: subtitle
+  〜第69回 関西Debian勉強会〜
+: author
+  佐々木洋平/Youhei SASAKI
+: content_source
+  twitter: ((<"@uwabami"|URL:https://twitter.com/uwabami>)) 
+
+: institution
+
+: date
+  2013/02/24
+: place
+  GREE 大阪オフィス セミナールーム
+: theme
+  debian
+: allotted-time
+  45m
+
+= どーも
+= 佐々木です
+= About me.
+
+:Name & Contact:
+  * 佐々木洋平/Youhei SASAKI
+  * Twitter/Github: ((*uwabami*))
+:Activity:
+  * Debian JP Project/ 関西 Debian 勉強会
+  * Ruby, TeX, Emacs, Scientific Computing...
+
+== プロパティ
+
+: background-image
+  image201104/mattari.png
+: background-image-relative-height
+  50
+: background-image-align
+  right
+: background-image-relative-margin-top
+  5
+: background-image-relative-margin-right
+  -10
+
+= About me.
+
+:Name & Contact:
+  * 佐々木洋平/Youhei SASAKI
+  * Twitter/Github: ((*uwabami*))
+:Activity:
+  * Debian JP Project/ 関西 Debian 勉強会
+  * ((*Ruby*)), TeX, Emacs, Scientific Computing...
+
+== プロパティ
+
+: background-image
+  image201104/mattari.png
+: background-image-relative-height
+  50
+: background-image-align
+  right
+: background-image-relative-margin-top
+  5
+: background-image-relative-margin-right
+  -10
+
+= Ruby...?
+
+= Maintainer Dashboard \nDebian QA
+
+* Maintainer Dashboard@UDD
+  * ((<"http://udd.debian.org/dmd.cgi?email1=uwabami%40gfd-dennou.org"|URL:http://udd.debian.org/dmd.cgi?email1=uwabami%40gfd-dennou.org>))
+
+* Debian Quality Assuarance
+  * ((<"http://qa.debian.org/developer.php?login=uwabami%40gfd-dennou.org"|URL:http://qa.debian.org/developer.php?login=uwabami%40gfd-dennou.org>))
+
+= Disclaimer
+
+:無保証無責任原則
+  * 用法, 用量を守って正しくお使い下さい
+  * 誤字脱字含め, 適宜ご指摘下されば幸いです.
+
+:疑問/質問/ツッコミ/茶々, ((*大歓迎*))
+  * その場でどうぞ
+
+:ハッシュタグ: ((*#kansaidebian*))
+
+= Agenda
+
+(1) Ruby in Wheezy
+
+(2) Switch your Ruby
+
+(3) gem2deb
+
+(4) Debian with Rails
+
+= Agenda
+
+(1) ((*Ruby in Wheezy*))
+
+(2) Switch your Ruby
+
+(3) gem2deb
+
+(4) Debian with Rails
+
+= Ruby in Wheezy
+
+= Ruby の実装
+
+* Ruby インタープリタには実装が複数ある
+  * MRI1.8.7, MRI1.9.3, JRuby: apt ready!
+  * Rubinius: Work in Progress ITP((<"#591817"|URL:http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=591817>))
+  * mruby: Work in Progress ITP((<"#697835"|URL:http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=697835>))
+  * 他に HPC Ruby Compiler, Topaz, etc.
+* これらを用途の応じて使い分けるには?
+
+= Agenda
+
+(1) Ruby in Wheezy
+
+(2) ((*Switch your Ruby*))
+
+(3) gem2deb
+
+(4) Debian with Rails
+
+= Switch your Ruby?
+
+* Debian には ((*update-alternatives*)) がある
+  * 同じ機能を提供する複数のソフトウェアを切り替える仕組み
+  * 例: vi -> nvi, vim
+* /usr/bin/ruby の実体は symbolic link
+  * alternatives で管理.
+  * でも ruby 切り替えたら gem とか irb も変えたいよね?
+
+= システム全体で変えるには?
+
+* ((*ruby-switch*)) が便利です.
+  * update-aliternatives の wrapper です.
+
+        % ruby-switch --list
+        % ruby-switch --set ruby1.9.1
+        % ruby -v
+        % ruby-switch --set ruby1.8
+        % ruby -v
+
+= ユーザ毎に変えるには?
+
+* ((*rbenv*)) を使いましょう.
+
+        % rbenv init
+        # Load rbenv automatically by adding
+        # the following to ~/.bash_profile:
+        
+        eval "$(rbenv init -)"
+        % rbenv versions
+        % rbenv alternatives
+        % rbenv versions
+        % rbenv global 1.9.3-debian
+
+
+= Debian パッケージになって\nいないRuby を使うには?
+
+* ((*ruby-build*)) を使うことが可能です.
+
+       While ruby-build is a great tool to build Ruby versions that are not
+       available via APT, you should still use the Debian-packaged versions
+       of Ruby whenever possible since they are tested and supported by the
+       Debian community.
+       
+       Please do not report bugs you encounter while using your homebuilt
+       Rubies to the Debian team; Rubies built by yourself are not supported.
+
+= ruby-build で ruby2.0rc2 を使うには?: (1)
+
+* rbenv + ruby-build がオススメ
+
+* ruby-build の definitions には 2.0.0-dev までしかない
+  * 2.0.0rc2 の definitions を書いて build すれば良くね?
+
+* /usr/share/ruby-build/2.0.0-dev をコピーして修正
+  
+        % cat 2.0.0rc2
+        install_git "ruby-2.0.0rc" "https://github.com/ruby/ruby.git" "v2_0_0_rc2" autoconf standard
+
+= ruby-build で ruby2.0rc2 を使うには?: (2)
+
+* 必要なパッケージを install
+        % sudo apt-get build-dep ruby1.9.1-dev                               
+        ...
+
+* rbenv 管理下に install
+
+        % ruby-build --verbose 2.0.0rc2 `echo $HOME`/.rbenv/versions/2.0.0rc2
+        ...
+
+= ruby-build で ruby2.0rc2 を使うには?: (3)
+
+* rbenv で環境変数を読み込み
+
+        % rbenv global 2.0.0rc2
+        % ruby -v
+        ruby 2.0.0dev (2013-02-08 trunk 39159) [x86_64-linux]
+
+* 試しにイロイロ動かしてみましょう
+
+= ruby-build: 注意
+
+* 再掲します:
+
+       While ruby-build is a great tool to build Ruby versions that are not
+       available via APT, you should still use the Debian-packaged versions
+       of Ruby whenever possible since they are tested and supported by the
+       Debian community.
+       
+       Please do not report bugs you encounter while using your homebuilt
+       Rubies to the Debian team; Rubies built by yourself are not supported.
+
+= Have any questions?
+
+= Agenda
+
+(1) Ruby in Wheezy
+
+(2) Switch your Ruby
+
+(3) ((*gem2deb*))
+
+(4) Debian with Rails
+
+= gem2deb
+
+= Ruby in Debian:\nMaintainer Team
+
+* Ruby 本体: pkg-ruby チーム
+  * MRI, Rubinius...
+  * JRuby は pkg-java チーム
+* Ruby の(拡張)ライブラリ: pkg-ruby-extreas チーム
+  * ((<"Team Documentation and current packaging practices"|URL:http://wiki.debian.org/Teams/Ruby/Packaging>))
+
+= Ruby in Debian:\nPackage naming scheme
+
+* これまで:
+  * ruby1.8, ruby1.9.1 各々ついて別のパッケージ名
+  * lib((*hogehoge*))-ruby{,1.8,1.9.1} という名前
+
+* これから:
+  * ruby1.8, ruby1.9.1 両方について同じパッケージ名
+  * ruby-((*hogehoge*)): ((*hogehoge*)) は gem の名前
+
+= Ruby in Debian: \nFile hierarchy(1)
+
+* 本体同梱以外のパッケージは vendordir 以下に
+* pure Ruby: Config::CONFIG['vendordir']
+  * /usr/lib/ruby/vendor_ruby
+* C 拡張ライブラリ: Config::CONFIG['vendorarchdir']
+  * /usr/lib/ruby/vendor_ruby/1.8/x86_64-linux
+  * /usr/lib/ruby/vendor_ruby/1.9.1/x86_64-linux
+
+= Ruby in Debian: \nFile hierarchy(2)
+
+ % irb1.8
+ irb(main):001:0> puts $LOAD_PATH
+ /usr/local/lib/site_ruby/1.8
+ /usr/local/lib/site_ruby/1.8/x86_64-linux
+ /usr/local/lib/site_ruby
+ /usr/lib/ruby/vendor_ruby/1.8
+ /usr/lib/ruby/vendor_ruby/1.8/x86_64-linux
+ /usr/lib/ruby/vendor_ruby
+ /usr/lib/ruby/1.8
+ /usr/lib/ruby/1.8/x86_64-linux
+ .
+ => nil
+
+
+= Ruby in Debian: \nFile hierarchy(3)
+
+ % irb1.9.1
+ puts $LOAD_PATH
+ irb(main):001:0> puts $LOAD_PATH
+ /usr/local/lib/site_ruby/1.9.1
+ /usr/local/lib/site_ruby/1.9.1/x86_64-linux
+ /usr/local/lib/site_ruby
+ /usr/lib/ruby/vendor_ruby/1.9.1
+ /usr/lib/ruby/vendor_ruby/1.9.1/x86_64-linux
+ /usr/lib/ruby/vendor_ruby
+ /usr/lib/ruby/1.9.1
+ /usr/lib/ruby/1.9.1/x86_64-linux
+ .
+ => nil
+
+= Ruby in Debian:\nMaintainer Team
+
+* Ruby 本体: pkg-ruby チーム
+  * MRI, Rubinius...
+  * JRuby は pkg-java チーム
+* Ruby の(拡張)ライブラリ: pkg-ruby-extreas チーム
+  * ((<"Team Documentation and current packaging practices"|URL:http://wiki.debian.org/Teams/Ruby/Packaging>))
+  * パッケージ作成には ((*gem2deb*)) を使用中
+
+= Ruby in Debian:\ngem2deb
+
+* gem2deb: 
+  * gem から deb パッケージを作成するコマンド
+
+        % gem fetch hogehoge.gem
+        % gem2deb hogehoge[version].gem
+        % ...
+        % dpkg -i ruby-hogehoge_[version]-1.deb
+
+* ...と, ((*常にこうなるなら苦労しねぇんだな, これが*)).
+
+= gem2deb pit fall(1): \ndependency hell
+
+* 多くの gem は「依存漏れ」がある
+  * みつける度に Bug Report 書こう!
+* chain dependencies
+  * ((*Fxxk !!*))
+
+= gem2deb pit fall(2): \ntest/spec(1)
+
+* Debian パッケージは Ruby1.8, 1.9.3 両方で動く必要有
+  * 1.9 のみサポート, というのも可能ですが.
+  * なので, テストが転んで deb ができない, という事が多い
+* test/spec で PATH が埋め込まれている
+  * 相対 PATH が酷い事になっていたり
+  * gem としても作法が良くないですよね?
+
+= gem2deb pit fall(2): \ntest/spec(2)
+
+* LOCALE の設定がアレ
+  * Debian のパッケージビルド環境は LOCALE が設定されていない
+  * test/spec の Encoding.default_external が...
+  * 最近 gem2deb は Encoding.default_external = "UTF-8" になった.
+
+* Bundler で古いライブラリに pin 止めされていたり
+
+= 実演?
+
+= Have any questions?
+
+= Agenda
+
+(1) Ruby in Wheezy
+
+(2) Switch your Ruby
+
+(3) gem2deb
+
+(4) ((*Debian with Rails*))
+
+= Debian with Rails
+
+= Rails Application in Debian
+
+* Debian パッケージとして提供している Rails アプリ
+  * 今の所 Redmine のみ
+  * しかも Redmine 1.4.4 
+    * Redmine 2.x は experimental
+* Redmine 1.4.4 は Rails2
+  * なので Debian パッケージには Rails2 と Rails3 が存在
+
+= Rails in Debian
+
+* Rails2, Rails3 in Debian
+    % apt-show-versions -p rails
+    Not installed
+    rails 2:2.3.14.2 sid ftp.jp.debian.org
+    % apt-show-versions -p rails3
+    Not installed
+    rails3 3.2.6-1 sid ftp.jp.debian.org
+
+= Rails in Debian
+
+* パッケージとしての共存は不可能
+  * ActiveRecord, ActiveSupport の 2 系と 3 系を共存?
+  * require に version 番号付けるだけで良い?
+
+* ((*そもそも需要あるの?*))
+* chroot + reverse proxy ?
+
+= Have any ((*Ideas*))?
+
+= Have any questions?
+= References.
+
+  Lucas Nussbaum's Blog:
+    * Changes to Ruby in Debian (and Ubuntu)
+      http://www.lucas-nussbaum.net/blog/?p=681
+
+  DebianWiki:
+    * TeamsRuby:
+      http://wiki.debian.org/Teams/Ruby
+    * Debian/Ruby Wheezy Transition:
+      http://pkg-ruby-extras.alioth.debian.org/wheezy/
+
