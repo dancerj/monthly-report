@@ -328,7 +328,9 @@ TitanPad に資料がまとめられていますので参照してみてください。
 \item Debian Installer の応答ファイル
 \item すべての選択肢が選べる
 \item PXE と組み合わせると強い
-\item 単体でも使えます(少々面倒)
+  \begin{itemize}
+  \item 単体でも使えます(少々面倒)
+  \end{itemize}
 \end{itemize}
 
 \begin{commandline}
@@ -336,8 +338,8 @@ locale=en_US language=en country=JP
 console-keymaps-at/keymap=jp106
 keyboard-configuration/xkb-keymap=jp106
 interface=eth0 hostname=debian
-domain=local url=http://holo.yuryu.jp/
-preseed.cfg DEBCONF_DEBUG=5
+domain=local url=http://holo.yuryu.jp/preseed.cfg
+DEBCONF_DEBUG=5
 \end{commandline}
 
 \subsubsection{bootオプションの必要性}
@@ -531,15 +533,47 @@ d-i partman-auto/expert_recipe string                         \
 \item 実際に使われたレシピが入る
 \end{itemize}
 
+\begin{commandline}
+~ # cd /tmp
+/tmp # ls
+connection_type  expert_recipe    mdadm.conf
+/tmp # cat expert_recipe
+boot-root :: 40 50 100 ext3 #primary{ } $bootable{ } method{ format } format{ } use_filesystem{ } filesystem{ ext3 }
+mountpoint{ /boot } . 500 10000 1000000000 ext3 method{ format } format{ } use_filesystem{ } filesystem{ ext3 }
+mountpoint{ / } . 64 512 300% linux-swap method{ swap } format{ } .
+/tmp #
+\end{commandline}
+%$
+
+\subsubsection{その他条件文}
+\begin{itemize}
+\item \$iflabel\{ label \} - ラベルが一致
+\item \$defaultignore\{ \} - LVM を使わない時無視
+\item \$lvmok\{ \} - LVM にしても良い
+\item \$lvmignore\{ \} - LVM の場合は無視
+\end{itemize}
+
+\subsubsection{パーティション再利用}
+\begin{itemize}
+\item 既存のパーティションを再利用
+\item \$reusemethod\{ \}
+  \begin{itemize}
+  \item method(format, swap) が同一なら再利用
+  \item 主に biosgrub, swap 向け?
+  \end{itemize}
+\item \$iflabel\{ label \} と組み合わせる
+\item \url{http://lists.debian.org/debian-boot/2011/04/msg00333.html}
+\end{itemize}
+
 \subsection{その他troubleshoot}
 \subsubsection{d-i じゃない行もある}
 \begin{itemize}
 \item d-i で始まらない行もある
-\item tasksel
   \begin{itemize}
+  \item tasksel
   \item popularity-contest
-  \item コピペ事故に注意
   \end{itemize}
+\item コピペ事故に注意
 \end{itemize}
 
 \subsubsection{止まったら}
@@ -794,7 +828,7 @@ Gem で配布されている Ruby (拡張)ライブラリは
 % そのための調整
 \dancersection{メモ}{}
  \mbox{}\newpage
- \mbox{}\newpage
+% \mbox{}\newpage
 % \mbox{}\newpage
 
 \printindex
