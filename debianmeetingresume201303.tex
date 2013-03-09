@@ -319,8 +319,207 @@ dictossさん、やまねさんが協力しました。
 %-------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------
-\dancersection{samba4(仮)}{たかはしもとのぶ}
+\dancersection{ldapvi \& python-ldap で stress-free life}{まえだこうへい}
 %-------------------------------------------------------------------------------
+
+\subsection{ストレス溜まってませんか？}
+
+はじめに今回の記事は OpenLDAP で LDAP サーバの管理を行っている人がターゲットです。LDAP サーバを自分で管理している人はそんなに多くないだろうと思いますが、この記事が LDAP の運用で困っている人の一助になれば良いなと思います。そうでない人もLDAPアカウントやイエローページ(アドレス帳)などで知らぬ間に恩恵を受けているということは大いにあるので、明日は我が身と思ってお読み下さい。
+また、自分で作ったツールのアカウント管理を LDAP で行いたい、という場合にも参考になることでしょう。
+
+なお、 LDAP の基本的なお話や、Debian システムでの OpenLDAP の入門については、第 61 回 関西 Debian 勉強会( 2012 年 7 月)に佐々木さんが行われているので、そちらを参照下さい。\footnote{あんどきゅめんてっど Debian 2012 年冬号 8.「Debian で作る LDAP サーバ」 \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume2012-fuyu.pdf}}
+
+\subsection{stress = LDIF}
+
+LDAP の運用で何が面倒かというと、LDIF (LDAP Data Interchange Format) の作成です。LDAP のデータを作成・更新・削除するには通常、 LDIF を作成し、 ldapadd/ldapmodify/ldapdelete コマンドで実行します。一つのオブジェクトは dn(distiguised name, 識別名)から始まり、それに attribute が続きます。複数オブジェクトを記述するには空行で分割します。下記は RFC2849 の ``Example 1: An simple LDAP file with two entries'' からの引用です。\footnote{\url{http://www.ietf.org/rfc/rfc2849.txt}}
+
+\begin{commandline}
+version: 1
+dn: cn=Barbara Jensen, ou=Product Development, dc=airius, dc=com
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+cn: Barbara Jensen
+cn: Barbara J Jensen
+cn: Babs Jensen
+sn: Jensen
+uid: bjensen
+telephonenumber: +1 408 555 1212
+
+dn: cn=Bjorn Jensen, ou=Accounting, dc=airius, dc=com
+objectclass: top
+objectclass: person
+objectclass: organizationalPerson
+cn: Bjorn Jensen
+sn: Jensen
+telephonenumber: +1 408 555 1212
+\end{commandline}
+
+データフォーマット自体はさほど難しくありませんが、このデータを一から自分でスクラッチで作成するとなると、とても面倒だと思いませんか？例えば上記の引用例のようなユーザアカウントの場合、人間が読みやすいのは TSV 形式などでスプレッドシートソフトで管理するのが一番楽でしょう。ではそこから LDIF に変換したり、あるいはその逆はどうしますか？簡単に思いつくのは次の二つでしょう。
+
+\begin{enumerate}
+  \item 手でちまちま変換する
+  \item なんらかのプログラムで一括変換する
+\end{enumerate}
+
+そもそも1は転記ミスなどの可能性から論外ですが、アカウント数が少数ならいっそのこと LDIF を手で作成すると割り切ってしまうのもありでしょう。面倒なのでちょっとストレスです。
+
+しかしユーザ数が大量になるともうなんらかのプログラムで変換しないとやってられないでしょう。
+例えば、以前私が Excel で管理されているユーザ情報を LDIF に変換し、それをもとに LDAP サーバを構築したときは xlhtml パッケージでまず TSV フォーマットのデータに変換し、 awk スクリプトで LDIF に変換しました。詳細はブログにありますのでそちらを参照ください。\footnote{Excel ファイルから LDIF を生成する。\url{http://d.palmtb.net/2011/08/13/194954.html}} この時は、一回だけ変換し、そのあとは phpLDAPadmin \footnote{\url{http://phpldapadmin.sourceforge.net/wiki/index.php/Main_Page}} を使うようにしました。が、残念ながら phpLDAPadmin は Web ブラウザで LDAP の管理を行えるだけで、お世辞にも使いやすいとは言えません。なので、当時は画面をキャプチャし、手順書を作って後任に引き継ぎました。しかし、ITリテラシの低い人によるユーザ情報の更新もあるので、　Excel での管理も継続され、データの二重管理になってしまいました。ストレス溜まって仕方ありません。 awk でインポート用の変換スクリプトを書くのはまだ良いですが、データのメンテナンス用のスクリプトを書くとなると大変です。 Excel の列と LDAP オブジェクトの attribute のマッチングは数を数えて、となるので非常に面倒です。やってられません。ストレスが溜まってしかたありません。
+
+\subsubsection{そして slapd-config}
+OpenLDAP 2.4 からは slapd 自体の管理も LDAP データベースになりました。これを slapd-config と言います。以前の OpenLDAP 2.3 までは、/etc/ldap/slapd.conf で管理していましたが、これが /etc/ldap/slapd.d 以下の LDAP データベース(実態は LDIF ファイル)になっています。これらのファイルは エディタでの直接編集はできません。直接編集するとハッシュが変わるので壊れます。現在は既存ユーザ向けにまだ slapd-config ではなく slapd.conf で管理する方法も残っています。しかし、 slapd.conf は将来的に廃止されることが決まっています。廃止されるものを使いつづけても仕方ありません。日本語で公開されている OpenLDAP の記事をみるとほとんどがそのやり方でしょう。嘆かわしいことです、と言いたいところですが、ユーザデータの管理ですら LDIF で悩んでいるのに、さらに slapd 自体の構成すら LDIF 作ってやらんとあかんと考えるともう気が狂ってしまいそうですね。
+
+ストレッサーである LDIF をなんとかしないといけません。
+
+\subsection{ldapvi で LDIF 地獄からの脱却}
+
+そこで、ldapvi です。\footnote{\url{http://www.lichteblau.com/ldapvi/}} このツールはは、 vipw(8) コマンドや、 visudo(8) と同じように、 vi で LDAP のデータを変更できます。これで少数のデータを管理するときはもちろん、 slapd-config での slapd 管理の悩みも解決します。
+
+使うには、 ldapvi パッケージをインストールします。
+
+\begin{commandline}
+$ sudo apt-get install ldapvi
+\end{commandline}
+
+使い方は、ldap-utils パッケージのコマンドのオプションとほぼ同じです。では最大のストレッサーを最初に取り除きましょう。 slapd-config での操作は下記のコマンドを実行します。
+
+\begin{commandline}
+$ sudo ldapvi -Y EXTERNAL -h ldapi:/// -b cn=config
+\end{commandline}
+
+これで slapd-config 管理下のすべてのオブジェクトツリーが ldapvi のフォーマットで表示されます。 ldapvi のフォーマットはほぼ LDIF に似ています。
+
+\begin{commandline}
+# -*- coding: utf-8 -*- vim:fileencoding=utf-8:
+# http://www.lichteblau.com/ldapvi/manual#syntax
+
+# SASL output:
+# SASL/EXTERNAL authentication started
+# SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+# SASL SSF: 0
+
+0 cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: /var/run/slapd/slapd.args
+olcLogLevel: 512
+olcPidFile: /var/run/slapd/slapd.pid
+olcToolThreads: 1
+
+1 cn=module{0},cn=config
+objectClass: olcModuleList
+cn: module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: {0}back_hdb
+
+2 cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+(snip)
+\end{commandline}
+
+違いは、 LDIF なら ``dn: cn=config'' となっている部分が ``0 cn=config'' と表示されていることです。この数字は表示されているオブジェクトを 0 を基数とする序数となっています。例えば、新しいオブジェクトを追加する場合は、数字の代わりに ``add'' を使います。auditlog, ppolicy モジュールを新しくロードする場合は下記のように挿入します。
+
+\begin{commandline}
+(snip)
+
+1 cn=module{0},cn=config
+objectClass: olcModuleList
+cn: module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: {0}back_hdb
+
+add cn=modile,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: auditlog.la
+
+add cn=modile,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: ppollicy.la
+
+2 cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+(snip)
+\end{commandline}
+
+追記したら、 vi と同様に保存、終了してみましょう。(:wq コマンドを実行) すると次のメッセージが出力されます。
+
+\begin{commandline}
+SASL/EXTERNAL authentication started
+SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+SASL SSF: 0
+     12 entries read                                                              
+add: 2, rename: 0, modify: 0, delete: 0
+Action? [yYqQvVebB*rsf+?] 
+\end{commandline}
+
+ここで、''y'' を入力すると、実際に slapd-config に反映されます。 slapd.conf とは違い、 slapd の再起動は不要です。''q'' を入力するとキャンセルして終了します。
+
+上記での挿入時に、 cn=module{0} の ``{0}'' を残したまま保存してみてください。
+
+\begin{commandline}
+add cn=modile{0},cn=config
+objectClass: olcModuleList
+cn: module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: ppollicy.la
+\end{commandline}
+
+すると次のようにエラーに修正を要求されます。
+\begin{commandline}
+ldap_add: Naming violation (64)
+add: 1, rename: 0, modify: 0, delete: 0
+Action? [yYqQvVebB*rsf+?] 
+\end{commandline}
+
+これはすでに cn=module{0}, cn=config が存在するためです。新規追加時に dn では親や先祖のノードに序数が指定されていれば必要ですが、自身のノードには自動的に付与されるので指定してはいけません。今回は ``e'' を押し編集モードに戻り、dn および attribute の cn の序数を取り除きましょう。
+
+編集が終わったら、 ``y'' を押して保存する前に、 ``v'' を押してみてください。すると、 LDIF 形式で表示されます。これは後々役立ちます。
+
+\begin{commandline}
+version: 1
+
+dn: cn=module,cn=config
+changetype: add
+objectClass: olcModuleList
+cn: module
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: auditlog.la
+
+dn: cn=module,cn=config
+changetype: add
+objectClass: olcModuleList
+cn: module
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: ppolicy.la
+\end{commandline}
+
+既にあるオブジェクトの属性を変更する場合は、値を変更するだけです。オブジェクトを削除する場合は、対象のオブジェクトのすべての行を、特定の属性だけを削除する場合はその行を削除するだけです。自分で LDIF を作るのと違い、非常に簡単であることがわかるでしょう。
+フォーマットが間違っている場合は前述のようにエラーになる上、変更時に slapd の再起動が不要なので、実は slapd.conf での管理よりもとても便利なものです。
+
+ユーザデータを変更する場合も基本的に同じです。 ldapvi コマンドで指定するオプションが異なるだけです。
+
+\begin{commandline}
+$ ldapvi -h ldap://localhost -D cn=root,dc=example,dc=org -b dc=example,dc=org
+\end{commandline}
+
+ldapvi の詳細は、ユーザマニュアルが充実しているのでそちらを参照ください。\footnote{ldapvi User Manual \url{http://www.lichteblau.com/ldapvi/manual/}}
+
+これで LDIF の作成での最大と最小のストレッサーが取り除けましたね。
+
+\subsection{debconf-utils と slapd-config で導入の自動化を進める}
+
+\subsection{python-ldap で データ管理も LDIF フリーに}
+
+\subsection{おまけ: Ubnutu 12.04 でのハマりポイント}
+
+
 
 %-------------------------------------------------------------------------------
 \dancersection{月刊Debhelper}{吉田 俊輔}
