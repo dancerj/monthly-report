@@ -509,9 +509,55 @@ $ ldapvi -h ldap://localhost -D cn=root,dc=example,dc=org -b dc=example,dc=org
 
 ldapvi の詳細は、ユーザマニュアルが充実しているのでそちらを参照ください。\footnote{ldapvi User Manual \url{http://www.lichteblau.com/ldapvi/manual/}}
 
-これで LDIF の作成での最大と最小のストレッサーが取り除けましたね。
+これで LDIF の作成での最大と最小のストレッサーが取り除けたでしょうか。
 
 \subsection{debconf-utils と slapd-config で導入の自動化を進める}
+
+OpenLDAP を使う場合、 slapd パッケージをインストールしますが、 debconf による対話形式の設定が必要になります。はじめてインストールする場合などには便利なのですが、ある程度なれてきて、 slapd の設定自体もあらかじめ決めてあると、これはかえって面倒なものになります。予め設定するパラメータは決めてあるのですから自動化してしまいたいでしょう。そういう場合、 debconf-utils パッケージと、 そして slapd-config を上手に使うことで自動化できるようになります。
+
+\subsubsection{事前準備}
+
+まず、テスト環境などを用意します。このテスト環境の目的は次の二つです。
+\begin{enumerate}
+  \item debconf の設定を抽出する
+  \item slapd-config 用の LDIF を用意する
+\end{enumerate}
+
+前者は slapd パッケージをインストール際に今後設定設定したいパラメータを入力しておく必要があります。設定された状態で debconf-utils パッケージの debconf-get-selections コマンドで slapd のパラメータを抽出するためです。後者は slapd パッケージをインストールした直後の状態にしておく必要があります。この状態で ldapvi を使い、予め設定したい属性の値を変更し、前述の LDIF 形式の出力するためです。
+
+\subsubsection{debconf-get-selections でパラメータを抽出する}
+
+slapd をインストール状態で次のコマンドを実行します。
+
+\begin{commandline}
+$ LANG=C sudo debconf-get-selections | grep slapd
+slapd   slapd/password2 password
+slapd   slapd/internal/generated_adminpw        password
+slapd   slapd/internal/adminpw  password
+slapd   slapd/password1 password
+slapd   slapd/password_mismatch note
+slapd   slapd/invalid_config    boolean true
+slapd   shared/organization     string  example.org
+slapd   slapd/upgrade_slapcat_failure   error
+slapd   slapd/backend   select  HDB
+slapd   slapd/dump_database     select  when needed
+slapd   slapd/allow_ldap_v2     boolean false
+slapd   slapd/no_configuration  boolean false
+slapd   slapd/move_old_database boolean true
+slapd   slapd/dump_database_destdir     string  /var/backups/slapd-VERSION
+# Do you want the database to be removed when slapd is purged?
+slapd   slapd/purge_database    boolean false
+slapd   slapd/domain    string  example.org
+\end{commandline}
+
+このうち、\texttt{slapd/upgrade\_slapcat\_failure} と''\#''から始まるコメント行は不要です。削除して slapd-debconf.txt などの任意のファイル名で保存します。
+これを slapd パッケージをインストール時に反映させるには、パッケージインストール前に debconf-set-selections コマンドを使います。下記のコマンドを実行します。
+
+\begin{commandline}
+$ sudo bash -c ``cat slapd-debconf.txt | debconf-set-selections''
+$ sudo DEBCONF_FRONTEND=noninteractive apt-get -y --force-yes install slapd
+\end{commandline}
+
 
 \subsection{python-ldap で データ管理も LDIF フリーに}
 
