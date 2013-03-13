@@ -559,6 +559,98 @@ $ sudo bash -c ``cat slapd-debconf.txt | debconf-set-selections''
 $ sudo DEBCONF_FRONTEND=noninteractive apt-get -y --force-yes install slapd
 \end{commandline}
 
+slapd の設定用 LDIF は、前述のテスト環境で ldapvi を使って生成します。次の 3 つの設定を行ってみます。
+\begin{itemize}
+\item rootDN のパスワード
+\item loglevel
+\item access control
+\end{itemize}
+
+まず、 ハッシュ化された rootDN のパスワードを slappasswd で生成します。
+\begin{commandline}
+$ sudo slappasswd 
+[sudo] password for user: 
+New password: 
+Re-enter new password: 
+{SSHA}MEj4D59lrtA+6+0J4vIz2RTByA7KT6Zq
+\end{commandline}
+
+次に、 ldapvi で次の設定を行います。
+loglevel は 128 に、 access control は パスワード以外のデータの参照は anonymous で可能に、データの更新は rootDN のみ行えるようにし、パスワードのみ自身で変更可能とします。次のコマンドは slapd-config のツリー全体が対象です。
+
+\begin{commandline}
+$ sudo ldapvi -h ldapi:/// -Y EXTERNAL -b cn=config
+\end{commandline}
+
+通常の LDAP データと同様に entryDN を指定すれば対象範囲を絞ることもできます。
+
+\begin{commandline}
+$ sudo ldapvi -h ldapi:/// -Y EXTERNAL -b cn=config olcDatabase={1}hdb,cn=config
+\end{commandline}
+
+変更箇所は下記の ''<- (*)'' の部分です。
+
+\begin{commandline}
+0 cn=config
+(snip)
+olcLogLevel: 128 <- (*)
+(snip)
+
+10 olcDatabase={1}hdb,cn=config
+(snip)
+olcAccess: {0}to attrs=userPassword,shadowLastChange by self write by anonymous auth
+ by dn="cn=admin,dc=example,dc=org" write by * none <- (*)
+olcAccess: {1}to dn.base="" by * read <- (*)
+olcAccess: {2}to * by dn="cn=admin,dc=example,dc=org" write by * read <- (*)
+olcAccess: {3}to dn.subtree="dc=example,dc=org" by self read by * read <- (*)
+olcAccess: {4}to * by * none <- (*)
+(snip)
+olcRootPW: {SSHA}MEj4D59lrtA+6+0J4vIz2RTByA7KT6Zq <- (*)
+(snip)
+\end{commandline}
+
+変更後、 LDIF を生成すると下記のように表示されます。これを保存する機能はないので、コンソールをコピーして、適当なファイル名で保存します。(今回は setup.ldif とします)
+
+\begin{commandline}
+version: 1
+
+dn: cn=config
+changetype: modify
+replace: olcLogLevel
+olcLogLevel: 128
+-
+
+dn: olcDatabase={1}hdb,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: {0}to attrs=userPassword,shadowLastChange by self write by anonymous auth
+ by dn="cn=admin,dc=example,dc=org" write by * none
+olcAccess: {1}to dn.base="" by * read
+olcAccess: {2}to attrs=sshPublicKey by self write
+olcAccess: {3}to * by dn="cn=admin,dc=example,dc=org" write by * read
+olcAccess: {4}to dn.subtree="dc=example,dc=org" by self read by * read
+olcAccess: {5}to * by * none
+-
+replace: olcRootPW
+olcRootPW: {SSHA}MEj4D59lrtA+6+0J4vIz2RTByA7KT6Zq
+\end{commandline}
+
+保存した LDIF を用い、 ldapmodify コマンドを使えば今後構築する slapd サーバに反映させることができます。
+
+\begin{commandline}
+$ sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f setup.ldif
+\end{commandline}
+
+パッケージのインストールから設定まで自動化するなら次のコマンドで行えます。
+
+\begin{commandline}
+sudo apt-get install debconf ldap-utils
+sudo bash -c ``cat slapd-debconf.txt | debconf-set-selections''
+sudo DEBCONF_FRONTEND=noninteractive apt-get -y --force-yes install slapd
+ldapmodify -Y EXTERNAL -H ldapi:// -f setup.ldif
+\end{commandline}
+
+例えば、LDAP 関連のツールのテストに CI などを使う場合は、上記のコマンドを実行するようにしておけば、リポジトリに push する度にテスト用の slapd を自動インストールしてテストを実行させることができます。
 
 \subsection{python-ldap で データ管理も LDIF フリーに}
 
