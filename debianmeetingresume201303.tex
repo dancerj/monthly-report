@@ -1242,15 +1242,287 @@ warning: Error removing breakpoint -5
 \bibitem{gdbpytest} Free Software Foundation, \verb!$(GDBSRC)/gdb/testsuite/gdb.python!以下のテスト用ファイル群
 \end{thebibliography}
 
+\dancersection{月刊Debhelper dh\_auto\_install dh\_install}{吉田 俊輔}
 
-%-------------------------------------------------------------------------------
-\dancersection{OSC等でのDebian紹介方法検討(仮)}{未定}
-%-------------------------------------------------------------------------------
-\subsection{セミナー内容での紹介内容}
-\subsection{展示方法での紹介内容}
-\subsection{今後の紹介方法検討}
-\subsection{演習}
-\index{OSC}
+\subsection{今月のコマンド}
+\Large
+\begin{itemize}
+\item dh\_auto\_install
+\item dh\_install
+\end{itemize}
+
+
+\subsection{debian パッケージ構築、全体の流れ}
+\begin{enumerate}
+\item パッケージビルド環境を構築する
+\item 不要なファイルを削除する
+\item バイナリパッケージに格納するファイルをビルドする
+\item ビルドしたファイルをバイナリパッケージにまとめる
+\item .changesファイルを作成する
+\item パッケージに署名する
+\end{enumerate}
+2011年10月勉強会資料より
+
+
+\subsection[containsverbatim]{4. ビルドしたファイルをバイナリパッケージにまとめる}
+\begin{itemize}
+
+\item 以下のdebhelper コマンドが実行されます。
+\begin{commandline}
+dh_testdir -> dh_auto_configure -> dh_auto_build -> dh_auto_test
+-> dh_testroot -> dh_prep -> dh_installdirs -> dh_auto_install
+-> dh_install -> dh_installdocs -> dh_installchangelogs
+-> dh_installexamples -> dh_installman -> dh_installcatalogs
+-> dh_installcron -> dh_installdebconf -> dh_installemacsen
+-> dh_installifupdown -> dh_installinfo -> dh_pysupport
+-> dh_installinit -> dh_installmenu -> dh_installmime
+-> dh_installmodules -> dh_installlogcheck -> dh_installlogrotate
+-> dh_installpam -> dh_installppp -> dh_installudev -> dh_installwm
+-> dh_installxfonts -> dh_installgsettings -> dh_bugfiles -> dh_ucf
+-> dh_lintian -> dh_gconf -> dh_icons -> dh_perl -> dh_usrlocal
+-> dh_link -> dh_compress -> dh_fixperms -> dh_strip -> dh_makeshlibs
+-> dh_shlibdeps -> dh_installdeb -> dh_gencontrol -> dh_md5sums
+-> dh_builddeb
+\end{commandline}
+\end{itemize}
+2011年10月勉強会資料より
+
+
+\subsection{dh\_auto\_install動作解説1}
+
+dh\_auto\_installはdebhelperのプログラムです。
+自動的にファイルをパッケージ作成用のディレクトリにインストールします。
+dh\_auto\_installはupstearm等のMakefileのinstallターゲット,setup.py,
+Build.PLのを使用して、
+インストール先はシングルバイナリ(only one binary package)であれば、
+debian/package/以下です。
+multiple binary packageの場合はdebian/tmp/以下になり、
+その後dh\_installで適切なディレクトリに移動されます。
+\includegraphics[height=3cm]{image201303/dh_auto_install1.eps}
+
+
+\subsection{dh\_auto\_install動作解説2}
+\begin{itemize}
+\item 条件1:Makefile(またはsetup.pyやBuild.PL)が GNU の慣例に準拠し、\$(DESTDIR) 変数をサポートしていること。
+\end{itemize}
+\url{http://www.gnu.org/prep/standards/html\_node/DESTDIR.html\#DESTDIR}
+\\
+Makefile ファイルを変更する必要があるなら、これら \$(DESTDIR) 変数をサポートするように注意しましょう。
+\begin{itemize}
+\item 条件2:インストール先の指定内容が Filesystem Hierarchy Standard (FHS) に準拠していること。
+\end{itemize}
+\url{http://www.debian.or.jp/community/devel/debian-policy-ja/policy.ja.html/ch-opersys.html}
+
+
+\subsection{dh\_auto\_install動作解説3}
+通常プログラムのビルドに使われているmake等を使って実際のインストール先のかわりに、一時ディレクトリーの下に作成されたファイルツリーのイメージへプログラムをインストール(コピー)する。
+ 普通のプログラムインストールとDebian パッケージ作成というこれら二つの違いには、debhelper パッケージの dh\_auto\_configure と dh\_auto\_install のコマンドを使うことで(前述の条件を守っていれば、特に意識をせずに)対応できるはずです。
+GNU autoconf を使っているプログラムは、自動的に GNU 規約に準拠するので、そのパッケージ作成は簡単にできる(はず)。
+\url{http://www.debian.org/doc/manuals/maint-guide/modify.ja.html}
+
+
+\subsection[containsverbatim]{dh\_auto\_install動作解説3}
+マルチパッケージで、DESTDIRを使っていないのでoverrideで対応する例(wide-dhcpv6
+\begin{commandline}
+override_dh_auto_install:
+        $(MAKE) prefix=$(CURDIR)/debian/tmp/usr install
+\end{commandline}
+この後、dh\_installで各パッケージに振り分け(後述)
+
+
+
+
+
+\subsection{dh\_install動作概要}
+
+dh\_installはパッケージ構造ディレクトリーへインストールするファイルを扱うdebhelperプログラムです。
+これ以外に多くのdh\_install*コマンドが存在します。説明書(documentation),サンプル(examples),マニュアルページ(man pages)のような特定のタイプのファイルのインストールにはするにはそれら専用のプログラムの方が向いています。
+
+
+\subsection{dh\_install*コマンド(debhelper内)}
+\begin{table}[htb]
+\scalebox{0.6}[0.6]{
+\begin{tabular}{|l|r|} \hline
+コマンド & 行数 \\ \hline
+dh\_installcatalogs - install and register SGML Catalogs & 126 \\ \hline
+dh\_installchangelogs - install changelogs into package build directories & 181 \\ \hline
+dh\_installcron - install cron scripts into etc/cron.* & 87 \\ \hline
+dh\_installdeb - install files into the DEBIAN directory & 118 \\ \hline
+dh\_installdebconf - install files used by debconf in package build directories & 136 \\ \hline
+dh\_installdirs - create subdirectories in package build directories & 96 \\ \hline
+dh\_installdocs - install documentation into package build directories & 311 \\ \hline
+dh\_installemacsen - register an Emacs add on package & 134 \\ \hline
+dh\_installexamples - install example files into package build directories & 116 \\ \hline
+dh\_installifupdown - install if-up and if-down hooks & 79 \\ \hline
+dh\_installinfo - install info files & 87 \\ \hline
+dh\_installinit - install init scripts and/or upstart jobs into package build directories & 287 \\ \hline
+dh\_installlogcheck - install logcheck rulefiles into etc/logcheck/ & 76 \\ \hline
+dh\_installlogrotate - install logrotate config files & 60 \\ \hline
+dh\_installman - install man pages into package build directories & 268 \\ \hline
+dh\_installmanpages - old-style man page installer (deprecated) & 207 \\ \hline
+dh\_installmenu - install Debian menu files into package build directories & 99 \\ \hline
+dh\_installmime - install mime files into package build directories & 105 \\ \hline
+dh\_installmodules - register modules with modutils & 134 \\ \hline
+dh\_installpam - install pam support files & 69 \\ \hline
+dh\_installppp - install ppp ip-up and ip-down files & 75 \\ \hline
+dh\_installtex - register Type 1 fonts, hyphenation patterns, or formats with TeX & 664 \\ \hline
+dh\_installudev - install udev rules files & 125 \\ \hline
+dh\_installwm - register a window manager & 118 \\ \hline
+dh\_installxfonts - register X fonts & 97 \\ \hline
+\end{tabular}
+}
+\end{table}
+
+
+\subsection{dh\_install動作概要2}
+二つの使用方法があります。
+\begin{itemize}
+\item upstearmのMakefileがインストールを行ってくれないとき、適所へそれらをコピーさせるために使用する。
+\item 複数のバイナリパッケージを構築するラージ・パッケージを構築するとき
+\end{itemize}
+
+
+\subsection{ラージ・パッケージの構築}
+(dh\_auto\_installまたはoverride\_dh\_auto\_install等を使用して)debian/tmpへすべてインストール。
+そこから適切なパッケージディレクトリーを構築するためにディレクトリーやファイルをdh\_installを使用してコピーすることができます。
+\\
+debhelper互換性レベル7から、カレント・ディレクトリ(あるいは--sourcedirオプションで指定したディレクトリ)に対象が無ければ、dh\_installはdebian/tmpをコピー元に使用します。
+
+
+\subsection{dh\_install動作概要3}
+debian/package.installに
+各パッケージへインストールするべきファイル、およびそれらがインストールされるべきディレクトリーを記載します。
+フォーマットは、行単位でインストールするべきファイル(複数可)をリストし、行の末尾にそれがインストールされるべきディレクトリーを記載します。\\
+要するにcpコマンドの引数です。
+\\
+実際にdh\_install内部ではcpコマンドが使用されています。
+
+
+\subsection[containsverbatim]{debian/package.installの例}
+
+\begin{commandline}
+$ cat wide-dhcpv6-client.install
+usr/sbin/dhcp6c
+usr/sbin/dhcp6ctl
+debian/dhcp6c.conf etc/wide-dhcpv6
+debian/scripts/dhcp6c-script etc/wide-dhcpv6
+debian/scripts/dhcp6c-ifupdown etc/wide-dhcpv6
+\end{commandline}
+
+明示的なコピー先なしで、一行に1つのファイル名あるいはワイルドカード・パターンを単独で記載すると、dh\_installが自動的に使用する目的地を推測する。
+これは--autodestオプションの動作と同様。
+
+
+\subsection[containsverbatim]{--autodest オプション}
+コピー先ディレクトリを推測する。
+これを指定する場合、debian/package.installファイルのコピー先ディレクトリは指定しないこと。
+debian/tmpのディレクトリ配下にあるファイルをdebian/tmpを除いて
+指定ディレクトリの下に対応するようにコピーする。
+例 
+\begin{commandline}
+$ cat debian/package.install
+debian/tmp/usr/bin
+debian/tmp/etc/passwd
+\end{commandline}
+debian/tmp/usr/binをdebian/package/usr/へコピー
+debian/tmp/etc/passwdをdebian/package/etc/へコピー
+
+
+\subsection{--list-misqqsing オプション}
+ファイル(およびシンボリックリンク)がどのディレクトリにもコピーされなかったときに標準エラー出力に警告を表示する。
+\\
+ラージ・パッケージに、新しく追加されたファイルを見逃さないためなどに使える。
+
+
+\subsection{-Xitem, --exclude=item オプション}
+指定したファイル名を含むファイルをコピー対象外とする。
+
+
+\subsection[containsverbatim]{DEBHELPERのプログラム共通のオプション1}
+アーキティクチャ独立
+\begin{table}[htb]
+\scalebox{0.6}[0.6]{
+\begin{tabular}{|l|p{30em}|} \hline
+-i, --indep & Act on all architecture independent packages. \\ \hline
+\end{tabular}
+}
+\end{table}
+
+例
+\begin{commandline}
+$ dh_make -m --rulesformat old
+\end{commandline}
+\begin{commandline}
+install-indep:
+	(中略)
+        dh_prep -i 
+        dh_installdirs -i
+	(中略)
+        dh_install -i
+	(後略)
+\end{commandline}
+
+
+\subsection[containsverbatim]{DEBHELPERのプログラム共通のオプション2}
+アーキティクチャ依存
+\begin{table}[htb]
+\scalebox{0.6}[0.6]{
+\begin{tabular}{|l|p{30em}|} \hline
+-s, --same-arch & This used to be a smarter version of the -a flag, but the -a flag is now equally smart. \\ \hline
+-a, --arch & Act on architecture dependent packages that should be built for the build architecture. \\ \hline
+\end{tabular}
+}
+\end{table}
+例(同)
+\begin{commandline}
+install-arch:
+	(中略)
+        dh_prep -s 
+        dh_installdirs -s
+
+        # Add here commands to install the arch part 
+        # of the package into debian/tmp.
+        $(MAKE) DESTDIR=$(CURDIR)/debian/hello install
+
+        dh_install -s
+	(後略)
+\end{commandline}
+
+
+\subsection{DEBHELPERのプログラム共有のオプションその他1}
+\begin{table}[htb]
+\scalebox{0.6}[0.6]{
+\begin{tabular}{|l|p{30em}|} \hline
+オプション & 動作 \\ \hline
+-v, --verbose & 詳しく動作を表示(Verbose mode: show all commands that modify the package build directory.) \\ \hline
+--no-act & 実際の動作をしない(Do not really do anything. If used with -v, the result is that the command will output what it would have done.) \\ \hline
+-ppackage, --package=package & Act on the package named package. This option may be specified multiple times to make debhelper operate on a given set of packages. \\ \hline
+-Npackage, --no-package=package & Do not act on the specified package even if an -a, -i, or -p option lists the package as one that should be acted on.  \\ \hline
+--remaining-packages & Do not act on the packages which have already been acted on by this debhelper command earlier (i.e. if the command is present in the package debhelper log).  For
+           example, if you need to call the command with special options only for a couple of binary packages, pass this option to the last call of the command to process
+           the rest of packages with default settings. \\ \hline
+\end{tabular}
+}
+\end{table}
+
+
+\subsection{DEBHELPERのプログラム共有のオプションその他2}
+\begin{table}[htb]
+\scalebox{0.6}[0.6]{
+\begin{tabular}{|l|p{30em}|} \hline
+オプション & 動作 \\ \hline
+--ignore=file & Ignore the specified file. This can be used if debian/ contains a debhelper config file that a debhelper command should not act on. Note that debian/compat,
+           debian/control, and debian/changelog can't be ignored, but then, there should never be a reason to ignore those files.
+           For example, if upstream ships a debian/init that you don't want dh\_installinit to install, use --ignore=debian/init  \\ \hline
+-Ptmpdir, --tmpdir=tmpdir & Use tmpdir for package build directory. The default is debian/package \\ \hline
+--mainpackage=package & This little-used option changes the package which debhelper considers the "main package", that is, the first one listed in debian/control, and the one for which
+           debian/foo files can be used instead of the usual debian/package.foo files. \\ \hline
+-O=option|bundle & This is used by dh(1) when passing user-specified options to all the commands it runs. If the command supports the specified option or option bundle, it will
+           take effect. If the command does not support the option (or any part of an option bundle), it will be ignored.\\ \hline
+\end{tabular}
+}
+\end{table}
+
 
 \printindex
 
