@@ -320,17 +320,18 @@ dictossさん、やまねさんが協力しました。
 %-------------------------------------------------------------------------------
 \dancersection{ldapvi \& python-ldap で stress-free life}{まえだこうへい}
 %-------------------------------------------------------------------------------
-
 \subsection{ストレス溜まってませんか？}
 
-はじめに今回の記事は OpenLDAP で LDAP サーバの管理を行っている人がターゲットです。LDAP サーバを自分で管理している人はそんなに多くないだろうと思いますが、この記事が LDAP の運用で困っている人の一助になれば良いなと思います。そうでない人もLDAPアカウントやイエローページ(アドレス帳)などで知らぬ間に恩恵を受けているということは大いにあるので、明日は我が身と思ってお読み下さい。
-また、自分で作ったツールのアカウント管理を LDAP で行いたい、という場合にも参考になることでしょう。
+今回の記事はOpenLDAPの管理を行っている人がターゲットです。LDAPサーバを管理している人は多くはないと思いますが、この記事がLDAPの運用で苦労している人の一助になれば良いと思います。LDAPなにそれ?な人もLDAPアカウントやアドレス帳などで知らぬ間に恩恵を受けているということは大いにあるので、明日は我が身と思ってお読み下さい。
+また、自分で作ったツールのアカウント管理をLDAPで行いたい、という場合にも参考になると思います。
 
-なお、 LDAP の基本的なお話や、Debian システムでの OpenLDAP の入門については、第 61 回 関西 Debian 勉強会( 2012 年 7 月)に佐々木さんが行われているので、そちらを参照下さい。\footnote{あんどきゅめんてっど Debian 2012 年冬号 8.「Debian で作る LDAP サーバ」 \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume2012-fuyu.pdf}}
+なお、LDAPの基本的なお話や、DebianシステムでのOpenLDAPの入門については、第61回 関西Debian勉強会(2012年7月)に佐々木さんが発表＆資料を掲載されているのでそちらを参照下さい。\footnote{あんどきゅめんてっどDebian2012年冬号8.「Debianで作るLDAPサーバ」 \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume2012-fuyu.pdf}}
 
+\index{LDIF(5)}
+\index{RFC2849}
 \subsection{stress = LDIF}
 
-LDAP の運用で何が面倒かというと、LDIF (LDAP Data Interchange Format) の作成です。LDAP のデータを作成・更新・削除するには通常、 LDIF を作成し、 ldapadd/ldapmodify/ldapdelete コマンドで実行します。一つのオブジェクトは dn(distiguised name, 識別名)から始まり、それに attribute が続きます。複数オブジェクトを記述するには空行で分割します。下記は RFC2849 の "Example 1: An simple LDAP file with two entries" からの引用です。\footnote{\url{http://www.ietf.org/rfc/rfc2849.txt}}
+LDAPの運用で何が面倒かというと、LDIF(LDAP Data Interchange Format)の作成やパースです。LDAPのデータを作成・更新・削除するには通常、LDIFを作成し、ldapadd/ldapmodify/ldapdeleteコマンドで実行します。一つのオブジェクトはdn(distiguised name, 識別名)から始まり、それにattributeが続きます。複数オブジェクトを記述するには空行で分割します。下記は RFC2849 の "Example 1: An simple LDAP file with two entries" からの引用です。\footnote{\url{http://www.ietf.org/rfc/rfc2849.txt}}
 
 \begin{commandline}
 version: 1
@@ -354,49 +355,41 @@ sn: Jensen
 telephonenumber: +1 408 555 1212
 \end{commandline}
 
-データフォーマット自体はさほど難しくありませんが、このデータを一から自分でスクラッチで作成するとなると、とても面倒だと思いませんか？例えば上記の引用例のようなユーザアカウントの場合、人間が読みやすいのは TSV 形式などでスプレッドシートソフトで管理するのが一番楽でしょう。ではそこから LDIF に変換したり、あるいはその逆はどうしますか？簡単に思いつくのは次の二つでしょう。
+データフォーマット自体はさほど難しくありませんが、このデータを一から自分でスクラッチで作成するのはとても面倒だと思いませんか？例えば上記のようなユーザアカウントの場合、人間にとってはTSVなどの形式を表計算ソフトで読んだり編集したりすることでしょう。そこからLDIFに変換したり、あるいはその逆はどうしますか？簡単に思いつくのは次の二つでしょう。
 
 \begin{enumerate}
   \item 手でちまちま変換する
   \item なんらかのプログラムで一括変換する
 \end{enumerate}
 
-そもそも1は転記ミスなどの可能性から論外ですが、アカウント数が少数ならいっそのこと LDIF を手で作成すると割り切ってしまうのもありでしょう。面倒なのでちょっとストレスです。
+前者は転記ミスなどの可能性から論外ですが、管理対象のアカウントが少数ならいっそ割り切ってLDIFを手で作成するのもありでしょう。
+しかしユーザ数が大量になるとプログラムで変換しないと時間の無駄です。
 
-しかしユーザ数が大量になるともうなんらかのプログラムで変換しないとやってられないでしょう。
-例えば、以前私が Excel で管理されているユーザ情報を LDIF に変換し、それをもとに LDAP サーバを構築したときは xlhtml パッケージでまず TSV フォーマットのデータに変換し、 awk スクリプトで LDIF に変換しました。詳細はブログにありますのでそちらを参照ください。\footnote{Excel ファイルから LDIF を生成する。\url{http://d.palmtb.net/2011/08/13/194954.html}} この時は、一回だけ変換し、そのあとは phpLDAPadmin \footnote{\url{http://phpldapadmin.sourceforge.net/wiki/index.php/Main_Page}} を使うようにしました。が、残念ながら phpLDAPadmin は Web ブラウザで LDAP の管理を行えるだけで、お世辞にも使いやすいとは言えません。なので、当時は画面をキャプチャし、手順書を作って後任に引き継ぎました。しかし、ITリテラシの低い人によるユーザ情報の更新もあるので、　Excel での管理も継続され、データの二重管理になってしまいました。ストレス溜まって仕方ありません。 awk でインポート用の変換スクリプトを書くのはまだ良いですが、データのメンテナンス用のスクリプトを書くとなると大変です。 Excel の列と LDAP オブジェクトの attribute のマッチングは数を数えて、となるので非常に面倒です。やってられません。ストレスが溜まってしかたありません。
-
+\index{slapd-config(5)}
+\index{OpenLDAP}
 \subsubsection{そして slapd-config}
-OpenLDAP 2.3 からは動的に設定を変更できる slapd-config(5) が採用されました。これ自体も LDAP データベースとなっています。current release の 2.4 系では 一部の場合のぞき、従来の slapd.conf(5) は推奨されていません。将来のリリースでは slapd.conf(5) は取り除かれることも公式ドキュメントに記載されています\footnote{\url{http://www.openldap.org/doc/admin24/slapdconf2.html}}。廃止されるものを使いつづけても仕方ありませんよね。ユーザデータの管理ですら LDIF で悩んでいるのに、さらに slapd 自体の設定まえも LDIF 作ってやらんとあかんと考えるともう気が狂ってしまいそうです。
+OpenLDAP 2.3からは動的に設定を変更できるslapd-config(5)が採用されました。これ自体もLDAPデータベースとなっています。current releaseの2.4系では 一部の場合のぞき、従来のslapd.conf(5)は推奨されていません。将来のリリースではslapd.conf(5)は取り除かれることになっています。\footnote{\url{http://www.openldap.org/doc/admin24/slapdconf2.html}}。廃止されるものを使いつづけても仕方ありませんね。しかし、ユーザデータの管理ですらLDIFで悩んでいるのに、さらにslapd自体の設定までもLDIFを作らないといけないと思うと、もう気が狂いそうです。
 
-ストレッサーである LDIF をなんとかしないといけません。
-
+\index{ldapvi(1)}
 \subsection{ldapvi で LDIF 地獄からの脱却}
+そこで、ldapviです\footnote{\url{http://www.lichteblau.com/ldapvi/}}。このツールは、vipw(8)コマンドや、visudo(8)と同じように、viのインタフェースでLDAPのデータを変更できます。これで少数のデータを管理するときはもちろん、slapd-configの設定管理の悩みも解決します。
 
-そこで、ldapvi です。\footnote{\url{http://www.lichteblau.com/ldapvi/}} このツールはは、 vipw(8) コマンドや、 visudo(8) と同じように、 vi で LDAP のデータを変更できます。これで少数のデータを管理するときはもちろん、 slapd-config での slapd 管理の悩みも解決します。
-
-使うには、 ldapvi パッケージをインストールします。
+使うには、ldapviパッケージをインストールします。
 
 \begin{commandline}
 $ sudo apt-get install ldapvi
 \end{commandline}
 
-使い方は、ldap-utils パッケージのコマンドのオプションとほぼ同じです。では最大のストレッサーを最初に取り除きましょう。 slapd-config での操作は下記のコマンドを実行します。
+使い方は、ldap-utilsパッケージのコマンドのオプションとほぼ同じです。slapd-configでの操作は下記のコマンドを実行します。
 
 \begin{commandline}
 $ sudo ldapvi -Y EXTERNAL -h ldapi:/// -b cn=config
 \end{commandline}
 
-これで slapd-config 管理下のすべてのオブジェクトツリーが ldapvi のフォーマットで表示されます。 ldapvi のフォーマットはほぼ LDIF に似ています。
+これでslapd-config管理下のすべてのオブジェクトツリーがldapviのフォーマットとして表示されます。ldapviのフォーマットはほぼLDIFに似ています。
 
 \begin{commandline}
-# -*- coding: utf-8 -*- vim:fileencoding=utf-8:
-# http://www.lichteblau.com/ldapvi/manual#syntax
-
-# SASL output:
-# SASL/EXTERNAL authentication started
-# SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
-# SASL SSF: 0
+(snip)
 
 0 cn=config
 objectClass: olcGlobal
@@ -418,7 +411,7 @@ cn: schema
 (snip)
 \end{commandline}
 
-違いは、 LDIF なら "dn: cn=config" となっている部分が "0 cn=config" と表示されていることです。この数字は表示されているオブジェクトを 0 を基数とする序数となっています。例えば、新しいオブジェクトを追加する場合は、数字の代わりに "add" を使います。auditlog, ppolicy モジュールを新しくロードする場合は下記のように挿入します。
+LDIFとの違いは、"dn: cn=config"となっている部分が"0 cn=config"と表示されていることです。この数字は表示されているオブジェクトを0を基数とする序数となっています。例えば、新しいオブジェクトを追加する場合は、数字の代わりに"add"を使います。auditlog, ppolicyモジュールを新しくロードする場合は下記のように挿入します。
 
 \begin{commandline}
 (snip)
@@ -447,7 +440,7 @@ cn: schema
 (snip)
 \end{commandline}
 
-追記したら、 vi と同様に保存、終了してみましょう。(:wq コマンドを実行) すると次のメッセージが出力されます。
+追記したら、viと同様に保存＆終了してみます(:wq コマンドを実行)。すると次のメッセージが出力されます。
 
 \begin{commandline}
 SASL/EXTERNAL authentication started
@@ -458,9 +451,9 @@ add: 2, rename: 0, modify: 0, delete: 0
 Action? [yYqQvVebB*rsf+?] 
 \end{commandline}
 
-ここで、"y" を入力すると、実際に slapd-config に反映されます。 slapd.conf とは違い、 slapd の再起動は不要です。"q" を入力するとキャンセルして終了します。
+ここで、"y"を入力すると、実際にslapd-configに反映されます。前述の通り、slapd.confとは違い、slapdの再起動は不要です。"q"を入力するとキャンセルして終了します。
 
-上記での挿入時に、 cn=module{0} の "{0}" を残したまま保存してみてください。
+上記での挿入時に、 cn=module{0}の"{0}"を残したまま保存してみてください。
 
 \begin{commandline}
 add cn=modile{0},cn=config
@@ -477,9 +470,9 @@ add: 1, rename: 0, modify: 0, delete: 0
 Action? [yYqQvVebB*rsf+?] 
 \end{commandline}
 
-これはすでに cn=module{0}, cn=config が存在するためです。新規追加時に dn では親や先祖のノードに序数が指定されていれば必要ですが、自身のノードには自動的に付与されるので指定してはいけません。今回は "e" を押し編集モードに戻り、dn および attribute の cn の序数を取り除きましょう。
+これはすでに"cn=module{0}, cn=config"が存在するためです。新規追加時にdnでは親や先祖のノードに序数が指定されていれば必要ですが、自身のノードには自動的に付与されるので指定してはいけません。今回は"e"を押し編集モードに戻り、dn および attribute の cn の序数を取り除きましょう。
 
-編集が終わったら、 "y" を押して保存する前に、 "v" を押してみてください。すると、 LDIF 形式で表示されます。これは後々役立ちます。
+編集が終わったら、"y"を押して保存する前に、"v"を押します。すると、LDIF形式で表示されます。これは後々役立ちます。
 
 \begin{commandline}
 version: 1
@@ -499,36 +492,35 @@ olcModulePath: /usr/lib/ldap
 olcModuleLoad: ppolicy.la
 \end{commandline}
 
-既にあるオブジェクトの属性を変更する場合は、値を変更するだけです。オブジェクトを削除する場合は、対象のオブジェクトのすべての行を、特定の属性だけを削除する場合はその行を削除するだけです。自分で LDIF を作るのと違い、非常に簡単であることがわかるでしょう。
-フォーマットが間違っている場合は前述のようにエラーになる上、変更時に slapd の再起動が不要なので、実は slapd.conf での管理よりもとても便利なものです。
+既にあるオブジェクトのattributeを変更する場合は、値を変更するだけです。オブジェクトを削除する場合は、対象のオブジェクトのすべての行を、特定のattributeだけを削除する場合はその行を削除するだけです。自分でLDIFを作るのと違い、非常に簡単であることがわかるでしょう。
+フォーマットが間違っている場合は前述のようにエラーになる上、変更時にslapdの再起動が不要なので、実はslapd.confでの管理よりもとても便利です。
 
 ユーザデータを変更する場合も基本的に同じです。 ldapvi コマンドで指定するオプションが異なるだけです。
 
 \begin{commandline}
-$ ldapvi -h ldap://localhost -D cn=root,dc=example,dc=org -b dc=example,dc=org
+$ ldapvi -h ldap://localhost -D cn=admin,dc=example,dc=org -b dc=example,dc=org
 \end{commandline}
 
-ldapvi の詳細は、ユーザマニュアルが充実しているのでそちらを参照ください。\footnote{ldapvi User Manual \url{http://www.lichteblau.com/ldapvi/manual/}}
+ldapviの詳細は、ユーザマニュアルが充実しているのでそちらを参照ください。\footnote{ldapvi User Manual \url{http://www.lichteblau.com/ldapvi/manual/}}
 
-これで LDIF の作成での最大と最小のストレッサーが取り除けたでしょうか。
-
+\index{debconf}
 \subsection{debconf-utils と slapd-config で導入の自動化を進める}
 
-OpenLDAP を使う場合、 slapd パッケージをインストールしますが、 debconf による対話形式の設定が必要になります。はじめてインストールする場合などには便利なのですが、ある程度なれてきて、 slapd の設定自体もあらかじめ決めてあると、これはかえって面倒なものになります。予め設定するパラメータは決めてあるのですから自動化してしまいたいでしょう。そういう場合、 debconf-utils パッケージと、 そして slapd-config を上手に使うことで自動化できるようになります。
+OpenLDAPを使う場合、slapdパッケージをインストールしますが、debconfによる対話形式の設定が必要になります。はじめてインストールする場合などには便利なのですが、ある程度なれてきて、slapd の設定自体もあらかじめ決めてあると、これはかえって面倒なものになります。予め設定するパラメータは決めてあるのですから自動化したいですよね。そういう場合debconf-utilsパッケージと、 そしてslapd-configを上手に使うことで自動化できるます。
 
 \subsubsection{事前準備}
 
 まず、テスト環境などを用意します。このテスト環境の目的は次の二つです。
 \begin{enumerate}
-  \item debconf の設定を抽出する
-  \item slapd-config 用の LDIF を用意する
+  \item debconfの設定を抽出する
+  \item slapd-config用のLDIFを用意する
 \end{enumerate}
 
-前者は slapd パッケージをインストール際に今後設定設定したいパラメータを入力しておく必要があります。設定された状態で debconf-utils パッケージの debconf-get-selections コマンドで slapd のパラメータを抽出するためです。後者は slapd パッケージをインストールした直後の状態にしておく必要があります。この状態で ldapvi を使い、予め設定したい属性の値を変更し、前述の LDIF 形式の出力するためです。
+前者はslapdパッケージをインストールの際に今後設定したいパラメータを入力しておく必要があります。設定された状態でdebconf-utilsパッケージのdebconf-get-selectionsコマンドでslapdに関するdebconfのパラメータを抽出するためです。後者はslapdパッケージをインストールした直後の状態にしておき、この状態でldapviで予め設定したいattributeの値を変更し、前述のLDIF形式の出力します。
 
-\subsubsection{debconf-get-selections でパラメータを抽出する}
+\subsubsection{debconf-get-selectionsでパラメータを抽出する}
 
-slapd をインストール状態で次のコマンドを実行します。
+slapdをインストール状態で次のコマンドを実行します。
 
 \begin{commandline}
 $ LANG=C sudo debconf-get-selections | grep slapd
@@ -551,41 +543,42 @@ slapd   slapd/purge_database    boolean false
 slapd   slapd/domain    string  example.org
 \end{commandline}
 
-このうち、\texttt{slapd/upgrade\_slapcat\_failure} と"\#"から始まるコメント行は不要です。削除して slapd-debconf.txt などの任意のファイル名で保存します。
-これを slapd パッケージをインストール時に反映させるには、パッケージインストール前に debconf-set-selections コマンドを使います。下記のコマンドを実行します。
+このうち、"\texttt{slapd/upgrade\_slapcat\_failure}"と"\texttt{\#}"から始まるコメント行は不要です。削除してslapd-debconf.txtなどの任意のファイル名で保存します。
+これをslapdパッケージのインストール時に反映させるには、パッケージインストール前にdebconf-set-selectionsコマンドを使います。
 
 \begin{commandline}
 $ sudo bash -c "cat slapd-debconf.txt | debconf-set-selections"
 $ sudo DEBCONF_FRONTEND=noninteractive apt-get -y --force-yes install slapd
 \end{commandline}
 
-slapd の設定用 LDIF は、前述のテスト環境で ldapvi を使って生成します。次の 3 つの設定を行ってみます。
+slapdの設定用LDIFは、前述のテスト環境でldapviを使って生成します。次の3つの設定を行います。
 \begin{itemize}
-\item rootDN のパスワード
+\item rootDNのパスワード
 \item loglevel
+  \begin{itemize}
+    \item 128
+  \end{itemize}
 \item access control
+  \begin{itemize}
+    \item パスワード以外のデータの参照はanonymousで可能
+    \item データの更新はrootDNのみ行える
+    \item パスワードのみ自身で変更可能
+  \end{itemize}
 \end{itemize}
 
-まず、 ハッシュ化された rootDN のパスワードを slappasswd で生成します。
+\index{slappasswd}
+まず、 ハッシュ化されたrootDNのパスワードをslappasswdで生成します。
 \begin{commandline}
 $ sudo slappasswd 
-[sudo] password for user: 
 New password: 
 Re-enter new password: 
 {SSHA}MEj4D59lrtA+6+0J4vIz2RTByA7KT6Zq
 \end{commandline}
 
-次に、 ldapvi で次の設定を行います。
-loglevel は 128 に、 access control は パスワード以外のデータの参照は anonymous で可能に、データの更新は rootDN のみ行えるようにし、パスワードのみ自身で変更可能とします。次のコマンドは slapd-config のツリー全体が対象です。
+次に、ldapviで上記の設定を行います。
 
 \begin{commandline}
 $ sudo ldapvi -h ldapi:/// -Y EXTERNAL -b cn=config
-\end{commandline}
-
-通常の LDAP データと同様に entryDN を指定すれば対象範囲を絞ることもできます。
-
-\begin{commandline}
-$ sudo ldapvi -h ldapi:/// -Y EXTERNAL -b cn=config olcDatabase={1}hdb,cn=config
 \end{commandline}
 
 変更箇所は下記の "<- (*)" の部分です。
@@ -609,7 +602,7 @@ olcRootPW: {SSHA}MEj4D59lrtA+6+0J4vIz2RTByA7KT6Zq <- (*)
 (snip)
 \end{commandline}
 
-変更後、 LDIF を生成すると下記のように表示されます。これを保存する機能はないので、コンソールをコピーして、適当なファイル名で保存します。(今回は setup.ldif とします)
+変更後、LDIFを生成すると下記のように表示されます。
 
 \begin{commandline}
 version: 1
@@ -635,7 +628,7 @@ replace: olcRootPW
 olcRootPW: {SSHA}MEj4D59lrtA+6+0J4vIz2RTByA7KT6Zq
 \end{commandline}
 
-保存した LDIF を用い、 ldapmodify コマンドを使えば今後構築する slapd サーバに反映させることができます。
+残念ながらldapviにはこれを任意のファイルとして保存する機能ありません。コンソールをコピーして、適当なファイル名で保存します(今回はsetup.ldif)。保存したLDIFを用い、ldapmodifyコマンドを使えばslapdサーバに反映させることができます。
 
 \begin{commandline}
 $ sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f setup.ldif
@@ -650,34 +643,30 @@ sudo DEBCONF_FRONTEND=noninteractive apt-get -y --force-yes install slapd
 ldapmodify -Y EXTERNAL -H ldapi:// -f setup.ldif
 \end{commandline}
 
-例えば、LDAP 関連のツールのテストに CI などを使う場合は、上記のコマンドを実行するようにしておけば、リポジトリに push する度にテスト用の slapd を自動インストールしてテストを実行させることができます。
+例えば、LDAP関連のツールのテストを、クリーン環境にCIなどを使って行う場合は上記のコマンドで、リポジトリにpushする度にテスト用のslapdを自動インストールしてテストを実行させることもできます。
 
-\subsection{python-ldap で stress-free に}
+\index{python-ldap}
+\subsection{python-ldapでstress-freeに}
 
-手動で変更する場合には、 ldapvi を使うことで LDIF を直接作成、編集しなくても良いことが分かったと思います。さらに、プログラムで LDAP を扱ってみたいと思います。今回は、 python の LDAP binding を使います。 python 自体には LDAP 関連のモジュールは組み込まれていないので\footnote{HTTP や SMTP, IMAP は組み込まれていますけどねぇ} Python-LDAP というモジュールを使います\footnote{\url{http://www.python-ldap.org/}}。 Debian では python-ldap パッケージです。
+さらにプログラムでLDAPを扱いましょう。今回はpythonのLDAP bindingである、Python-LDAPというモジュールを使います\footnote{\url{http://www.python-ldap.org/}}。Debianではpython-ldapパッケージです。
 
 \begin{commandline}
 $ sudo apt-get install python-ldap
 \end{commandline}
 
-python-ldap で扱う データ構造は下記のように、 LDAP オブジェクトがリストになっており、
-LDAP オブジェクト自体はタプルになっています。タプルの第一要素が entryDN で、第二要素が辞書になっている LDAP オブジェクトの attributes です。各 attribute の 値もリストになっているので、例えば objectClass のように複数の値を持つ場合にも対応できます。entryDN と attributes の各値はすべて文字列です。
+python-ldapで扱う基本的なデータ構造は下記のように、LDAPオブジェクトがリストになっており、
+LDAPオブジェクト自体はタプルになっています。タプルの第一要素がentryDNで、第二要素が辞書になっているLDAPオブジェクトのattributesです。各attributeの値もリストになっているので、例えばobjectClassのように複数の値を持つ場合にも対応できます。そしてentryDNとattributesの各値はすべて文字列です。
 
 \begin{commandline}
 [
-    ('DN',
-     {'attribute': ['value']},
-     {'attribute': ['value', 'value', ...]}
-    ),
-    ('DN',
-     {'attribute': ['value']},
-     {'attribute': ['value', 'value', ...]}
-    ), ...
+    ('DN', [{'attribute': ['value'], 'attribute': ['value', 'value', ...], ...}),
+    ('DN', [{'attribute': ['value'], 'attribute': ['value', 'value', ...], ...}),
+    ...
 ]
 \end{commandline}
 
 \subsubsection{検索(ログイン)の例}
-
+検索の場合、指定したusernameがuidとして存在するか、存在するならsimple bindで認証できるかの処理を行っています。
 \begin{commandline}
 import ldap
 
@@ -706,13 +695,13 @@ else:
 
 \subsubsection{データ追加}
 
-データの追加や更新の場合、ldap.modlistモジュールを使う必要があります。追加の場合には、ldap.modlist.addModList()を使いますが、前述の辞書型の attributes を引数にすると、下記のフォーマットのリストに変換されます。
+データの追加や更新の場合、ldap.modlistモジュールを使う必要があります。追加の場合には、ldap.modlist.addModList()を使いますが、前述の辞書型のattributesを引数にすると、下記のフォーマットのリストに変換されます。
 \begin{commandline}
 [('attribute', ['value']),
  ('attribute', ['value', 'value', ...]), ...]
 \end{commandline}
 
-これを \texttt{ldap.add\_s(dn, attrs\_l)} の引数としてやれば新規オブジェクトの追加ができます。サンプルは次の通りです。
+これを\texttt{ldap.add\_s(dn, attrs\_l)}の引数とすれば新規オブジェクトの追加ができます。サンプルは次の通りです。
 
 \begin{commandline}
 import ldap.modlist
@@ -746,14 +735,15 @@ conn.add_s(dn, attrs_l)
 conn.delete_s(dn)
 \end{commandline}
 
-\subsubsection{python-ldap の使用例}
-著者が勤務先で所属しているチームでは基本的に python を使ってサーバ / ネットワークまわりの自動化ツールや、ユーザ向けの Web ベースのツールの開発を行っています。認証には LDAP を使うため、 これらのツール用として python-ldap を使ったモジュールを作っています。
-他には、複数の異なる LDAP アカウントのツリーをマージするのに使っています。ユーザアカウントのデータを変換してマージする必要があるため、LDIF を自分でパースして変換するのではなく、python のリストや辞書で処理できるのはとても楽です。変換元の LDAP サーバには、標準スキーマではなく独自拡張のスキーマを使っているものあり、名前すら違う attribute もあるので python で処理できるのが大変便利です。
+\subsubsection{python-ldap の筆者の使用例}
+サーバ/ネットワークまわりの自動化ツールや、ユーザ向けのWebベースのツールの開発をpythonで行っています。認証にはLDAPを使うことが多いため、これらのツール用にpython-ldapを使ったモジュールを作っています。
+また、複数の異なるLDAPアカウントのツリーをマージするのにも使っています。ユーザアカウントのデータを変換してマージする必要があるため、LDIFを自分でパースして変換するのではなく、pythonのリストや辞書で処理できるのはとても楽です。変換元のLDAPサーバには標準スキーマではなく独自拡張のスキーマを使っているものあり、名前すら違うattributeもあるのでpythonで処理できるのが大変便利です。
 
 \subsection{まとめ}
-ldapvi, python-ldap を使うと LDIF を自分で作成したり、パースする必要がなくなることを説明しました。 また、 slapd-config であっても ldapvi を使えば、slapd.conf での場合と同様に簡単に管理できることも説明しました。注意点としては、 slapd.conf での設定パラメータの名前が slapd-config では多少異なることですが、cn=config のツリーの root を指定すると、 ロードされているスキーマも見ることができるのでそこから検索、類推することができます。ストレスフルな LDAP の管理を少しでも stress-free にできるようになると良いですね。
+ldapvi、python-ldapを使うとLDIFを自分で作成したり、パースする必要がなくなることを説明しました。 また、slapd-config であってもldapviを使えば、slapd.confでの場合と同様に簡単に管理できることも説明しました。注意点としては、slapd.conf での設定パラメータの名前がslapd-configでは多少異なることですが、cn=configのツリーのrootを指定すると、 ロードされているスキーマも見ることができるのでそこから検索、類推することができます。ストレスフルな LDAP の管理を少しでも stress-free にできるようになると良いですね。
 
 \begin{thebibliography}{0}
+  \bibitem{rfc2849} RFC2849 "Example 1: An simple LDAP file with two entries" \url{http://www.ietf.org/rfc/rfc2849.txt}
   \bibitem{openldap} OpenLDAP Software 2.4 Administrator's Guide \url{http://www.openldap.org/doc/admin24/index.html}
   \bibitem{ldapvi} ldapvi User Manual, \url{http://www.lichteblau.com/ldapvi/manual/}
   \bibitem{python-ldap} python-ldap Documentation, \url{http://www.python-ldap.org/doc/html/index.html}
@@ -1260,7 +1250,7 @@ warning: Error removing breakpoint -5
 \subsection{展示方法での紹介内容}
 \subsection{今後の紹介方法検討}
 \subsection{演習}
-\index{hoge}
+\index{OSC}
 
 \printindex
 
