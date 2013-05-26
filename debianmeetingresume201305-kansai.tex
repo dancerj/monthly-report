@@ -358,7 +358,249 @@ toolchain
   Debian と Ubuntu の違いを知ろう}{%
   西田}
 
-{\color{red}{埋める}}
+\subsection{この話の趣旨}
+
+「Linuxはとりあえず人気のあるUbuntuを使っている」という方は多いのでは
+無いでしょうか。
+
+この話はDebianとUbuntuの違いを挙げ、どちらがみなさんに適しているか考え
+てみていただくことを目的としています。
+また違いを知るのはお互い(ユーザーと開発者)の文化の違いの理解や相互の情
+報交換によるDebian packageの質の向上にもつながるかと思います。
+
+\subsection{supportされるarchitecture}
+
+packageなどの違いについて考える前に、まず使おうとされているhardwareが
+supportされていないとどうしようもありません。
+
+Ubuntu(Raring Ringtail)ではIntel x86, AMD64(Macに特化したものもあ
+り),OMAP(ARM)をsupportしています。Debianではこれらに加え、ARM複数種、
+MIPS、powerpc、sparc、その他(その他のarchitectureについては無知であ
+るため名称略)をsupportしています。
+
+大部分の方はx86, amd64でDebian, Ubuntuを使うかとは思うのですが念のため。
+
+\subsection{packageについて}
+
+みなさんが最も気になるのは(PC用の)packageがどう異なるのか、ではないで
+しょうか。ご存知のようにUbuntuのpackageはDebianをベースとしたものです。
+ですが意外とそのpackageが
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  必ずしもbinary互換性があるわけでは無いこと
+\item
+  UbuntuのpackageはDebianのpackageをベースにUbuntu環境で
+  \texttt{recompile}したものがほとんどであること
+\item
+  Debian由来のpackageのソースが具体的にどのように異なっているのか、ど
+  うするとその違いが確認できるのか
+\item
+  Linux kernelはどのように異なっているか
+\end{itemize}
+
+といった所までご存知で、用いているDebian packageの違いをいつも確認され
+ている方は少ないのではないでしょうか。
+
+下記では上記の点に関して説明します。
+
+\subsubsection{なぜUbuntuではDebian packageをrecompileしているのか}
+
+まずUbuntu自体はUbuntuにdefaultのツールチェーン(gcc,
+libcなどといったbuild
+に欠かせないGNUのlibraryの集まりを意図しています)で完全にbuildできるようになっ
+ているのですが、この要であるgccに元となるDebianと同じversionのものを用いる考
+えがありません。
+Ubuntuでは``新しいversionのgccはよりよいbinaryを作るはず''という考えのもと
+出来る限り新しいgccを使おうとしているようです。そしてそのgccはまずDebian
+より新しいversionのものとなるようです。
+(たとえばUbuntu-Raringのgccは4.7.3、Debian-wheezyのgccは4.7.2です)
+
+つまりDebianからsourceをもってきているのですがbuild環境を合わせる考え
+はありません。そのためUbuntuとDebian間でpackageにbinary互換性は保証さ
+れていません。こういったことからUbuntuはすべてのDebian packageを新しい
+versionのツールチェーンでbuildしなおしています。
+
+これはUbuntuのpackage repository区分で言うところの``Main''だけの話では無
+く``universe''(communityによってsupportされているpackageの分類)について
+も同様で、たとえばUbuntuの``Main''に含まれるPythonのversionが元となる
+DebianのPythonより新しい場合、``universe''に含まれるPython packageも新し
+いversionのPythonとの整合性を確保するためにrebuildされます。
+
+\subsubsection{UbuntuとDebianで異なっているpackageの確認方法}
+
+前項のように互換性を確保しrebuildできれば、Ubuntuでも元となるDebianと
+同じversionのpackageができ問題は無いのですが、まれにそうはいかないもの
+もあるのか、それ以外の事情があるのかUbuntu側でpackageの修正を行う必要
+があるものが出てきます。
+
+こういったpackageは
+\url{https://launchpad.net/ubuntu/raring/+localpackagediffs?field.package_type=all}
+で確認できます。ここではRaringとそのpackageの元となるWheezyのpackageの間で違いのあるも
+のが列挙されており、それらを下記の3区分でfilterすることが可能になって
+います。
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  無視できない違いがあったもの(古いversionを用いる、ubuntuなりの変更を入れ
+  る必要があったもの)
+\item
+  Wheezyより新しいversionでなら上記のような問題は無かったもの
+\item
+  Wheezyと同じversionで問題無かったもの
+\end{itemize}
+
+現在(2013年5月26日)では 計17261件のうちそれぞれ
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  154件
+\item
+  5908件
+\item
+  11080件
+\end{itemize}
+
+となっています。
+
+Ubuntu側の``ツールチェーンにできるだけ新しいものを使う''という方針が影響
+しているのか``Wheezyより新しいversionでなら上記のような問題は無かったも
+の''が多いようです。
+
+\subsubsection{debdiffコマンドを用いたUbuntu, Debian packageの比較}
+
+debdiffコマンドを用いると2package間の情報の比較ができます。
+debdiffコマンドはdevscripts packageをinstallすることで使えるようになり
+ます。 比較したい2packageのdsc, orig.tar.gz, debian.tar.gz, fileを適当な
+directoryにdownload後、下記のようにdebdiffします。
+
+\begin{commandline}
+kozo2@ubuntu:~/tmp$ sudo aptitude -y install devscripts
+kozo2@ubuntu:~/tmp$ ls
+aptitude_0.6.8.1-2ubuntu2.debian.tar.gz  aptitude_0.6.8.1.orig.tar.xz      aptitude_0.6.8.2-1.dsc
+aptitude_0.6.8.1-2ubuntu2.dsc            aptitude_0.6.8.2-1.debian.tar.gz  aptitude_0.6.8.2.orig.tar.xz
+kozo2@ubuntu:~/tmp$ debdiff aptitude_0.6.8.2-1.dsc aptitude_0.6.8.1-2ubuntu2.dsc
+gpgv: Signature made Wed 07 Nov 2012 02:54:14 PM JST using RSA key ID 4D6E25A8
+gpgv: Can't check signature: public key not found
+dpkg-source: warning: failed to verify signature on /home/kozo2/tmp/aptitude_0.6.8.2-1.dsc
+gpgv: Signature made Tue 26 Feb 2013 05:28:12 PM JST using DSA key ID 0F932C9C
+gpgv: Can't check signature: public key not found
+dpkg-source: warning: failed to verify signature on /home/kozo2/tmp/aptitude_0.6.8.1-2ubuntu2.dsc
+
+中略
+
+--- aptitude-0.6.8.2/src/generic/apt/pkg_changelog.cc   2012-11-05 00:24:56.000000000 +0900
++++ aptitude-0.6.8.1/src/generic/apt/pkg_changelog.cc   2012-08-04 18:33:38.000000000 +0900
+@@ -20,7 +20,6 @@
+#include "pkg_changelog.h"
+
+#include "apt.h"
+-#include "config_signal.h"
+#include "download_queue.h"
+
+#include <generic/util/job_queue_thread.h>
+@@ -543,18 +542,12 @@
+else
+realver = source_version;
+
+-              // WATCH: apt/cmdline/apt-get.cc(DownloadChangelog)
+-              string server = aptcfg->Find("APT::Changelogs::Server",
+-                                           "http://packages.debian.org/changelogs");
+-         string path = cw::util::ssprintf("pool/%s/%s/%s/%s_%s",
++         string uri = cw::util::ssprintf("http://packages.debian.org/changelogs/pool/%s/%s/%s/%s_%s/changelog",
+realsection.c_str(),
+prefix.c_str(),
+source_package.c_str(),
+source_package.c_str(),
+realver.c_str());
+-              string uri = cw::util::ssprintf("%s/%s/changelog",
+-                                              server.c_str(),
+-                                              path.c_str());
+LOG_TRACE(logger,
+"Adding " << uri
+<< " as a URI for the changelog of " << source_package << " " << source_version);
+diff -Nru aptitude-0.6.8.2/src/generic/apt/tasks.cc aptitude-0.6.8.1/src/generic/apt/tasks.cc
+--- aptitude-0.6.8.2/src/generic/apt/tasks.cc   2012-11-05 00:24:56.000000000 +0900
++++ aptitude-0.6.8.1/src/generic/apt/tasks.cc   2012-08-25 21:39:57.000000000 +0900
+@@ -80,7 +80,7 @@
+++it)
+{
+pkgCache::PkgIterator pkg = (*apt_cache_file)->FindPkg(*it, arch);
+-      if(pkg.end() == false)
++      if(pkg.end() != false)
+pkgset->insert(pkg);
+}
+
+kozo2@ubuntu:~/tmp$
+\end{commandline}
+
+\subsubsection{Linux kernelの差異}
+
+kernelもpackageなので触れないわけにはいかないですが、私はkernel hacker
+ではなく語れる力はありません。申し訳ありません。configの違いを調べるこ
+とは可能かと思います。Ubuntuのconfigは下記で参照可能ですが、Debianの
+kernel configはどこで参照できるのか調べがつきませんでした。
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  \url{https://wiki.ubuntu.com/Kernel/Configs/QuantalToRaring}
+\item
+  \url{http://kernel.ubuntu.com/~kernel-ppa/configs/}
+\end{itemize}
+
+また、おそらく適用しているであろうUbuntu, Debian毎のpatchの差異までは
+調べがつきませんでした。
+
+\subsection{policyなどの違い}
+
+次にpackageの内容のような具体的なことからすこし離れ、UbuntuとDebianの方針の
+違いについてお話しします。このあたりはご存知の方も多いかと思うのですが
+前節のpackageの新旧とも関わるので補足する意味で付記します。
+
+\subsubsection{release policy}
+
+Debianはstableのrelease時期が決まっていないのに対し、Ubuntuは定期的な新version
+のreleaseが宣言されており、support期間も明確に決まっています。(とはいう
+ものの本勉強会参加者はunstableのDebianを利用しており、かつ自己で問題を
+解決する方が多いと思うので、一応書いた程度のものです)
+
+\subsubsection{communityの違い、交流}
+
+Ubuntuのcommunityにはマーク・シャトルワース氏のCanonical社との雇用関係
+にある開発者が存在しており、この雇用関係が前述の定期releaseの実現、ま
+た前節のpackageのbug修正に効いているようです。 (ただし世界各地のUbuntu
+communityに関してはこの限りではありません)
+
+こういったユーザー指向のUbuntuに対しDebianのcommunityはDebian
+developer(DD)達の集まりで Debian Project
+Leader(DPL)はDD達の投票によって決まり、開発者中心のcommunityと言えます。
+
+そのような指向の違いはあるもののpackageについての前節で述べたように元
+のpackageのメンテナンスをしているのがDDであることもあり、Canonical社は
+DDを雇用していますし、launchpadの情報共有の試みも行われているようなの
+で対立関係ではなくお互いを刺激しあう良い関係なのではないかと考えます。
+
+\subsection{おわりに}
+
+Debianとの違いを知ることはお互い(ユーザーと開発者)の文化の違いの理解や
+相互の情報交換によるDebian packageの質の向上にもつながるかと思います。
+何か他の軋轢とその解決に対してもこの2者の関係を思い出すことでなにかしらの案が
+得られるかもしれません。
+
+\subsection{references}
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Ubuntu Weekly Recipe 第16回 パッケージの使いこなし:
+  \url{http://gihyo.jp/admin/serial/01/ubuntu-recipe/0016}
+\item
+  \url{https://wiki.ubuntu.com/MarkShuttleworth}
+\end{itemize}
 
 \clearpage
 \dancersection{%
