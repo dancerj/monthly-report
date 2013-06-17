@@ -1,0 +1,27 @@
+graph gnupg_friends {
+    rankdir=LR;
+    rank=same;
+    spline=true;
+    user [style=filled];
+    user -- ssh [dir=both, style=bold];
+    ssh -- gpg_agent [dir=both, label="SSH_AUTH_SOCK", fontsize=6];
+    user -- gpg [dir=both, style=bold];
+    user -- pinentry [dir=both, style=bold];
+    gpg -- gpg_agent [dir=both, label="GPG_AGENT_INFO", fontsize=6];
+    gpg_agent -- scdaemon [dir=both];
+    gpg [shape=box];
+    ssh [shape=box];
+    subgraph gpg_agent_pinentry {
+      rankdir=TB;
+      gpg_agent -- pinentry [dir=both, constraint=false, minlen=2];
+	gpg_agent [label="gpg-agent", shape=box];
+      pinentry [shape=box];
+    }
+    subgraph scd_gnuk {
+      rankdir=TB;
+      rank=sink;
+      scdaemon -- gnuk_token [dir=both, style=bold, minlen=2];
+      scdaemon [shape=box];
+      gnuk_token [label="Gnuk Token", shape=box, style="rounded,filled"];
+    }
+}
