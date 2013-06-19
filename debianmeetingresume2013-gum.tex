@@ -64,6 +64,8 @@
 \makeatother%% プリアンブルで定義する場合は必須
 
 \begin{document}
+
+% 表紙%-------------------------------------------------------------------------
 \begin{titlepage}
 \thispagestyle{empty}
 
@@ -85,7 +87,10 @@
 \newpage
 \thispagestyle{empty}\mbox{}
 \newpage
+% 表紙ここまで %---------------------------------------------------------------
 
+
+% 目次 %-------------------------------------------------------------------------
 \setcounter{page}{1}
 \begin{minipage}[]{0.2\hsize}
  \definecolor{titleback}{gray}{0.9}
@@ -103,6 +108,7 @@
 \hrule
 \hfill
 \end{minipage}
+% 目次 %-------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
 % はじめに
@@ -113,7 +119,6 @@
 Debian JP Project では2005年1月から東京地域を中心としたDebian に関する勉強会「東京エリアDebian勉強会」、
 2007年3月からは関西地域を中心とした「関西エリアDebian勉強会」を毎月、2013年1月からは九州福岡地域で「福岡Debian勉強会」を行なっています。
 
-\vspace{1zw}
 Debian 勉強会の大きな目的として、
 \begin{itemize}
 \item Debian Developer の育成
@@ -121,23 +126,28 @@ Debian 勉強会の大きな目的として、
 \end{itemize}
 があります。
 
-\vspace{1zw}
 昨年(2012年)、
 各地のDebian勉強会が京都に集結し、Debianユーザ、Debian開発者の交流を目的とする「大統一Debian勉強会」
 を開催し大盛況に終わりました。今年は場所を東京に移し、大統一Debian勉強会 2013を開催します。
 
-\vspace{1zw}
 2013年度の本イベントのテーマは
 \begin{center}
   {\bf{「Level up Debian」}}
 \end{center}
 です。
 
-\vspace{1zw}
 今回のイベントに参加することによって、Debianの新しい使い方を知り、一歩進んだ活用ができるようになることを考えています。
 
-\vspace{1zw}
 2012年に開催した大統一Debian勉強会の成功を受け、よりよいイベントの開催と世界各国で毎年開催されている DebConf（Debian カンファレンス）\footnote{\url{http://debconf.org/}}を日本で開催することを目指しています。
+
+\subsection*{本資料に関して}
+
+会場で頒布される本資料は大統一 Debian 勉強会 2013 のスポンサーのご支援に
+より、出版できました。スポンサーの皆様に感謝します。ありがとうございまし
+た。
+
+スポンサー一覧
+* 株式会社 マイクロソフト
 
 \pagebreak
 % -------------------------------------------------------------------------
@@ -947,20 +957,22 @@ deb http://example.org/ubuntu/ precise custom
 
 これらのkey ID, APT lineの登録は、OS自動インストール時に行い、ユーザには意識させないようにしています。
 
+\vspace{-.5em}
 \subsection{RPMパッケージのリポジトリ}
 
 現状、CentOSおよびSL用の公式パッケージリポジトリのミラーと、カスタムRPMパッケージ用のリポジトリも用意しています。これらは前述のDebianパッケージアーカイブと同じprecise上で提供しています。公式パッケージミラーは\texttt{rsync}で同期しているのでpreciseでも問題ありません。後者のカスタムパッケージ用のリポジトリはpreciseのcreaterepoパッケージを使って作成しています\footnote{弊社のブログにも書きました。\url{http://ameblo.jp/principia-ca/entry-11531008993.html}}。
 
 RPMパッケージを作成する人は多数いますが、新DC運用側の提供サービスには運用チーム以外の人はリモートログインできません。そこでパッケージアップロード用のWeb UIを提供しています\footnote{python-rpmとFlaskで実装しています。}。アップロードするとファイル及びパッケージのメタ情報をデータベースに登録し、リポジトリサーバからアップロードされたパッケージを取得し、ローカルリポジトリのディレクトリに保存、\texttt{createrepo}コマンドを自動実行する仕組みを提供しています。
 
+\vspace{-.5em}
 \subsection{まとめ}
 
 弊社の新DCで提供するツールの開発、Debianパッケージのメンテナンスプロセス、パッケージアーカイブの作成方法、Ubuntu上でのRPMパッケージリポジトリの管理方法について説明しました。RHEL系をメインで使用している環境では、Debianシステムを使いたくでもできないことは多々あります。ITエンジニアが自分で選べる＆責任を持って運用する自由がある今の職場環境は大きな要因の一つです。
 しかし、身も蓋も無い言い方をすれば自分で動かなければ実現しないのは事実でしょう。幸い、筆者と同様にDebianを使える自由があるなら、今回紹介した内容がお役に立てれば幸いです。
 
-\vspace{-1em}
+\vspace{-.5em}
 \subsection*{参考文献}
-{\footnotesize{
+{\scriptsize{
     \begin{description}
     \item[reprepro manual:] \url{/usr/share/doc/reprepro/manual.html}
     \item[Debian Wiki:] \url{http://wiki.debian.org/SettingUpSignedAptRepositoryWithReprepro#Configuring_reprepro}
@@ -1765,9 +1777,378 @@ Requested: 79.6% Completed: 79.0% Running:  92 Time:36m15s Speed: 11431 KB/s
 %---------------------------------------------------------------------------
 % 佐々木
 \dancersection{Dennou Club Library を Debian 公式パッケージにするには?}{佐々木洋平}
+\label{sec:uwabami}
+
+\subsection{はじめに - はなしの「まくら」}
+
+Dennou Club Library(以下、DCL)は地球流体電脳倶楽部(\url{http://www.gfd-dennou.org/})の関係者が
+長年にわたり蓄積してきた\footnote{%
+  今回歴史を遡った所、1987 年頃にプロトタイプが公開されていた模様です。%
+  ただ, 本当のプロトタイプは PC-8801 で動いていたという話(噂?)もありますので、正直いつからあるのか定かではありません(笑)%
+}、欠損値処理や地図投影などの機能が標準的にサポートされた描画ライブラリです。
+%
+DCL は FORTRAN77 で書かれており,
+これをベースに \texttt{f2c} によって生成されたコードに手を入れた C 版,  これを用いる Ruby 拡張ライブラリも提供しています
+\footnote{%
+  数値計算は FORTRAN, fortran, C で行なっても, その後のデータ解析までこれらの言語でやるのは結構シンドイです。
+  「計算量自体が少ない場合。例えば C で 1 秒以内に済む計算
+  が、Ruby では 1 分かかるかもしれない。しかし、そのためのプログラム開発
+  に C では 5 時間かかり、Rubyでは 30 分程度で済むならどうだろう。もしも
+  そのプログラムを実行するのが高々数10回程度としたら、Ruby を使うことはお
+  かしな選択ではない\cite{RubiMa6}。」と、筆者も思っています。
+}。
+%
+日本に限らず世界各地の大気海洋科学の研究者に用いられており、ソースコード
+は全て公開され「無責任無保証の元で改変と再配布は自由に行なえる状況」にあ
+ります。
+
+しかしながら、長年の蓄積と当時の牧歌的な状況などからか、コピーライトやラ
+イセンスは(上記文章は含まれているものの)あまり明確ではなく、このままでは
+「フリーソフトウェア」と名乗って良いものか定かではありません。
+%
+本稿では、筆者が「DCL を Debian の公式パッケージとしたい！」と思って
+行なった/行なっているアレやコレについてまとめてみます。
+
+\subsection{%
+  「地球流体電脳倶楽部」とは?
+}
+
+「地球流体電脳倶楽部」は, 主に地球惑星科学, 天文学における「流体」を研究
+する分野の研究者と学生からなる草の根(もしくはボランティア)集団です
+\footnote{%
+  たまに誤解されますが、
+  特定の資金源や専任スタッフが存在するわけではありません。%
+}.
+全国各地の有志から構成されており, 普段はネットワーク上で活動していることが多
+い(active member は 20 名程?)です.
+%
+詳細に関しては
+「地球流体電脳倶楽部について(\url{http://www.gfd-dennou.org/html/about/})」
+あたりをご覧下さい.
+
+我々は好んで Debian を使用しています。
+%
+我々の「ポリシー」%
+\footnote{ポリシー: \url{http://www.gfd-dennou.org/html/about/policy.html}}
+において
+\begin{quote}
+  研究教育のための情報は無料でなければならない　\\
+  少なくとも税金で運営されている国立大学、国立研究所が提供する情報は無料
+  であるべきである。また、その情報の出所が明らかでなければならない。
+  さらに、その情報の再配布が可能であることが望ましい。
+\end{quote}
+と掲げている通り、Debian ファンが多い集団
+でもあったりします。
+「無料」と掲げている点が悩ましい所ではありますが...。
+%
+現在、北大・京大・九大にサーバを設置し Debian のミラーをやっていたりしま
+す。関係者が他の大学/研究機関へ異動し(機関の許可があれば)他にも増えるかも
+しれません(減るかもしれません)。
+
+\subsection{%
+  事の発端
+}
+
+筆者は、地球流体電脳倶楽部で開発・配布しているソフトウェアを野良Debianパッ
+ケージとして公開しています:
+
+\begin{commandline}
+  # sid, GPG: 0xAEE995F4
+  deb http://www.gfd-dennou.org/library/cc-env/Linux/debian-dennou squeeze/
+  deb-src http://www.gfd-dennou.org/library/cc-env/Linux/debian-dennou squeeze/
+
+  # wheezy, GPG: 0xAEE995F4
+  deb http://www.gfd-dennou.org/library/cc-env/Linux/debian-dennou squeeze/
+  deb-src http://www.gfd-dennou.org/library/cc-env/Linux/debian-dennou squeeze/
+\end{commandline}
+%
+自分が計算機にソフトウェアをインストールする際に
+毎回ビルドするのが手間で作成/整理し始めたのですが、
+最近は自分でリポジトリを用意するのが面倒になってきましたし,
+「ライセンスに問題が無いならいっそ Official に入れてしまおう」と思いついたのが
+事の発端です\footnote{%
+  「Ubuntu のリポジトリは無いの?」
+  という問い合わせが増えたのも理由の一つではあります
+  (一応 PPA は有志によって用意されています)。
+  実態は上記 apt リポジトリの(とあるタイミングでの) clone ですが。
+}
+
+\subsubsection{%
+  Ruby まわりは upload できたけれど
+}
+ライセンスがクリアなソフトウェア(特に Ruby まわりのソフトウェア)に関しては、
+既に Official に upload してあります。
+代表的なのは
+\begin{itemize}
+\item %
+  \texttt{ruby-netcdf}: NetCDF を Ruby で扱うライブラリ
+  \footnote{
+    PTS: ruby-netcdf, \url{
+      http://packages.qa.debian.org/r/ruby-netcdf.html}
+  }
+\item %
+  \texttt{ruby-grib}: ECMWF GRIB を Ruby で扱うライブラリ
+  \footnote{
+    PTS: ruby-grib, \url{
+      http://packages.qa.debian.org/r/ruby-grib.html}
+  }
+\item %
+  \texttt{ruby-lapack}: LAPACK の 1 to 1 wrapper
+  \footnote{
+    PTS: ruby-lapack, \url{
+      http://packages.qa.debian.org/r/ruby-lapack.html}
+  }
+\end{itemize}
+でしょうか。これらは BSD 2-Clause or Ruby's なので、
+Official にアップロードするのには特に困りませんでした。
+
+\subsubsection{%
+  で「GPL 準拠」なの? それ、良いの?%
+}
+
+データの入出力、解析を行なうためのツールはちゃくちゃくと整理・Official への upload が進んでいた訳ですが、
+肝心の描画ライブラリがなかなか進みません。
+%
+そもそも当時はライセンスが明確にされておらず、そもそも \texttt{debian/copyright} を書くことができませんでした。
+しかしながら、FAQ \cite{DCL-FAQ} には
+\begin{quotation}
+  \noindent
+  \textbf{DCL はフリーですか?} \\
+  はい、フリーソフトウェアです。著作権は GNU Public License に準拠してお
+  ります。因みにパッケージ内の CREDITS には版権を以下のように定めており
+  ます。
+  \begin{quote}
+    本資源の版権は地球流体電脳倶楽部に属する。資源の利用にあたっては地
+    球流体電脳倶楽部の定める規定にしたがっていただきたい。原則として、教育
+    的目的の場合には自由に使用・改変して良いものとしている。
+  \end{quote}
+\end{quotation}
+とあるわけです。
+
+\subsection{%
+  歴史を紐解く
+}
+
+というわけで、本当に GNU Public License 準拠%
+\footnote{%
+  GPL のバージョン番号が無い時点で、既に不安ではありました。%
+}
+になっているのか確認した上で、
+\texttt{debian/copyright} 書いてみましょうか、という事になります。
+これが明確になってないと ITP/RFS しにくいですし。
+
+コードの大部分は
+地球流体電脳倶楽部関係者によって開発・整理されているため、
+Copyright holder が誰であるか問い合わせる/明確にする作業は着々と進んでいました
+\footnote{%
+  実際には Copyright が明記されていないコードに関して
+  原作者に問い合わせ\texttt{ (c) GFD-Dennou Club } に変更/明記するだけです。
+}。
+...進んでいたのですが。
+
+\subsection{%
+  問題点
+}
+以下, 現状把握されている問題点を解決済の物も含めて解説してみます。
 
 
+\subsubsection{%
+  Numerical Recipe 由来: 解決済み%
+}
 
+乱数生成に関するコードの一部に Numerical Recipes 由来の SUBROUTINE が使われていました。
+良く知られている通り Numerical Recipes のライセンスはフリーではありません
+\footnote{%
+  (自称を含めた)数値計算屋さんにはあまりちゃんと広まっていませんが、
+  Numerical Recipes は、内容に関する批判もさることながら、%
+  「この本を読んでコードを書くとコードが公開できない」という点において、%
+  決して科学・教育に使ってはいけない本だと、筆者は考えます。
+  ちなみに内容に関しては、読んでいないので批判できません。
+  コードの質は一時に比較して改善されているらしいですね。
+}。
+
+そもそも FORTRAN77 には乱数ルーチンが無い(!)ため、些細な事ですが自前で実
+装する必要がありました。デフォルトでは C の \texttt{rand()} を FORTRAN77
+から呼び出しているだけであり、これが使えない場合の代替手段として提供して
+いた SUBROUTINE でしたので、結局該当 SUBROUTINE を破棄することにしました。
+
+
+\subsubsection{%
+  Hershey フォント: 解決(?)
+}
+
+DCL では軸ラベル, タイトル等の描画等に Hershey フォントを使用しています。
+
+Hershey フォントはHershey, A.V. が 1967 年に作成したベクタフォントで
+す\cite{Hershey}。原論文は参照していませんが、その後 USENET でフォントデー
+タが配布されており、その際のライセンスは
+
+\begin{commandline}
+  USE RESTRICTION:
+        This distribution of the Hershey Fonts may be used by anyone for
+        any purpose, commercial or otherwise, providing that:
+                1. The following acknowledgements must be distributed with
+                        the font data:
+                        - The Hershey Fonts were originally created by Dr.
+                                A. V. Hershey while working at the U. S.
+                                National Bureau of Standards.
+                        - The format of the Font data in this distribution
+                                was originally created by
+                                        James Hurt
+                                        Cognition, Inc.
+                                        900 Technology Park Drive
+                                        Billerica, MA 01821
+                                        (mit-eddie!ci-dandelion!hurt)
+                2. The font data in this distribution may be converted into
+                   any other format ((*EXCEPT*)) the format distributed by
+                   the U.S. NTIS (which organization holds the rights
+                   to the distribution and use of the font data in that
+                   particular format). Not that anybody would really
+                   ,*want* to use their format... each point is described
+                   in eight bytes as ``xxx yyy:'', where xxx and yyy are
+                   the coordinate values as ASCII numbers.
+\end{commandline}
+となっています
+\footnote{%
+  その後幾つか glyph が追加されていきましたが、
+  現在 ghostscript に含まれている改良(悪?)版は,
+  glyph を追加した人によって
+  ``These are ``freeware'', not to be sold.'' という文言が追加されたため
+  Debian では \texttt{non-free/gsfonts-other} で提供されています。
+}。
+さて, これはどういう扱いになるのでしょうか?
+
+次期バージョンの DCL は GTK/Cairo を使って描画するように下層の入れ替えを
+進めていますので、もしかしたらこの疑問は不要になるのかもしれません。%
+ただ、昔の図の再現性が無くなるのはちょっと痛いです。
+
+\subsubsection{%
+  海岸線データ: 解決(?)
+}
+
+DCL では地図投影を行なった際に、地図を描画することができます。この際の海
+岸線データの出所について、あまり明瞭に記載がされていません。日本付近の高
+精細海岸線データに関しては、とりあえず配布物から抜いて、別途確認中です。
+
+\subsubsection{%
+  colormap: 解決(?)
+}
+
+現在 DCL で使用できる colormap の一覧は
+\href{http://www.gfd-dennou.org/library/dcl/dcl-5.4.8/src/env1/colormap/colormap_gallery.html}
+にあります。
+%
+幾つかの colormap は他のソフトウェアの colormap を\textbf{参考にして} 作っています。
+(例えば, GNU Octave\cite{Octave}, IDV\cite{IDV}, NCL\cite{NCL} など)。
+%
+
+コードをそのまま持ってきた訳ではない,
+出力結果を元に色調を手で合わせて作成された colormap なのですが、
+この場合にはライセンスはどうなる/どうすべきなのでしょうね.
+%
+とりあえず、現状は配布物に同梱されていますが、抜くことも容易に可能な状況
+にしてあります。
+
+\subsubsection{%
+  欲望との戦い: 引用して欲しいよね?
+}
+
+科学研究では論文を書く/書いた論文が引用される、というプロセスが重視される
+ことが多いです。研究・教育におけるソフトウェア開発は(ソフトウェアそのもの
+を研究する場合を除くと)、あまり評価されていません。これについて「使ったら
+なるべく引用して欲しいよね」となるのが人情かもしれません。
+
+DFSG-FAQ\cite{DFSG FAQ}, 10.g (draft 版ですので, 項目はまた変わるかもしれ
+ません) には ``You have a valid concern.'' から続く, 以下の文言があります:
+\begin{quotation}
+  \noindent
+  Computer scientists often receive inadequate credit for their
+  scientific contributions. But putting such a clause in the license
+  would render your software non-free. Instead we suggest a note, not
+  part of the license itself, reminding users of the rules of scientific
+  propriety. Eg:
+  \begin{quotation}
+    \noindent
+    SCIENTISTS: please be aware that the fact that this program is
+    released as Free Software does not excuse you from scientific
+    propriety, which obligates you to give appropriate credit!
+    ...(略
+  \end{quotation}
+\end{quotation}
+ちょっとキツメの書きかたなので, どういう文章にするかは考える必要があるか
+もしれません.
+
+\subsection{%
+  まとまらない%
+}
+
+これらの問題が解決した段階で、ようやくライセンスを「GPL 準拠」にしよう、
+という話になるわけですが、現状では BSD 2-Clause にしたい、という意見が(開
+発者の)大半を占めており、問題が無いのであればそうしましょう、ということに
+なっています。
+%
+これは「大学で使っていたソフトウェアはそのままどこに行っても使えて欲しい」
+という気持からです.
+
+一方で、DCL とは(あまり)関係がありませんが「数値モデルを共同で開発しましょ
+う」という際に、ライセンスについて
+\begin{quotation}
+  有能な技術者が理解のない上官の下で孤立しているようなとき、外部ソフトウェ
+  アの差分をその開発コミュニティにフィードバックすること自体は、まあ承認
+  を得ることが可能であるけれど、その差分のライセンスに注目がいったら最後、
+  職務著作であるからライセンス設定について然るべきものによる正当な意思決
+  定をしなければならないという、反論不能かつ事実上実行不能な指示＝リスク
+  回避が行われることがままあるわけですね。
+
+  そのときおおもとのソフトウェアが（L)GPLであってくれれば、差分が少なくと
+  も（L)GPLでなければならないという制約がかかるので、意思決定がバイパスさ
+  れます。ガバナンスが崩壊している組織においては、意思決定が不可能である
+  ことがボトルネックですから、これで仕事ができるようになるわけです。まあ、
+  要するに外圧スキームですが。
+\end{quotation}
+という話もあって、個人的には LGPL-2+ あたりにしておいた方が良いかもしれな
+い、とか思っていたりします。
+
+まとまってませんが、そんなこんなで。
+
+\begin{thebibliography}{N}
+  {\footnotesize{
+  \bibitem{Dennou}
+    地球流体電脳倶楽部、
+    \url{http://www.gfd-dennou.org/}
+
+  \bibitem{RubiMa6}
+    堀之内 武(著)、立石 孝彰(編)
+    「数値計算と可視化」、
+    Ruby Library Report 第5回、
+    Rubyist Magazine、 No.{6}、
+    \url{http://magazine.rubyist.net/?0006-RLR}
+
+  \bibitem{DCL-FAQ}
+    地球流体電脳ライブラリ Q and A 集,
+    \url{http://www.gfd-dennou.org/arch/dcl/dcl-QA/dcl-QandA.html}
+
+  \bibitem{Hershey}
+    Hershey, A. V.,  1967:
+    ``Calligraphy for Computers, Dahlgren, VA'',
+    U.S. Naval Weapons Laboratory,
+    \textit{NWL Report}, \textbf{2101}. NTIS AD662398.
+
+  \bibitem{Octave}
+    GNU octave:
+    \url{http://www.gnu.org/software/octave/}
+
+  \bibitem{IDV}
+    IDV: \url{http://www.unidata.ucar.edu/software/idv/}
+
+  \bibitem{NCL}
+    NCL: \url{http://www.ncl.ucar.edu/}
+
+  \bibitem{DFSG FAQ}
+    DFSG and Software License FAQ (Draft):
+    \url{http://people.debian.org/~bap/dfsg-faq.html}
+  }}
+\end{thebibliography}
 
 
 \pagebreak
@@ -2002,7 +2383,7 @@ $ time sudo piuparts -p hotot_0.9.8.13+git20130311-2_amd64.changes
 real 37m24.258s
 user 0m52.284s
 sys  0m16.888s
-\end{commandline} 
+\end{commandline}
 %$
 
 やはりrealと比較するとuser timeが極端に小さいことが見て取れます。
@@ -2066,14 +2447,14 @@ pbuilderに対するcowbuilderと同じアプローチでpiupartsもCOW(Copy
 1 については、base.tgzの展開に時間がかかるので、最初にbase.cowを用意し、COWによってそれを下敷きにして利用することでこれを短縮します（数秒程度）。
 
 2 については、ホスト側のパッケージキャッシュをunion mountすることでダウンロード時間を削減し、
-かつダウンロードしたパッケージもunion mountすることで使いまわして毎回のダウンロードを行わないようにします。 
+かつダウンロードしたパッケージもunion mountすることで使いまわして毎回のダウンロードを行わないようにします。
 birdfont を piuparts でテストした際にかかった時間は"Fetched 40.4 MB in 12s (3341 kB/s)"だったので12秒短縮
 （世界平均が500kB/sぐらいなので、1分は短縮可能）となります。この点はテストするパッケージの依存関係が巨大で
 あればあるほど短縮が可能です。
 
 3 については特に変更する点は見出せませんでした。
 
-4 については、uninstall と purge はそれぞれインストールして実施しているようですが、一旦 install ができた状態を COW で保持してその上に uninstall 
+4 については、uninstall と purge はそれぞれインストールして実施しているようですが、一旦 install ができた状態を COW で保持してその上に uninstall
 用のレイヤーと purge 用のレイヤーを用意すればインストールは一回で済むので、ここを改善しました。
 5については、現状ではパッケージバージョンの比較などを行っていないためダウングレードテストになってしまう場合がありますが、
 作成ツール側ではアップグレード発生時以外はすべてキャンセルするなどして省略を図りました。
@@ -3337,9 +3718,11 @@ Public License instead of this License.
 \end{center}
 
 このプログラムは tex で記述されたものです。ソースコードをご希望の場
-合は\url{dancer@debian.org} まで連絡ください。ちなみにソースコードは
-\url{git://anonscm.debian.org/tokyodebian/monthly-report.git} の
-\texttt{printed-2013-gum} タグから取得できます。
+合は \url{dancer@debian.org} まで連絡ください。ちなみにソースコードは
+\begin{center}
+  \url{git://anonscm.debian.org/tokyodebian/monthly-report.git}
+\end{center}
+の \texttt{printed-2013-gum} タグから取得できます。
 
 \begin{commandline}
 $ git clone -b printed-2013-gum git://anonscm.debian.org/tokyodebian/monthly-report.git
@@ -3378,7 +3761,11 @@ THE SOFTWARE.
  \end{fontsize}
 \end{multicols}
 
-\pagebreak
+% 背表紙
+\newpage
+\thispagestyle{empty}\mbox{}
+\newpage
+
 \thispagestyle{empty}
 {
 \large
