@@ -1,0 +1,294 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{とあるWeb企業での\\Debianシステムの使い方。}
+\subtitle{大統一Debian勉強会2013}
+\author{株式会社サイバーエージェント\\前田耕平}
+\date{2013年6月29日}
+%\logo{\includegraphics[width=8cm]{images/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\begin{frame}
+ \frametitle{自己紹介}
+  \begin{itemize}
+   \item 株式会社サイバーエージェント所属
+   \item 主にDC運用関連のソフトウェアの開発やってます
+   \item Debian JP Project 2011, 2012年度会長でした
+   \item 趣味でPythonでツール開発や、Python関連のDebianパッケージのメンテナンスやってます
+   \item 仕事と趣味がほぼ一致
+   \item 一児（おまめ\footnote{ネットでの通称}）と一匹（こまめ）の父親です
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{今回お話しする内容}
+  \begin{itemize}
+  \item RHEL系メインの環境でDebianシステム増えてるって？
+  \item 社内向けのDebianパッケージの作成、配布方法は？
+  \item RPMの配布もDebainでやっちゃうって？
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\begin{center}
+{\Huge 私からの質問です。}
+\end{center}
+\end{frame}
+
+\begin{frame}{皆さんの職場はどんな環境？}
+ \begin{itemize}
+  \item[A.] もちろんDebianメイン
+  \item[B.] メインじゃないけどDebianも使ってる
+  \item[C.] RHEL系メインでDebian使えれば使いたい
+  \item[D.] いや、Unix, GNU/Linuxって何？
+ \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{今回お話しする内容}
+  \begin{itemize}
+  \item \textcolor{red}{RHEL系メインの環境でDebianシステム増えてるって？}
+  \item \textcolor{gray}{社内向けのDebianパッケージの作成、配布方法は？}
+  \item \textcolor{gray}{RPMの配布もDebainでやっちゃうって？}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{サイバーエージェントでは？}
+ \begin{itemize}
+  \item[1.] CentOSメイン。（今もね）
+  \item[2.] 転職時は所属チームのみでUbuntu 10.04 LTSを利用
+  \item[3.] 今年2月リリースしたDCはユーザ向け\footnote{私達のチームから見たユーザ=
+社内＆グループ会社のエンジニア}のサービスにUbuntu 12.04 LTSを利用\footnote{仮想マシンのホストや、コンシューマ向けサービスは主にCentOS}
+  \item[4.] 今月Wheezyも利用可能にした
+  \item[5.] 今後リリースするサービスはWheezyを利用予定
+ \end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+{\Huge Q. どうやって増やしたの？}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+{\Huge A. ワシが使いたいから\\自分で増やした。}
+\end{center}
+\end{frame}
+
+
+\begin{frame}
+\begin{center}
+{\Huge 具体的には？}
+\end{center}
+\end{frame}
+
+\begin{frame}{OpenStack環境提供期}
+ \begin{itemize}
+ \item[0.] OpenStack(Cactus, Diablo, Essex) Nova, Glance, Keystone, Horizonの環境としてLucid, Preciseを利用
+ \item[1.] アメーバ環境の内部DNS\footnote{PowerDNS＆TonicDNSを使用}用にLucid, Precise利用\footnote{OpenStack用のインスタンス名の自動登録が主目的}
+ \end{itemize}
+※前提：この時期まではアメーバ向けの環境だけが対象
+\end{frame}
+
+\begin{frame}{新DCプロジェクト期}
+\begin{itemize}
+  \item[2.] Preciseを前提に、必要な機能\footnote{認証,監視,監視用アラートメール,パッケージ管理,ログ管理,サーバ構成管理,NW機器管理,SCM, etc.}を検証＆構築＆開発
+  \item[3.] チームメンバーにUbuntuの利用薦める
+  \item[4.] 基本公式パッケージを利用
+  \item[4.] Sidにも無いソフトウェアや開発したツールは基本全て、Debianパッケージ化
+  \item[5.] 作成したパッケージはローカルアーカイブで提供＆公式パッケージ化も目指す
+\end{itemize}
+※前提：新DCからアメーバだけでなく、他事業部やグループ会社向けの環境も対象
+\end{frame}
+
+\begin{frame}{リリース後〜現在}
+\begin{itemize}
+  \item[6.] チーム内でハンズオンでの勉強会\footnote{Pythonパッケージ作成、Debianパッケージ作成, Git関連など}
+  \item[＆] 4,5の繰り返し
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{身も蓋も無いけど、特別なことは何もない}
+\begin{center}
+{\Huge 地道にできることをちょっとずつ増やしているだけ}
+\end{center}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{今回お話しする内容}
+  \begin{itemize}
+  \item \textcolor{gray}{RHEL系メインの環境でDebianシステム増えてるって？}
+  \item \textcolor{red}{社内向けのDebianパッケージの作成、配布方法は？}
+  \item \textcolor{gray}{RPMの配布もDebainでやっちゃうって？}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{開発および本番環境}
+  \begin{itemize}
+    \item (VirtualBox上の)Sidで開発\footnote{毎日スナップショット取ると便利}
+    \item PreciseやWheezyは、Sid上でpbuilderを利用
+    \item 本番環境はClover\footnote{社内開発のツール。Nova＆cobbler＆DNS＆ラック管理などを提供}で物理及びVMにOSインストール
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{開発とパッケージメンテナンスの流れ}
+  \begin{itemize}
+    \item[1.] 使用するミドルウェアもSidのパッケージを利用
+    \item[2.] 使用するPythonパッケージもSidのパッケージを利用
+    \item[3.] パッケージが無ければ、PyPIにあるものを利用
+    \item[4.] PyPIになければ自分でツールやライブラリ開発
+    \item[5.] 上記いずれもDebianパッケージ化
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{SidでのDebianパッケージ作成}
+Pythonで開発したツールの例\footnote{主にPythonで開発しているので}
+  \begin{commandline}
+$ cd ~/devel/hoge
+$ python setup.py sdist ←(1)
+$ cp -i dist/hoge-x.x.tar.gz ~/debpkg/hoge/
+$ cd ~/devpkg/hoge
+$ tar xvf hoge-x.x.tar.gz
+$ cd hoge-x.x
+$ dh_make --createorig -s ←(2)
+$ rm -rf debian
+$ cp -a ~/devel/hoge/debian . ←(3)
+$ debuild -us -uc ←(4)
+$ cd -
+$ sudo pbuilder --build hoge_x.x-x.dsc ←(4)
+$ cd /var/cache/pbuilder/result
+$ sudo piuparts hoge_x.x-x_amd64.changes ←(5)
+$ debsign hoge_x.x-x_amd64.changes ←(6)
+$ sudo debi hoge_x.x-x_amd64.changes ←(7)
+  \end{commandline}
+\end{frame}
+
+\begin{frame}{precise, wheezy向けのパッケージメンテナンス}
+（開発 and パッケージ化）したツール
+
+\begin{itemize}
+  \item[A) の] ソースパッケージをリビルドする
+  \item[B) が] 依存するモジュールがパッケージにない
+  \item[C) が] 依存するモジュールがパッケージにはあるが古い
+\end{itemize}
+\end{frame}
+
+\begin{frame}{パターンAの場合}
+\begin{itemize}
+  \item pbuilderのbase.tgzイメージを２つ用意
+    \begin{itemize}
+      \item preciseの場合、precise上で作成したものをSidにコピー
+      \item wheezyの場合、Sid上でそのまま作成
+    \end{itemize}
+  \item 一つはシェルログインでの作業環境用
+  \item もう一つは最小構成でのクリーンビルド用
+\end{itemize}
+\end{frame}
+
+\begin{frame}{パターンB, Cの場合}
+\begin{itemize}
+\item[1.] 作業環境で依存パッケージ\footnote{依存パッケージがSidの公式パッケージにあればそれ使用を、なければ自分で作っておきます}と最終目的のパッケージをリビルド
+\item[2.] 最小構成のbase.tgzから別途コピーしたイメージインストールしておく
+\item[3.] 2のbase.tgzを使い、最終目的のパッケージをビルド
+\end{itemize}
+※Tipsは配布資料を参照。
+\end{frame}
+
+\begin{frame}{内部のパッケージアーカイブ}
+\begin{itemize}
+\item 公式パッケージのアーカイブミラーにはapt-mirror\footnote{\url{http://apt-mirror.github.io/}}
+\item カスタムビルドおよび独自パッケージにはreprepro\footnote{\url{http://mirrorer.alioth.debian.org/}} \footnote{python-aptで車輪の再開発やりかけたのは内緒 \url{https://github.com/mkouhei/createapt}}
+\end{itemize}
+※repreproの細かい手順は配布資料を参照。
+\end{frame}
+
+\begin{frame}
+  \frametitle{今回お話しする内容}
+  \begin{itemize}
+  \item \textcolor{gray}{RHEL系メインの環境でDebianシステム増えてるって？}
+  \item \textcolor{gray}{社内向けのDebianパッケージの作成、配布方法は？}
+  \item \textcolor{red}{RPMの配布もDebainでやっちゃうって？}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+{\Huge おまけのRPMリポジトリの作成}
+\end{frame}
+
+
+\begin{frame}
+{\Huge いや、CentOSメインなんだからおまけではない}
+\end{frame}
+
+\begin{frame}{RPMのリポジトリ}
+\begin{itemize}
+\item 公式リポジトリミラーはrsyncするだけ
+\item カスタムビルドパッケージにはパッケージアップロード用のWeb UIを提供
+  \begin{itemize}
+    \item Web UIにはFlask
+    \item アップロード時のRPMのメタ情報取得にはpython-rpm
+    \item リポジトリの作成にはDebianのcreaterepoパッケージ
+    \item テストデータ用のRPMはDebian上で作成
+  \end{itemize}
+\end{itemize}
+※Debian上でもRPMは作れるんですよ
+\end{frame}
+
+\begin{frame}{まとめというか言いたいこと}
+  \begin{itemize}
+    \item Debian使いたければ自分で動くしかない
+    \item 使うパッケージ管理システムは一つに決めて運用する
+      \\もっと良いやり方\footnote{Debianパッケージ管理として。}が合ればぜひ教えてください :)
+    \item DebianでだってRPM作れるし、管理できるんですよ
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+{\Huge 何かご質問ありますか？}
+\end{center}
+\end{frame}
+
+\end{document}
