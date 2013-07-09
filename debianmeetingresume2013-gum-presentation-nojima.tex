@@ -1,0 +1,616 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{大統一Debian勉強会 2013}
+\subtitle{gdb+python拡張を使ったデバッグ手法}
+\author{野島 貴英\\nozzy@debian.or.jp}
+\date{2013年6月29日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\section{Level Up Debian}
+\emtext{Level Up Debian}
+
+\begin{frame}{質問タイィィィィーム}
+
+\begin {itemize}[<+->]
+\item 皆さんDebianって使ってますかー？
+\item debian sidでunstableな生活してますかー？
+\item *-dbgパッケージって知ってますかー？
+\item gdbって使ったことありますかー？
+\item gdbのpython拡張使ったことありますかー？
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{回答}
+
+\begin {itemize}[<+->]
+\item 皆さんDebianって使ってますかー？\\
+→\textcolor{red}{使ってない人はぜひ使ってみましょう!}
+\item debian sidでunstable生活してますかー？\\
+→\textcolor{red}{level upを目指す人はぜひdebian sidへアップグレードしてunstableな生活を送りましょう!楽しいよ！}
+\item *-dbgパッケージって知ってますかー？\\
+→\textcolor{red}{使ったことない人は、家に帰ったらaptitude install XXXX-dbg！（XXXXは何か好きなパッケージで）}
+\item gdbって使ったことありますかー？/gdbのpython拡張使ったことありますかー？\\
+→\textcolor{red}{使ったことない人は、本資料公開してますので、ぜひ真似をしてみてー。}
+\end{itemize}
+
+\end{frame}
+
+\section{今回発表の環境}
+\emtext{今回発表のDebian環境}
+
+\begin{frame}{今回のDebian環境}
+
+\begin{table}[htb]
+\begin{tabular}{|l|l|l|} \hline
+項番 & 種類 & 内容 \\ \hline 
+1 & Debianバージョン & debian sid (jessie/sid) \\ \hline
+2 & CPU & amd64 (多分i386も一緒かな？）\\ \hline
+3 & OS種別 & linux \\ \hline
+4 & php & version 5.5.0 (debian sidから)\\ \hline
+5 & gdb & version 7.6 (debian sidから)\\ \hline
+\end{tabular}
+\end{table}  
+
+ kFreeBSDとか、Hurd環境とか、ARMとかの他のCPUの人は...大変申し訳ない...
+
+\end{frame}
+
+\section{ちょっとだけおさらい}
+\emtext{ちょっとだけおさらい}
+
+\begin{frame}{*-dbgパッケージ今までのDebian勉強会での発表}
+
+ *-dbgパッケージの技術的な話と、debianの*-dbgパッケージの現状については、
+\begin{quote}
+2012年の大統一Debian勉強会の岩松さんの発表「debug.debian.net」↓
+\url{http://gum.debian.or.jp/2012/}
+\end{quote}
+
+に掲載されているプレゼン資料が大変参考になりますので、
+こちらもあわせてご覧くださいませ。\\
+(今回の発表はこちらの資料読んでなくても大丈夫なように調整してます！)
+\end{frame}
+
+\begin{frame}{gdb+pythonの今までのDebian勉強会での発表}
+
+ gdb+pythonについては、
+
+\begin{quote}
+第98回東京エリアDebian勉強会↓
+\url{http://tokyodebian.alioth.debian.org/2013-03.html}
+\end{quote}
+
+に掲載されている勉強会資料に内部構造、コマンド拡張、ブレークポイントの応用など
+載せてますので、こちらもあわせてご覧くださいませ。\\
+(今回の発表はこちらの資料読んでなくても大丈夫なように調整してます！)
+
+\end{frame}
+
+\section{*-dbgパッケージについてちょっと}
+\emtext{*-dbgパッケージについてちょっと}
+
+\begin{frame}{*-dbgパッケージとは}
+
+ バイナリパッケージに対応して、デバッガが利用するデバッグシンボルを別のファイルに分離してパッケージにまとめたパッケージとなります。Debianに含まれているバイナリ
+をデバッグするときに大変便利です。
+\begin{table}[htb]
+\scalebox{0.6}[0.6]{
+\begin{tabular}{|l|l|p{30em}|} \hline
+項番 & 種類 & 内容 \\ \hline 
+1 & *-dbgパッケージ名 & バイナリパッケージ名-dbg \\ \hline
+2 & シンボルファイル名 &
+\begin{itemize}
+  \item COMPATIBILITY LEVEL 9未満のパッケージの場合:\\
+    バイナリと同じファイル名
+  \item COMPATIBILITY LEVEL 9以上のパッケージの場合:\\
+    バイナリに埋め込まれたBuildIDに対応したファイル名
+\end{itemize} 
+\\ \hline
+3 & インストール先 &
+\begin{itemize}
+  \item COMPATIBILITY LEVEL 9未満のパッケージの場合:\\
+    /usr/lib/debug/<バイナリのインストール先のディレクトリ名>\\
+    例：/usr/bin/php5だったら、/usr/lib/debug/usr/bin/php5
+  \item COMPATIBILITY LEVEL 9以上のパッケージの場合:\\
+    /usr/lib/debug/.build-id/以下
+\end{itemize} 
+\\ \hline
+\end{tabular}
+}
+\end{table}
+\end{frame}
+
+\begin{frame}[containsverbatim]{*-dbgパッケージとは}
+
+試しにどんな*-dbgパッケージがあるかみてみます。
+
+\begin{commandline}
+$ cat /etc/debian_version
+jessie/sid
+$ aptitude search '.*-dbg'
+p   0ad-dbg              - Real-time strategy game of 
+p   389-ds-base-dbg      - 389 Directory Server suite 
+p   389-ds-base-libs-dbg - 389 Directory Server suite 
+p   7kaa-dbg             - Seven Kingdoms Ancient 
+...中略...
+$ aptitude search '.*-dbg' | wc -l
+2272
+$
+\end{commandline}
+
+\begin{center}
+debian sid(jessie/sid)で 2272パッケージ程度
+\end{center}
+\end{frame}
+
+\begin{frame}[containsverbatim]{*-dbgパッケージを早速使ってみる}
+
+php5をデバッグしてみます。
+
+\begin{commandline}
+$ aptitude install php5-dbg
+$ apt-get source php5/sid
+$ ls 
+php5-5.5.0+dfsg	 php5_5.5.0+dfsg-1.dsc
+php5_5.5.0+dfsg-1.debian.tar.gz  
+php5_5.5.0+dfsg.orig.tar.xz
+$ pwd
+/home/yours/php5-src/
+$ gdb --args /usr/bin/php5 -r 'phpinfo()'
+(gdb) set substitute-path /tmp/buildd/ /home/yours/php5-src/
+(gdb) b main
+(gdb) run
+(gdb) l
+1197	#else
+1198	int main(int argc, char *argv[])
+1199	#endif
+1200	{
+1201	#ifdef ZTS
+1202		void ***tsrm_ls;
+\end{commandline}
+%$
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{COMPATIBILITY LEVEL}
+
+ Debianのソースパッケージは、debhelperのCOMPATIBILITY LEVELにより
+構築に使われるdebian/以下のファイルのフォーマットや、実際にビルドされる
+時の挙動がちょっと異なっています。
+現在のdebian sidでも様々なLEVELを持つパッケージが混在している状況です。
+確認にはソースパッケージを取ってきてdebian/compatファイルを見るとわかります。
+
+　COMPATIBILITY LEVELの見方↓
+\begin{commandline}
+$ apt-get source php5
+$ cat php5-5.5.0+dfsg/debian/compat
+5
+$ apt-get source gstreamer0.10
+$ cat gstreamer0.10-0.10.36/debian/compat
+9
+\end{commandline}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{COMPATIBILITY LEVEL 9未満の*-dbg}
+
+ debhelperのCOMPATIBILITY LEVEL 9未満の形式で構築されているパッケージの*-dbgの中身：\\
+例えばphp5-dbgが該当
+\begin{commandline}
+$ dpkg -L php5-dbg
+...中略...
+/usr/lib/debug
+/usr/lib/debug/usr
+/usr/lib/debug/usr/bin
+/usr/lib/debug/usr/bin/php5
+/usr/lib/debug/usr/bin/php5-cgi
+/usr/lib/debug/usr/sbin
+/usr/lib/debug/usr/sbin/php5-fpm
+...中略...
+$
+\end{commandline}
+
+php5コマンドは/usr/bin/php5にあるので、インストール先は
+/usr/lib/debug/usr/bin/php5に、デバッグシンボルがインストールされています。
+\end{frame}
+
+\begin{frame}[containsverbatim]{COMPATIBILITY LEVEL 9以上の*-dbg}
+
+ debhelperのCOMPATIBILITY LEVEL 9以上の形式で構築されているパッケージの*-dbgの中身：\\
+例えばlibgstreamer0.10-0-dbgが該当
+\begin{commandline}
+$ dpkg -L libgstreamer0.10-0-dbg
+...中略...
+/usr/lib/debug/.build-id/3f/bdb94562139d00e153a2fc6c
+720772ca28acad.debug
+/usr/lib/debug/.build-id/86
+/usr/lib/debug/.build-id/86/cc80bb6f2bdb31a2ed02973d
+54530b3d99846f.debug
+/usr/lib/debug/.build-id/44
+/usr/lib/debug/.build-id/44/ff321f11ffd750f8c351ffa3
+f5d20028d2f6a6.debug
+/usr/share
+/usr/share/doc
+...中略...
+$
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{COMPATIBILITY LEVEL 9以上の*-dbg}
+
+どのシンボルファイルがどのバイナリに対応するかを確認してみます↓
+\begin{commandline}
+$ file /usr/lib/x86_64-linux-gnu/libgstreamer-0.10.
+so.0.30.0
+/usr/lib/x86_64-linux-gnu/libgstreamer-0.10.so.0.30.0:
+ELF 64-bit LSB  shared object, x86-64, version 1 
+(SYSV), dynamically linked, 
+BuildID[sha1]=44ff321f11ffd750f8c351ffa3f5d20028d2f6a6, 
+stripped
+$
+\end{commandline}
+
+ \verb+BuildID[sha1]+の値から /usr/lib/debug/.build-id/44/ff321f11ffd750f8c351ffa3f5d20028d2f6a6.debug がlibgstreamer-0.10.so.0.30.0のシンボルファイルとなります。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ところでBuildIDって何？}
+
+ バイナリを一意に指定できるように埋め込んだID。バイナリの構築時に、リンカがバイナリのハッシュ値を計算して埋め込んでいます。
+
+\begin{commandline}
+$ readelf -n /usr/lib/x86_64-linux-gnu/libgstreamer-
+0.10.so.0
+Notes at offset 0x000001c8 with length 0x00000024:
+  Owner              Data size	Description
+  GNU               0x00000014	NT_GNU_BUILD_ID 
+    Build ID: 44ff321f11ffd750f8c351ffa3f5d20028d2f6a6
+\end{commandline}
+%$
+
+ BuildIDについて詳しくは、
+\begin{itemize}
+\item BuildID解説 \\
+\url{http://fedoraproject.org/wiki/RolandMcGrath/BuildID}
+\item BuildIDに関してbinutilsへ寄贈されたパッチ↓\\
+\url{http://sourceware.org/ml/binutils/2007-07/msg00012.html}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{どうやってシンボルファイルを見つける？}
+
+  gdbはバイナリに埋め込まれている \verb+.gnu_debuglink+ セクション
+を見てシンボルファイルのファイル名を判断します。
+
+\begin{commandline}
+$ readelf -x .gnu_debuglink /usr/bin/php5
+Hex dump of section '.gnu_debuglink':
+  0x00000000 70687035 ..中略..0dd10 php5.....`..
+$ readelf -x .gnu_debuglink  /usr/lib/x86_64-linux-gnu/
+libgstreamer-0.10.so.0.30.0
+Hex dump of section '.gnu_debuglink':
+  0x00000000 66663332 ..中略..06638 ff321f11ffd750f8
+  0x00000010 63333531 ..中略..03238 c351ffa3f5d20028
+  0x00000020 64326636 ..中略..00000 d2f6a6.debug....
+  0x00000030 0da0b0f5               ....
+\end{commandline}
+つまり、バイナリphp5のシンボルファイル名はphp5というファイル名、
+バイナリlibgstreamer-0.10.so.0.30.0のシンボルファイル名は、
+ff321f11ffd750f8c351ffa3f5d20028d2f6a6.debugという事がわかります。
+\end{frame}
+
+\begin{frame}[containsverbatim]{ところでソースデバッグ出来ないんだけど？}
+
+ 先ほどの/usr/bin/php5はgdbから'set substitute-path'で、ソースのありかを
+一発で指定できましたが、いつもうまくいくとは限りません。
+
+うまくいかない例↓
+\begin{commandline}
+$ gdb --args /usr/bin/gst-launch
+(gdb) set substitute-path /tmp/buildd/ /home/yours/gstreamer/
+(gdb) b main
+(gdb) run
+Breakpoint 1, main ...中略... at gst-run.c:318
+318 gst-run.c: そのようなファイルやディレクトリはありません.
+\end{commandline}
+%$
+\begin{center}
+\Large{あれ？}
+\end{center}
+\end{frame}
+
+\begin{frame}[containsverbatim]{ところでソースのデバッグ出来ないんだけど？}
+
+ gst-launchのソースであるgstreamer0.10-0.10.36を実際にビルドするとわかるのですが、
+gccに渡されるソースファイルの指定にソースがフルパスで指定されていません。\\
+(php5はgccにソースファイルが指定されるときフルパスで指定されています）
+
+　こういうときは、gdbのdirコマンドを利用してソースの入っている可能性のある場所を
+すべて指定するとソースのデバッグができるようになります。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{gdbのdirコマンドによるソースの指定}
+
+できた。
+
+\begin{commandline}
+$ gdb --args /usr/bin/gst-launch
+(gdb) dir /home/yours/gstreamer/gstreamer0.10-0.10.36/
+tools
+(gdb) b main
+(gdb) run
+(gdb) l
+314	}
+315	
+316	int
+317	main (int argc, char **argv)
+318	{
+319	  GHashTable *candidates;
+320	  gchar *dir;
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}{dirコマンド注意点}
+
+ gdbのdirでソースファイルを指定している時は、gdbはdirで登録された
+パスをすべて検索して該当のソースファイルを見つけようとするため、
+万一同じファイル名のファイルが別のディレクトリで先に発見されると、
+間違ったソースファイルを表示してしまうので注意がいります。
+
+\end{frame}
+
+\section{gdb+pythonとgdb.Valueクラス}
+\emtext{gdb+pythonとgdb.Valueクラス}
+
+\begin{frame}[containsverbatim]{gdb+python動かす}
+
+　gdb内臓のpythonを動作させてみます。
+
+　なお、今回は、gdb 7.6から搭載された\footnote{gdb 7.6 released! \url{http://lwn.net/Articles/548781/}}python-interactiveコマンドを使って、
+pythonをインタラクティブモードで利用してみます。
+
+\begin{commandline}
+$ gdb 
+(gdb) pi
+>>> import sys
+>>> print sys.version_info
+sys.version_info(major=2, minor=7, micro=5, 
+releaselevel='final', serial=0)
+>>> 
+\end{commandline}
+%$
+ 見ての通り、gdbをpythonで制御できるわけです。
+\end{frame}
+
+\begin{frame}{gdb.Valueクラス}
+
+ gdbはブレークポイントの他に、バイナリのソースコード側で定義した
+変数を参照できます。
+
+　こちらをpython側で参照したり、応用きかせたりするのには、gdb.Value
+クラスがとても便利です。
+
+便利な機能一覧：
+\begin{enumerate}
+\item デバッグ対象の変数がstructureの場合、gdb.Value型オブジェクトはstructureのメンバ変数をそのまま連想配列にマップしてくれます。
+\item デバッグ対象の変数が配列なら、python上も配列としてアクセスできます。
+\item ポインタか即値かは自動で判定されて適宜問題無いように扱われるため、structureのポインタを辿ったりするのが非常に簡潔に書けます。
+\item 関数ポインタの呼び出しもサポート済みです。
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[containsverbatim]{gdb.Valueクラスで変数アクセス}
+値の参照の例：\\
+\begin{commandline}
+$ sudo aptitude install php5-dbg
+$ cat ./phpinfo.php
+<?php
+ phpinfo()
+?>
+$ gdb --args /usr/bin/php5 ./phpinfo.php
+(gdb) b zend_vm_execute.h:356
+(gdb) run
+(gdb) pi
+>>> edata=gdb.parse_and_eval(
+... "executor_globals.current_execute_data")
+>>> print edata.address
+0xe60920 <executor_globals+1120>
+>>> print edata.dereference()
+{opline = 0x7ffff7fbd778, function_state = 
+{function = 0x7ffff7fbd498, arguments = 0x0}, 
+...中略...,call = 0x0}
+>>> print edata['op_array']['filename']
+0x7ffff7fbd640 "/home/yours/phpinfo.php"
+>>> [Ctrl+D]
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}[containsverbatim]{gdb.Valueクラスで関数ポインタ}
+関数ポインタ呼び出しの例：\\
+\begin{commandline}
+$ gdb --args /usr/bin/php5 ./phpinfo.php
+(gdb) b zend_vm_execute.h:356
+(gdb) run
+(gdb) pi
+>>> phpfile=(gdb.parse_and_eval(
+... "zend_get_executed_filename")).dereference()
+>>> print phpfile
+{const char *(void)} 0x6c7600 <zend_get_executed_filename>
+>>> print phpfile()
+0x7ffff7fc4418 "/home/yours/phpinfo.php
+>>> [Ctrl+D]
+(gdb)
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}[containsverbatim]{gdb.Valueクラスに文字列格納時の注意点}
+
+ gdb.Valueクラスに文字列へのポインタが代入された場合、こちらの文字列を
+str()で取り出そうとすると、どうしてもgdbで''p pointer''した時とまったく同じ
+フォーマットで文字列に変換されてしまいます。
+
+　このとき、''アドレス 文字列''というフォーマットにされてしまうので、
+\verb+str.partition(" ")+等を使って、欲しい文字列だけ取り出す必要があります。
+
+\begin{commandline}
+$ gdb --args /usr/bin/php5 ./phpinfo.php
+(gdb) b zend_vm_execute.h:356
+(gdb) run
+(gdb) pi
+>>> phpfile=(gdb.parse_and_eval(
+... "zend_get_executed_filename")).dereference()
+>>> filename=phpfile()
+>>> print str(filename)
+0x7ffff7fc4418 "/home/yours/phpinfo.php"
+>>> print (str(filename).partition(" "))[2]
+"/home/yours/phpinfo.php"
+\end{commandline}
+%$
+\end{frame}
+
+\section{php5.5.0内部構造}
+\emtext{php5.5.0内部構造}
+
+\begin{frame}[containsverbatim]{php5.5.0の中間コード実行部分}
+
+ php5.5.0では、中間コードを実行する部分が２つあります。
+
+\begin{itemize}
+\item \verb+execute_ex()(Zend/zend_vm_execue.h)+ \\
+  ユーザが定義した関数を実行するときに呼ばれる
+\item \verb+execute_internal()(Zend/zend_execute.c)+ \\
+  php本体にC等で実装されている関数を実行するときに呼ばれる
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{今回gdbを仕掛ける場所}
+
+ 今回、ユーザ定義の関数の実行トレースを取ってみたいので、\verb+execute_ex()+の
+中間コード実行部分直前に、gdbを仕掛け、どこを実行しているかを
+表示してみます。
+
+\begin{commandline}
+　Zend/zend_vm_execute.h
+  330 ZEND_API void execute_ex(zend_execute_data 
+       *execute_data TSRMLS_DC)
+  331 { 
+  332     DCL_OPLINE
+  333     zend_bool original_in_execution;
+  ...中略...
+  356         if ((ret = OPLINE->handler( <---ココ
+                  execute_data TSRMLS_CC)) > 0) {
+  357             switch (ret) {
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{php5.5.0の便利なAPI}
+
+ php5.5.0から、Zend Engineは現在どこを実行中なのか
+について情報を得る為に、便利なAPIが用意されています。
+
+\begin{itemize}
+\item \verb+zend_get_executed_filename()+ \verb+(Zend/zend_execute_API.c)+ \\
+  現在実行中のphpファイル名を得る
+\item \verb+get_active_function_name()+ \verb+(Zend/zend_execute_API.c)+ \\
+  現在実行中の関数スコープ名を得る
+\item \verb+zend_get_executed_lineno()+ \verb+(Zend/zend_execute_API.c)+ \\
+  現在実行中の行番号を得る
+\end{itemize}
+\end{frame}
+
+\section{phpのソースの実行トレースを取ってみる}
+\emtext{phpのソースの実行トレースを取ってみる}
+
+\begin{frame}{gdbを使ってphpのソースをデバッグする事について}
+
+　 通常、phpのデバッグをするのであれば、xdebugを導入して、
+vim-nox+debugger plugin/netbean/eclipse等でデバッグするのが
+手軽ですし、強力なデバッグが可能です。
+
+　しかしながら、バックグラウンドで動作するようなphpプログラムを
+書いた際に、運用中、突然暴走するなどがあったとき、
+何が起きているのかをデバッグするには、xdebugの環境だけでは厳しい
+ものがあります。
+
+　ここで、gdbが使えれば、暴走中のphpプロセスに直接アタッチして
+デバッグする事が可能も可能になるので、デバッグの方法が広がります。
+
+\end{frame}
+
+
+\begin{frame}{実行トレースを取ってみた}
+
+ 今回の勉強会資料には、今まで説明したものを組み合わせて、
+phpソースレベルでの実行トレースを取った例を載せていますので、お試しあれ！
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{今回紹介の方法の問題点}
+
+ 今回のgdb+pythonで、phpソースレベルのトレースを取るやり方は、
+実は、以下の問題点があります。
+
+\begin{itemize}
+\item 中間コードが１つ実行される度にgdb側に逐一ブレークが入りpythonスクリプトが動くため、phpの実行速度が極端に遅くなります。大きいphpプログラムについて、gdbを用いたデバッグをするにはもっと別のアプローチを検討する必要があるかもしれません。
+\item phpの変数の値を参照するには、phpの内部変数である　\verb+executor_globals+　に登録されているシンボルテーブルからデータを引っ張ってくる必要があります。しかしながら、現行のphp5.5.0のZendエンジンのAPIには、 phpの変数の値をデバッガ側から簡単に参照できるようなAPIが存在しない為、gdbからphpの変数を参照するにはそれなりの工夫がいると思われます。
+\end{itemize}
+
+\end{frame}
+
+
+\end{document}
+
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
