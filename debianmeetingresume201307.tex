@@ -146,9 +146,226 @@
 \index{hoge}
 
 %-------------------------------------------------------------------------------
-\dancersection{nojima}{nojima}
+\dancersection{月刊Debhelper dh\_strip}{野島 貴英}
 %-------------------------------------------------------------------------------
-\index{hoge}
+
+\index{monthlydebhelper}
+
+\subsection{今月のコマンド}
+
+ 今月はdh\_stripを取り上げます。紙面の都合でdh\_stripの１コマンドの
+紹介に今回はとどめておきます。
+
+\subsection{dh\_strip}
+
+ dh\_stripコマンドは、''debian/tmp/''等のビルドディレクトリ以下を再帰的に
+探し回り、ビルドしたばかりの実行ファイルのバイナリ、共有ライブラリのバイナリ、静的ライブラリのバイナリを見付けると、片っ端からバイナリに含まれているデバッグシンボルを取り除いていきます。
+
+　また、別途コマンドラインオプションを指定すると、取り除いたデバッグシンボルを別ファイルに取り置いてくれます。このため、dh\_stripコマンドは*-dbgパッケージ作成の時に重要な役割を持ちます。実は、dh\_stripの*-dbgパッケージを作成する為の動作は、大統一Debian 2012のセッションである「debug.debian.net」\cite{debug-debian-net}のプレゼン資料に詳しいので、こちらを参照してください。また、*-dbgパッケージを使って実際にデバッグをしてみる件については、大統一Debian 2013のセッションである「gdb+python拡張を使ったデバッグ手法」\cite{gdb-python-debug2}に紹介していますので、こちらも参照ください。
+
+　ここでは、これらの発表で扱わなかった件を重点的に記載します。
+
+\subsubsection{debug/*.so,lib*\_g.aファイルの扱い}
+
+ dh\_stripコマンドは、元々デバッグ用途として用意されているdebug/*.soファイルや、
+lib*\_g.aファイルについては、何も処理を行いません。
+
+\subsubsection{コマンドラインオプションと動作}
+
+ dh\_stripコマンドは表\ref{tab:dh-strip-opt}のコマンドラインオプションを解釈します。
+
+\begin{table}[ht]
+\begin{center}
+\small
+\begin{tabular}{|p{8em}|p{35em}|}
+\hline
+オプション名&動作 \\ \hline \hline
+man debhelper記載のオプション & こちらは全debhelperに共通のオプションです。動作はman debhelperに記載されているとおりとなりますので、ここでは割愛します。 \\ \hline
+-Xitem, --exclude=item & itemで指定されるファイル名を持つバイナリを処理の対象から外します。複数のファイルを指定したい場合は、繰り返し指定すると指定できます。例: dh\_strip -Xfile1 -Xfile2 \\ \hline
+--dbg-package=package & *-dbgパッケージを作る際に、デバッグシンボルを格納するパッケージ名を指定する為に利用します。通常、*-dbgパッケージを作る場合は、こちらのオプションを利用する事となります。COMPATIBILITY LEVELで振る舞いが異なります（後述）。\\ \hline
+-k & 分離したデバッグシンボルをバイナリパッケージに含める場合にこちらのオプションを利用します。この場合、出来上がったパッケージにはバイナリの他に、分離したデバッグシンボルも/usr/lib/debug/以下に含まれる形で収録されます。--dbg-packageが同時に指定されると、--dbg-packageの指定の方が優先されます。\\ \hline
+\end{tabular}
+\caption{dh\_stripコマンドラインオプション}
+\label{tab:dh-strip-opt}
+\end{center}
+\end{table}
+
+\subsubsection{COMPATIBILITY LEVELでの動作の違い}
+
+　dh\_stripはソースパッケージに含まれるdebian/compatで指定される
+COMPATIBILITY LEVELにより、--dbg-packageオプション指定時の振る舞いが変わります(表\ref{tab:dh-strip-comp-level}参照。)
+
+\begin{table}[ht]
+\begin{center}
+\small
+\begin{tabular}{|p{8em}|p{35em}|}
+\hline
+COMPATIBILITY LEVEL &--dbg-package指定時の動作 \\ \hline \hline
+4以下 & ``dh\_strip --dbg-package=xxxx --dbg-package=yyyy''のように--dbg-packageを複数指定する事が出来ます。ここで、こちらで指定した名前(xxxxや、yyyy)に合致するパッケージを処理する際、''パッケージ名-dbg''というパッケージ名を*-dbgパッケージのパッケージ名として自動的に利用します。また、ソースパッケージに含まれるdebian/controlには、これら*-dbgパッケージの為の記述は不要となります。\\ \hline
+5以上 & --dbg-packageは１つ指定するのが原則となります。もし複数指定した場合は、最初に指定された内容のみ利用されます。また、--dbg-package=xxxxxとすると、デバッグシンボルを格納するパッケージ名として、xxxxxがそのまま使われます。例えば、libfooパッケージと、fooパッケージを構築し、これらパッケージに含まれているバイナリのデバッグシンボルをfoo-dbgパッケージに全部入れるには、--dbg-package=foo-dbgと指定します。また、
+ソースパッケージに含まれるdebian/controlには、生成予定の*-dbgパッケージの為の記述は必須となり、万一記載されていない場合はエラーとして扱われ、この場合はdh\_stripはエラーを表示して終了します。\\ \hline
+\end{tabular}
+\caption{COMPATIBILITY LEVELと--dbg-packageオプションの振る舞いの違い}
+\label{tab:dh-strip-comp-level}
+\end{center}
+\end{table}
+
+\subsubsection{デバッグシンボル}
+
+ dh\_stripで取り分けられるデバッグシンボルは、elfバイナリベースのシステム\footnote{お馴染みのi386/amd64用linuxの場合等}であれば、DWARFフォーマット\cite{dwarf-spec}をベースとした形式のファイルとなります。
+
+ ここでDWARFフォーマットは、コンパイラを用いてCPUの命令に直接変換するようなコンパイル言語（C/C++等）を用いて作成したバイナリを対象として、ソースレベルのデバッグを行う場合に必要な情報を格納する為に作られた、よくできたフォーマットです。元々はSystem V用のデバッガであるsdbの為にBell研で開発されたフォーマットがベースとのことです\footnote{Bell研とか、System Vとか、今ではもう完全にオッサンホイホイな用語となってしまいました...}。DWARFは、''Debugging With Attributed Record Formats''の略とのことです。
+
+ 図\ref{fig:dwarf-vs-elf-schema}にバイナリと、デバッグシンボルとの関係を
+簡単に図示します。
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=0.8\hsize]{image201307/dwarf-elf-schema.eps}
+ \caption{バイナリと、デバッグシンボルとの関係}
+ \label{fig:dwarf-vs-elf-schema}
+\end{center}
+\end{figure}
+
+\subsubsection{デバッグの為の情報を覗いてみる}
+ 
+ 実はバイナリや、デバッグシンボルの中身を見る方法は知っておくと、
+いろいろデバッグ等で役立つ場面が多いです。以下に簡単に参照する方法を載せます。
+
+ まず、バイナリにはどんなヘッダ情報とセクションが入っているかのサマリを
+掌握してみます。
+
+\begin{commandline}
+$ sudo aptitude install binutils
+$ readelf -e /usr/bin/gst-launch
+ELFヘッダ
+   マジック:  7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+　　...中略...
+セクションヘッダ:
+  [番] 名前              タイプ           アドレス          オフセット
+       サイズ            EntSize          フラグ Link  情報  整列
+  [ 0]                   NULL             0000000000000000  00000000
+       0000000000000000  0000000000000000           0     0     0
+  [ 1] .interp           PROGBITS         0000000000400238  00000238
+       000000000000001c  0000000000000000   A       0     0     1
+...中略...
+  [27] .gnu_debuglink    PROGBITS         0000000000000000  00003240
+       0000000000000034  0000000000000000           0     0     1
+  [28] .shstrtab         STRTAB           0000000000000000  00003274
+       00000000000000fe  0000000000000000           0     0     1
+...中略...
+\end{commandline}
+
+ 次にどんなデバッグシンボルファイルを必要としているかを見てみます。
+
+\begin{commandline}
+$ readelf -x .gnu_debuglink /usr/bin/gst-launch
+セクション '.gnu_debuglink' の 十六進数ダンプ:
+  0x00000000 34326462 34373631 31386162 32623831 42db476118ab2b81
+  0x00000010 30343161 63643830 65343565 38396534 041acd80e45e89e4
+  0x00000020 32383965 61322e64 65627567 00000000 289ea2.debug....
+  0x00000030 dbf8060d                            ....
+$
+\end{commandline}
+
+ デバッグシンボルのファイル名の形式から、COMPATIBILITY LEVEL 9のソース
+パッケージで構築されたデバッグシンボルファイルである事がわかります。
+このため、build-id\cite{gdb-python-debug2}から、/usr/lib/debug/.build-id/9b/42db476118ab2b81041acd80e45e89e4289ea2.debugがデバッグシンボル
+のファイルである事が分かります。
+
+　次にデバッグシンボルファイルから、ビルド時のディレクトリ位置を求めてみます。
+(先ほどの図\ref{fig:dwarf-vs-elf-schema}に記載したとおり、
+COMPATIBILITY LEVEL 9ではデバッグ用のセクション情報はすべてzlibで
+圧縮済みの形式で搭載されているため、readelfではなく、objdumpを使います）
+
+\begin{commandline}
+$ objdump -g  /usr/lib/debug/.build-id/9b/42db476118ab2b81041acd80e45e89e4289ea2.debug | lv
+...中略...
+.debug_info セクションの内容:
+
+  コンパイル単位 @ オフセット 0x0:
+   長さ:        0x1b3b (32-bit)
+   バージョン:    2
+   Abbrev Offset: 0x0
+   ポインタサイズ:8
+ <0><b>: 省略番号: 1 (DW_TAG_compile_unit)
+    <c>   DW_AT_producer    : (間接文字列、オフセット: 0x442): GNU C 4.7.2      
+
+    <10>   DW_AT_language    : 1        (ANSI C)
+    <11>   DW_AT_name        : (間接文字列、オフセット: 0x57a): gst-run.c       
+
+    <15>   DW_AT_comp_dir    : (間接文字列、オフセット: 0x36b): /tmp/buildd/gstr
+eamer0.10-0.10.36/tools
+　...中略...
+\end{commandline}
+%$
+
+こちらの結果から、/usr/bin/gst-launchは
+ディレクトリ/tmp/buildd/gstreamer0.10-0.10.36/toolsに配置されている
+gst-run.cがコンパイルされて(DW\_TAG\_compile\_unit)、
+オブジェクトとして搭載されているという事が判ります。
+
+　では、この結果を元に、gdbのset substitute-pathを使ってgdbでソースの
+閲覧をしてみます。
+(本方法は、2013年大統一Debian勉強会\cite{gdb-python-debug2}の当時では
+自分がまだ見つけていなかった方法となります。これでgdbのdirコマンドで、マメに
+ソースの場所を指定しなくても、スムーズにソースが閲覧できるようになります）
+
+\begin{commandline}
+$ pwd
+/home/yours/src/gstreamer/
+$ apt-get source gstreamer0.10-tools/sid 
+$ gdb --args /usr/bin/gst-launch
+...中略...
+Reading symbols from /usr/bin/gst-launch...Reading symbols from 
+/usr/lib/debug/.build-id/9b/42db476118ab2b81041acd80e45e89e
+4289ea2.debug...done.
+(gdb) set substitute-path /tmp/buildd/ /home/yours/src/gstreamer/
+(gdb) b main
+(gdb) run
+(gdb) l
+313	  return candidates;
+314	}
+315	
+316	int
+317	main (int argc, char **argv)
+318	{
+319	  GHashTable *candidates;
+320	  gchar *dir;
+\end{commandline}
+%$
+
+無事ソース閲覧ができています。
+
+\subsection{おわりに}
+
+　今回は、dh\_stripコマンドをネタに、デバッグシンボルファイル
+の中を覗き、その結果を元に最後はgdbでソース閲覧ができるようになる
+までをやってみました。
+
+　dh\_stripの周辺技術を見てみるとソースコードのデバッグができるように
+なる為に、とても多くの人の成果物を活用していることが実感できました。
+
+\begin{thebibliography}{0}
+    \bibitem{debug-debian-net}
+      {\footnotesize{
+          2012年大統一Debian勉強会「debug.debian.net」,
+          \url{http://gum.debian.or.jp/2012/}
+        }}
+
+    \bibitem{gdb-python-debug2}
+      {\footnotesize{
+          2013年大統一Debian勉強会「gdb+python拡張を使ったデバッグ手法」,
+          \url{http://gum.debian.or.jp/2013/slide_data_list}
+        }}
+    \bibitem{dwarf-spec}
+      {\footnotesize{
+          The DWARF Debugging Standard,
+          \url{http://www.dwarfstd.org/Home.php}
+        }}
+
+\end{thebibliography}
+
 
 %-------------------------------------------------------------------------------
 \dancersection{raspberry pi}{上川 純一}
