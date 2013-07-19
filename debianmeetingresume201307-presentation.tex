@@ -179,21 +179,110 @@
 
 \end{frame}
 
-\begin{frame}{dh\_stripのコマンドラインオプション(その1)}
+\begin{frame}{dh\_stripのCOMPATIBILITY LEVELの動作の違い(その1)}
+
+以下は--dbg-package指定時のdh\_stripの振る舞いの違い。
 
 \begin{itemize}
-\item man debhelperに記載されているdebhelper共通オプション\\
-　他の月刊debhelperの発表でなされているとおりなので、ここでは割愛。
-\item -Xitem,--exclude=item \\
-  itemという名前を持つファイル名に対しては処理を行いません。複数指定したければ、
-``dh\_strip -Xfoo1 -Xfoo2''と複数ならべて指定ができます。
-\item --dbg-package=package \\
-*-dbgパッケージを作る際に、デバッグシンボルを格納するパッケージ名を指定する為に利用します。debhelperのCOMPATIBILITY LEVELによって振る舞いが変わります。(後述)
+\item 4以下\\
+　``dh\_strip --dbg-package=xxxx --dbg-package=yyyy''のように--dbg-package
+を複数指定する事が出来ます。ここで、こちらで指定した名前(xxxxや、yyyy)に合致する
+パッケージを処理する際、''パッケージ名-dbg''というパッケージ名を*-dbgパッケージ
+のパッケージ名として自動的に利用します。また、このCOMPATIBILITY LEVELの場合、
+ソースパッケージに含まれるdebian/controlには、これら*-dbgパッケージの為の
+記述を必要とはしていません。
 \end{itemize}
 
 \end{frame}
 
+\begin{frame}{dh\_stripのCOMPATIBILITY LEVELの動作の違い(その2)}
 
+\begin{itemize}
+\item 5以上\\
+--dbg-packageは１つ指定するのが原則となります。もし複数指定した場合は、
+最初に指定された内容のみ利用されます。また、--dbg-package=xxxxxとすると、デバッ
+グシンボルを格納するパッケージ名として、xxxxxがそのまま使われます。例えば、libfo
+oパッケージと、fooパッケージを構築し、これらパッケージに含まれているバイナリのデ
+バッグシンボルをfoo-dbgパッケージに全部入れるには、--dbg-package=foo-dbgと指定し
+ます。また、ソースパッケージに含まれるdebian/controlには、
+生成予定の*-dbgパッケージの為の記述は必須となり、万一記載されていない場合は
+エラーとして扱われ、この場合はdh\_stripはエラーを表示して終了します。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{dh\_stripのCOMPATIBILITY LEVELの動作の違い(その3)}
+
+以下は-k/--dbg-package指定時の出来上がるデバッグシンボルファイルの違い
+
+\begin{itemize}
+\item 8以下\\
+ ``/usr/lib/debug/+バイナリのインストール先パス/+バイナリファイル名''に格
+納されるようにデバッグシンボルファイルが生成されます。また、デバッグに関する情報
+はコンパイラが生成したままの形で保存されるため、デバッグシンボルファイルのサイズ
+は大きくなりがちです。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{dh\_stripのCOMPATIBILITY LEVELの動作の違い(その4)}
+\begin{itemize}
+\item 9以上\\
+バイナリがBuildIDを含んでいる場合は、
+``/usr/lib/debug/.build-id/BuildIDの上位2桁/+BuildIDの残りの桁+.debug''
+に格納されるようにデバッグシンボルファイルが生成されます。BuildIDを含んで
+いなければCOMPATIBILITY LEVEL 8以下と同様のファイル名となります。
+また、BuildIDの有無にかかわらず、デバッグに関する情報はzlibにより
+圧縮されて格納されます。そのため、デバッグシンボルファイルのサイズはできるだけ
+小さくなるようになっています。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ところでBuildIDって}
+
+ fileコマンドでバイナリを調べると出てきます。
+
+\begin{commandline}
+$ file /usr/bin/gst-launch
+/usr/bin/gst-launch: ELF 64-bit LSB  executable, 
+x86-64, version 1 (SYSV), dynamically linked 
+(uses shared libs), for GNU/Linux 2.6.26, 
+BuildID[sha1]=9b42db476118ab2b81041acd80e45e89e4289ea2, 
+stripped
+\end{commandline}
+%$
+ 
+ 詳しくは2013年大統一Debian勉強会「gdb+python拡張を使ったデバッグ手法」
+(\url{http://gum.debian.or.jp/2013/slide_data_list})に記載してます。
+
+\end{frame}
+
+\begin{frame}{デバッグシンボルファイルの形式}
+
+ Debianのi386/amd64用linuxシステムでは、デバッグシンボルファイルの形式として
+ほぼDWARFなデバッグシンボルファイルが利用されています。DWARFは
+実行ファイルの形式であるELFフォーマットをベースに作られているため、
+DWARFを理解する時には、ELFもあわせて知っておくと良いです。
+
+\end{frame}
+
+\begin{frame}{DWARF文献}
+　DWARFについて：\\
+\begin{itemize}
+\item 本家 \\
+\url{http://www.dwarfstd.org/}
+\item 結構良い解説記事 \\
+\url{http://www.ibm.com/developerworks/jp/opensource/library/os-debugging/}\\
+\url{http://ja.wikipedia.org/wiki/DWARF}\\
+\item DWARFを理解する為のお供にELFもどうぞ！\\
+\url{http://ja.wikipedia.org/wiki/Executable_and_Linkable_Format}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{んだばいっちょ覗いてみるべ}
+ 
+\end{frame}
 
 \section{raspberry pi}
 \emtext{raspberry pi}
