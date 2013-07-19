@@ -141,9 +141,181 @@
 % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{armmp}{fuga}
+\dancersection{Debian linux kernel / armmp フレーバ}{岩松 信洋}
 %-------------------------------------------------------------------------------
-\index{hoge}
+\index{armmp}
+
+\subsection{はじめに}
+Debian linux kernel の3.9 から armhf アーキテクチャに armmp (ARM Multi Platform) 
+フレーバが入りました。
+本稿では armmp の仕組みと対応方法について説明します。
+
+\subsection{arm multi platformとその仕組み}
+
+Linux kenrel バージョン3.8 ぐらいからarm multi platform（以下、ARMMP） サポートが入りました。
+これは一つの linux kernel バイナリで複数のARM Soc、ターゲットボードをサポートする仕組みです。
+今のところ、mvebu （Marvell SoCs）を筆頭に Versatile Express、OMAP などがサポートされて
+います。バージョン3.11 ではほとんどのARM SoCがサポートされる予定になっています。
+
+これはカーネル起動時に渡される Device Tree (以下、DT）のblobによって有効化され
+動作するように初期化されます。
+
+\subsubsection{ARMMP カーネルの起動方法}
+起動方法は3つほどあって、
+
+\begin{enumerate}
+\item zImageにdtb (DT blob)を付加する。そしてそのzImageを起動する。\\
+カーネルのCONFIG\_ARM\_APPENDED\_DTBが必要です。
+\begin{commandline}
+$ cat zImage foo.dtb > zImage+dtb 
+\end{commandline}
+%$
+\begin{commandline}
+$ tftpboot 2000000 zImage+dtb
+$ go 2000000 
+\end{commandline}
+%$
+
+\item 1. で作成したzImage を uImage に変換して起動する。
+\begin{commandline}
+$ cat zImage foo.dtb > zImage+dtb 
+$ cut -f 3- -d ' ' < arch/${ARCH}/boot/.uImage.cmd | sed -e 's/zImage/zImage+dtb/g' -e 's/uImage/uImage+dtb/g'
+\end{commandline}
+%$
+\begin{commandline}
+$ tftpboot 2000000 uImage+dtb
+$ bootm
+\end{commandline}
+%$
+
+ただしカーネルがロードされるアドレスなどはSoCやボード毎に異なるので、 AMMMP の場合は mkimage
+\footnote{U-Boot 用のイメージを作成するツール。}
+\footnote{U-Boot は ARM 組み込み機器でよく利用されるブートローダ}
+実行時にアドレスを指定する必要があります。
+\texttt{-a} でロードアドレス、\texttt{-e}でエントリポイントアドレスを指定します。
+\begin{commandline}
+$ cat zImage foo.dtb > zImage+dtb 
+$ mkimage -A arm -O linux -T kernel -C none -a 0x2000000 -e 0x2000040 -n 'Linux-marvell' -d zImage+dtb uImage+dtb
+\end{commandline}
+\footnote{カーネル開発者は./scripts/mkuboot.sh を使う事が多いかも。}
+%$
+
+\item uImage と dtb blob 別に読み込んで起動する。（ブートローダ依存）
+
+ARMMP は 一つのバイナリで複数のARM SoC、ボードをサポートすることなので、上記の方法ではサポートできません。
+よって、uImage と dtb blob を分けて起動させるのが理想です。
+U-Boot の場合は カーネルを起動するコマンド\texttt{bootm} を使います。
+
+\begin{commandline}
+$ make zImage
+$ mkimage -A arm -O linux -T kernel -C none -a 0x2000000 -e 0x2000040 -n 'Linux-marvell' -d arch/arm/boot/zImage uImage
+\end{commandline}
+%$
+
+\begin{commandline}
+$ tftpboot 2000000 uImage
+$ tftpboot 3000000 dtb
+$ bootm 2000000 - 3000000
+\end{commandline}
+%$
+%$
+
+bootmコマンドの 第1引数はuImage がロードされているアドレス、第2引数は uInitrd（initrd イメージのuImage）がロードされている
+アドレス、第3引数には dtb がロードされている引数を指定します。\texttt{-}は 指定なしを意味します。
+
+ちなみにdtb の格納されてるアドレスはブートローダによってカーネル起動時の r2 レジスタに設定され、カーネルが指定されているアドレスから
+データを読み込み起動する用になっています。これは Linux カーネルの Documentation/arm/Bootingに書かれています。
+
+\end{enumerate}
+
+\subsubsection{カーネルモジュールの対応}
+
+カーネルモジュールもDTによって設定できます。
+必要なカーネルドライバを組み込みにしてカーネルを起動させるのもよいのですが、ARMMPの場合
+カーネルが肥大化しますので、SoCのコア部分は最低限の機能は組み込みに設定し、各デバイス用
+ドライバはモジュールにしてinitrd などからロードするようにするのがよいでしょう。
+
+\subsection{Debianのサポート}
+
+armhf アーキテクチャの armmp フレーバ は上記で説明した機能を持ったカーネルをサポートするためのものです。
+今回、私が提案し実装しました。実装した理由は Plat'Homeさん\footnote{\url{http://www.plathome.co.jp/}}
+の Openblocks AX3 をDebianでサポートするためです。
+AX3 は \texttt{mvebu} という Marvell製 SoC をまとめている SoC アーキテクチャでサポートされているのですが、
+これが ARMMP サポートのみで実装されていたので、Debian側でもサポートする必要がありました。
+また、今後ARMカーネルはARMMPに移行することが決定していたので、誰かやる必要があったというのも理由の一つです。
+
+\subsection{Debianでのカーネル提供と利用方法}
+Debian はカーネルイメージを uImage で提供していません。
+uImage で提供した場合、カーネルがロードされるアドレスが固定値になってしまうので、複数のデバイスをサポート
+できません。Debianでは カーネルをzImage(vmlinuz) として提供しています。
+
+しかしこのままでは U-Boot を使ったデバイスなどで使う場合に手間がかかるので、
+Debian では flash-kernel\footnote{\url{http://packages.qa.debian.org/f/flash-kernel.html}} 
+パッケージでサポートしています。
+
+flash-kernel は設定されたデータをもとにカーネルやinitrdをU-Bootが扱える形式に変換、
+フラッシュメモリに書き込む機能等を提供します。
+
+データの形式は以下のようになります。このデータは\texttt{/usr/share/flash-kernel/db/all.db}に
+記述されます。
+
+\begin{commandline}
+Machine: Marvell Armada 370/XP (Device Tree)
+Kernel-Flavors: armmp
+DTB-Id: armada-xp-openblocks-ax3-4.dtb
+DTB-Append: yes
+U-Boot-Kernel-Address: 0x2000000
+U-Boot-Initrd-Address: 0x0
+Boot-Device: /dev/sda1
+Boot-Kernel-Path: /boot/uImage
+Boot-Initrd-Path: /boot/uInitrd
+Required-Packages: u-boot-tools
+Bootloader-Sets-root: no
+\end{commandline}
+
+flash-kernel を実行すると設定されているデータと起動しているカーネル情報
+（/proc/cpuinfo、または/proc/device-tree/model）を元にカーネルとinittd を
+変換し、インストールします。
+\begin{commandline}
+$ cat /proc/cpuinfo | tail -3
+Hardware        : Marvell Armada 370/XP (Device Tree)
+Revision        : 0000
+Serial          : 0000000000000000
+
+$ flash-kernel 
+flash-kernel: installing version 3.10-1-armmp
+Generating kernel u-boot image... done.
+Installing new uImage.
+Generating initramfs u-boot image... done.
+Installing new uInitrd.
+Installing new dtb.
+
+$ ls /boot
+System.map-3.10-1-armmp  initrd.img-3.10-1-armmp  uInitrd
+config-3.10-1-armmp      uImage                   vmlinuz-3.10-1-armmp
+\end{commandline}
+%$ 
+
+flash-kernel によって作成されたイメージを使った起動方法はボード毎に異なります。
+OpenBlocks AX3の場合は以下の方法で起動できるはずです。
+
+\begin{commandline}
+$ ide reset
+$ ext2load ide 0 2000000 /boot/uImage
+$ ext2load ide 0 3000000 /boot/uInitrd
+$ bootm 2000000 3000000
+\end{commandline}
+
+
+\subsection{終わりに}
+
+ARMMP の仕組みと、Debianの対応方法について説明しました。
+flash-kernel のデータはぷらっとホームさんと相談して入れようと思っているのでまだコミットされていません。
+数日後にはパッチがBTSに上がるでしょう。OpenBlocks A6 もサポートします。
+また、エントリーポイントを設定する項目とDTの model を指定する項目がないのでこれも対応します。
+あと、残作業としてはカーネル 3.10 では mvebu が動作しない（他でも同じかも）のでパッチを当てる必要があります
+（コミット: \texttt{faefd550c45d8d314e8f260f21565320355c947f}）。これもBTSします。
+ということでまだまだやることはたくさんあります。
 
 %-------------------------------------------------------------------------------
 \dancersection{月刊Debhelper dh\_strip}{野島 貴英}
