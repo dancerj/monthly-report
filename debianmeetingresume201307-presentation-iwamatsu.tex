@@ -1,0 +1,276 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+
+\title{Debian linux kernel / armmp フレーバ}
+\subtitle{東京エリアDebian勉強会 第102回 2013年7月度}
+\author{岩松 信洋}
+\date{2013年7月20日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\begin{frame}{arm multi platformとその仕組み}
+
+\begin{itemize}
+\item arm multi platform（ARMMP）。
+\item 一つの linux kernel バイナリで複数のARM Soc、ターゲットボードをサポートする仕組み。
+\item カーネル起動時に渡される Device Tree (DT）のblobによって有効化され動作するように初期化される。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{ARMMP カーネルの起動方法}
+起動方法は3つほどある。
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{zImageにdtb (DT blob)を付加する。そしてそのzImageを起動する}
+
+カーネルのCONFIG\_ARM\_APPENDED\_DTBが必要です。
+\begin{commandline}
+$ cat zImage foo.dtb > zImage+dtb 
+\end{commandline}
+%$
+\begin{commandline}
+$ tftpboot 2000000 zImage+dtb
+$ go 2000000 
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}[containsverbatim]{先で作成したzImage を uImage に変換して起動する}
+
+\begin{commandline}
+$ cat zImage foo.dtb > zImage+dtb 
+$ cut -f 3- -d ' ' < arch/${ARCH}/boot/.uImage.cmd | \
+  sed -e 's/zImage/zImage+dtb/g' \
+  -e 's/uImage/uImage+dtb/g'
+\end{commandline}
+%$
+\begin{commandline}
+$ tftpboot 2000000 uImage+dtb
+$ bootm
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}[containsverbatim]{先で作成したzImage を uImage に変換して起動する}
+\begin{itemize}
+
+\item ただしカーネルがロードされるアドレスなどはSoCやボード毎に異なるので、 AMMMP の場合は mkimage
+実行時にアドレスを指定する必要がある。
+\item \texttt{-a} でロードアドレス、\texttt{-e}でエントリポイントアドレスを指定。
+\end{itemize}
+
+\begin{commandline}
+$ cat zImage foo.dtb > zImage+dtb 
+$ mkimage -A arm -O linux -T kernel -C none \
+  -a 0x2000000 -e 0x2000040 -n 'Linux-marvell' \
+  -d zImage+dtb uImage+dtb
+\end{commandline}
+%$
+\end{frame}
+
+\begin{frame}[containsverbatim]{uImage と dtb blob 別に読み込んで起動する。（ブートローダ依存）}
+
+\begin{itemize}
+\item  ARMMP は 一つのバイナリで複数のARM SoC、ボードをサポートすることが目的なので、上記の方法ではサポートできない。
+\item uImage と dtb blob を分けて起動させるのが理想。
+\item U-Boot の場合は カーネルを起動するコマンド\texttt{bootm} を使う。
+\end{itemize}
+
+\begin{commandline}
+$ make zImage
+$ mkimage -A arm -O linux -T kernel -C none \
+  -a 0x2000000 -e 0x2000040 -n 'Linux-marvell' \
+  -d arch/arm/boot/zImage uImage
+\end{commandline}
+%$
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{uImage と dtb blob 別に読み込んで起動する。（ブートローダ依存）}
+
+\begin{commandline}
+$ tftpboot 2000000 uImage
+$ tftpboot 3000000 dtb
+$ bootm 2000000 - 3000000
+\end{commandline}
+%$
+%$
+
+\begin{itemize}
+\item 第1引数はuImage がロードされているアドレス
+\item 第2引数は uInitrd（initrd イメージのuImage）がロードされているアドレス
+\item 第3引数には dtb がロードされているアドレス
+\item \texttt{-}は 指定なし
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{カーネルモジュールの対応}
+
+\begin{itemize}
+\item カーネルモジュールもDTによって設定できる。
+\item 必要なカーネルドライバを組み込みにしてカーネルを起動させるのもよいがカーネルが肥大化する。
+\item SoCのコア部分は最低限の機能は組み込みに設定し、各デバイス用ドライバはモジュールにしてinitrd などからロードするようにするのがよい。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debianでのサポート}
+
+\begin{itemize}
+\item Debian で ARMMP をサポートするため、armhf に armmp フレーバを追加。
+\item Plat'Homeさん の Openblocks AX3 をDebianでサポート。
+\item どうせ後で必要になるし。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debianでのカーネル提供と利用方法}
+
+\begin{itemize}
+\item Debian はカーネルイメージを uImage で提供していない。zImage(vmlinuz)のみ。
+\item カーネルがロードされるアドレスが固定値になってしまうので、複数のデバイスをサポートできない。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{flash-kenrel}
+
+\begin{itemize}
+\item 設定されたデータをもとにカーネルやinitrdをU-Bootなどが扱える形式に変換、
+フラッシュメモリに書き込む機能等を提供する
+\end{itemize}
+
+\begin{commandline}
+Machine: Marvell Armada 370/XP (Device Tree)
+Kernel-Flavors: armmp
+DTB-Id: armada-xp-openblocks-ax3-4.dtb
+DTB-Append: yes
+U-Boot-Kernel-Address: 0x2000000
+U-Boot-Initrd-Address: 0x0
+Boot-Device: /dev/sda1
+Boot-Kernel-Path: /boot/uImage
+Boot-Initrd-Path: /boot/uInitrd
+Required-Packages: u-boot-tools
+Bootloader-Sets-root: no
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{flash-kenrel}
+
+\begin{itemize}
+\item 実行すると設定されているデータと起動しているカーネル情報
+（/proc/cpuinfo、または/proc/device-tree/model）を元にカーネルとinittd を
+変換し、インストールする。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{flash-kenrel}
+
+\begin{commandline}
+$ cat /proc/cpuinfo | tail -3
+Hardware        : Marvell Armada 370/XP (Device Tree)
+Revision        : 0000
+Serial          : 0000000000000000
+
+$ flash-kernel 
+flash-kernel: installing version 3.10-1-armmp
+Generating kernel u-boot image... done.
+Installing new uImage.
+Generating initramfs u-boot image... done.
+Installing new uInitrd.
+Installing new dtb.
+
+$ ls /boot
+System.map-3.10-1-armmp  initrd.img-3.10-1-armmp
+uInitrd                  config-3.10-1-armmp
+uImage                   vmlinuz-3.10-1-armmp
+\end{commandline}
+%$ 
+\end{frame}
+
+\begin{frame}[containsverbatim]{flash-kenrel}
+
+flash-kernel によって作成されたイメージを使った起動方法はボード毎に異なります。
+OpenBlocks AX3の場合は以下の方法で起動できるはずです。
+
+\begin{commandline}
+$ ide reset
+$ ext2load ide 0 2000000 /boot/uImage
+$ ext2load ide 0 3000000 /boot/uInitrd
+$ bootm 2000000 3000000
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}{終わりに}
+
+\begin{itemize}[<+->]
+\item ARMMP の仕組みと、Debianの対応方法について説明した。
+\item Debian で ARMMP を使うには armmp フレーバを使う。
+\item Debianで提供されているカーネルをuImageに変換するには flash-kernel を使う。
+\item flash-kernel のデータはぷらっとホームさんと相談して入れようと思っているのでまだコミットされてない。
+\item また、エントリーポイントを設定する項目とDTの model を指定する項目がないのでこれも対応する。
+\item 残作業としてはカーネル 3.10 では mvebu が動作しない。パッチを当てる必要がある
+\item ということでまだまだやることはたくさんあります。
+\end{itemize}
+
+\end{frame}
+
+\end{document}
