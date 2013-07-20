@@ -48,8 +48,6 @@
 }
 %end of commandlinesmall
 
-
-
 \title{東京エリアDebian勉強会}
 \subtitle{第102回 2013年7月度}
 \author{上川純一}
@@ -58,7 +56,9 @@
 
 \begin{document}
 
-\frame{\titlepage{}}
+\begin{frame}
+\titlepage{}
+\end{frame}
 
 \begin{frame}{設営準備にご協力ください。}
 会場設営よろしくおねがいします。
@@ -286,6 +286,94 @@ DWARFを理解する時には、ELFもあわせて知っておくと良いです。
 
 \section{raspberry pi}
 \emtext{raspberry pi}
+
+\begin{frame}{raspberry pi}
+\includegraphics[width=1\hsize]{image201307/raspberrypi.jpg}
+\end{frame}
+
+\begin{frame}{raspbian}
+ \begin{itemize}
+  \item armel: armv4
+  \item raspbian: armv6 (VFP2)
+  \item armhf: armv7 (NEON)
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{raspbianのインストール}
+\begin{itemize}
+ \item SD-card にイメージを書き込んでそれから起動する
+\end{itemize}
+\end{frame}
+
+\begin{frame}{サブマシンを使う時の便利技}
+\begin{itemize}
+ \item mosh: ssh 張りっぱなしな感じにできて、ノートパソコンサスペンドしてもリジューム
+       したらまた繋げられる。
+ \item avahi-daemon: DHCPの環境で面倒なことしなくても
+       ホスト名指定でアクセスできるようになる。raspberrypi.local 
+ \item sshfs: ssh でつながるホストのディレクトリを　sshfsを使って透過的
+       にマウントできる。NFSでユーザIDを調整したりSMBの設定を頑張ってし
+       たりしていたのは過去のことに。
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{小技：sshfs}
+\begin{commandline}
+ sshfs corei7.local:path/to/work ./mnt/
+\end{commandline}
+\end{frame}
+
+\begin{frame}{raspbianのセンサー}
+\begin{itemize}
+ \item CPU温度センサーを使ってみた
+\end{itemize}
+  \includegraphics[width=0.8\hsize]{image201307/temperature.eps}
+\end{frame}
+
+\begin{frame}[containsverbatim]{sqlite + R}
+時系列データを sqlite で保存
+\begin{commandline}
+create table temperature(
+  timestamp TEXT default current_timestamp,
+  temperature INTEGER);
+\end{commandline}
+
+定期的にシェルスクリプトで温度を書き込み
+\begin{commandline}
+while sleep 5m; do
+    temp=$(cat /sys/class/thermal/thermal_zone0/temp)
+    echo "insert into temperature(temperature) " \
+ "values($temp);" | \
+	sqlite3 sensor.db 
+done 
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{R でグラフ作成}
+タイムゾーンUTCのPOSIXct 形式の文字列として解釈されるのでそれで処理して
+ グラフ作成
+
+\begin{commandline}
+library("RSQLite")
+drv <- dbDriver("SQLite", max.con=1)
+conn <- dbConnect(drv, dbname='sensor.db')
+r <- dbGetQuery(conn, 'SELECT * from temperature')
+r$posix <- as.POSIXct(r$timestamp, tz='UTC')
+plot((temperature / 1000) ~ posix, r,
+     xlab='timestamp',
+     ylab='temperature C',
+     ylim=c(40,60), type='l')
+\end{commandline}
+\end{frame}
+
+\begin{frame}{僕のraspberry piの今後}
+多分こんなことします。
+\begin{itemize}
+ \item 1000円くらいで手に入る WebCamつけて監視システム
+ \item 温度計つけて温度測定
+\end{itemize}
+\end{frame}
 
 \section{今後のイベント}
 \emtext{今後のイベント}
