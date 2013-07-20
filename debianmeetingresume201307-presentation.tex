@@ -48,8 +48,6 @@
 }
 %end of commandlinesmall
 
-
-
 \title{東京エリアDebian勉強会}
 \subtitle{第102回 2013年7月度}
 \author{上川純一}
@@ -280,12 +278,170 @@ DWARFを理解する時には、ELFもあわせて知っておくと良いです。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{んだばいっちょ覗いてみるべ}
 
-まず、俯瞰してみたいので、各セクションの全体像をば。
- 
+\begin{frame}[containsverbatim]{デバッグシンボルファイル覗いてみる}
 
+まず、俯瞰してみたいので、各ヘッダ、各セクションを俯瞰してみます。
+\begin{commandlinesmall}
+$ sudo aptitude install binutils/sid php5-dbg
+$ env LANG=C readelf -e /usr/lib/debug/usr/bin/php5
+ELF Header:
+  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF64
+..中略...
+  Start of program headers:          64 (bytes into file)
+  Start of section headers:          19669080 (bytes into file)
+...中略...
+Section Headers:
+  [Nr] Name              Type             Address           Offset
+       Size              EntSize          Flags  Link  Info  Align
+...中略...
+  [ 1] .interp           NOBITS           0000000000400238  00000238
+       000000000000001c  0000000000000000   A       0     0     1
+...中略...
+  [28] .debug_aranges    PROGBITS         0000000000000000  000002d0
+       0000000000006190  0000000000000000           0     0     1
+...中略...  
+\end{commandlinesmall} 
+ここでは紙面がせまいので、皆さんお手元のdebianマシンで
+確認してみてくださいませ。
+\end{frame}
 
+\begin{frame}{readelf -e の結果を図示してみる}
+
+\begin{center}
+\includegraphics[height=0.70\textheight]{image201307/dwarf-top-headers.eps}
+\end{center}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{ソースの情報を見てみる(その1)}
+ .debug\_infoセクションにDWARFのとおりに格納されている。で、
+こちらのデコードにはreadelf -wiが便利。
+\begin{commandlinesmall}
+$  env LANG=C readelf -wi /usr/lib/debug/usr/bin/php5
+Contents of the .debug_info section:
+
+  Compilation Unit @ offset 0x0:
+   Length:        0x15bf3 (32-bit)
+   Version:       4
+   Abbrev Offset: 0x0
+   Pointer Size:  8
+ <0><b>: Abbrev Number: 1 (DW_TAG_compile_unit)
+    <c>   DW_AT_producer    : (indirect string, offset: 0x1832): 
+           GNU C 4.8.1 -mtune=generic 
+           -march=x86-64 -g -O2 -fstack-protector -fPIC 
+           --param ssp-buffer-size=4  
+    <10>   DW_AT_language    : 1        (ANSI C)
+    <11>   DW_AT_name        : 
+    (indirect string, offset: 0x1955): /tmp/buildd/php5-5.5.0+dfsg/ext/date/
+     php_date.c   
+    <15>   DW_AT_comp_dir    : (indirect string, offset: 0x6f0): 
+      /tmp/buildd/php5-5.5.0+dfsg/cli-build 
+\end{commandlinesmall}
+%$
+\end{frame}
+
+\begin{frame}[containsverbatim]{ソースの情報を見てみる(その2)}
+
+ readelf -wiの結果から、こちらのCompilation Unit(以下CU)に記載されているソースファイル(以下DW\_AT\_name)は、
+/tmp/buildd/php5-5.5.0+dfsg/ext/date/php\_date.cであり、
+コンパイルが行われたディレクトリ(以下DW\_AT\_comp\_dir)は
+/tmp/buildd/php5-5.5.0+dfsg/cli-buildとなります。
+
+\end{frame}
+
+\begin{frame}{Use the SOURCE!(その1)}
+　.debug\_infoのCUのDW\_AT\_nameが絶対パスで記載されているような場合は、
+gdbで、set substitute-pathにDW\_AT\_nameの絶対パス部分を指定します
+具体例↓
+\begin{center}
+\LARGE
+2013年 大統一Debian勉強会\\
+「gdb+python拡張を使ったデバッグ手法」
+のプレゼン資料
+\end{center}
+\begin{center}
+\url{http://gum.debian.or.jp/2013/slide_data_list}
+\end{center}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Use the SOURCE!(その2)}
+　.debug\_infoのCUのCUのDW\_AT\_nameが相対パス(あるいは、ファイル名そのもの）で記載されているような場合は、gdbで、set substitute-pathにはDW\_AT\_comp\_dirの絶対パス部分を指定します。
+具体例↓
+\begin{commandlinesmall}
+$ env LANG=C readelf -wi /usr/lib/debug/.build-id/9b/42db476118ab2b81041acd80e45e89e4289ea2.debug
+...中略...
+    <11>   DW_AT_name        : (indirect string, offset: 0x57a): gst-run.c      
+    <15>   DW_AT_comp_dir    : (indirect string, offset: 0x36b): 
+          /tmp/buildd/gstreamer0.10-0.10.36/tools        
+...中略...
+$ gdb --args gst-launch
+(gdb) set substitute-path /tmp/buildd/ /home/yours/debian-src/gstreamer/
+(gdb) b main
+(gdb) run
+(gdb) l
+313       return candidates;
+314     }
+315     
+316     int
+317     main (int argc, char **argv)
+319       GHashTable *candidates;
+320       gchar *dir;
+\end{commandlinesmall}
+\end{frame}
+
+\begin{frame}{Use the SOURCE!(その3)}
+ gdbは、ソースの位置を求めるときに以下のアルゴリズムに従ってソースの位置を求めようとします。
+
+　\begin{itemize}
+   \item CUに記載されているファイル名が絶対パスの時:\\
+ そのままソースファイルの位置として扱う。また、この時DW\_AT\_comp\_dirの情報は無視される。
+  \item CUに記載されているファイル名が相対パスの時:\\
+ ソースのファイル名を''DW\_AT\_comp\_dirの値''+''/''+''DW\_AT\_name''として扱う。
+　\end{itemize}
+
+なので、先ほどの通りset substitute-pathの元ディレクトリ情報として指定するパス情報が異なります。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{参考：COMPATIBILITY LEVEL9だと...(その1)}
+デバッグシンボルがCOMPATIBILITY LEVEL9の元で作成されていると...
+\begin{commandlinesmall}
+$ sudo aptitude install libgstreamer0.10-0-dbg
+$ env LANG=C readelf -e /usr/lib/debug/.build-id/9b/42db476118ab2b81041
+acd80e45e89e4289ea2.debug
+...中略...
+  [28] .zdebug_aranges   PROGBITS         0000000000000000  000002d0
+       000000000000002f  0000000000000000           0     0     1
+  [29] .zdebug_info      PROGBITS         0000000000000000  000002ff
+       0000000000000ccd  0000000000000000           0     0     1
+...中略...
+\end{commandlinesmall}
+全部、''.z+debug+なんとか''にセクション名が変更されています。
+\end{frame}
+
+\begin{frame}[containsverbatim]{参考：COMPATIBILITY LEVEL9だと...(その2)}
+ .zdebug\_infoセクションをダンプしてみた。
+\begin{commandlinesmall}
+$ env LANG=C readelf -x .zdebug_info /usr/lib/debug/.build-id/9b/42
+db476118ab2b81041acd80e45e89e4289ea2.debug
+Hex dump of section '.zdebug_info':
+  0x00000000 5a4c4942 00000000 00001b3f 789c7d59 ZLIB.......?x.}Y
+  0x00000010 7b7454c5 199fefee 6e76b3d9 2497cd7b {tT.....nv..$..{
+  0x00000020 370b2109 012e0482 243c13d8 84f01079 7.!.....$<.....y
+  0x00000030 05437988 0887444f 44501e25 94a788b6 .Cy...DODP.%....
+\end{commandlinesmall}
+%$
+というわけで、ZLIBで圧縮されてます。
+\end{frame}
+
+\begin{frame}{おわりに}
+\begin{center}
+\Huge
+ 質問などおねがいしますー
+\end{center}
 \end{frame}
 
 \section{raspberry pi}
