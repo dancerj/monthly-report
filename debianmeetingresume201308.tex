@@ -150,16 +150,19 @@
 VPN（仮想プライベートネットワーク）とはインターネット上にある(WAN)に閉域ネットワー
 ク(LAN)を仮想的に構築する方法です。
 
-SSLとはなにか
+OpenVPNは認証と接続方式の部分でTLS\cite{rfc5246} \footnote{規格がTLSにな
+るまえはSSLという名前で呼ばれていました}を活用しています。TLSはHTTPSなど
+で利用されている仕組みで、公開鍵認証の仕組をつかって最初の鍵交換をおこな
+い対象鍵をつかって実際の通信をするという仕組みで効率良く暗号通信ができる
+ようになっています。
 
-SSHとポートフォワーディングと何が違うのか
 
 \subsection{実現したいこと}
 
-一例としてとある個人の開発環境ネットワーク構成図を見てみましょう。
+今回想定する例としてとある個人の開発環境ネットワーク構成図を見てみましょう。
 \fgref{fig:network}
 
-自宅にはごく一般的なプロバイダ契約をしてネットワークを引っ張っていて、ラッ
+自宅にはごく一般的なプロバイダ契約でネットワークをひいていて、ラッ
 プトップと携帯電話はどういうネットワークを経由してどういうIPアドレスでつ
 ながるのかよくわからないという構成です。
 
@@ -167,8 +170,8 @@ SSHとポートフォワーディングと何が違うのか
 ようにしたい、そう思った時にプライベートIPで接続しているプロバイダー接続がネッ
 クになります。
 
-実験などするのに便利な理想はRaspberry pi とラップトップと携帯電話が同じ
-LANの同じサブネットにいるような環境の実現です。
+開発や実験などに便利な環境は、Raspberry pi とラップトップと携帯電話が同じ
+LANにいるような環境の実現です。
 
 \begin{figure}[H]
 \begin{center}
@@ -185,37 +188,279 @@ OpenVPN での認証のしくみは複数あり、一番簡単な方法は共有鍵方式だと思われ
 がopenvpnの接続性テスト以外ではあまりつかわないと思います}、自前でCAを立
 ててPKI(x509)で構築する方法について紹介します。
 
-脆弱性があったり、認証情報がもれると外部のユーザが仮想のプライベートネットワークに接続できるようになります。
+今回紹介する方式ですが、openvpnに脆弱性があったり、認証情報がもれると外部
+のユーザが仮想のプライベートネットワークに接続できるようになります。
+
+\subsection{インストール}
+
+Debianでは openvpnパッケージとして提供されています。また、CA関連はopensslに依存
+しているのでopensslパッケージもインストールしましょう。
+
+\begin{commandline}
+ # apt-get install openvpn openssl
+\end{commandline}
 
 \subsection{OpenVPNの接続性試験}
 
 まず、サーバとクライアント間で接続できるかどうかを確認する方法について紹
-介します。
-openVPN は UDP もしくは TCP を利用することができます。
+介します。サーバとクライアントでopenvpn を起動して相互に接続し、openvpnが
+接続できる状態であることを確認します。pingとかうってみるのがよいでしょう。
+
+openVPN は UDP もしくは TCP 接続を利用することができます。どちらかはつな
+がるでしょう。
+
+\begin{commandline}
+ server$ sudo openvpn --dev tun1 --ifconfig 10.1.1.1 10.1.1.2 
+ client$ sudo openvpn --dev tun1 --remote サーバホスト名 --ifconfig 10.1.1.2 10.1.1.1 
+
+ client$ ifconfig
+ tun1      Link encap:UNSPEC  HWaddr 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  
+          inet addr:10.1.1.2  P-t-P:10.1.1.1  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP MULTICAST  MTU:1500  Metric:1
+          RX packets:2 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:2 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:168 (168.0 B)  TX bytes:168 (168.0 B)
+ client$ ping 10.1.1.1
+
+\end{commandline}
+
+\subsection{tun or tap}
+
+また、仮想ネットワークデバイスはTUNとTAPの二択あります。TAPはイーサネット
+レベル（L2)の仮想デバイスで、TUNはIPレベル（L3)の仮想デバイスです。iOSと
+AndroidのopenvpnクライアントがTUNしかサポートしていないのでTUNを使うこと
+になります。
+
+\begin{tabular}{|c|c|c|c|}
+\hline
+ & ネットワークレイヤー & 機能 & つかえるOS\\
+\hline
+tun & L2 & ブリッジ（ブロードキャストパケットが到達する） & linux, iOS, Androidなど \\
+tap & L3 & ルータ & linux \\
+\hline
+\hline
+\end{tabular}
 
 \subsection{CAの作成}
 
-認証局を作成します。
+まず最初に認証局を作成します。
+とりあえずは easy-rsa を使うとよいでしょう。wheezy のopenvpnパッケージでは
+\url{/usr/share/doc/openvpn/examples/easy-rsa/2.0/}にファイルがおいてありそれ
+をコピーしてつかえということのようです。
 
-認証情報関連のファイルはrootのみが読めるようにしましょう。
+\begin{commandline}
+ # cd /etc/openvpn
+ # sudo cp -R /usr/share/doc/openvpn/examples/easy-rsa/2.0/ easy-rsa/
+ # cd easy-rsa/
+ # vi vars
+
+export KEY_COUNTRY="JP"
+export KEY_PROVINCE="TOKYO"
+export KEY_CITY="Suginami-ku"
+export KEY_ORG="uekawa"
+export KEY_EMAIL="dancerj@gmail.com"
+#export KEY_CN=changeme
+#export KEY_NAME=changeme
+#export KEY_OU=changeme
+#export PKCS11_MODULE_PATH=changeme
+#export PKCS11_PIN=1234
+
+ # . ./vars
+ # ./clean-all
+ # ./build-ca
+ 
+\end{commandline}
+
+いろいろと質問されますが、あまり重要な質問はない気がします。
+``Common Name''が名前で、ここで聞かれている名前はCAの名前です。が、この
+名前が重要な場面はあまりない気がします。
+
+注意事項としては何も設定しないと全員ファイルが読めるようになっているので
+すが、認証情報関連のファイルは秘密であることが重要なので、rootのみが読め
+るようにしましょう。
+
+\subsection{各種証明書の作成}
+
+サーバはクライアントが信頼できるCAに署名された証明書を使っていることを確
+認することになります。クライアントはサーバの証明書が信頼できるCAにに署名
+されていることを確認することになります。
+
+正式な手順はクライアント・サーバ各ノードで Certificate Signing Request
+(CSR) を作ってCA側で署名してCRTファイルを返してあげるということになります。
+今回は略式でサーバをCAとして運用し発行機関としても併用します。
+OpenVPNサーバが乗っ取られたらCAとしても乗っ取られるのですがOpenVPNサーバ
+が乗っ取られた時点で全ノードの再設定が必要になると思うので、新しく自己署
+名CAを作りなおしてしまうという方針でいきます。
+
+まずサーバの証明書を作成します。今回sakuraという名前のサーバの証明書を作っ
+てみましょう。
+
+\begin{commandline}
+ # ./build-key-server sakura
+\end{commandline}
+
+CN(common name) のところにはホスト名をいれる慣習になっているようで、
+その値は後々ログなどで表示されます。
+A challenge password と an optional company name はCSRに追加ではいる情報
+みたいですが、CSRを読むことはないのでこの場合は何も入力しなくてもよいよ
+うです。
+証明書を作成して証明書の署名と登録を連続しておこなうのでちょっとわかりに
+くいです。
+
+クライアントの証明書を作成します。
+\begin{commandline}
+ # ./build-key client1
+ # ./build-key nexus4
+\end{commandline}
+
+\subsection{HMAC鍵の作成}
+
+TLSをのハンドシェークはCPU負荷の高い処理なのでDoSされる可能性もあります。
+そこで、HMAC鍵を使ってその前段でフィルタリングをかけることができるようで
+す。ついでにつくってしまいましょう。
+
+\begin{commandline}
+ # openvpn --genkey --secret ta.key
+\end{commandline}
 
 \subsection{OpenVPNのサーバ設定}
 
-common name がホスト名です。
+TLS接続用にサーバ側で必要となる Diffie Hellman パラメータ（なにそれ？）を
+生成します。
+
+\begin{commandline}
+ # ./build-dh  
+\end{commandline}
+
+\url{/etc/openvpn/server.conf}に設定ファイルを作成します。
+
+\begin{commandline}
+port 1194
+proto udp
+dev tun
+
+user nobody
+group nogroup
+
+tls-auth      /etc/openvpn/easy-rsa/keys/ta.key 0 # server is 0.
+ca      /etc/openvpn/easy-rsa/keys/ca.crt
+cert    /etc/openvpn/easy-rsa/keys/sakura.crt
+key     /etc/openvpn/easy-rsa/keys/sakura.key  # keep secret
+dh      /etc/openvpn/easy-rsa/keys/dh1024.pem
+
+server 10.55.2.0 255.255.255.0  # internal tun0 connection IP
+ifconfig-pool-persist ipp.txt 0
+
+keepalive 10 120
+
+comp-lzo         # Compression - must be turned on at both end
+persist-key
+persist-tun
+
+status log/openvpn-status.log
+
+verb 3  # verbose mode
+client-to-client
+ 
+\end{commandline}
+
+この設定ファイルはlog/ディレクトリにステータスログを出力する設定なので、
+ディレクトリ \url{/etc/openvpn/log/} をつくっておきます。
+
+/etc/openvpn/ipp.txt にIPアドレスの割り当て設定を書きます。
+
+
+
+\subsubsection{トポロジー}
+
+デフォルトのTUNデバイスのトポロジーは net30 です。これはクライアント毎に
+サブネットマスク /30 の ipv4 アドレス（4個づつ）を割り当てることになります。
+ブリッジモードでTAPを使う、もしくはp2p・subnetトポロジを使うとクライアン
+トあたり一つのIPアドレスになるみたいですが、どうせクラスAのプライベート
+アドレスを大量に使えるので特に必要もないので検証してません。
 
 \subsection{OpenVPNのクライアント設定}
 
-\subsection{暗号化経路のためにすべてのパケットをVPN経由にする}
+CAからいくつかのファイルをコピーしてくる必要があります。
 
-公共のWiFiスポットとかを信用してにいないあなたにぴったりの方法。
+ca.crt, client.crt, client.key, ta.key が必要になります。
 
-しかしDHCPの再リースとかもVPN経由になります。
+\begin{commandline}
+client
+dev tun
+port 1194
+proto udp
+
+remote xyz.sakura.ne.jp 1194             # vpn server ip : port
+nobind
+
+tls-auth      /etc/openvpn/easy-rsa/keys/ta.key 1 # client is 0.
+ca ca.crt
+cert android-nexus4.crt
+key android-nexus4.key
+# TODO: should check server certificate?
+
+comp-lzo
+persist-key
+persist-tun
+
+verb 3
+
+\end{commandline}
+
+
+\subsection{応用}
+
+特に今回必要でなかったので設定しなかったのですが違う設定も可能なのでそれ
+も紹介します。
+
+\subsubsection{ローカルネットワークへのゲートウェイを設定したい}
+
+\subsubsection{暗号化経路のためにすべてのパケットをVPN経由にしたい}
+
+公共のWiFiスポットとかを信用してにいない場合はこの方法が可能です。しかし
+DHCPの再リースとかもVPN経由になってしまうので。
+
+\subsection{おわりに}
+
+openvpn 2.3 でgitリポジトリの再編を行ったようで、
+easy-rsaとかが分離されたっぽいです。
+
+\subsubsection{ssh の各機能との比較}
+
+開発者・運用者愛用のツールsshとどう違うのかとおもってみてみたのですが、
+sshにも VPN 機能もあるので比較しにくいですね。ただ、通常の運用ではroot同
+士でsshすることはあまりないかと思いますが、VPNを利用するにはrootでssh で
+きる必要があるようです。
+
+openvpnのメリットとしては openvpn には接続が切れた時を検出して再接続する
+仕組みがあること、TCPだけでなくUDPも使えること、root 権限でsshログインを
+許可しないでよいことなどがあげられると思います。
+
+\begin{table}[H]
+ \caption{ssh の機能の対応}
+ \begin{tabular}{|c|c|c|}
+ \hline
+ & sshオプション & 機能 \\
+ ポートフォワーディング &  -L, -R & 特定のローカルのTCPポート番号をリモートのポート番
+	 号とマッピングする \\
+ プロキシ & -D & SOCKSに対応しているアプリケーションのプロキシを提供 \\
+ VPN & -w & IPレベルで相互に見えるよう仮想的にネットワークを構築する \\
+ \end{tabular}
+\end{table}
+
 
 \begin{thebibliography}{0}
  \bibitem{openvpndebianwiki} \url{http://wiki.debian.org/OpenVPN}
  \bibitem{openvpnmanpage} openvpn(8) manpage
  \bibitem{openvpnreadmedebian} \url{/usr/share/doc/openvpn/README.Debian.gz}
-
+ \bibitem{openvpnnetcommunity} OpenVPN Community Software
+	 \url{http://openvpn.net/index.php/open-source.html}
+ \bibitem{rfc5246}               
+	 The Transport Layer Security (TLS) Protocol
+	 Version 1.2
+	 \url{https://tools.ietf.org/html/rfc5246}
 \end{thebibliography}
 
 %-------------------------------------------------------------------------------
