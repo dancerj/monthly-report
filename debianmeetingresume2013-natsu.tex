@@ -1255,42 +1255,92 @@ _Description: Are you sure you want a bootable logical partition?
 \clearpage
 
 %201212tokyo
-\dancersection{Debian日本語入力の選択肢:im-config他}{青木　修}
+\dancersection{Debian日本語入力の選択肢:im-config関連}{青木　修}
+\\
+im-configおよびその関連について説明します。
 \subsection{日本語環境の構築}
 
 Aptitudedeで導入される日本語環境(Japanese desktop,Japanese environment)は下記の様になります。
 Tasks → Localization → Japanese desktop , Japanese environment
-\includegraphics[width=0.7\hsize]{image201212/im01.png}
-\includegraphics[width=0.7\hsize]{image201212/im02.png}
 
+\begin{figure}[htbp]
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+   \includegraphics[width=8cm]{image201212/im01.png}
+  \end{center}
+  \caption{Japanese desktop}
+  \label{fig:one}
+ \end{minipage}
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+   \includegraphics[width=8cm]{image201212/im02.png}
+  \end{center}
+  \caption{Japanese environment}
+  \label{fig:two}
+ \end{minipage}
+\end{figure}
+
+\clearpage
 \subsection{日本語入力の選択肢}
 DebianのInput method(IM)とIM Engineとの組み合わせは下記のように多種あります。
-wheezy時点での一般的な日本語入力ユーザへのおすすめはuim-anthy,uim-mozc,ibus-mozcといったpackageを使用することです。
+wheezy時点での一般的な日本語入力ユーザへのおすすめはibus-mozc,uim-anthy,uim-mozcといったpackageを使用することです。
 \includegraphics[width=0.7\hsize]{image201212/im03.png}
 
 \subsection{im-configとは}
 数あるIMの中の一つを選ぶGUI programがim-configです。
-im-configはim-switchの後継のCJKV入力環境設定支援システムです。
-単一IMがインストールの場合は自動設定で十分です。
-Hook script: /etc/X11/Xsession.d/70im-config\_launch
-GDMやstartxが /etc/X11/Xsession経由で呼びます。
-数あるIMの中の一つを選び起動します。
-/usr/bin/ibus-daemon --daemonize -xim
-Clientの環境変数を設定する。
+im-configはim-switchの後継のCJKV\footnote{Chinese-Japanese-Korean-Vietnamese}入力環境設定支援システムです。
+単一IMがインストールされている場合は自動設定で十分です。
+Hook scriptは/etc/X11/Xsession.d/70im-config\_launchにあります。
+これはGDMやstartxが /etc/X11/Xsession経由で呼びます。
+
+下記の様なClientの環境変数を設定し、
+\begin{commandline}
 XMODIFIERS=@im=ibus
 GTK\_IM\_MODULE=ibus
 QT4\_IM\_MODULE=ibus
 ...等
+\end{commandline}
 
+dbusの設定後\footnote{/usr/bin/ibus-daemon --daemonize -xim}、
+数あるIMの中の一つを選び起動します。
+
+\clearpage
 \subsection{im-configの日本語GUI}
-日本語されたシェルスクリプトです。
-\includegraphics[width=0.7\hsize]{image201212/im04.png}
-\includegraphics[width=0.7\hsize]{image201212/im05.png}
-\includegraphics[width=0.7\hsize]{image201212/im06.png}
-\includegraphics[width=0.7\hsize]{image201212/im07.png}
+im-configのGUIは下記のように日本語化されています。
+%日本語されたシェルスクリプトです。
+\begin{figure}[htbp]
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+   \includegraphics[width=5cm]{image201212/im04.png}
+  \end{center}
+  \label{fig:one}
+ \end{minipage}
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+   \includegraphics[width=5cm]{image201212/im05.png}
+  \end{center}
+  \label{fig:two}
+ \end{minipage}
+\end{figure}
+
+\begin{figure}[htbp]
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+   \includegraphics[width=5cm]{image201212/im06.png}
+  \end{center}
+  \label{fig:one}
+ \end{minipage}
+ \begin{minipage}{0.5\hsize}
+  \begin{center}
+   \includegraphics[width=5cm]{image201212/im07.png}
+  \end{center}
+  \label{fig:two}
+ \end{minipage}
+\end{figure}
 
 \subsection{/etc/X11/Xsession.d/}
 im-comfigは/etc/X11/Xsession.d/の中で設定されます。
+\begin{commandline}
 20x11-common\_process-args
 30x11-common\_xresources
 35x11-common\_xhost-local
@@ -1306,16 +1356,20 @@ im-comfigは/etc/X11/Xsession.d/の中で設定されます。
 90qt-a11y
 90x11-common\_ssh-agent
 99x11-common\_start
+\end{commandline}
 環境変数\$STARTUPが順次設定され99x11-common\_startで実行(exec)されます。
 
 \subsection{im-configのカスタマイズ}
 標準で動かなければ、カスタマイズしてください
-もしバグがあったら報告してください
 ~/.xinputrcはibusをセットアップするために/usr/share/im-config/data/ibus.rc
 を呼びます
 /usr/share/im-config/data/*.rcは下記のルールに従ってカスタマイズできます。
-環境変数は"\$IM\_CONFIG\_PHASE" = 1でセットします。
-デーモンのプログラムは"\$IM\_CONFIG\_PHASE" = 2で開始します。
+\\
+環境変数は"\$IM\_CONFIG\_PHASE" = 1でセット
+\\
+デーモンのプログラムは"\$IM\_CONFIG\_PHASE" = 2で開始
+\\
+もしバグがあったら報告(bug report)してください。
 
 %201304
 %-------------------------------------------------------------------------------
