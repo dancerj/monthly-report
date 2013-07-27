@@ -1260,8 +1260,9 @@ _Description: Are you sure you want a bootable logical partition?
 im-configおよびその関連について説明します。
 \subsection{日本語環境の構築}
 
-Aptitudedeで導入される日本語環境(Japanese desktop,Japanese environment)は下記の様になります。
-Tasks → Localization → Japanese desktop , Japanese environment
+Aptitudeで導入される日本語環境(Japanese desktopとJapanese environment)は下記の様になります。
+\\
+Tasks → Localization → Japanese desktop と Japanese environment
 
 \begin{figure}[htbp]
  \begin{minipage}{0.5\hsize}
@@ -1289,11 +1290,9 @@ wheezy時点での一般的な日本語入力ユーザへのおすすめはibus-mozc,uim-anthy,ui
 \subsection{im-configとは}
 数あるIMの中の一つを選ぶGUI programがim-configです。
 im-configはim-switchの後継のCJKV\footnote{Chinese-Japanese-Korean-Vietnamese}入力環境設定支援システムです。
-単一IMがインストールされている場合は自動設定で十分です。
-Hook scriptは/etc/X11/Xsession.d/70im-config\_launchにあります。
-これはGDMやstartxが /etc/X11/Xsession経由で呼びます。
-
-下記の様なClientの環境変数を設定し、
+単一IMがインストールされる場合は自動設定で十分です。
+フックスクリプトは/etc/X11/Xsession.d/70im-config\_launchにあります。
+GDMやstartxが /etc/X11/Xsession経由でこのフックスクリプトを呼び、dbusの設定後、下記の様にClient環境変数を設定し、
 \begin{commandline}
 XMODIFIERS=@im=ibus
 GTK\_IM\_MODULE=ibus
@@ -1301,23 +1300,22 @@ QT4\_IM\_MODULE=ibus
 ...等
 \end{commandline}
 
-dbusの設定後\footnote{/usr/bin/ibus-daemon --daemonize -xim}、
-数あるIMの中の一つを選び起動します。
+数あるIMの中の一つを選び、それを起動します\footnote{/usr/bin/ibus-daemon --daemonize -xim}。
 
 \clearpage
 \subsection{im-configの日本語GUI}
-im-configのGUIは下記のように日本語化されています。
-%日本語されたシェルスクリプトです。
+im-configは日本語化対応されたシェルスクリプトで実装されたメニュープログラムです。通常はGTKのGUIで表示されます。im-configに-cオプションをつけて起動することで、最後のスクリーン例のようにターミナルの下でもメニュー表示ができます。
+
 \begin{figure}[htbp]
  \begin{minipage}{0.5\hsize}
   \begin{center}
-   \includegraphics[width=5cm]{image201212/im04.png}
+   \includegraphics[width=8cm]{image201212/im04.png}
   \end{center}
   \label{fig:one}
  \end{minipage}
  \begin{minipage}{0.5\hsize}
   \begin{center}
-   \includegraphics[width=5cm]{image201212/im05.png}
+   \includegraphics[width=8cm]{image201212/im05.png}
   \end{center}
   \label{fig:two}
  \end{minipage}
@@ -1326,50 +1324,60 @@ im-configのGUIは下記のように日本語化されています。
 \begin{figure}[htbp]
  \begin{minipage}{0.5\hsize}
   \begin{center}
-   \includegraphics[width=5cm]{image201212/im06.png}
+   \includegraphics[width=8cm]{image201212/im06.png}
   \end{center}
   \label{fig:one}
  \end{minipage}
  \begin{minipage}{0.5\hsize}
   \begin{center}
-   \includegraphics[width=5cm]{image201212/im07.png}
+   \includegraphics[width=8cm]{image201212/im07.png}
   \end{center}
   \label{fig:two}
  \end{minipage}
 \end{figure}
 
 \subsection{/etc/X11/Xsession.d/}
-im-comfigは/etc/X11/Xsession.d/の中で設定されます。
+Xの起動時には/etc/X11/Xsession.d/の中にある多くのフックスクリプトが順番に実行されます。この/etc/X11/Xsession.d/の中は大体次のようになっています。
 \begin{commandline}
-20x11-common\_process-args
-30x11-common\_xresources
-35x11-common\_xhost-local
-40x11-common\_xsessionrc
-50x11-common\_determine-startup
-55gnome-session\_gnomerc
+20x11-common_process-args
+30x11-common_xresources
+35x11-common_xhost-local
+40x11-common_xsessionrc
+50x11-common_determine-startup
+55gnome-session_gnomerc
 60xdg-user-dirs-update
-70im-config\_launch
-75dbus\_dbus-launch
+70im-config_launch
+75dbus_dbus-launch
 90apparmor-notify
 90consolekit
 90gpg-agent
 90qt-a11y
-90x11-common\_ssh-agent
-99x11-common\_start
+90x11-common_ssh-agent
+99x11-common_start
 \end{commandline}
-環境変数\$STARTUPが順次設定され99x11-common\_startで実行(exec)されます。
-
+im-configのフックスクリプトは、これらのフックスクリプトの１つの75dbus\_dbus-launchということは、すぐ分かりますね。
+でも、Wheezyのim-configはdbusから起動されるプログラム等にも対応すべく、ちょっと複雑なことをしています。
+\\
+このフックスクリプト75dbus\_dbus-launchが実行される時（PHASE 1）に、IM関連の環境変数の設定と、\$STARTUPという環境変数の更新設定をしています。
+実際この\$STARTUPという環境変数は、他ののフックスクリプトででも順次更新設定されます。
+\\
+そして最後の99x11-common\_startにより、「exec \$STARTUP」が実行される事で\$STARTUPのコマンドが実行されます。
+この\$STARTUPが実行される際(PHASE 2)に、/usr/bin/im-launchが呼ばれデーモンのプログラムの起動がされます。
 \subsection{im-configのカスタマイズ}
-標準で動かなければ、カスタマイズしてください
-~/.xinputrcはibusをセットアップするために/usr/share/im-config/data/ibus.rc
-を呼びます
-/usr/share/im-config/data/*.rcは下記のルールに従ってカスタマイズできます。
-\\
-環境変数は"\$IM\_CONFIG\_PHASE" = 1でセット
-\\
-デーモンのプログラムは"\$IM\_CONFIG\_PHASE" = 2で開始
-\\
-もしバグがあったら報告(bug report)してください。
+標準設定で動かなければ、im-configをユーザーで実行すると作成される~/.xinputrcを使ってカスタマイズしてください。
+例えば次に示す~/.xinputrcは、/usr/share/im-config/data/ibus.rcを呼だしてibusを利用するように設定しています。
+\begin{commandline}
+# im-config(8) generated on Fri, 14 Dec 2012 00:47:26 +0900
+run_im ibus
+# im-config signiture: b86f7277b9fc27366da40da0b0553a4a  -
+\end{commandline}
+この~/.xinputrcの内容を/usr/share/im-config/data/*.rcファイルのコピーで置き換え改変することで更なるカスタマイズができます。
+その際には以下の２つのルールに注意してシェルプログラムを書いて下さい。
+\begin{itemize}
+\item "\$IM\_CONFIG\_PHASE" = 1の条件下では、環境変数の設定をします。
+\item "\$IM\_CONFIG\_PHASE" = 2の条件下では、デーモンのプログラムの起動をします。
+\end{itemize}
+もしバグを見つけた際には、バグ報告をreportbugプログラムを使ってim-configパッケージにしてください。
 
 %201304
 %-------------------------------------------------------------------------------
