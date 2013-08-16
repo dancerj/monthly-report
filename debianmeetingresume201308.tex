@@ -28,20 +28,6 @@
 
 \documentclass[mingoth,a4paper]{jsarticle}
 \usepackage{monthlyreport}
-\usepackage{listings}
-\lstset{language=sh,
-  basicstyle=\ttfamily\scriptsize,
-  commentstyle=\textit,
-  classoffset=1,
-  keywordstyle=\bfseries,
-  frame=tRBl,
-  framesep=5pt,
-  showstringspaces=false,
-  numbers=left,
-  stepnumber=1,
-  numberstyle=\tiny,
-  tabsize=2
-}
 
 % 日付を定義する、毎月変わります。
 \newcommand{\debmtgyear}{2013}
@@ -607,51 +593,139 @@ id & 変換方法パターン & ツール名 & is Debian package ? \\
 
 各ツールの実行方法は次の通りです。
 
-\begin{lstlisting}[caption=pandoc,label=pandoc]
-  $ pandoc -o sample.epub sample.tex
-\end{lstlisting}
+\begin{commandline}
+$ pandoc -o sample.epub sample.tex
+\end{commandline}
 
 pandocでの変換は、latex2epubのsample.texに対しては、\\labelが解釈されずに残ってしまう問題がありましたが、結構まともです。一方、Debian勉強会の資料は、
 
-\begin{lstlisting}[caption=pandoc-error,label=pandoc-error]
+\begin{commandline}
 $ pandoc -o test.epub debianmeetingresume201307.tex 
 pandoc: 
 Error:
 "source" (line 216, column 13):
 unexpected "$"
 expecting "{" or "\\"
-\end{lstlisting}
+\end{commandline}
 のようなエラーが出力され、変換は不可能でした。
 
-\begin{lstlisting}[caption=latex2epub,label=latex2epub]
+\begin{commandline}
 $ git clone https://github.com/kmuto/latex2epub.git
 $ cd latex2epub
 $ ./latex2epub.rb sample.tex sample.yaml
-\end{lstlisting}
+\end{commandline}
 
-\begin{lstlisting}[caption=latexml,label=latexml]
+\begin{commandline}
 $ platex sample.tex
 $ tex4ht sample.dvi
-\end{lstlisting}
+\end{commandline}
 
 sample.tex自体はlatex2epubと一緒に配布されているので、これは無論問題なく変換できます。
 一方、Debian勉強会の資料は途中でコケてしまうのでした。
 
-\begin{lstlisting}[caption=tex4ht,label=tex4ht]
+\begin{commandline}
 $ platex sample.tex
 $ tex4ht sample.dvi
-\end{lstlisting}
+\end{commandline}
 
-フォント周りのエラーが頻発しました。エラーが出るたび、それが含まれているパッケージを探し、インストールしていたのですが、ptex-jisfonts が ptex-bin に依存するのにバージョン規則が変わったことにより ptex-binをインストールできない、という問題にはまってしまいました。
+\TeX4htは、実は上川さんが既に通った道でした。\footnote{\url{http://lists.debian.or.jp/debian-users/200708/msg00110.html}}
 
-これは、実は上川さんが既に通った道でした。
+Debian勉強会の資料のリポジトリの中に、htplatexというシェルスクリプトがあります。このスクリプトはDebian勉強会の資料の \LaTeX のファイルを \TeX4htを使ってHTML化するものです。このスクリプトの２行目に使い方、３行目に依存パッケージのインストールについて記載されています。
 
-\url{http://lists.debian.or.jp/debian-users/200708/msg00110.html}
+まず、必要なパッケージをインストールします。
+
+\begin{commandline}
+$ apt-get install dvi2ps-fontdata-a2n dvi2dvi dvipng
+\end{commandline}
+
+次にスクリプトを実行します。
+
+\begin{commandline}
+$ ./htplatex debianmeetingresume200708.tex jp,2,sections+
+\end{commandline}
+
+すると、./html/ディレクトリ下に \LaTeX から変換されたHTMLが生成されます。
+
+そこで、Pandocを使い、./epub/ ディレクトリの下に ePUBファイルが生成されるようにしました。
+変更内容は下記の通りです。
+
+\begin{commandline}
+diff --git a/htplatex b/htplatex
+index cc22e6b..0e3c169 100755
+--- a/htplatex
++++ b/htplatex
+@@ -1,6 +1,21 @@
+-#!/bin/sh
++#!/bin/bash 
+ #htplatex debianmeetingresume200708.tex jp,2,sections+
+-#apt-get install dvi2ps-fontdata-a2n dvi2dvi dvipng
++#apt-get install dvi2ps-fontdata-a2n dvi2dvi dvipng pandoc
++
++
++while getopts "e" flag; do
++
++    case $flag in
++        \?) OPT_ERROR=1; break;;
++        e) epub=1; break ;;
++    esac
++done
++
++shift $(( $OPTIND - 1))
++
++test ! -f $1 && echo "No such a file: $1" && exit 1
++
++install -d html
+ 
+ if command -v xhtex > /dev/null 2>&1 ; then
+     true
+@@ -18,3 +33,29 @@ mv ${1/.tex/.dvi.tmp} ${1/.tex/.dvi}
+ tex4ht -f/$1   -itex4ht/ht-fonts/mozilla/nttsub/$3
+ t4ht -f/$1 $4 -dhtml/
+ 
++if [ $OPT_ERROR ] || [ -z $epub ] ; then
++    exit 0
++fi
++
++install -d epub
++
++(
++cd html
++imagedir=$(echo $1 | sed 's/debianmeetingresume\(.*\).tex/image\1/g')
++install -d $imagedir
++for i in ${1%%.*}*.html
++do
++    nkf -w8 $i > $i.tmp
++    mv $i.tmp $i
++done
++for i in *.*
++do
++if [ ${i##*.} != 'html' -a ${i##*.} != 'css' ];
++then
++    if echo ${i%%.*} | grep -q -v ${1%%.*} ; then
++        mv $i $imagedir
++    fi
++fi
++done
++pandoc -o ${1/.tex/.epub} ${1%%.*}*.html && mv ${1/.tex/.epub} ../epub/
++)
+\end{commandline}
+
+実行時に、"\texttt{-e}"オプションをつけることで、ePUBを生成することができます。
+
+\begin{commandline}
+$ ./htplatex -e debianmeetingresume200708.tex jp,2,sections+
+\end{commandline}
 
 
-が、上川さんがhtplatexで以前生成していたHTML\url{http://tokyodebian.alioth.debian.org/html/}をUTF-8に変換し、pandocで読み込ませることで、ePUBを生成することができました。
+現状では次の問題がありますが、今回検証した中では一番まともに読める形で変換できました。
 
-問題としてはhtplatex の内部で実行されている \TeX4ht で挿入されたナビゲートのヘッダーとフッターが残ってしまうことと、\TeX4htが現状のドキュメントに対して、また過去生成していたドキュメントに対しても、実行できないので結局変換できないままになっています。
+\begin{itemize}
+  \item tabularがtableに変換されず、表にならない
+  \item 表紙の画像が追加されない
+  \item あんどきゅめんてっどでびあん夏号、冬号をそれが含まれる月よりも先に変換すると、その中で使われている画像がhtmlディレクトリにコピーされず、ファイルが無いためpandoc実行時に失敗する
+  \item \TeX4htでHTML変換時に自動生成される画像のファイル名が異なり、同じくpandoc実行時に失敗する月もある(2013年4月など)
+  \item PDFを生成する場合(= makeを実行する場合)、htplatexが依存するパッケージ dvi2ps-fontdata-a2n をアンインストールする必要がある。これをアンインストールしないと、dvipdfmxでのDVIからPDF変換時に、"\texttt{** ERROR ** Virtual fonts nested too deeply}"というエラーが出て失敗する
+\end{itemize}
 
 \subsection{結論}
 
