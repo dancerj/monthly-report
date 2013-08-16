@@ -1,6 +1,21 @@
-#!/bin/sh
+#!/bin/bash 
 #htplatex debianmeetingresume200708.tex jp,2,sections+
-#apt-get install dvi2ps-fontdata-a2n dvi2dvi dvipng
+#apt-get install dvi2ps-fontdata-a2n dvi2dvi dvipng pandoc
+
+
+while getopts "e" flag; do
+
+    case $flag in
+        \?) OPT_ERROR=1; break;;
+        e) epub=1; break ;;
+    esac
+done
+
+shift $(( $OPTIND - 1))
+
+test ! -f $1 && echo "No such a file: $1" && exit 1
+
+install -d html
 
 if command -v xhtex > /dev/null 2>&1 ; then
     true
@@ -18,3 +33,29 @@ mv ${1/.tex/.dvi.tmp} ${1/.tex/.dvi}
 tex4ht -f/$1   -itex4ht/ht-fonts/mozilla/nttsub/$3
 t4ht -f/$1 $4 -dhtml/
 
+if [ $OPT_ERROR ] || [ -z $epub ] ; then
+    exit 0
+fi
+
+install -d epub
+
+(
+cd html
+imagedir=$(echo $1 | sed 's/debianmeetingresume\(.*\).tex/image\1/g')
+install -d $imagedir
+for i in ${1%%.*}*.html
+do
+    nkf -w8 $i > $i.tmp
+    mv $i.tmp $i
+done
+for i in *.*
+do
+if [ ${i##*.} != 'html' -a ${i##*.} != 'css' ];
+then
+    if echo ${i%%.*} | grep -q -v ${1%%.*} ; then
+        mv $i $imagedir
+    fi
+fi
+done
+pandoc -o ${1/.tex/.epub} ${1%%.*}*.html && mv ${1/.tex/.epub} ../epub/
+)
