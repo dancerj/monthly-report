@@ -93,11 +93,6 @@
 \end{frame}
 
 \begin{frame}{Debconf}
-
-参加者
-\begin{itemize}
- \item hoge
-\end{itemize}
 \end{frame}
 
 \section{DWN quiz}
@@ -115,17 +110,206 @@
 \end{frame}
 
 \subsection{問題}
-% \input{image201308/quiz.tex}
+ \input{image201308/quiz.tex}
 
 \section{事前課題}
 \emtext{事前課題}
 
 {\footnotesize
-% \input{image201308/prework.tex}
+ \input{image201308/prework.tex}
 }
 
 \section{openvpn}
 \emtext{openvpn}
+
+\begin{frame}{OpenVPNでやりたいこと}
+  \includegraphics[width=0.9\hsize]{image201308/network.eps}
+\end{frame}
+
+\begin{frame}[containsverbatim]{インストール}
+\begin{commandline}
+ # apt-get install openvpn openssl
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{疎通試験}
+\begin{commandline}
+ server$ sudo openvpn --dev tun1  \
+    --ifconfig 10.1.1.1 10.1.1.2 
+ client$ sudo openvpn --dev tun1  \
+    --remote サーバホスト名 --ifconfig 10.1.1.2 10.1.11
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{CA}
+ \begin{commandline}
+ # cd /etc/openvpn
+ # sudo cp -R /usr/share/doc/openvpn/examples/easy-rsa/2.0/ easy-rsa/
+ # cd easy-rsa/
+ # vi vars
+ # . ./vars
+ # ./clean-all
+ # ./build-ca
+
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{サーバー鍵の作成と設定の作成}
+
+\begin{commandline}
+ # ./build-key-server sakura
+ # ./build-dh  
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{クライアント鍵の作成}
+\begin{commandline}
+ # ./build-key client1
+ # ./build-key nexus4
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{HMAC鍵の作成}
+\begin{commandline}
+ # openvpn --genkey --secret ta.key
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{server設定の作成}
+
+/etc/openvpn/server.conf を作成して /etc/init.d/openvpn restart
+
+\begin{commandline}
+port 1194
+proto udp
+dev tun
+user nobody
+group nogroup
+tls-auth      /etc/openvpn/easy-rsa/keys/ta.key 0 # server is 0.
+ca      /etc/openvpn/easy-rsa/keys/ca.crt
+cert    /etc/openvpn/easy-rsa/keys/sakura.crt
+key     /etc/openvpn/easy-rsa/keys/sakura.key  # keep secret
+dh      /etc/openvpn/easy-rsa/keys/dh1024.pem
+server 10.55.2.0 255.255.255.0  # internal tun0 connection IP
+ifconfig-pool-persist ipp.txt
+keepalive 10 120
+comp-lzo         # Compression - must be turned on at both end
+persist-key
+persist-tun
+status log/openvpn-status.log
+verb 3  # verbose mode
+client-to-client
+ 
+\end{commandline}
+\end{frame}
+
+\begin{frame}{topology net30}
+
+/30 の ipv4 アドレスネットワークをクライアントごとに作成。４IPアドレスを
+消費。
+
+\end{frame}
+
+\begin{frame}{tun/tap}
+
+\begin{tabular}{|c|p{4em}|p{8em}|p{8em}|}
+\hline
+ & ネットワークレイヤー & 機能 & つかえるOS\\
+\hline
+tap & L2 & ブリッジ（ブロードキャストパケットが到達する） & linux \\
+tun & L3 & ルータ & linux, iOS, Androidなど \\
+\hline
+\hline
+\end{tabular}
+\end{frame}
+
+\begin{frame}[containsverbatim]{クライアント側の設定}
+\url{/etc/openvpn/*.conf}においておけば勝手にネットワークに変更があれば
+ 実行される設定になっています。
+
+\begin{commandline}
+client
+dev tun
+port 1194
+proto udp
+remote xyz.sakura.ne.jp 1194
+nobind
+tls-auth      ta.key 1 # client is 1.
+ca ca.crt
+cert android-nexus4.crt
+key android-nexus4.key
+remote-cert-tls server
+comp-lzo
+persist-key
+persist-tun
+verb 3
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Androidにインポート 0}
+ファイルをコピー
+\begin{commandline}
+$ ls -1 
+android-nexus4.crt
+android-nexus4.csr
+android-nexus4.key
+ca.crt
+client.ovpn
+ta.key
+$ adb push . /sdcard/secure
+push: ./ca.crt -> /sdcard/secure/ca.crt
+push: ./android-nexus4.key -> /sdcard/secure/android-nexus4.key
+push: ./ta.key -> /sdcard/secure/ta.key
+push: ./android-nexus4.crt -> /sdcard/secure/android-nexus4.crt
+push: ./client.ovpn -> /sdcard/secure/client.ovpn
+push: ./android-nexus4.csr -> /sdcard/secure/android-nexus4.csr
+\end{commandline}
+\end{frame}
+
+\begin{frame}{Androidにインポート 1}
+
+\includegraphics[height=0.9\vsize,bb=0 0 768 1280]{image201308/Screenshot_2013-08-17-16-04-31.png}
+
+\end{frame}
+\begin{frame}{Androidにインポート 2}
+\includegraphics[height=0.9\vsize,bb=0 0 768 1280]{image201308/Screenshot_2013-08-17-16-04-43.png}
+
+\end{frame}
+\begin{frame}{Androidにインポート 3}
+\includegraphics[height=0.9\vsize,bb=0 0 768 1280]{image201308/Screenshot_2013-08-17-16-04-54.png}
+
+\end{frame}
+\begin{frame}{Androidにインポート 4}
+\includegraphics[height=0.9\vsize,bb=0 0 768
+ 1280]{image201308/Screenshot_2013-08-17-16-05-07.png}
+\end{frame}
+
+\begin{frame}{Androidにインポート}
+これでディレクトリ削除してよいです。
+\end{frame}
+
+\begin{frame}{一方sshは}
+ 
+\begin{table}[H]
+ \caption{ssh の機能の対応}
+ \begin{tabular}{|p{6em}|p{8em}|p{10em}|}
+ \hline
+ & sshオプション & 機能 \\
+ \hline
+ ポートフォワーディング &  -L, -R & 特定のローカルのTCPポート番号をリモートのポート番
+	 号とマッピングする \\
+ \hline
+ プロキシ & -D & SOCKSに対応しているアプリケーションのプロキシを提供 \\
+ \hline
+ VPN & -w & IPレベルで相互に見えるよう仮想的にネットワークを構築する \\
+ \hline
+ \hline
+ \end{tabular}
+\end{table}
+
+\end{frame}
+
 
 \section{epub}
 \emtext{epub}
