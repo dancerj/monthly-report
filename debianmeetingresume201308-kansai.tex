@@ -1,0 +1,335 @@
+%; whizzy chapter
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Kansai Debian Meeting resources
+%     Copyright (C) 2007 Takaya Yamashita
+%     Thank you for Tokyo Debian Meeting resources
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
+%(shell-command "cd image200708; ebb *.png")
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{kansaimonthlyreport}
+\usepackage[dvips]{xy}
+\usepackage{ulem}
+
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2013}
+\newcommand{\debmtgdate}{25}
+\newcommand{\debmtgmonth}{8}
+\newcommand{\debmtgnumber}{73}
+
+\begin{document}
+
+\begin{titlepage}
+
+% 毎月変更する部分、本文の末尾も修正することをわすれずに
+
+ 第\debmtgnumber{}回 関西 Debian 勉強会資料
+
+\vspace{2cm}
+
+\begin{center}
+\includegraphics{image200802/kansaidebianlogo.png}
+\end{center}
+
+\begin{flushright}
+\hfill{}関西 Debian 勉強会担当者 佐々木・倉敷・のがた・かわだ・八津尾 \\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+\end{flushright}
+
+\thispagestyle{empty}
+\end{titlepage}
+
+\dancersection{Introduction}{Debian JP}
+
+\vspace{1em}
+
+ 関西Debian勉強会はDebian GNU/Linuxのさまざまなトピック
+ (新しいパッケージ、Debian特有の機能の仕組、Debian界隈で起こった出来事、
+ などなど）について話し合う会です。
+
+ 目的として次の三つを考えています。
+ \begin{itemize}
+  \item MLや掲示板ではなく、直接顔を合わせる事での情報交換の促進
+  \item 定期的に集まれる場所
+  \item 資料の作成
+ \end{itemize}
+
+ それでは、楽しい一時をお楽しみ下さい。
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ {\rotatebox{90}{\fontsize{80}{80}
+{\gt 関西 Debian 勉強会}}}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\setcounter{tocdepth}{1}
+\tableofcontents
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関係のイベント報告}{Debian JP}
+
+\subsection{}
+
+\subsection{}
+
+\subsection{Debian Project}
+
+\dancersection{事前課題}{Debian JP}
+
+今回は以下の課題を出題しました.
+\begin{screen}
+  \begin{enumerate}
+  \item %
+    構成管理システムをどのように活用(している/したい)かを記述してください
+  \end{enumerate}
+\end{screen}
+参加者の皆さんの解答は以下の通りです:
+
+\clearpage
+\dancersection{puppet による構成管理の実践}{倉敷 悟}
+
+\subsection{概要}
+
+このセッションでは、まっさらな Wheezy 環境に puppet をセットアップし、
+実際にマニフェストを書いて、Debian アーカイブの部分ミラーを構成させて
+みようと思います。
+
+\subsection{puppet のインストールと編集環境のセットアップ}
+
+puppet は、中央にサーバを置く形でも動作させることができますが、今回は
+スタンドアローンでバッチ的に動作させることで使っていきます。
+そのため、まずは puppet のコマンドラインクライアントをインストール
+してください。
+
+\begin{commandline}
+sudo apt-get install puppet
+\end{commandline}
+
+また、構成管理する OS 上でマニフェストの操作も行いますので、好みの
+テキストエディタをインストールしてください。emacs であれば、puppet-el
+\footnote{vim の場合は vim-puppet} というパッケージを使うと、予約語の
+色分けなどをしてくれるので便利です。
+
+\begin{commandline}
+sudo apt-get install emacs puppet-el
+\end{commandline}
+
+引き続き、マニフェスト用のディレクトリ構造を作ります。
+
+\begin{commandline}
+mkdir -p /etc/puppet/manifests
+※mkdir -p /path/to/<manifest-dir>/manifests
+\end{commandline}
+
+
+特定のディレクトリ/manifests というお作法はこの先も繰り返し使って
+いきます。今回は、エントリポイントとなるマニフェストファイルをここに
+設置します。
+
+\subsection{完成図の検討}
+
+では、構成管理としてやりたいことを検討します。今回は、Debian アーカイブの
+部分ミラーを構成する、ということになりますので、ざっくりと下記のような
+構成で検討してみます。
+
+\begin{itemize}
+\item
+  アーキテクチャは amd64 だけでいいや
+\item
+  ディストリビューションは Wheezy で、その更新も含めよう
+\item
+  とりあえず必要最低限 (required) のパッケージだけをミラーする
+\item
+  リポジトリの管理は reprepro を使ってみよう
+\item
+  puppet は環境設定だけで、ミラー実行は(とりあえず)手でやるかな
+\item
+  アクセスは http でやろう
+\end{itemize}
+
+細かいところは、多少は好みで変更してもらっても構いませんが、時間がかかる
+ので、対象を増やすのであれば回線がリッチな時にやることをおすすめします。
+
+上記に付随して、
+
+\begin{itemize}
+\item
+  Web サーバは apache2 でいいかな
+\item
+  Secure Apt のための GPG 設定は archive-keyring を流用
+\item
+  配置場所は /var/www/mirror で所有者 www-data くらい？
+\end{itemize}
+
+といったことも考える必要がでてきます。
+
+TBD
+
+\subsection{全体像を下書きしてみる}
+
+おおよその完成イメージができたら、それを実現するためのトップレベルの
+マニフェストを、「こう書けたら嬉しい」という感じで下書きしてみます。
+
+先程作成しておいたディレクトリで、site.pp というファイルを編集して
+いきます。
+
+\begin{commandline}
+vi /etc/puppet/manifests/site.pp
+
+# 必要になりそうなパッケージを class として列挙
+class {
+  'apache2':;
+  'reprepro':;
+  'debian-archive-keyring':;
+}
+
+# reprepro をよしなに設定してほしい
+reprepro::mirror { '/var/www/mirror':
+  owner => 'www-data', group => 'www-data',
+  architecture => 'amd64',
+  distribution => 'wheezy',
+  partial => 'required',
+}
+
+# デフォルトサイトを無効化して、ミラー用のサイトを追加
+apache2::site {
+  'default': ensure => false;
+  '/var/www/mirror':;
+}
+\end{commandline}
+
+前回のおさらいも兼ねて、puppet のマニフェスト書式について口頭で簡単な
+おさらいをします。資料としては前回の分を参照してください。
+
+TBD (前回へのアンカー？)
+
+\subsection{必要な class を作る}
+
+前節でとりあえず並べた class の要素はまだ存在しないため、このままでは
+実行できません。それぞれ作ってあげる必要があります。
+まずは、class 定義の枠と、パッケージのインストールだけをするように作って
+みましょう。
+
+\begin{commandline}
+class { 'apache2':
+  package { 'apache2':; }
+}
+
+class { 'reprepro':
+  package { 'reprepro':; }
+}
+
+class { 'debian-archive-keyring':;
+}
+\end{commandline}
+
+TBD
+\subsubsection{apache2}
+
+
+\subsubsection{reprepro}
+
+今回は reprepro 自体の使い方は主眼ではないので、簡単に紹介だけしておきます。
+
+TBD
+
+\subsection{}
+
+\subsection{マニフェストの整理}
+
+puppet は、モジュールという単位でマニフェストを分割することができます。
+
+今回は、さほど大きなマニフェストを書いているわけではないので、site.pp
+だけでも十分見通しがききますが、1ファイルにダラダラ書いていくにも限度が
+あります。ある程度大きく育ってきたら、マニフェストを分割しましょう。
+
+\subsubsection{パッケージモジュール}
+
+モジュールをどういう単位で切り出すかは、個人の好みもあると思いますが、
+ここではとっかかりとして「パッケージ単位」をおすすめしておきます。
+
+では、パッケージに対応した puppet モジュールの置き場所を決めましょう。
+例えば、
+
+mkdir -p /etc/puppet/modules/
+
+などとします。このディレクトリ以下に、モジュール名のディレクトリを作成
+していくことになりますが、Debian での利用を考えると、「ソースパッケージ名」
+を使うといいでしょう (バイナリパッケージが細かく分割されていたりするので)。
+
+例えば、apache2 のモジュールを作るのであれば、
+
+mkdir -p /etc/puppet/modules/apache2/manifests
+emacs /etc/puppet/modules/apache2/manifests/init.pp
+
+のようにします。「モジュール名/manifests/init.pp」はルールなので、別の
+ファイル名にすることはできません。
+とりあえず、先程作成した、apache2 クラスの内容をこちらに移動させてみて
+ください。
+
+\subsubsection{サービスモジュール}
+
+TBD
+
+\dancersection{今後の予定}{Debian JP}
+
+\subsection{関西 Debian 勉強会}
+
+
+\subsection{東京エリア Debian 勉強会}
+
+
+
+%
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+%% \mbox{}\newpage
+
+\printindex
+%\cleartooddpage
+
+ \begin{minipage}[b]{0.2\hsize}
+  \rotatebox{90}{\fontsize{80}{80} {\gt 関西 Debian 勉強会} }
+ \end{minipage}
+ \begin{minipage}[b]{0.8\hsize}
+
+ \vspace*{15cm}
+ \rule{\hsize}{1mm}
+ \vspace{2mm}
+ \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+ \noindent \Large \bf Debian 勉強会資料\\ \\
+ \noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+ \noindent \normalfont 関西 Debian 勉強会 （編集・印刷・発行）\\
+ \rule{\hsize}{1mm}
+ \end{minipage}
+
+\end{document}
