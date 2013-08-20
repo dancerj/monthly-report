@@ -237,15 +237,16 @@ TBD (前回へのアンカー？)
 みましょう。
 
 \begin{commandline}
-class { 'apache2':
+class apache2 {
   package { 'apache2':; }
 }
 
-class { 'reprepro':
+class reprepro {
   package { 'reprepro':; }
 }
 
-class { 'debian-archive-keyring':;
+class debian-archive-keyring {
+  package { 'debian-archive-keyring':; }
 }
 \end{commandline}
 
@@ -257,9 +258,146 @@ TBD
 
 今回は reprepro 自体の使い方は主眼ではないので、簡単に紹介だけしておきます。
 
-TBD
+reprepro は、指定したディレクトリに Debian のミラーを構成するツールです。
+指定ディレクトリに、決まったフォーマットで設定ファイルを用意しておくことで、
+柔軟にミラーを構成できるので、ちょっとした個人用とか、社内だけで使うといった
+用途で、気軽にミラーを用意することができます\footnote{パブリックなフルミラーを用意したい場合は、別途専用のツールがあります。}。
 
-\subsection{}
+reprepro を動作させるために、conf/distributions と conf/updates、2 つの
+設定ファイルが必要になります。
+ミラーのファイル置き場にするディレクトリに移動してください。
+ここでは、wheezy の部分ミラーを作成しますので、ひとまず下記の内容で
+ファイルを作成してください。
+
+\begin{commandline}
+Codename: wheezy
+Architectures: i386
+Description: wheezy-mirror
+Components: main contrib
+Update: wheezy-mirror-update wheezy-security
+\end{commandline}
+
+\begin{commandline}
+Name: wheezy-mirror-update
+Method: http://ftp.jp.debian.org/debian
+Components: main contrib
+Architectures: i386
+VerifyRelease: AED4B06F473041FA
+FilterFormula: Priority (==required)
+
+Name: wheezy-security
+Method: http://security.debian.org/debian-security
+Suite: wheezy/updates
+UDebComponents: none
+VerifyRelease: AED4B06F473041FA
+FilterFormula: Priority (==required)
+\end{commandline}
+
+Secure APT 用の公開鍵は、debian-archive-keyring を下記のように
+参照したものです。
+部分ミラーについては、専用の公開鍵を別途作成しましょう。
+
+\begin{commandline}
+TBD
+\end{commandline}
+
+設定が終わったら、正しく動作するか確認します。
+
+\begin{commandline}
+reprepro -V
+\end{commandline}
+
+少し時間がかかりますが、指定したミラーからファイルをダウンロードする
+はずです。
+終わったら、ノードの /etc/apt/souces.list を少しいじって、apt-get から
+アクセスできるかどうか確認しておくといいでしょう。
+
+さて、ここまでで reprepro が動作する設定ができあがりましたので、これを
+puppet のマニフェストに移していきましょう。
+
+一旦、reprepro が作成したファイル類を全て削除します(別にしなくても構い
+ませんが、ここまでのテスト内容を掃除するためです)。
+
+\begin{commandline}
+rm -r db/ dists/ pool/
+\end{commandline}
+
+先程作成した、reprepro クラスを開き、設定ファイルを流しこむ方法を考えます。
+パラメータをテンプレートで受けるなど、やり方はいくつかありますが、ここでは
+単純に、ファイルをそのまま置くだけとしておきます。
+
+ミラーは、配置するディレクトリを変更することで、ノード内に複数作成することが
+できるので、クラスではなく、リソースとして定義します。
+
+\begin{commandline}
+class reprepro {
+  package { 'reprepro':; }
+}
+
+define reprepro::mirror (
+  $distributions,
+  $updates,
+  ) {
+  # ミラーの配置ディレクトリを作成する
+  ## リソース名としてフルパスが渡されてくる想定
+  file { "$name":
+    ensure => directory,
+  }
+  -> file { "${name}/conf":
+    ensure => directory,
+  }
+  -> file { # 設定ファイルの名前はパラメータとして受け取る
+    "${name}/conf/distributions":
+      content => $distributions;
+    "${name}/conf/updates":
+      content => $updates;
+  }
+}
+\end{commandline}
+
+
+パラメータ指定をやめてファイルを直接与えることにしたので、呼び出し元も
+変更する必要があります。
+
+\begin{commandline}
+# reprepro をよしなに設定してほしい
+reprepro::mirror { '/var/www/mirror':
+  owner => 'www-data', group => 'www-data',
+  distributions => 'Codename: wheezy
+Architectures: i386
+Description: wheezy-mirror
+Components: main contrib
+Update: wheezy-mirror-update wheezy-security',
+  updates       => 'こちらも同様に'
+}
+\end{commandline}
+
+ここまでで、puppet を実行することで、reprepro の設定ファイルが準備され、
+後はコマンドを実行するだけ、という状態になります。
+
+最終的には reprepro コマンドの実行も puppet にやらせるといいのですが、
+話が広がってしまうので、今回はここまでとしておきます。
+
+\subsection{マニフェストの適用とデバッグ}
+
+さて、ここまでで作成したマニフェストを実行すると、
+
+\begin{itemize}
+\item apache2 がセットアップされて、ミラーのディレクトリが公開される
+\item ミラーのディレクトリに reprepro の設定が用意される
+\end{itemize}
+
+はずですので、早速試してみましょう。まずは、dry run から。
+
+\begin{commandline}
+puppet apply /etc/puppet/manifests/site.pp --noop
+\end{commandline}
+
+スペルミスや、記号抜けなど、書式違いがあれば puppet が教えてくれますので、
+出力内容を確認してみてください。
+
+問題なさそうなら、--noop を削って、そのまま実行しましょう。
+
 
 \subsection{マニフェストの整理}
 
@@ -293,9 +431,47 @@ emacs /etc/puppet/modules/apache2/manifests/init.pp
 とりあえず、先程作成した、apache2 クラスの内容をこちらに移動させてみて
 ください。
 
+パッケージモジュールの内容を決める上では、次のことに注意するといいでしょう。
+\begin{itemize}
+\item
+  パッケージ固有の内容に絞り、サイト固有の設定は可能な限り含めない
+\item
+  後で再利用できるようにパラメータを決める
+\end{itemize}
+
 \subsubsection{サービスモジュール}
 
-TBD
+パッケージモジュールを切り離した後は、ノード/サイト固有の設定が
+site.pp に残っている状態になっているはずです。そのうち、今作業している
+ノードだけでなく別のノードでも再利用しそうなロール (うちでは Web サーバは
+いつもこの設定で作るようにしてるんだ、とか) も、可能であればモジュールと
+して切り出しておきましょう。
+
+puppet から見ると、用途に関係なくモジュールはモジュールなのですが、
+パッケージモジュールと区別するために、便宜的にサービスモジュールと呼んで
+おきます。
+puppet の書式ガイドライン的には、モジュール名として頭に s\_ をつける
+ことになっています。
+
+サービスモジュールはサイト固有の内容になりますので、パッケージモジュール
+ほど境界を気にしなくてもいいでしょう。
+
+例えば、部分ミラーのロールを作るのであれば、
+
+mkdir -p /etc/puppet/services/s\_partial\_mirror/manifests
+emacs /etc/puppet/services
+
+\subsection{ここからの育て方}
+
+ひとまず、今回のセッションで Debian アーカイブのローカルミラーが
+お手軽に作れるようになっていますので、次のステップとして、
+
+reprepro の設定ファイル指定がダサすぎるのでなんとかする
+ローカルミラーを参照するように sources.list を設定する
+ローカルミラーに独自パッケージを追加できるように reprepro の設定を追加する
+手動のままだった reprepro のコマンド実行を含める
+
+
 
 \dancersection{今後の予定}{Debian JP}
 
