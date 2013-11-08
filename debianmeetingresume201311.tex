@@ -122,7 +122,130 @@
 %-------------------------------------------------------------------------------
 \index{tramp}
 
+\subsection{emacsでリモートファイル編集するTrampのすすめ}
 
+リモートサーバでファイルの編集はどうしていますか？moshを使っている？
+sshfsを使っている？いろいろあると思いますがmoshを使うとローカルのファイル
+と扱いが変わってしまい、リモートのviだったりemacsを使って編集することにな
+り、設定の同期がほぼ不可能になります。一方sshfsだとローカルファイルのよう
+に扱うことができるのですが、rootなどの別のユーザ（root?）としてファイルの
+編集ができにくかったりしますし、リモートホストでコマンドを実行しようとす
+ると別途sshでログインして作業することになり、sshセッションをひらきながら
+sshfsで実行し、ローカルのパスとリモートのパスの違いを意識しながら作業す
+ることになります。
+
+emacs ユーザの方々に朗報です。tramp とは \texttt{/sshx:hostname:path/to/file} とい
+う特殊なファイル名を指定すると透過的にsshを使ってリモートのファイルを取
+得して編集できるようにしてくれる仕組みです。
+また、dired でリモートのディレクトリのファイル管理もローカルと変わらない
+ように行えます。
+さらに便利なのは \texttt{M-x shell}, \texttt{M-x compile} などリモートでコマンドを実行する
+コマンドを利用するとhostname にsshでログインして path/to/file をカレント
+ディレクトリとした状態でコマンドを実行してくれるところです。
+個人的にはmoshなどを利用してシェルのコマンドを実行するより、emacsのロー
+カルバッファでコマンドラインを編集して確定時にリモートに送信するスタイル
+が気に入っています。
+
+\subsection{リモートホスト側の設定}
+ssh で接続される側のの設定ですが、trampはシェルのセッションの入出力を利用し、機械的に
+プロンプトを検出するので、プロンプト（PS1など）をカスタマイズしていると
+動かない場合があります。trampのために　\texttt{.bashrc}はシンプルにするといいかも
+しれません。
+
+例えば、raspbian のデフォルトは色がつきまくってたりしてファンシー過ぎてう
+まく動きませんでした。
+
+\subsection{sshの設定とチューニング}
+
+ローカルのsshの設定ファイル \verb!~/.ssh/config! に設定したほうがよいものを紹介します。
+
+\subsubsection{ControlMasterで接続を再利用}
+
+手元ではこんな設定にしています。
+
+\begin{commandline}
+ ControlMaster auto
+ ControlPersist 120
+ ControlPath ~/tmp/ssh-%r@%h:%p
+\end{commandline}
+
+
+ControlPersist に指定した秒数間、sshで接続する際にデーモンプロセスが起動
+して、コネクションを張りっぱなしにし、コネクションを再利用してくれます。
+
+手元では、ControlPathを明示的に指定しています。ホームディレクトリ以下の
+tmp 以下にしているのはファイル名が予想可能になるので衝突を防ぐためです。
+
+ControlMasterをAutoにしておくとすでにコネクションが開いていない場合はデー
+モンをたちあげて、もしコネクションが開いている場合にはそれを利用するよう
+になります。
+
+\subsubsection{keep-alive}
+
+trampはネットワーク接続の切断をsshプロセスの生死で検出します。
+sshはネットワーク接続がきれたりしてもすぐにはそれを検出しないので、キー
+プアライブを送信するようにします。
+
+\begin{commandline}
+ ServerAliveInterval 3
+ ServerAliveCountMax 5
+\end{commandline}
+
+
+本当はパソコンがサスペンドから復活して新しいネットワーク接続につながった
+らsshプロセスに再接続してほしいのですが、その方法をまだ発見できていませ
+ん。
+
+\subsubsection{その他の設定}
+
+Mac のRendezvousとかLinuxのAvahiとか設定しているとホスト名.local という名
+前で名前解決ができるようになりますが、そうするとIPアドレスはDHCPだと一定
+ではないため、IPに対しての鍵が違うと怒られます。その場合はホストIPをチェッ
+クしないようにするとよいでしょう。
+
+\begin{commandline}
+ Host *.local
+  CheckHostIP no
+\end{commandline}
+
+あとデフォルトではいろいろな鍵を試したりする設定になっていますが、ついで
+に鍵を指定して公開鍵認証にしておくとよいんじゃないでしょうか。
+
+\begin{commandline}
+ Host raspberrypi.vpn
+  Hostname そのホストのIPアドレス
+  IdentityFile ~/.ssh/ssh-keygenで作ったファイルのパス
+  IdentitiesOnly yes
+\end{commandline}
+
+
+\subsection{trampの.emacs での設定とチューニング}
+
+\texttt{.emacs} にほとんど設定しなくてもデフォルトの設定でそれなりにうごきます。
+
+trampでは\texttt{/sudo:root@hostname:/} のような形式でリモートホスト上で
+sudoで別ユーザになってからファイルにアクセスするように指定することが可能
+です。ただ、そのためにはリモートホストへの到達手段を指定する必要がありま
+す。たとえば、ローカルネットワークにあるホスト \texttt{*.local} でsudoを
+サポートしたいという要望であれば、次のような設定を追記しておきます。
+
+\begin{commandline}
+ (add-to-list 'tramp-default-proxies-alist
+      '("\\.local\\'" "\\`root\\'" "/ssh:%h:"))
+\end{commandline}
+
+あと、デフォルトの設定だとリモートアクセスしているというメッセージがステー
+タスに表示されるのですが、正直邪魔なのでそれを消すのもよいかと思います。
+
+\begin{commandline}
+(custom-set-variables '(tramp-verbose 1))
+\end{commandline}
+
+\begin{thebibliography}{0}
+ \bibitem{trampinfomanual} ``TRAMP User Manual'', info
+	 page,
+	 \url{http://www.gnu.org/software/emacs/manual/html_node/tramp/index.html#Top}
+\end{thebibliography}
 %-------------------------------------------------------------------------------
 \dancersection{asterisk設定}{上川純一}
 %-------------------------------------------------------------------------------
