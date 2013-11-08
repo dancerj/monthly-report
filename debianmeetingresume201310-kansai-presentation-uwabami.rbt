@@ -1,0 +1,271 @@
+# -*- mode: rabbit; coding: utf-8; indent-tabs-mode: nil -*-"
+= git-buildpackage\n入門again
+: author
+  佐々木洋平
+: content_source
+  ((<uwabami@gfd-dennou.org|URL:mailto:uwabami@gfd-dennou.org>))
+: institution
+  Debian JP Project/関西Debian勉強会
+: date
+  2013/10/27
+: place
+  (('sub:〜第77回関西Debian勉強会 於)大阪 港区民センター〜'))
+: theme
+  debian
+: allotted-time
+  45m
+= Disclaimer
+
+:無保証無責任原則
+  * 用法, 用量を守って正しくお使い下さい
+  * 誤字脱字含め, 適宜ご指摘下されば幸いです
+
+:疑問/質問/ツッコミ/茶々, ((*大歓迎*))
+  * その場でどうぞ
+:ハッシュタグ: ((*#kansaidebian*))
+
+= 復習
+
+= 復習: 過去の勉強会資料
+
+* 東京エリア 2007 年: 上川純一 \n
+  「git-buidpackage の使い方」
+* 東京エリア 2008 年: 岩松信洋 \n
+  「バージョン管理ツールを使い Debian パッケージを管理する Git 編」
+* 関西 2011 年: 佐々木洋平 \n
+  「vcs-buildpackage 〜Git, svn 編〜」
+* 関西 2011 年: 佐々木洋平 \n
+  「vcs-buildpackage 〜Gitの場合(again)〜」
+
+= 一般論: vcs-buildpackage
+
+:利点
+  * 異なるバージョンの管理
+  * チームでのパッケージ管理
+  * upstream との連携
+:欠点
+  * ...
+
+= git-buildpackage
+
+    $ apt-cache show git-buildpackage
+     Package: git-buildpackage
+     Version: 0.6.5
+     Installed-Size: 2859
+     Maintainer: Guido Güÿnther <agx@sigxcpu.org>
+     Architecture: all
+     Depends: python (>= 2.7), python (<< 2.8), devscripts (>= 2.10.66~), 
+              git (>= 1:1.7.9.1-1~), man-db, python-dateutil, python-pkg-resources
+     Recommends: pristine-tar (>= 0.5), cowbuilder
+     Suggests: python-notify, unzip
+     Description-en: Suite to help with Debian packages in Git repositories
+      This package contains the following tools:
+       * gbp import-{dsc,dscs}: import existing Debian source packages into a git
+         repository
+       * gbp import-orig: import a new upstream version into the git repository
+       * gbp buildpackage: build a package out of a git repository, check for local
+         modifications and tag appropriately
+       * gbp dch: generate Debian changelog entries from Git commit messages
+       * gbp {pull,clone}: clone and pull from remote repos
+       * gbp pq: manage debian/patches easily
+       * gbp create-remote-repo: create remote repositories
+
+= 提供しているコマンド(1)
+
+     /usr/bin/gbp-clone
+     /usr/bin/git-buildpackage
+     /usr/bin/gbp-pq
+     /usr/bin/git-import-orig
+     /usr/bin/git-import-dsc
+     /usr/bin/git-import-dscs
+     /usr/bin/gbp
+     /usr/bin/git-dch
+     /usr/bin/git-pbuilder
+     /usr/bin/gbp-pull
+     /usr/bin/gbp-create-remote-repo
+
+= 提供しているコマンド(2)
+
+:/usr/bin/gbp
+  * wrapper.
+:/usr/bin/git-buildpackage
+  * パッケージの作成
+:/usr/bin/git-dch
+  * Git の履歴から debian/changelog を生成
+
+= 提供しているコマンド(3)
+
+:/usr/bin/git-import-{orig,dsc,dscs}
+  * 既存の tar.gz や dsc{s} を Git に import する
+:/usr/bin/gbp-pq
+  * quilt と仲良く(?)するためのコマンド
+:/usr/bin/git-pbuilder
+  * pbuilder|cowbuilder と仲良くするためのコマンド
+
+= 提供しているコマンド(4)
+
+:/usr/bin/gbp-clone
+  * 既存のパッケージのリポジトリを clone
+:/usr/bin/gbp-pull
+  * 既存のパッケージのリポジトリを pull
+:/usr/bin/gbp-create-remote-repo
+  * リモートにリポジトリを作成して push
+
+= 事前準備(1)
+
+* git-pbuilder + cowbuilder を作成しておくと吉
+   % git-pbuilder create
+
+* 幾つかのオプションが便利
+  * --git-ignore-new 
+  * --git-builder="git-pbuilder"
+
+= 実演
+= 坂本さんの場合
+
+  % gbp clone git://anonscm.debian.org/d-i/debootstrap.git
+  % cd debootstrap
+  % git branch
+  * master             <-- native なので upstream ブランチは無い
+  % apt-get build-dep debootstrap
+  % git-buildpackage \
+    --git-ignore-new \
+    --git-builder='git-pbuilder'
+  ...
+  
+= 西田さんの場合
+
+  % gbp clone git://anonscm.debian.org/pkg-ruby-extras/ruby-bio.git 
+  % cd ruby-bio
+  % git branch
+  * master             <-- debian パッケージのブランチ
+  upstream             <-- upstream が展開されたブランチ
+                           基本弄らない。
+  % sudo apt-get build-dep ruby-bio
+  % git-buildpackage \
+    --git-ignore-new \
+    --git-builder='git-pbuilder'
+  ...
+  ERROR: Test "ruby2.0" failed. Exiting. <-- やったね♪
+
+= 倉敷さんの場合(1)
+
+  % GIT_SSL_NO_VERIFY=1 \
+    gbp-clone https://repo.or.cz/r/git/debian.git
+  % cd debian
+  % git branch
+  debian-experimental       <-- debian パッケージのブランチ?
+  * master                  <-- Git の upstream?
+  % ls debian
+  ls: debian にアクセスできません: そのようなファイルやディレクトリはありません
+
+= 倉敷さんの場合(2)
+
+  % git branch -r
+  origin/HEAD -> origin/debian-experimental
+  origin/candidate+patches
+  origin/debian-experimental
+  origin/debian-sid
+  origin/debian-stable
+  origin/debian-testing
+  origin/maint
+  origin/master
+  origin/next
+  origin/pu
+  origin/release+patches
+  origin/stable-release+patches
+  origin/svn-fe
+  origin/svn-fe-maint
+  origin/svn-fe-next
+  origin/svn-fe-pu
+  origin/todo
+
+えーっと...
+
+= 倉敷さんの場合(3)
+
+* @see debian/git.README.source
+  * ...どうも git-buildpackage を使っていないっポイ
+  * ...がんばれ.
+
+= 西山さんの場合(1)
+
+  % gbp clone git://anonscm.debian.org/pkg-ruby-extras/atig.git
+  % cd atig
+  % git branch
+  * master
+  upstream
+  % less debian/control   
+  % sudo apt-get install ...   <-- Build-Dep にあるパッケージを install
+                                   して下さい。
+  % git-buildpackage \
+    --git-ignore-new \
+    --git-builder='git-pbuilder'
+  ...
+  ERROR: Test "ruby1.9.1" failed. Exiting. <-- やったね♪
+
+= 西山さんの場合(2): \n最初から作る場合
+
+    % gem fetch atig
+    % gem2deb atig-0.4.3.gem
+    ...
+    Test "ruby1.9.1" failed. Continue building the package? (Y/N) Y
+    ...
+    Test "ruby2.0" failed. Continue building the package? (Y/N) Y
+    ...
+    Test "require-rubygems" failed. Continue building the package? (Y/N) Y
+    ...
+    -- Debian package successfully built!
+
+= 西山さんの場合(3): \n最初から作る場合
+
+   ... パッケージ作成を進めます。
+   ... パッケージができたら、
+   % git-import-dsc --pristine-tar atig_0.4.3-1.dsc
+   ...
+   % cd atig
+   * master
+     pristine-tar               <-- バイナリデルタを保管
+     upstream
+
+= 奥野さんの場合(1)
+
+* Debian の OpenStack は以下のソースパッケージで構成
+  * openstack-dashboard -> horizon
+  * openstack-metapackage 
+
+* openstack-dashboard を試してみる
+
+
+= 奥野さんの場合(1)
+
+    % gbp clone git://anonscm.debian.org/openstack/horizon.git
+    % cd horizon
+    % less debian/gbp.conf
+    [DEFAULT]
+    upstream-branch = master
+    debian-branch = debian/unstable
+    upstream-tag = %(version)s
+    
+    [git-buildpackage]
+    export-dir = ../build-area/
+    compression = xz
+
+...ガンバレ
+
+= 矢吹さんの場合(1)
+
+   % apt-get source yc-el
+   % git-import-dsc --pristine-tar yc-el_5.0.0-5.dsc
+   ...
+   % cd yc-el
+   % git branch 
+   * master
+     pristine-tar
+     upstream
+   % git-buildpackage \
+     --git-ignore-new \
+     --git-builder='git-pbuilder'
+
+= などなど
+
