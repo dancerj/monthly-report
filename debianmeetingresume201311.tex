@@ -1,7 +1,7 @@
-%; whizzy chapter　-dvi
+%; whizzy chapter -dvi
 % -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
 % 以上 whizzytex を使用する場合の設定。
-
+ 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2012 Junichi Uekawa
 %     Copyright (C) 2011 Nobuhiro Iwamatsu
@@ -49,7 +49,7 @@
 
 % ここはアップデートすること
 % 全角文字にしないとフォントのサイズが合わないので注意
-\rotatebox{10}{\fontsize{32}{32} {\gt 特集１： ｗａｙｌａｎｄをうごかす}}
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集１： ｗａｙｌａｎｄを動かす}}
 
 \rotatebox{10}{\fontsize{32}{32} {\gt 特集２： モバイル環境構築}}
 
@@ -111,9 +111,320 @@
 % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{wayland}{}
+\dancersection{waylandを動かす}{野島 貴英}
 %-------------------------------------------------------------------------------
 \index{wayland}
+
+\subsection{wayland}
+ waylandとは、Kristian Hoegsbergさん(oeはストローク付きo)が中心となって作っているディスプレイサーバーのプロトコルのことです。waylandプロトコルを扱えるディスプレイサーバーとしてwestonがあります。 
+
+ 従来からあるUnixで有名なディスプレイサーバーのプロトコルとしては、Xプロトコルがあり、Xプロトコルを扱えるディスプレイサーバーにXがあります。しかしながら、Xは1984年頃の設計から始まって、ずっとハードの進化にあわせてつぎはぎしてきたため、いろいろ実装と機能に無理が生じています。waylandは、Xに比べて、圧倒的に洗練された設計で、シンプルに、プロトコルとディスプレイサーバーを実現したものとなります\cite{real-wayland-X}。
+
+
+\subsection{westonの動いている様子}
+
+　westonの動いている様子を載せます。
+
+\begin{minipage}{0.5\hsize}
+\includegraphics[width=0.8\hsize]{image201311/weston-1st-launch.png}
+\end{minipage}
+\begin{minipage}{0.5\hsize}
+\includegraphics[width=0.8\hsize]{image201311/weston-2nd-launch.png}
+\end{minipage}
+
+\subsection{westonの対応出力デバイス}
+
+ westonの対応できる出力デバイスは表\ref{tab:debian-weston-backends}となります。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|p{4cm}|p{4cm}|p{3cm}|l|}
+\hline 
+項番&出力デバイス&バックエンド名&パッケージに搭載済&備考\\
+\hline \hline
+1& DRM/KMS & drm-backend.so & ○ & \\
+2& FrameBuffer & fbdev-backend.so & ○ & \\
+3& X & x11-backend.so & ○ & \\
+4& Wayland & wayland-backend.so & ○ & \\
+5& Headless & headless-backend.so & ○ & \\
+5& Rassberry Pi & rpi-backend.so & × & \\
+6& RDP & rdp-backend.so & × & \\
+\hline
+\end{tabular}
+\caption{\label{tab:debian-weston-backends}出力デバイスとwestonの対応状況}
+\end{center}
+\end{table}
+
+\subsection{debianでのweston稼働のための下準備}
+\label{sec:pre-requisite}
+debianでwestonを動作させるには、以下の下準備が必要です。
+
+\begin{description}
+\item [Step 1.] westonの導入をします。
+\begin{commandline}
+# aptitude install weston
+\end{commandline}
+\item [Step 2.] systemdパッケージを導入するなどして、環境変数XDG\_RUNTIME\_DIRが設定されるようにします。
+\begin{commandline}
+# aptitude install systemd
+\end{commandline}
+\item [Step 3.] weston-launchにユーザを加え、ログインしなおします。
+\begin{commandline}
+# usermod -a -G weston-launch <your-login-id>
+...重要：この後ログインしなおす...
+\end{commandline}
+\item [Step 4.] 環境変数XDG\_RUNTIME\_DIRが設定されているか確かめます。なお、何らかの理由で、systemdパッケージ付属のsystemd-logindが動作しない等の理由により、XDG\_RUNTIME\_DIRが設定されていないのであれば、export XDG\_RUNTIME\_DIR=/tmpなどして書き込みが可能なディレクトリを指定しておきます。
+\begin{commandline}
+[1] systemd-logindが無事動いている場合↓
+$ env| fgrep XDG_RUNTIME_DIR
+XDG_RUNTIME_DIR=/run/user/1000
+
+[2] systemd-logindが何らかの理由で動作していない場合↓
+$ env| fgrep XDG_RUNTIME_DIR
+...なにも表示されない...
+$ export XDG_RUNTIME_DIR=/tmp
+\end{commandline}
+%$
+\end{description}
+
+\subsection{その１:X上で動かしてみる}
+
+ 一番簡単に動かせます。Xのターミナルソフト上で、
+
+\begin{commandline}
+weston
+\end{commandline}
+
+とするだけで、x11-backend.soが読み込まれ、
+westonの窓が開き、westonが動作を開始します。
+
+停止する時は、westonを起動しているターミナルで、Ctrl-Cを押下します。
+
+\subsubsection{X上で動かしてみる時の注意点}
+
+ 何故か、手元のnvidia製グラフィクスカードにて、non-freeのnvidiaドライバを
+使っていると、画面真っ黒のウィンドウが開いてしまいました。--use-pixmapを指定
+してwestonを起動して、westonがEGL等のハードウェアアクセラレーションを
+利用しないようにしても同様だったりします。一方で、intel製のグラフィクス
+チップを載せているノートPC上では問題なく動作しました。
+
+　こちらの原因はまだつかめていません。
+
+\subsection{その2:KMS/DRMで動かしてみる}
+
+　intelのグラフィックスチップが搭載されているPC(例：ノートPCとか）
+であれば、linuxのKMS/DRMドライバで動作します。また、
+AMD/Nvidiaのグラフィクスチップであれば、linuxのKMS/DRMドライバの
+radeon/nouveauドライバで動作すると思われますが、自分は未評価です。
+どなたかradeon/nouveauで動作した方がいらっしゃれば教えてください。
+
+\begin{description}
+\item [Step 1.] グラフィカルなログイン画面が出ているようであれば、こちらを停止させます。\\
+例：gdm3が立ち上がっている場合の止め方
+\begin{commandline}
+Ctrl-Alt-F1等を押下してコンソールに切り替える
+$ su
+# service gdm3 stop
+\end{commandline}
+%$
+\item [Step 2.] KMS/DRMドライバが有効であることを確かめます。
+\begin{commandline}
+$ lsmod | egrep '(i915|radeon|nouveau)'
+...(i915/radeon/nouveauのどれかの文字列が出ればOK)...
+\end{commandline}
+%$
+\item [Step 3] westonを動かします。
+\begin{commandline}
+$ weston-launch
+\end{commandline}
+%$
+\end{description}
+
+\subsubsection{KMS/DRM上で動かしてみる時の注意点}
+
+ linuxのKMS/DRMドライバは、i915/radeon/nouveau以外は動作するかどうかは正直やってみないと分かりません。
+
+　例えば、debianにて、仮想化技術のKVMではcirrusチップセット用のKMS/DRMドライバがvirt-viewerの元で使えるのですが、westonはegl側cirrus未対応によるエラーもしくは、Segfaultで落ちてしまうためどうにも動作しませんでした。こちらも原因が自分では正確につかめていません。
+
+\subsection{その3.FrameBufferデバイス上で動かしてみる}
+
+ linuxのFrameBufferデバイス上で動かしてみます。今のところ仮想化技術のKVM上で動かすのに便利です。ここでは、実際にKVMを使って動かします。
+
+ なお、大変残念なことに、現在のdebian sidで導入できるwestonパッケージのバージョン1.3.0では、仮想端末制御に関するupstream側のバグのために、FrameBufferデバイスでは動作しません。幸い、こちらのバグが修正された、weston-1.3.1がリリースされましたので、ここでは、このバージョンを簡易的にdebianパッケージ化して導入します。
+
+\begin{description}
+\item [Step 1.]  westonを動かす対象のdebian sidをKVMを使ってインストールします。なお、KVMホストOS側のdebian機のbr0はインターネットに接続できるように設定されているものとします。br0のセットアップについて、詳しくは\cite{kde-devel-debian}を参照してください。
+\begin{commandline}
+# aptitude install libvirt-bin virtinst
+# qemu-img create -f raw /var/lib/libvirt/images/debian-sid0 10G
+# wget http://cdimage.debian.or.jp/7.2.0/multi-arch/iso-cd/debian-7.2.0-amd64-i386-netinst.iso
+# virt-install --connect=qemu:///system -n debian-sid0 --ram 512  --cdrom /home/yours/debian-7.2.0-amd64-i386-netinst.iso \
+  --disk /var/lib/libvirt/images/debian-sid0,bus=virtio,size=10,format=raw,cache=writeback \
+  --bridge=br0,model=virtio --vnc --hvm --accelerate
+\end{commandline}
+
+ なお、インストールの際の設定は表\ref{tab:inst-settings}のとおりを仮定します。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|p{5cm}|p{7cm}|l|}
+\hline 
+項番&設定項目&指定内容&備考\\
+\hline \hline
+1&select a language& Japanese& \\
+2&場所の選択&日本&\\
+3&ネットワークの設定&手動設定。 IP:192.168.0.2, Netmask:255.255.255.0, Gateway:192.168.0.1, Host名:debian-sid0& \\
+4&パッケージマネージャの設定&ミラー:日本,ミラーサイト:ftp.jp.debian.org, HTTPプロキシ：空欄&\\
+5&ソフトウェアの選択&SSHサーバー、標準システムユーティリティのみ選択。あとはすべて解除。& \\
+\hline
+\end{tabular}
+\caption{\label{tab:inst-settings}インストーラで選択する項目}
+\end{center}
+\end{table}
+
+\item [Step 2.] インストール完了したら、すぐにdebian sidへアップグレードします。
+
+\begin{commandline}
+debian-sid0にログインの後、
+debian-sid0 $ su
+debian-sid0 # cat > /etc/apt/sources.list
+deb http://ftp.jp.debian.org/debian/ sid main contrib non-free
+deb-src http://ftp.jp.debian.org/debian/ sid main contrib non-free
+<ctrl+d>を押下
+debian-sid0 # aptitude update;aptitude full-upgrade;aptitude clean
+\end{commandline}
+%$
+
+\item [Step 3.] weston-1.3.1-1パッケージを作って導入します。
+
+\begin{commandline}
+debian-sid0 # aptitude build-dep weston/sid
+debian-sid0 # aptitude install libxcb-composite0-dev fakeroot
+debian-sid0 # exit
+debian-sid0 $ mkdir weston weston-work
+debian-sid0 $ cd weston
+debian-sid0 $ apt-get source weston/sid
+debian-sid0 $ cd ../weston-work
+debian-sid0 $ wget -O weston_1.3.1.orig.tar.gz \
+  http://cgit.freedesktop.org/wayland/weston/snapshot/weston-1.3.1.tar.gz
+debian-sid0 $ tar xzf weston_1.3.1.orig.tar.gz
+debian-sid0 $ cd weston-1.3.1
+debian-sid0 $ tar xzf ../../weston/weston_1.3.0-1.debian.tar.gz
+debian-sid0 $ cd debian; 
+debian-sid0 $ patch -p1 <<__HERE
+--- debian.org/changelog        2013-10-11 20:04:50.000000000 +0900
++++ debian/changelog    2013-11-12 14:48:36.219299000 +0900
+@@ -1,3 +1,9 @@
++weston (1.3.1-1) unstable; urgency=low
++
++  * update to upstream
++
++ -- your name <foo@bar.com>  Fri, 11 Nov 2013 12:34:56 +0900
++
+ weston (1.3.0-1) unstable; urgency=low
+ 
+   [ Sven Joachim ]
+diff -ru debian.org/control debian/control
+--- debian.org/control  2013-10-11 19:58:17.000000000 +0900
++++ debian/control      2013-11-12 14:49:32.347299000 +0900
+@@ -35,6 +35,7 @@
+  libpam0g-dev,
+  libvpx-dev,
+  libsystemd-login-dev,
++ libxcb-composite0-dev,
+ Standards-Version: 3.9.4
+ Homepage: http://wayland.freedesktop.org/
+ Vcs-Git: git://anonscm.debian.org/pkg-xorg/wayland/weston
+__HERE
+debian-sid0 $ cd ..
+debian-sid0 $ env DEB_BUILD_OPTIONS='noopt nostrip' \
+   dpkg-buildpackage -rfakeroot -us -uc 2>&1 | tee ../build.log
+debian-sid0 $ cd ..
+debian-sid0 $ su
+debian-sid0 # dpkg -i ./weston_1.3.1-1_amd64.deb
+\end{commandline}
+
+\item [Step 3.]  \ref{sec:pre-requisite}章のStep 2.〜Step 4.に記載の下準備をしておきます。(Step 1.は先ほど構築したwestonパッケージが導入済みですので不要です）
+
+
+\item [Step 4.] FrameBufferのセットアップをします。なおwestonを動かすためには、color depthは24bitでなければなりません。
+\begin{commandline}
+debian-sid0 # aptitude install fbset
+debian-sid0 # modprobe cirrusfb
+debian-sid0 # fbset -g 800 600 800 600 24
+\end{commandline}
+
+\item [Step 5.] 一般ユーザになり、westonを起動します。
+\begin{commandline}
+debian-sid0 # exit 
+debian-sid0 $ weston-launch -- --backend=fbdev-backend.so --log=weston.log
+\end{commandline}
+%$
+\end{description}
+
+\subsection{westonのカスタマイズ}
+
+ westonはデフォルトのままだと少し寂しい画面なので、ちょっとカスタマイズしてみます。カスタマイズは＄HOME/.config/weston.iniにいろいろ記載すると、いろいろとカスタマイズできます。ここでは壁紙を入れ、ウィンドウポップアップがアニメーションするようなカスタマイズをしてみます。
+\begin{commandline}
+$ cat >.config/weston.ini　<<__HERE 
+[shell]
+background-image=/usr/share/images/desktop-base/spacefun-grub.png
+background-type=tile
+locking=true
+animation=zoom
+binding-modifier=ctrl
+
+[launcher]
+icon=/usr/share/weston/terminal.png
+path=/usr/bin/weston-terminal
+__HERE
+\end{commandline}
+%$
+
+\subsection{westonの構造}
+
+ 図\ref{fig:wayland-internal}にwaylandアプリケーションとwestonの構造を載せます。
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[width=0.8\hsize] {image201311/wayland-internal-schema.eps}
+ \caption{waylandアプリケーションとweston}
+\label{fig:wayland-internal}
+\end{center}
+\end{figure}
+
+ 特徴として、
+\begin{itemize}
+\item 基本的にアプリケーション側も含めて、ローカルシステムで描画を行うことを前提にした作りになっています。
+\item cairo/mesa/xkbcommon等を最大限利用して、weston自体は非常にシンプルな設計になっています。
+\item プロセスのユーザ権限を制限するため、weston-lanchにはroot権限が最低限必要な部分のみの操作を、westonは一般ユーザでの権限による動作をするように、権限が分割されています。なお、現在の実装ではweston-launchは操作・オープン済みの端末のFileDiscriptorと、デバイスファイルのFile Descriptor、weston-launchへのシグナルを、westonの求めに応じて引き渡す機能が実装されています。
+\end{itemize}
+\subsection{その他}
+
+ debianで利用できるweston/waylandにはちょっとしたクセがあります。
+
+ \begin{itemize}
+\item Xwaylandが動作しません。これはwestonが起動するXにwayland用のI/Fを搭載するパッチが摘要されていなければならない（X起動時に-waylandオプションが使えなければならない）のですが、こちらは未だXのパッケージに含められていない為となります。なお、2013/10頃にこちらのdebianパッケージ用のパッチがdebian-xのMLに流れていました。
+\item gtk等の有名なツールキットはwayland未対応の状態です。
+ \end{itemize}
+
+\subsection{おわりに}
+
+　次期ディスプレーサーバーになるかもしれないwestonとwaylandについて、いろいろ試してみました。プログラム本体は非常に小さいプログラムですし、発展途上ですので、いじってみようという方は、今ならたやすく改造/解析し放題の旬な時です。Hackの対象にぜひ。
+
+\begin{thebibliography}{0}
+  \bibitem{real-wayland-X}
+    {\footnotesize{
+       Daniel Stone,``The real story behind Wayland and X'',linux.conf.au 2013,
+       \url{http://people.freedesktop.org/~daniels/lca2013-wayland-x11.pdf},
+       \url{http://www.youtube.com/watch?v=RIctzAQOe44}
+       }}
+  \bibitem{kde-devel-debian}
+    {\footnotesize{
+       野島 貴英,「Debian開発者のKDE環境あれこれ」,第85回東京エリアDebian勉強会資料,
+       \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201202.pdf}
+       }}
+\end{thebibliography}
 
 %-------------------------------------------------------------------------------
 \dancersection{tramp入門}{上川純一}
