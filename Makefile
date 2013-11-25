@@ -7,7 +7,7 @@ RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 TMPEXT:=tmp.$(USERNAME)
 
 # server which hosts files for alioth.
-ALIOTH_FILEHOSTING:=wagner.debian.org
+ALIOTH_FILEHOSTING:=alioth.debian.org
 all: $(PDFFILES)
 
 check: all
