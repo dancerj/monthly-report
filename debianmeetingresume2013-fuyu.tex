@@ -40,6 +40,7 @@
 \usepackage{monthlyreport}
 \usepackage[dvips]{xy} % for advi workaround. Bug #452044
 \usepackage{iwamatsu}
+\usepackage{ulem}
 
 \begin{document}
 
@@ -742,13 +743,13 @@ Raspberry Piを購入してみて二ヶ月くらい放置していたのですが、いいかげんた
 \index{armmp}
 
 \subsection{はじめに}
-Debian linux kernel の3.9 から armhf アーキテクチャに armmp (ARM Multi Platform)
+Debian linux kernel の 3.9 から armhf アーキテクチャに armmp (ARM Multi Platform)
 フレーバが入りました。
 本稿では armmp の仕組みと対応方法について説明します。
 
 \subsection{arm multi platformとその仕組み}
 
-Linux kernel バージョン3.8 ぐらいからarm multi platform（以下、ARMMP） サポートが入りました。
+Linux kernel バージョン 3.8 ぐらいからarm multi platform（以下、ARMMP） サポートが入りました。
 これは一つの linux kernel バイナリで複数のARM Soc、ターゲットボードをサポートする仕組みです。
 今のところ、mvebu （Marvell SoCs）を筆頭に Versatile Express、OMAP などがサポートされて
 います。バージョン3.11 ではほとんどのARM SoCがサポートされる予定になっています。
@@ -785,6 +786,16 @@ u-boot$ go 2000000
 \end{commandline}
 %$
 
+比較的新しいU-Boot では zImage をメモリからブートさせるためのコマンド、\texttt{bootz} があります。
+カーネルイメージのチェックや初期化などを行うので bootz が提供されている場合はこちらを使う
+ほうがよいです。
+
+\begin{commandline}
+u-boot$ tftpboot 2000000 zImage+dtb
+u-boot$ bootz 2000000
+\end{commandline}
+%$
+
 \item 1. で作成したzImage を uImage に変換して起動する。
 
 以下は 結合したイメージを uImage 形式に変換しています。
@@ -799,11 +810,13 @@ linux$ `cut -f 3- -d ' ' < arch/arm/boot/.uImage.cmd | sed -e 's/zImage/zImage+d
 %$
 
 起動に利用するフォーマットがuImage形式の場合、\texttt{go}コマンドではなく \texttt{bootm}コマンドのを使います。
+
 \begin{commandline}
 u-boot$ tftpboot 2000000 uImage+dtb
 u-boot$ bootm
 \end{commandline}
 %$
+
 これらの方法は ARMMP ではない SoC単体でDTを使う場合のみ有効です。
 カーネルがロードされるアドレスなどはSoCやボード毎に異なるのですが、SoC単体では
 カーネルのコンフィグ情報としてこれらを持っているので上記の説明で uImage が作成できます。
@@ -863,8 +876,8 @@ u-boot$ bootm 2000000 - 3000000
 bootmコマンドの 第1引数はuImage がロードされているアドレス、第2引数は uInitrd（initrd イメージのuImage）がロードされている
 アドレス、第3引数には dtb がロードされているアドレスを指定します。\texttt{-}は 指定なしを意味します。
 
-ちなみにdtb の格納されてるアドレスはブートローダによってカーネル起動時の r2 レジスタに設定され、カーネルが指定されているアドレスから
-データを読み込み起動する用になっています。これは Linux カーネルの Documentation/arm/Bootingに書かれています。
+ちなみにdtb の格納されてるアドレスはブートローダによってカーネル起動時の \texttt{r2} レジスタに設定され、カーネルが指定されているアドレスから
+データを読み込み起動する用になっています。これは Linux カーネルの \texttt{Documentation/arm/Booting} に書かれています。
 
 \end{enumerate}
 
@@ -951,13 +964,15 @@ $ bootm 2000000 3000000
 \subsection{終わりに}
 
 ARMMP の仕組みと、Debianの対応方法について説明しました。
-flash-kernel のデータはぷらっとホームさんと相談して入れようと思っているのでまだコミットされていません。
+\sout{flash-kernel のデータはぷらっとホームさんと相談して入れようと思っているのでまだコミットされていません。
 数日後にはパッチがBTSに上がるでしょう。OpenBlocks A6 もサポートします。
 また、エントリーポイントを設定する項目とDTの model を指定する項目がないのでこれも対応する必要があります。
 パッチはつくってあるので後日BTSします。
 あと、残作業としてはカーネル 3.10 では mvebu が動作しない（他でも同じかも）のでパッチを当てる必要があります
 （コミット: \texttt{faefd550c45d8d314e8f260f21565320355c947f}）。これもBTSします。
-ということでまだまだやることはたくさんあります。
+ということでまだまだやることはたくさんあります。}
+既にこれらのパッチは取り込まれ、flash-kernel で ARMMP とOpenBlocks AX3がサポートされました。
+
 
 %201308 kansai
 \dancersection{puppet による構成管理の実践}{倉敷 悟}
