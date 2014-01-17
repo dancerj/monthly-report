@@ -80,7 +80,7 @@
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-% \input{image201401/prework.tex}
+\input{image201401/prework.tex}
 }
 \end{multicols}
 
@@ -95,7 +95,7 @@
 内容などからです。
 
 \begin{multicols}{2}
-% \input{image201401/quiz.tex}
+\input{image201401/quiz.tex}
 \end{multicols}
 
 \dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
@@ -126,13 +126,210 @@
 
 \subsection{Debian Pure Blend}
 
+ Debianに用意されている大量のパッケージをうまく使い、そのままのDebianのリポジトリを用いる事で、特定分野向けのシステムを容易にセットアップできるようにしたDebianの仕組み（考え方）となります。
+
+ Debianパッケージに含まれるRecommends情報が利用されて、指定された特定用途のパッケージが導入される仕組みとなっています。
+
+\subsection{用語}
+
+　Debian Pure Blendを語る時に使われる用語を以下に載せておきます\cite{debian-pure-blends-wiki}。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|l|p{9cm}|p{3cm}|l|}
+\hline 
+項番&呼び名&概要&備考 \\ \hline \hline
+1 & Debian Pure Blend & そのままのDebianを用いて特定用途向けのDebianを実現 & DebiChem, Debian Edu等 \\ \hline
+2 & Debian Blend & 一部のDebianでは未だ公式には採択されていないちょっとした変更を付け足し、残りはそのままのDebianを用いて特定用途向けのDebianを実現 & \\ \hline
+3 & Debian Derivative & Debian派生物と日本語では言われる。目的は様々であり、Debianを元にした新しいディストリビューションを作るという点では共通。Debianをベースにしたかもしれないが、現在では大量の変更/新規機能を加えて作られているディストリビューション。& ubuntu, SteamOS　\\ \hline
+4 & web sentinel & \url{http://blends.debian.org}。PureBlendの種類と搭載されているパッケージ及び開発状況を載せているページ。 & \\ \hline
+\end{tabular}
+\label{tab:debian-blends-terms}
+\caption{用語}
+\end{center}
+\end{table}
+
+\subsection{利用できるPure Blend}
+
+ 現在Debian unstableで見つかったPure Blend用のパッケージの一覧を載せます。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|l|l|p{5cm}|l|}
+\hline 
+項番&用途& PJ名前 & 概要&メタパッケージ名 \\ \hline \hline
+1 & 子供用 & Debian Junior & 子供向けのDebianを作る & junior-* \\ \hline 
+2 & 医療 & Debian Med  & 医療関係者向けのDebianを作る & med-* \\ \hline 
+3 & 学校 & Debian Edu & 学校の情報教育向けのDebianを作る & education-*,debian-edu-* \\ \hline 
+4 & 科学技術 & Debian Science & 科学技術向けのDebianを作る & science-* \\ \hline 
+5 & マルチメディア & Debian Multimedia & マルチメディア作成関係者向けのDebianを作る & multimedia-* \\ \hline 
+6 & 地理情報 & DebianGIS & 地理関係者向けのDebianを作る & gis-* \\ \hline 
+7 & 化学 & Debichem & 化学関係者向けのDebianを作る & debichem-* \\ \hline 
+8 & 中国語対応の一例 & Debian EzGo & 中国語に対応したDebianの１つを作る & ezgo-* \\ \hline 
+\end{tabular}
+\label{tab:debian-blend-package}
+\caption{Debian unstableで見つかるPure Blend}
+\end{center}
+\end{table}
+
+ なお、経緯を追いかけきれていないのですが、''Existing Debian Pure Blends''に記載されている他のBlendのパッケージ\cite{debian-existing-blends}を自分は見つけることができませんでした。
+
+\subsection{使ってみる}
+
+ 早速使ってみます。ここでは、Debian Juniorを選んでみます。
+
+\begin{description}
+\item [Step 1.] debianを用意しgnome desktopを導入しておきます。
+\item [Step 2.] Debian Juniorのメタパッケージの一つである、junior-gnomeを入れてみます。
+\begin{commandline}
+$ sudo aptitude install junior-gnome
+... junior-gnome/compris/gworldclock/mathwarが導入される...
+\end{commandline}
+%$
+\end{description}
+
+　gnomeのメニューを見ると、gcompris/gworldclock/mathwarが新規に増えている事が分かります。
+
 \subsection{仕組み}
 
-\subsection{導入してみる}
+　Pure Blendのパッケージは、Recommendsとしてに導入したい特定用途向けのアプリケーションが指定されています。そのため、Pure Blendのパッケージを導入すると、Recommendsに指定されたアプリケーションがまとめて導入されます。
 
-\subsection{Pure Blend用のメタパッケージを作ってみる}
+　試しに、先の例のjunior-gnomeの依存関係を調べてみます。
+
+\begin{commandline}
+$ apt-cache depends junior-gnome
+  Depends: junior-tasks
+  Depends: junior-config
+  Recommends: gcompris
+  Recommends: gworldclock
+  Recommends: mathwar
+\end{commandline}
+%$
+ 
+ Recommendsとして、gcompris/gworldclock/mathwarが指定されている事がわかります。
+
+\subsection{Pure Blend用のパッケージを作ってみる}
+
+　Pure Blend用のパッケージを試しに作ってみます。blends-devパッケージを
+導入することで、taskファイルからPure Blend用のパッケージを簡単に作る事ができます。
+
+　ここでは、例として、ゲームのジャンルでvisual novelを選び、これらのパッケージ
+を導入するようなパッケージを作成してみます。
+
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|l|p{5cm}|}
+\hline 
+項目& 内容 & 説明\\ \hline \hline
+PJ名 & Debian-visualnovel & visualnovel用途向け \\ \hline 
+パッケージ名 & visualnovel-* & visualnovelメタパッケージ \\ \hline 
+tasksel用パッケージ & visualnovel-task & tasksel用定義ファイル \\ \hline 
+\hline 
+\end{tabular}
+\label{tab:debian-visualnovel}
+\caption{今回のPure Blendの定義}
+\end{center}
+\end{table}
+
+
+\begin{description}
+\item [Step 1.] blends-devパッケージを導入します。
+\begin{commandline}
+$ sudo aptitude install blend-dev
+\end{commandline}
+%$
+\item [Step 2.] 作業ディレクトリを作り、必要なファイルをblends-devパッケージに梱包されているテンプレートをコピーして用意します。
+\begin{commandline}
+$ mkdir debian-visualnovel-1.0
+$ cd debian-visualnovel-1.0
+$ cp -a /usr/share/doc/blends-dev/examples/config .
+$ cp -a /usr/share/doc/blends-dev/examples/debian .
+$ cp -a /usr/share/doc/blends-dev/examples/tasks .
+$ cp /usr/share/doc/blends-dev/examples/Makefile .
+$ cp /usr/share/doc/blends-dev/examples/README .
+\end{commandline}
+%$
+\item [Step 3.] コピーした各ファイルに含まれる''\_BLEND\_''の文字列を''visualnovel''に全部置き換えます。
+\begin{commandline}
+$ find . -type f | xargs -n 1 sed -i 's/_BLEND_/visualnovel/g'
+\end{commandline}
+%$
+\item [Step 4.] debian/control.stubを編集します。ここで、Packageの定義として、visualnovel-tasksを必ず追加指定しておきます。また、debian/changelogも書いておきます。
+\begin{commandline}
+$ vi debian/control.stub
+----debian/control.stubここから-------
+Source: debian-visualnovel
+Section: misc
+Priority: extra
+Maintainer: Your Name <Your mail>
+Build-Depends-Indep: debhelper (>= 9),
+                     blends-dev (>= 0.6.16.4)
+Standards-Version: 3.9.4
+
+Package: visualnovel-tasks
+Architecture: all
+Depends: tasksel
+Description: Debian visualnovel for tasksel
+ This package provides Debian visualnovel tasks in tasksel. 
+
+----debian/control.stubここまで-------
+$ vi debian/changelog
+----debian/changelogここから------
+debian-visualnovel (1.0) unstable; urgency=low
+
+  * initial release
+
+ -- Your Name <your@e-mail>  Mon, 13 Jan 2014 23:56:00 +0900
+
+----debian/changelogここまで------
+\end{commandline}
+\item [Step 5.] tasks/task1をtasks/gameに変更し、どのパッケージを導入するか等をDepends:行に指定します。visual novelですので、onscripterと、renpy-thequestionを入れてみます。
+\begin{commandline}
+$ mv task/task1 task/game
+$ vi task/game
+--------task/gameここから----------
+Task: game
+Description: Debian-visual novel games_
+ This metapackage will install Debian packages for use in 
+ game of Debian-visualnovel
+
+Depends: onscripter, renpy-thequestion
+
+--------task/gameここまで----------
+\end{commandline}
+\item [Step 6.] パッケージを作るために必要なファイルを自動生成します。
+\begin{commandline}
+$ make -f debian/rules gen-orig-source
+\end{commandline}
+%$
+\item [Step 7.] パッケージをビルドします。
+\begin{commandline}
+$ debuild
+...visualnovel-game/visualnovel-taskパッケージが出来上がる...
+\end{commandline}
+%$
+\end{description}
+
+ 無事visualnovel-*パッケージができました。
 
 \subsection{おわりに}
+
+ 今回は、Debian Pure Blendの導入から作成まで説明してみました。豊富なパッケージを持つDebianならではの考え方と思います。これを機に、皆さんも何かDebian Pure Blendを作ってみませんか?
+
+\begin{thebibliography}{0}
+  \bibitem{debian-pure-blends-wiki}
+    {\footnotesize{
+       Debian wiki,``DebianPureBlends'',
+       \url{https://wiki.debian.org/DebianPureBlends}
+       }}
+  \bibitem{debian-existing-blends}
+    {\footnotesize{
+       blends.debian.org,''Existing Debian Pure Blends'',
+　     \url{http://blends.debian.org/blends/ch04.html}
+    }}
+
+
+\end{thebibliography}
 
 
 \printindex
