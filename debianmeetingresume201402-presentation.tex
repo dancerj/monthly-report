@@ -101,7 +101,7 @@
 
  作業ははかどったかと思います。また、最後の成果発表にて、アイデア共有とか、課題について語るなど、いろいろ盛り上がったと思いました。
 
- 宴会は近くのインドネシア料理屋にて行いました。
+ 宴会は会場近くのタイ居酒屋「トンタイ」にて行いました。
 
 \end{frame}
 
@@ -131,9 +131,180 @@
 \section{Debianでdnsmasqを使う}
 \emtext{Debianでdnsmasqを使う}
 
-\begin{frame}{おわりに}
+\begin{frame}{dnsmsqとは}
 
- 作るの簡単！ぜひ。
+ pxe/bootp/dhcp/tftp/dnsフォワーダ/dnsサーバーを一手に引き受ける事ができる便利かつ小さなソフトウェア。
+
+　\begin{center}
+\Large ネットワークブートまわりで要りそうな機能を詰め込んだスイスアーミーナイフみたいなもの。
+  \end{center}
+
+\end{frame}
+
+\begin{frame}{予備知識}
+ 途中br0という名前のブリッジI/Fが出てきます。実際の作り方は、
+ 過去の東京エリアDebian勉強会のKDE開発環境の資料
+\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201202.pdf}
+に記載してますので、合わせてご覧くださいませ。
+\end{frame}
+
+\begin{frame}{DNSフォワーダとして使う}
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[width=0.7\hsize]{image201402/vm-dns-env.eps}
+ \caption{dnsフォワーダが無い場合}\label{fig:vm-env1}
+\end{center}
+\end{figure}
+\end{frame}
+
+\begin{frame}{DNSフォワーダとして使う}
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[width=0.7\hsize]{image201402/vm-dns-env2.eps}
+ \caption{dnsフォワーダがある場合}\label{fig:vm-env2}
+\end{center}
+\end{figure}
+\end{frame}
+
+\begin{frame}{DNSフォワーダとして使う}
+\begin{center}
+\Large
+要は
+複数の仮想環境をLANでつなぐような用途を持ち歩くのに大変便利
+\end{center}
+\end{frame}
+
+\begin{frame}[containsverbatim]{DNSフォワーダの作り方}
+\begin{description}
+\item[Step 1.] dnsmasqを導入します。
+\begin{commandlinesmall}
+note-pc$ sudo aptitude install dnsmasq
+\end{commandlinesmall}
+%$
+\item[Step 2.] br0のみlistenするようにし、dnsフォワーダとしてのみ動作するように設定します。
+\begin{commandlinesmall}
+note-pc$ sudo vi /etc/dnsmasq.d/forwarder.conf
+interface=br0
+no-dhcp-interface=br0
+bind-interfaces
+\end{commandlinesmall}
+%$
+\end{description}
+\end{frame}
+
+\begin{frame}[containsverbatim]{DNSフォワーダの作り方}
+\begin{description}
+\item[Step 3.] dnsmasqをリスタートします。
+\begin{commandlinesmall}
+note-pc$ sudo service dnsmasq restart
+\end{commandlinesmall}
+%$
+\item[Step 4.] 動作を確かめます
+\begin{commandlinesmall}
+特定のポートだけでListenしていることを確かめる
+note-pc$ sudo netstat -nlp | fgrep dnsmasq
+tcp  0 0 127.0.0.1:53  0.0.0.0:*   LISTEN      16955/dnsmasq   
+tcp  0 0 192.168.0.1:53  0.0.0.0:* LISTEN      16955/dnsmasq   
+udp  0 0 127.0.0.1:53    0.0.0.0:*             16955/dnsmasq   
+udp  0 0 192.168.0.1:53  0.0.0.0:*             16955/dnsmasq   
+実際にdnsmasqを指定して名前を引いてみる
+note-pc$ sudo aptitude install dnsutils
+note-pc$ dig @192.168.0.1 www.debian.org a
+; <<>> DiG 9.9.3-rpz2+rl.13214.22-P2-Debian-1:9.9.3.dfsg.P2-4 <<>> @192.168.0.1 www.debian.org a
+; (1 server found)
+;; global options: +cmd
+...中略...
+;; ANSWER SECTION:
+www.debian.org.		300	IN	A	5.153.231.4
+www.debian.org.		300	IN	A	128.31.0.51
+www.debian.org.		300	IN	A	130.89.148.14
+...中略...
+\end{commandlinesmall}
+%$
+\end{description}
+\end{frame}
+
+\begin{frame}{簡易DNSサーバーの作り方}
+
+ 実はdnsmasqはデフォルトで/etc/hostsを読み込み、DNSサーバーとしても
+動作しています。そのため、ホストのAレコードだけ扱えれば良いような
+簡易DNSサーバーとして利用する場合は、
+/etc/hostsをそのまま利用するのが一番簡単です。
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{簡易DNSサーバーの作り方}
+
+\begin{commandlinesmall}
+# Hostレコードの定義の例↓
+note-pc$ sudo vi /etc/hosts
+-----------/etc/hostsここから---------------
+192.168.0.3 debian0
+192.168.0.4 debian1.my-domain debian1
+192.168.0.5 debian2.my2-domain debian2
+-----------/etc/hostsここまで---------------
+# dnsmasq再起動して/etc/hosts読ませる
+note-pc$ sudo service dnsmasq restart
+# DNSとして引いてみる
+note-pc$ dig @192.168.0.1 debian0 +short
+192.168.0.3 (←正しく返却されている)
+note-pc$ dig @192.168.0.1 debian1.my-domain +short
+192.168.0.4 (←正しく返却されている)
+note-pc$ dig @192.168.0.1 debian2.my2-domain +short
+192.168.0.5 (←上とは異なるドメイン所属のレコードも正しく返却されている)
+note-pc$ dig @192.168.0.1 debian2 +short
+192.168.0.5 (←ホスト名だけでも正しく返却されている)
+\end{commandlinesmall}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{簡易PXEブートサーバーの作り方}
+\small
+\begin{commandlinesmall}
+note-pc$ cd /etc/dnsmasq.d/
+note-pc$ sudo rm -f *
+note-pc$ sudo vi /etc/dnsmasq.d/pxeboot.conf
+----- pxeboot.confの中身-----
+interface=br0
+bind-interfaces
+dhcp-range=192.168.0.129,192.168.0.254,255.255.255.0,1h
+dhcp-boot=pxelinux.0,pxeserver
+pxe-service=x86PC, "Install Linux", pxelinux
+enable-tftp
+tftp-root=/home/your/srv/tftp
+----- pxeboot.confの中身-----
+note-pc$ cd /home/your/
+note-pc$ mkdir srv;mkdir tftp
+note-pc$ cd srv/tftp
+note-pc$ wget http://ftp.debian.or.jp/debian/dists
+   /stable/main/installer-amd64/current/images/netboot/netboot.tar.gz
+note-pc$ tar xzf netboot.tar.gz
+\end{commandlinesmall}
+%$
+\end{frame}
+\begin{frame}[containsverbatim]{簡易PXEブートサーバーの作り方}
+\small
+\begin{commandlinesmall}
+note-pc$ sudo service dnsmasq restart
+note-pc$ sudo qemu-img create -f raw /var/lib/libvirt/images/debian-pxe 5G
+note-pc$ sudo virt-install --connect=qemu:///system -n debian-pxe --ram 512 \
+           --pxe --disk /var/lib/libvirt/images/debian-pxe,bus=virtio,size=5,format=raw,cache=writeback \
+           --bridge=br0,model=virtio --vnc --hvm --accelerate
+\end{commandlinesmall}
+%$
+\end{frame}
+
+\begin{frame}{終わりに}
+
+ 今回ここでは、簡易dnsフォワーダ、簡易dnsサーバー、簡易pxeサーバー
+をdnsmasqを使って組み立てました。
+
+　しかし、man dnsmasqを読むと判る通り、もっと複雑な事も簡単に出来ます。
+また、自分はまったく未評価ですが、最近ではlua言語と合わせて使う事ができるようです。
+
+　複数の仮想環境を使ってノートPC上に複数のDebianの開発環境を立ち上げる場合に、
+非常に便利です。dnsmasqをぜひ一度お試しあれ。
+>>>>>>> newly add articles tokyo debian meeting
 
 \end{frame}
 
