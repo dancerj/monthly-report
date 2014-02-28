@@ -1,0 +1,432 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{東京エリアDebian勉強会}
+\subtitle{第110回 2014年2月度 OSC 2014 Tokyo 出張勉強会}
+\author{岩松 信洋 / iwamatsu@debian.org}
+\date{2014年3月1日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\begin{frame}
+\titlepage{}
+\end{frame}
+
+\begin{frame}{Agenda}
+  \begin{itemize}
+   \item Debian Update
+   \item Debian の EFI/UEFI 対応について
+   \item 質疑応答
+   \item おしらせ
+  \end{itemize}
+\end{frame}
+%
+%\begin{block}{ブロック}
+%\end{block}
+%\begin{alertblock}{警告ブロック}
+%\end{alertblock}
+%\begin{exampleblock}{例ブロック}
+%\end{exampleblock}
+%
+\emtext{Debian Update}
+
+\begin{frame}{Debian Update}
+
+\begin{itemize}
+\item ポイントリリース
+\begin{itemize}
+\item 2014-02-15 Debian 6.0 更新: 6.0.9 リリース
+\item 2014-02-08 Debian 7 更新: 7.4 リリース
+\item 2013-12-14 Debian 7 更新: 7.3 リリース
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Debian Update}
+\begin{itemize}
+\item Debian Contributors list \\
+\begin{itemize}
+\item \url{https://contributors.debian.org/} \\
+\item Debian に貢献している人はだれなのか、リストアップ。\\
+\item パッケージアップロードや、Wikiなどから算出。\\
+\item 残絵なことにパッケージメンテナはリストアップされるようになっていない。
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Debian Update}
+
+\begin{itemize}
+\item IA64 should be removed from testing\\
+\begin{itemize}
+\item 次のリリース(Jessie)から IA64 サポートから外されます。\\
+\item ports でメンテナンスされるかも。
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Debian Update}
+
+\begin{itemize}
+\item Debian のデフォルト init システムをどうするか\\
+\begin{itemize}
+\item sysvinit or upstart or openrc or systemd \\
+\item Debian tech-ctte とともに議論中\\
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Debian Update}
+
+\begin{itemize}
+\item autopkgtest \\
+\begin{itemize}
+\item 作成されたパッケージを自動的にテストするプロジェクト。\\
+\item DEP8(Debian Enhancement Proposals 8)で議論され、現在実験中。
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\emtext{Debian の EFI/UEFI 対応について}
+
+\begin{frame}[containsverbatim]{Debian の EFI/UEFI 対応について}
+\begin{itemize}
+\item EFI / EFI の詳細な話はしません。
+\item EFI とは？
+\begin{itemize}
+\item (Unified) Extensible Firmware Interface の略
+\item いままで使われてきたBIOSの置き換え
+\item 3TB以上のHDDをサポート
+\item 様々なデバイスのサポート
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian の EFI/UEFI 対応について}
+
+\begin{itemize}
+\item セキュアブート
+\begin{itemize}
+\item 利用できるソフトウェア（OSやドライバーなど）を制限する仕組み。
+\item ルートキットや不正なドライバーが OS より先に実行されることを防ぐ。
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian の EFI/UEFI 対応について}
+
+\begin{itemize}
+\item Linux のセキュアブート対応
+\begin{itemize}
+\item Secure Bootをdisableに設定する\\
+ベンダー依存でできない場合もあるので注意
+\item マイクロソフトの鍵で署名されたブートローダを使用する\\
+\item Ubuntu、Fedora は shim と呼ばれるブートローダを使ってブート\\
+\begin{enumerate}
+\item UEFI
+\item shim(マイクロソフトの鍵で署名されたブートローダ)
+\item 2nd Boot Loader (grubなど)
+\item Linuxカーネル
+\item カーネルローダブルモジュール
+\end{enumerate}
+\item 自分の鍵をUEFIに組み込む
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debian の EFI/UEFI 対応について}
+
+\begin{itemize}
+\item Debian のセキュアブート対応
+\begin{itemize}
+\item 未対応
+\item shim が Free ではない
+\item 署名機構をどうするか検討中
+\item Secure Bootをdisableにしてインストール
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+%\begipn{frame}[containsverbatim]{DebianのEFI対応状況}
+
+%\begin{commandline}
+%CONFIG_RELOCATABLE=y
+%CONFIG_EFI=y
+%CONFIG_EFI_STUB=y
+%CONFIG_FB_EFI=y
+%CONFIG_FRAMEBUFFER_CONSOLE=y
+%\end{commandline}
+
+%\end{frame}
+
+\begin{frame}[containsverbatim]{DebianのEFI対応状況}
+
+\begin{itemize}
+\item もちろんデフォルトで対応。しかしスムーズには行かない。\\
+インストールするデバイスによって対応が異なるため。（が、インストーラでの対応はできる）
+\item インストールぐらいさっさとしたい。\\
+EFI がレガシーBIOSを対応している場合がある。$\rightarrow$
+レガシーBIOSモードでブートすれば楽ちん！
+\item しかしきちんと動かない場合がある
+\begin{itemize}
+\item EFI（EFIから読み出されるファームウェア）で、デバイスを初期化しているため。
+レガシーBIOSではきちんとやってない場合がある。
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Debianの対応状況}
+\begin{itemize}
+\item EFI/UEFI はサポートしている
+\item レガシーBIOS動くかもしれないが、きちんと動作しない場合が多い
+\item EFIで起動させたい！
+\item EFIを使って起動させるには？
+\begin{itemize}
+\item VAIO Pro の場合
+\item Macbook Pro retina の場合
+\end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Vaio Proの場合}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Vaio Proの場合}
+
+\begin{enumerate}
+\item EFIの画面でSecureBoot を外す。
+\item Windows8 と Dual Boot したい場合は \texttt{bcdedit /enum all} で ブート マネージャーの確認
+
+\begin{commandline}
+$ bcdedit /enum all
+（省略）
+Windows ブート マネージャー
+--------------------------------
+identifier              {bootmgr}
+device                  partition=\Device\HarddiskVolume3
+path                    \EFI\Microsoft\Boot\bootmgfw.efi
+description             Windows Boot Manager
+locale                  ja-JP
+inherit                 {globalsettings}
+default                 {current}
+resumeobject            {df94d6db-389b-11e3-8f30-9e441e235da0}
+displayorder            {current}
+toolsdisplayorder       {memdiag}
+timeout                 30
+
+(中略)
+
+ファームウェア アプリケーション (101fffff
+--------------------------------
+identifier              {f652bc01-389b-11e3-be69-806e6f6e6963}
+device                  partition=\Device\HarddiskVolume1
+path                    \EFI\Microsoft\Boot\bootmgfw.efi
+description             Sony Original
+\end{commandline}
+
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Vaio Proの場合}
+
+インストール時に作成される\texttt{grubx64.efi}を
+path（$\backslash$EFI$\backslash$Microsoft$\backslash$Boot$\backslash$bootmgfw.efi）に
+コピー。そして再起動。
+\begin{commandline}
+# mount -t vfat /dev/sda3 /boot/efi
+# cd /boot/efi/EFI/Microsoft/Boot
+# cp bootmgfw.efi bootmgfw.efi.orig
+# cp ../../debian/grubx64.efi bootmgfw.efi
+# cd /
+# umount /boot/efi
+# exit
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Vaio Proの場合}
+
+Debian を再起動し、grub設定にwindows8の設定を追加する。
+\begin{commandline}
+$ sudo vi /etc/grub.d/40_custom
+#!/bin/sh
+exec tail -n +3 $0
+menuentry "Windows Boot Manager (SONY Original)" {
+    insmod part_gpt
+    insmod fat
+    set root='(hd0,gpt3)'
+    search --no-floppy --fs-uuid --set=root 4A3B-7939
+    chainloader /EFI/Microsoft/Boot/bootmgfw.efi.orig
+}
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Vaio Proの場合}
+
+update-grub を実行する。
+\begin{commandline}
+$ sudo update-grub
+Generating grub.cfg ...
+Found background image: /usr/share/images/desktop-base/desktop-grub.png
+Found linux image: /boot/vmlinuz-3.10-3-amd64
+Found initrd image: /boot/initrd.img-3.10-3-amd64
+Found Windows Boot Manager on /dev/sda3@/EFI/Microsoft/Boot/bootmgfw.efi
+Adding boot menu entry for EFI firmware configuration
+done
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Macbook Pro retina 2013の場合}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Macbook Pro retina 2013の場合}
+
+Macbook Proなのに OS X と Dual Bootしない方法。
+
+\begin{itemize}
+\item レガシーBIOSでも起動する
+\item しかし、SMPで起動しない
+\item USBなど、いくつかのデバイスも動作しない
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{Macbook Pro retina 2013の場合}
+
+\begin{enumerate}
+\item もくもくとインストール。
+\item インストーラで GRUB がインストールされた後、「戻る」を選択してシェルに移動
+\item chroot 後 /boot/efi/EFI/debian/grubx64.efi
+にあるファイルを/boot/efi/EFI/boot/bootx64.efi にコピー
+
+\begin{commandline}
+# chroot /target bash
+# mkdir -p /boot/efi/EFI/boot
+# cp /boot/efi/EFI/debian/grubx64.efi /boot/efi/EFI/boot/bootx64.efi
+\end{commandline}
+
+\item chroot とシェルから抜けて、インストーラーを終了する。このときに「option
+キー」を押しながら再起動。
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Macbook Pro retina 2013の場合}
+
+OS X との Dual Bootは？
+\begin{itemize}
+\item mactel-boot を使う \\
+  Intel Mac 専用 EFI ブートローダ\\
+  Debianにはまだパッケージがありません。
+\item rEFIt、rEFIndを使う \\
+  rEFIt は開発終了。引き継いた rEFInd を使いましょう。\\
+  DebianにはまだrEFIndパッケージがありません(rEFItはあります)。
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{協力}
+\begin{itemize}
+\item VAIO Pro 11 / dictoss \\
+\url{http://pcdennokan.dip.jp/hardware/vaiopro11_debian/}
+\item Macbook pro retina \\
+\url{https://wiki.debian.org/ja/InstallingDebianOn/Apple/MacBookPro/11-1}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{まとめ}
+
+\begin{itemize}
+\item Debian では EFI/UEFI サポートしています
+\item Secueboot は未対応
+\item レガシーBIOSモードは動かないデバイスが出てくるので注意
+\item EFIで動かしたほうがよい
+\item ユーザの手を煩わせないように、がんばってインストーラで対応します
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{質問}
+
+\begin{center}
+なにか質問はありますか？
+\end{center}
+
+\end{frame}
+
+\begin{frame}{おしらせ}
+\begin{itemize}
+\item 出展しています。
+\begin{itemize}
+\item Wheezy マシン展示
+\item ステッカー、チラシ、配布
+\item Debianに関するの相談受け付けます。
+\item GPGサイン、CAcertサインできます。
+\end{itemize}
+\item 次回勉強会は 3/15（土）14:00-19:00 スクエアエニックスさん セミナールームで行います。
+内容はまだ未定です。
+\end{itemize}
+
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
