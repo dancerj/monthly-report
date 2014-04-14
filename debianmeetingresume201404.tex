@@ -1,0 +1,191 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+ 
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2014}
+\newcommand{\debmtgmonth}{04}
+\newcommand{\debmtgdate}{19}
+% started from zero:
+% (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{112}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{32}{32} {\gt 特集：XXXXX}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{事前課題}{野島 貴英}
+
+今回の事前課題は以下です:
+\begin{enumerate}
+ \item 本日、何の作業をやるかを宣言ください。
+\end{enumerate}
+この課題に対して提出いただいた内容は以下です。
+\begin{multicols}{2}
+{\small
+% \input{image201404/prework.tex}
+}
+\end{multicols}
+
+\dancersection{Debian Trivia Quiz}{野島 貴英}
+
+ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
+題はメーリングリストをよんでいると追跡できます。ただよんでいるだけではは
+りあいがないので、理解度のテストをします。特に一人だけでは意味がわからな
+いところもあるかも知れません。みんなで一緒に読んでみましょう。
+
+今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-devel@lists.debian.org}に投稿された
+内容などからです。
+
+\begin{multicols}{2}
+% \input{image201404/quiz.tex}
+\end{multicols}
+
+\dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
+
+\subsection{東京エリアDebian勉強会111回目報告}
+
+ 東京エリアDebian勉強会111回目は(株)スクウェア・エニックスさんで開催されました。
+5名の参加者がありました。
+
+\begin{itemize}
+\item debianからiphone5(iOS7.1)につなぐ件について、
+  \begin{itemize}
+    \item debianパッケージを作ってつなぎ、
+    \item 公開情報に基づいた接続技術
+　\end{itemize}
+について発表がありました。
+\item 参加者全員で、各自の作業を行い、最後に成果発表をしました。
+\end{itemize}
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[	 ]\+" "")
+
+%-------------------------------------------------------------------------------
+\dancersection{XXXX}{}
+%-------------------------------------------------------------------------------
+\index{serf}
+
+%-------------------------------------------------------------------------------
+\dancersection{会場での無線LANのつなぎ方}{野島 貴英}
+%-------------------------------------------------------------------------------
+ \subsection{はじめに}
+
+　今回試験として、会場側でフィルタ無しのグローバル回線を用意しました。
+ただ、会場側のセキュリティポリシーにより、
+wpa-psk AES hidden SSIDという方式での提供となります。
+
+　以下にDebianマシンでの接続方法を記載します。
+
+ また、自分の環境では違うやり方でつながったという方は、野島まで
+教えて下さい。こちらでもノウハウとして溜めていく予定です。
+
+ \subsection{wpasupplicant及び/etc/network/interfacesを利用の場合}
+
+ もっとも良いマニュアルは、/usr/share/doc/wpasupplicant/README.Debian.gz
+となります。困った場合はこちらも合わせてご参照下さい。
+
+　以下に/etc/network/interfacesの定義について会場の例を記載します。
+
+\begin{commandline}  
+$ sudo aptitude install wpasupplicant
+# hidden ssidの元では必ず ap-scan 1,scan-ssid 1を指定する事。
+# 参考：http://bugs.debian.org/358137
+$ sudo vi /etc/network/interfaces
+-----以下のエントリを追記ここから----------
+iface wlan_tokyodebian inet dhcp
+     wpa-ssid <<会場のSSID>>
+     wpa-psk  <<会場のパスワード>>
+     wpa-ap-scan 1
+     wpa-scan-ssid 1
+     
+-----以下のエントリを追記ここまで----------
+#　無線LANを有効にする。
+$ sudo ifup wlan0=wlan_tokyodebian
+#　無線LANを無効にする。
+$ sudo ifdown wlan0
+\end{commandline}
+%$
+
+ また、ハマってしまった時のデバッグ方法は、/usr/share/doc/wpasupplicant/README.Debian.gz中の''4. Trubleshooting''の章が便利です。
+
+ \subsection{その他の無線LAN用パッケージを利用の場合}
+
+　すみません、自分が情報を持たないため、現場で教えて下さい。
+
+% \newpage
+% \mbox{}
+% \newpage
+% \mbox{}
+% \newpage
+% \mbox{}
+
+\cleartooddpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
