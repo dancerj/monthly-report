@@ -84,7 +84,7 @@
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-% \input{image201406/prework.tex}
+ \input{image201406/prework.tex}
 }
 \end{multicols}
 
@@ -339,6 +339,51 @@ $ hexdump -C origin
 
 「使ってみたい」という人がいらしたら、教えて下さい。
 
+%-------------------------------------------------------------------------------
+\dancersection{会場での無線LANのつなぎ方}{野島 貴英}
+%-------------------------------------------------------------------------------
+ \subsection{はじめに}
+
+　今回試験として、会場側でフィルタ無しのグローバル回線を用意しました。
+ただ、会場側のセキュリティポリシーにより、
+wpa-psk AES hidden SSIDという方式での提供となります。
+
+　以下にDebianマシンでの接続方法を記載します。
+
+ また、自分の環境では違うやり方でつながったという方は、野島まで
+教えて下さい。こちらでもノウハウとして溜めていく予定です。
+
+ \subsection{wpasupplicant及び/etc/network/interfacesを利用の場合}
+
+ もっとも良いマニュアルは、/usr/share/doc/wpasupplicant/README.Debian.gz
+となります。困った場合はこちらも合わせてご参照下さい。
+
+　以下に/etc/network/interfacesの定義について会場の例を記載します。
+
+\begin{commandline}  
+$ sudo aptitude install wpasupplicant
+# hidden ssidの元では必ず ap-scan 1,scan-ssid 1を指定する事。
+# 参考：http://bugs.debian.org/358137
+$ sudo vi /etc/network/interfaces
+-----以下のエントリを追記ここから----------
+iface wlan_tokyodebian inet dhcp
+     wpa-ssid <<会場のSSID>>
+     wpa-psk  <<会場のパスワード>>
+     wpa-ap-scan 1
+     wpa-scan-ssid 1
+     
+-----以下のエントリを追記ここまで----------
+#　無線LANを有効にする。
+$ sudo ifup wlan0=wlan_tokyodebian
+#　無線LANを無効にする。
+$ sudo ifdown wlan0
+\end{commandline}
+%$
+ また、ハマってしまった時のデバッグ方法は、/usr/share/doc/wpasupplicant/README.Debian.gz中の''4. Trubleshooting''の章が便利です。
+
+ \subsection{その他の無線LAN用パッケージを利用の場合}
+
+　すみません、自分が情報を持たないため、現場で教えて下さい。
 
 \printindex
 
