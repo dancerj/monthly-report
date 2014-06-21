@@ -204,8 +204,6 @@ Berkeley DB 6.0はDebianのリポジトリに入っていません。
   \end{enumerate}
 \end{prework}
 
-\dancersection{Linuxのドライバメンテナになった体験記}{坂本}
-
 \dancersection{Debian での systemd とのつきあい方}{佐々木 洋平}
 
 \begin{quote}
@@ -483,6 +481,191 @@ default.target
 以下、続く。
 
 
+\dancersection{Linuxのドライバメンテナになった体験記}{坂本貴史}
+
+\subsection{今日の話題}
+
+私は個人でサウンドデバイスドライバを書いています。そのコードが、サブシステム経由で、6月頭にLinux 3.16-rc1 にマージされました。サブシステムからLinuxにコードがpullされる流れを、実体験を基にして簡単にお話します。
+
+
+\subsection{Linuxの開発サイクル}
+
+「前の」、「今の」、「次の」バージョンと表現したとき、以下のようになります。
+
+\begin{description}
+\itemsep1pt\parskip0pt\parsep0pt
+\item[0週]
+前のバージョンをリリース。今のバージョンのマージウィンドウ開始。
+\item[0〜2週]
+この間、新機能がpullされる。
+\item[2週]
+マージウィンドウ閉鎖。今のバージョンのrc1をリリース。
+\item[2週〜N週]
+この間、バグ修正がpullされ、だいたい1週間おきにrcがリリースされる
+\item[N-1週]
+今のバージョンのrcNをリリース
+\item[N週]
+今のバージョンをリリース。次のバージョンのマージウィンドウ開始。
+\end{description}
+
+\subsection{Linuxのサブシステム}
+
+機能別にサブシステムに分割されており、それぞれのサブシステムを開発するプロジェクトがあります。
+\begin{itemize}
+\item
+  Scheduler
+\item
+  Memory management
+\item
+  Networking
+\item
+  Filesystems
+\item
+  Read-Copy update (RCU)
+\item
+  \ldots{}
+\item
+  IEEE1394 bus
+\item
+  Sound
+\end{itemize}
+
+\subsection{Linuxのサブシステムのメンテナ}
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  サブシステム内の開発をまとめる役割を果します
+\item
+  開発者から送られたパッチは、メンテナがマージするかどうかを決定します
+\item
+  マージウィンドウが開いたら、メンテナがLinusにpull requestを出します
+\item
+  Linusがrequestをackし、treeにマージします
+\item
+  メンテナはあらかじめ、Linusとの信頼関係を築いているため、拒否されることは珍しいようです
+\end{itemize}
+
+\subsection{Linuxの開発者の活動}
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  典型的には、サブシステム開発プロジェクトのメーリングリストで活動します
+\item
+  自分が書いたパッチのマージに向け、メンテナや他の開発者を説得します
+\item
+  RFC (Request for comment) を出し、他の開発者の反応を見ることが有効です
+\item
+  他の人が投げたパッチをレビューすると喜ばれます
+\end{itemize}
+
+\subsection{私がやったこと}
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  サウンドサブシステム
+\item
+  ALSA firewire stackの開発
+\item
+  firewireのプロトコルスタック
+\item
+  プロトコルスタックの実装
+\item
+  ドライバの実装
+\end{itemize}
+
+\subsection{開発の初期}
+
+2013年1月〜2013年8月
+
+目標は、デバイス仕様を把握することと、自分の活動をアピールすることです。
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  ライブラリモジュールの拡張
+\item
+  ドライバの作成
+\item
+  Linux firewire subsystemのバグ
+\end{itemize}
+
+
+\subsection{開発の中期}
+
+2013年9月〜2014年1月
+
+目標は、パッチセットの最終候補を作成し、テスターを募ることです。
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  別なデバイスチップの調査
+\item
+  ドライバのブラッシュアップ
+\item
+  既存実装のリグレッションテスト
+\item
+  最終RFCとCFT
+\end{itemize}
+
+
+\subsection{開発の後期}
+
+2014年2月〜2014年6月
+
+目標は、ALSAの上流にマージされるよう、コミュニケーションすることです。
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  影響のあるプロジェクトとの調整
+\item
+  3.14 のマージウィンドウの閉鎖
+\item
+  マージリクエスト 1 〜 3
+\item
+  3.15 のマージウィンドウの閉鎖
+\item
+  マージリクエスト 4
+\item
+  メンテナの緩い同意
+\item
+  topic/firewire ブランチ
+\item
+  0day kernel testing
+\item
+  testing backendのレポートへの対応
+\item
+  sound.gitのfor-nextへ
+\end{itemize}
+
+
+\subsection{マージ以降}
+
+2014年6月
+
+目標は、Linuxへのマージを見届けることです。
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  3.16 のマージウィンドウオープン
+\item
+  サブシステムメンテナからLinusへのプルリクエスト
+\item
+  コードの軽微な修正
+\item
+  サブシステムメンテナからLinusへのプルリクエスト
+\item
+  3.16 のマージウィンドウの閉鎖
+\end{itemize}
+
+\subsection{まとめ}
+
+Linuxとそのサブシステムの間で、開発サイクルがどのように進められるかを、実体験を踏まえて説明しました。
 
 \dancersection{もくもくの会}{}
 
