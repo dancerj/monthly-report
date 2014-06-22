@@ -538,6 +538,9 @@ Startup finished in 1.632s (kernel) + 3min 2.710s (userspace) = 3min 4.343s
 燦然と輝く\textbf{3min 12ms dnsmasq.service}。…おかしい。これはおかしい。
 
 \subsection{現状どうなのよ?}
+
+気を取りなおして。
+
 \subsubsection{systemdの用語}
 systemdを理解するために、先ずは用語を確認しましょう。
 \begin{itemize}
@@ -642,8 +645,217 @@ default.target
   ├─atd.service
    ...
 \end{commandline}
-以下、続く。
+個々の unit の状況は status で表示できます:
+\begin{commandline}
+% systemctl status ssh
+ssh.service - OpenBSD Secure Shell server
+   Loaded: loaded (/lib/systemd/system/ssh.service; enabled)
+   Active: active (running) since 日 2014-06-22 14:17:07 JST; 25s ago
+ Main PID: 9180 (sshd)
+   CGroup: name=systemd:/system/ssh.service
+           └─9180 /usr/sbin/sshd -D
 
+ 6月 22 14:17:07 daphne systemd[1]: Started OpenBSD Secure Shell server.
+ 6月 22 14:17:07 daphne sshd[9180]: Server listening on 0.0.0.0 port 22.
+\end{commandline}
+
+個々の unit の開始/停止/再起動はそれぞれ
+start/stop/restart で可能です.
+\begin{commandline}
+% sudo systemctl stop ssh
+% systemctl status ssh
+ssh.service - OpenBSD Secure Shell server
+   Loaded: loaded (/lib/systemd/system/ssh.service; enabled)
+   Active: inactive (dead) since 日 2014-06-22 14:18:27 JST; 40s ago
+  Process: 9180 ExecStart=/usr/sbin/sshd -D $SSHD_OPTS (code=exited, status=0/SUCCESS)
+
+ 6月 22 14:17:07 daphne systemd[1]: Started OpenBSD Secure Shell server.
+ 6月 22 14:17:07 daphne sshd[9180]: Server listening on 0.0.0.0 port 22.
+ 6月 22 14:18:27 daphne systemd[1]: Stopping OpenBSD Secure Shell server...
+ 6月 22 14:18:27 daphne systemd[1]: Stopped OpenBSD Secure Shell server.
+% sudo systemctl start ssh
+% systemctl status ssh
+ssh.service - OpenBSD Secure Shell server
+   Loaded: loaded (/lib/systemd/system/ssh.service; enabled)
+   Active: active (running) since 日 2014-06-22 14:19:52 JST; 13s ago
+ Main PID: 10819 (sshd)
+   CGroup: name=systemd:/system/ssh.service
+           └─10819 /usr/sbin/sshd -D
+\end{commandline}
+%$
+といった塩梅ですね。
+また、ユニットファイルを編集した場合には reload で unit を再起動できます。
+
+\noindent
+現状のユニットの状況を見てみましょう。
+インストールされているユニットの一覧は list-unit-files で表示できます.
+\begin{commandline}
+% systemctl list-unit-files
+UNIT FILE                                   STATE
+proc-sys-fs-binfmt_misc.automount           static
+dev-hugepages.mount                         static
+dev-mqueue.mount                            static
+proc-sys-fs-binfmt_misc.mount               static
+run-lock.mount                              static
+run-user.mount                              static
+sys-fs-fuse-connections.mount               static
+sys-kernel-config.mount                     static
+sys-kernel-debug.mount                      static
+tmp.mount                                   disabled
+cups.path                                   enabled
+systemd-ask-password-console.path           static
+systemd-ask-password-wall.path              static
+acpid.service                               disabled
+...
+\end{commandline}
+\noindent
+また、現在実行されたユニットの一覧は systemctl をオプション無し実行するか、
+list-units を実行します。type を指定してユニットを表示することも可能です。
+\begin{commandline}
+% systemctl list-units
+UNIT                                                                         LOAD   ACTIVE SUB       DESCRIPTION
+proc-sys-fs-binfmt_misc.automount                                            loaded active waiting   Arbitrary E...
+sys-devices-pci0000:00-0000:00:03.0-sound-card0.device                       loaded active plugged   /sys/device...
+sys-devices-pci0000:00-00...4.0-usb1-1\x2d4-1\x2d4:1.0-bluetooth-hci0.device loaded active plugged   /sys/device...
+sys-devices-pci0000:00-0000:00:16.3-tty-ttyS0.device                         loaded active plugged   Lynx Point-...
+sys-devices-pci0000:00-0000:00:19.0-net-eth0.device                          loaded active plugged   Ethernet Co...
+sys-devices-pci0000:00-0000:00:1b.0-sound-card1.device                       loaded active plugged   Lynx Point-...
+sys-devices-pci0000:00-0000:00:1c.2-0000:02:00.0-net-wlan0.device            loaded active plugged   Dual Band W...
+...
+% systemctl list-units --type=socket
+UNIT                         LOAD   ACTIVE SUB       DESCRIPTION
+acpid.socket                 loaded active listening ACPID Listen Socket
+avahi-daemon.socket          loaded active listening Avahi mDNS/DNS-SD Stack Activation Socket
+cups.socket                  loaded active listening CUPS Printing Service Sockets
+dbus.socket                  loaded active running   D-Bus System Message Bus Socket
+lvm2-lvmetad.socket          loaded active listening LVM2 metadata daemon socket
+syslog.socket                loaded active running   Syslog Socket
+systemd-initctl.socket       loaded active listening /dev/initctl Compatibility Named Pipe
+systemd-journald.socket      loaded active running   Journal Socket
+systemd-shutdownd.socket     loaded active listening Delayed Shutdown Socket
+systemd-udevd-control.socket loaded active running   udev Control Socket
+systemd-udevd-kernel.socket  loaded active running   udev Kernel Socket
+virtlockd.socket             loaded active listening Virtual machine lock manager socket
+\end{commandline}
+
+\subsubsection{で、dnsmasqは?}
+
+起動途中の tree は以下の通りです:
+\begin{commandline}
+  ...
+  811 ?        Ss     0:00 /bin/sh /etc/init.d/dnsmasq systemd-start-resolvconf
+  821 ?        S      0:00  \_ run-parts --arg=-a --arg=lo.dnsmasq /etc/resolvconf/update.d
+  863 ?        S      0:00      \_ run-parts /etc/resolvconf/update-libc.d
+  901 ?        S      0:00          \_ /bin/sh /etc/resolvconf/update-libc.d/squid3
+  902 ?        S      0:00              \_ /bin/sh /usr/sbin/invoke-rc.d squid3 reload
+  936 ?        S      0:00                  \_ systemctl reload squid3.service
+  ...
+\end{commandline}
+\noindent
+さて...
+\begin{commandline}
+% cat /etc/resolvconf/update-libc.d/squid3
+#!/bin/sh
+
+PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Make squid aware of changes to resolv.conf
+invoke-rc.d squid3 reload || true
+\end{commandline}
+\noindent
+\texttt{invoke-rc.d} の呼び出しは\texttt{systemctl}に行っているわけですが、
+ここで止まっているように見えます。
+dnsmasq, resolvconf, squid3 の状況を見てみましょう。
+\begin{commandline}
+% systemctl status dnsmasq
+dnsmasq.service - A lightweight DHCP and caching DNS server
+   Loaded: loaded (/lib/systemd/system/dnsmasq.service; enabled)
+  Drop-In: /run/systemd/generator/dnsmasq.service.d
+           └─50-dnsmasq-$named.conf, 50-insserv.conf-$named.conf
+  ...
+\end{commandline}
+ユニットファイルの中身は以下:
+\begin{commandline}
+% cat /lib/systemd/system/dnsmasq.service | grep -v ^# | sed '/^$/d'
+[Unit]
+Description=A lightweight DHCP and caching DNS server
+[Service]
+Type=dbus
+BusName=uk.org.thekelleys.dnsmasq
+ExecStartPre=/usr/sbin/dnsmasq --test
+ExecStart=/etc/init.d/dnsmasq systemd-exec
+ExecStartPost=/etc/init.d/dnsmasq systemd-start-resolvconf
+ExecStop=/etc/init.d/dnsmasq systemd-stop-resolvconf
+ExecReload=/bin/kill -HUP $MAINPID
+[Install]
+WantedBy=multi-user.target
+\end{commandline}
+% $
+\noindent
+dnsmasq は dbus 経由で起動されているようです。
+\begin{commandline}
+% systemctl status resovconf
+resolvconf.service - Nameserver information manager
+   Loaded: loaded (/lib/systemd/system/resolvconf.service; enabled)
+   ...
+\end{commandline}
+ユニットファイルの中身は以下の通り:
+\begin{commandline}
+[Unit]
+Description=Nameserver information manager
+Documentation=man:resolvconf(8)
+DefaultDependencies=no
+[Service]
+RemainAfterExit=yes
+ExecStartPre=/bin/mkdir -p /run/resolvconf/interface
+ExecStartPre=/bin/touch /run/resolvconf/postponed-update
+ExecStart=/sbin/resolvconf --enable-updates
+ExecStop=/sbin/resolvconf --disable-updates
+[Install]
+WantedBy=network.target
+\end{commandline}
+\noindent
+resolvconfはnetwork.targetで呼び出されているので
+ネットワークの状況が変わる度にresolvconfが呼び出されます。
+
+そして squid3 の起動は
+\begin{commandline}
+% systemctl status squid3
+squid3.service - LSB: Squid HTTP Proxy version 3.x
+   Loaded: loaded (/etc/init.d/squid3)
+   ...
+\end{commandline}
+squid3はsystemd用のserviceが提供されていませんので、
+multi-user.targetにおいてこれまで通り\texttt{/etc/init.d/squid3}が呼び出されます。
+結果として、
+\begin{enumerate}[topsep=1zw,label=(\arabic*)]
+\item squid3 の起動を試みる
+\item networkの状態が変更されたので、resolvconf.serviceが呼び出される
+\item resolvconf.serviceにおいて\texttt{/etc/resolvconf/update-libc.d/squid3} が呼び出され、その中で squid3 が reload される
+\item (1)に戻る
+\end{enumerate}
+となってtimeoutまで止まっている様です。
+\begin{commandline}
+% cat /etc/resolvconf/update-libc.d/squid3
+#!/bin/sh
+
+PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Make squid aware of changes to resolv.conf
+# invoke-rc.d squid3 reload || true
+\end{commandline}
+とした所
+\begin{commandline}
+% systemd-analyze
+Startup finished in 1.646s (kernel) + 3.396s (userspace) = 5.042s
+\end{commandline}
+となりました(やったね)。…さて、これはどうしたら良いのでしょうか?
+
+\subsection{まとまりませんが}
+
+というわけで、次回(があったら)、
+こういった「既存のサービス」のsystemdへの移行や、
+jounrnald、timedatectl、systemd-cronあたりについてまとめてみたいと思います。
 
 \dancersection{Linuxのドライバメンテナになった体験記}{坂本貴史}
 
