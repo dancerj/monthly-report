@@ -28,7 +28,8 @@
 
 \documentclass[mingoth,a4paper]{jsarticle}
 \usepackage{kansaimonthlyreport}
-\usepackage[dvips]{xy}
+\usepackage[dvipdfmx]{xy}
+\usepackage{etex}
 \usepackage{ulem}
 
 % 日付を定義する、毎月変わります。
@@ -137,6 +138,7 @@ MATEはGNOME2からフォークしたデスクトップ環境プロジェクトです。GNOME3
 \begin{commandline}
   $ sudo apt-get install mate-desktop-environment
 \end{commandline}
+%$
 
 \subsubsection{Debian 6 ``squeeze'' LTS}
 Debian Projectから「Debian 6 debuts its long term support period」
@@ -202,9 +204,285 @@ Berkeley DB 6.0はDebianのリポジトリに入っていません。
   \end{enumerate}
 \end{prework}
 
-\dancersection{Debian での systemd とのつきあい方}{佐々木}
-
 \dancersection{Linuxのドライバメンテナになった体験記}{坂本}
+
+\dancersection{Debian での systemd とのつきあい方}{佐々木 洋平}
+
+\begin{quote}
+  Yes, it is written systemd, not system D or System D, or even
+  SystemD. And it isn't system d either. \\
+  \begin{flushright}
+    Spelling - \texttt{http://www.freedesktop.org/wiki/Software/systemd/}
+  \end{flushright}
+\end{quote}
+
+\subsection{はじめに}
+
+少し前の話ですが、次期Debian安定版JessieでのデフォルトのInitとしてsystemdが採用されました。
+勉強会参加者の皆様におかれましては、% 「最近Debian関連のイベント報告」で紹介(?)された、
+\texttt{debian-devel@lists.debian.org}へ流れた\sout{品の無い}悲鳴(?)も記憶に新しいことでしょう
+\footnote{%
+Fsck SystemD and its developers and its users. GR to override this please.\\
+　\href{https://lists.debian.org/debian-devel/2014/02/msg00316.html}{\texttt{https://lists.debian.org/debian-devel/2014/02/msg00316.html}}%
+}。
+
+色々な意見はあるでしょうけれども、
+「デフォルト」として採用される以上(好むと好まざるとにかかわらず)Debianの開発者(含ワナビー)にとってsystemdの知識は必須事項になりそうです。
+そんな訳で、systemdそのものについて調べた結果とDebianにおける現状についてまとめてみます。%
+ちなみに主にテストした環境は以下の通り:
+\begin{commandline}
+% LANG=C date
+Sat Jun 21 10:15:59 JST 2014
+% lsb_release -a
+No LSB modules are available.
+Distributor ID: Debian
+Description:    Debian GNU/Linux unstable (sid)
+Release:        unstable
+Codename:       sid
+% dpkg -l | grep systemd
+ii  libpam-systemd:amd64        204-10   amd64   system and service manager - PAM module
+ii  libsystemd-daemon0:amd64    204-10   amd64   systemd utility library
+ii  libsystemd-id128-0:amd64    204-10   amd64   systemd 128 bit ID utility library
+ii  libsystemd-journal0:amd64   204-10   amd64   systemd journal utility library
+ii  libsystemd-login0:amd64     204-10   amd64   systemd login utility library
+ii  systemd                     204-10   amd64   system and service manager
+ii  systemd-gui                 1:3-2    all     transitional package for systemd-ui
+ii  systemd-sysv                204-10   amd64   system and service manager - SysV links
+ii  systemd-ui                  3-2      amd64   graphical frontend for systemd
+\end{commandline}
+\noindent
+本原稿の執筆時間がよくわかります\footnote{%
+  lsb-baseとlsb-releaseしかインストールしていないので%
+  \texttt{lsb\_release -a}の出力結果はこんなモンです。
+}。
+%
+一応whezzy + wheezy-backportsでもテストはしてみましたが。
+
+...しかし, v204 って...。
+
+\subsection{そもそも systemd ってナニよ?}
+
+systemdはLennart Poettering氏%
+\footnote{Red Hat Inc.のエンジニアさんです。%
+  systemdの開発者だけでなく様々なフリーソフトウェアの開発者でもあります。%
+  例えばPulseAudioとかAvahiなんかのメイン開発者でもありますね。}%
+によって開発されているInitの代替プログラムで\sout{す}した。
+今では単なる「Initの代替」というより「Linuxのサービス(デーモン)管理フレームワーク」となっています。
+開発は
+\texttt{freedesktop.org}\footnote{%
+  \href{http://www.freedesktop.org/wiki/Software/systemd/}{\texttt{http://www.freedesktop.org/wiki/Software/systemd/}}%
+}で行なわれており、ライセンスはLGPL-2.1+、最新バージョンはv214となっています。
+
+「Linuxのサービス(デーモン)管理フレームワーク」としてのsystemdの特徴は
+\begin{enumerate}[topsep=1zw]
+\item Initとして、SysVおよびLSB init script との互換性の提供。
+\item サービスの起動をソケットとバス(D-Bus)で行なう。
+\item サービス間の依存関係を明確にし、よりアグレッシブに並列起動する。
+\item オンデマンドなサービスの起動。
+\item プロセス管理をpidではなくcgroups(control groups)で行なう。
+\end{enumerate}
+といった所です。
+
+既にLinuxカーネル用のデバイス管理ツールであるudevがsystemdのソースにマージされており、
+デバイスの状態に応じてオンデマンドにサービスが起動したりします。
+将来的にはcronやacpidの代替機能も提供する予定らしいです\footnote{%
+  ここまで来るとやりすぎな感も否めませんが...。
+}。
+その他、systemdに関する開発者の思想、現状に関しては
+\begin{itemize}
+\item %
+  \href{http://0pointer.de/blog/projects/systemd.html}{\texttt{http://0pointer.de/blog/projects/systemd.html}}
+\item %
+  \href{http://0pointer.de/blog/projects/systemd-for-admins-1.html}{\texttt{http://0pointer.de/blog/projects/systemd-for-admins-1.html}}
+  から始まる一連のエントリ\footnote{現在\#20まであります。長くて読むの辛い...。}
+\end{itemize}
+が非常に参考になるでしょう。
+
+\subsection{Debian で使うには?}
+
+systemdの必要要件は以下の通りです:
+\begin{enumerate}[topsep=1zw]
+\item Linuxカーネルのバージョンは2.6.39以上
+\item 以下の機能が有効となっていること
+  \begin{itemize}[topsep=0zw]
+  \item devtmpfs
+  \item fanotify
+  \item autofs4
+  \item cgroups
+  \end{itemize}
+\end{enumerate}
+カスタムカーネルを使用されている場合には、カーネルのバージョン等にご注意下さい。
+
+Debianでパッケージとして提供されているsystemdのバージョンは
+\begin{itemize}[topsep=1zw]
+\item wheezy: v44
+\item wheezy-backports: 204-8\~{}bpo70+1
+\item jessie/sid: 204-10
+\end{itemize}
+です。以下、パッケージとして提供されている最新版であるv204のお話をします\footnote{%
+  ちなみに、v44を使用する場合の手順は、
+  \texttt{systemd} を install →
+  起動時に \texttt{init=/lib/systemd/systemd}と指定する or grub エントリの書き換えを行なう、です。
+}
+では導入してみましょう。wheezyをお使いの方はwheezy-backportsを有効にして下さい。
+initをsysvinitから置き換えるために、\texttt{systemd-sysv}を導入します。
+\begin{commandline}
+% sudo aptitude install systemd-sysv -t wheezy-backports <-- wheezy の場合
+% sudp aptitude install systemd-sysv                     <-- jessie/sid の場合
+\end{commandline}
+wheezyの場合にはsysvinitがcoreパッケージなので、インストール時の依存関係解決に多少手間どるかもしれません。
+以下のパッケージが依存関係でインストールされます。
+\begin{commandline}
+===============================================================================
+[インストール] libpam-systemd:amd64
+[インストール] libsystemd-journal0:amd64
+[インストール] libudev1:amd64
+[インストール] systemd:amd64
+[インストール] systemd-sysv:amd64
+[削除] sysvinit:amd64
+[更新] libsystemd-daemon0:amd64 44-11+deb7u4 -> 204-8~bpo70+1
+[更新] libsystemd-login0:amd64 44-11+deb7u4 -> 204-8~bpo70+1
+===============================================================================
+\end{commandline}
+インストールが終わったら reboot します。...無事起動できたでしょうか?
+
+systemdはbootプロセスの解析ツールがあり、起動時にかかった時間が直ぐにわかります。
+\begin{commandline}
+% systemd-analyze
+Startup finished in 1.632s (kernel) + 3min 2.710s (userspace) = 3min 4.343s
+\end{commandline}
+...あれ?
+\begin{commandline}
+% systemd-analyze blame
+       3min 12ms dnsmasq.service
+        2.074s systemd-udev-settle.service
+         630ms psd.service
+         307ms NetworkManager.service
+         127ms squid3.service
+         106ms bluetooth.service
+          98ms udisks2.service
+          96ms exim4.service
+          93ms keyboard-setup.service
+          87ms bootlogs.service
+          87ms avahi-daemon.service
+          80ms resolvconf.service
+          76ms console-setup.service
+          74ms networking.service
+          73ms systemd-logind.service
+          69ms netfilter-persistent.service
+          64ms console-kit-log-system-start.service
+          ...以下略...
+\end{commandline}
+燦然と輝く\textbf{3min 12ms dnsmasq.service}。…おかしい。これはおかしい。
+
+\subsection{現状どうなのよ?}
+\subsubsection{systemdの用語}
+systemdを理解するために、先ずは用語を確認しましょう。
+\begin{itemize}
+\item ユニット(unit): \\
+  SysVinitの初期化スクリプトにまとめて含まれていた個々の処理を抜き出した最小単位。
+  個々のUnitはそれぞれ以下の通り:
+  \begin{itemize}
+  \item サービス(\texttt{.service}): \\
+    デーモンを起動する
+  \item ソケット(\texttt{.socket}): \\
+    systemdが指定されたsocketを監視し、接続があると指定の\texttt{.service}を起動し、socketを渡す。inetdの様な役割。
+  \item ターゲット(\texttt{.target}):\\
+    複数のユニットをまとめて、依存関係や順序関係を定義する。SysVinitのrunlevelに対応\footnote{%
+      厳密に1対1に対応する訳ではない。%
+    }
+  \item マウントポイント(\texttt{.mount}): \\
+    ファイルをマウントする
+  \item スワップ(\texttt{.swap}): \\
+    スワップを有効化
+  \item デバイス(\texttt{.device}): \\
+    udevがデバイスを認識すると有効化される。
+  \end{itemize}
+\end{itemize}
+このうち、\texttt{.mount},\texttt{.swap}は\texttt{/etc/fstab}から、\texttt{.device}はudevから、それぞれ自動生成されます。
+これら「ユニット」を定義したファイルは\texttt{/lib/systemd}以下に置かれ、\texttt{/etc/systemd}以下の適切な場所へsymbolic linkをはることで有効になります。
+
+また、ターゲットはSysvInitのrunlevelに(なんとなく)対応しており、Debianの場合には
+\begin{table}[h]
+  \centering
+  \begin{tabular}{l|l}
+    SysVinit の runlevel & systemd の target \\
+    \hline
+    0                    & poweroff.target \\
+    1                    & rescue.target \\
+    2 - 5                & multi-user.target \\
+    6                    & reboot.target \\
+    \hline
+  \end{tabular}
+  \caption{Debianでのrunlevelと.targetの対応}
+\end{table}
+となっています。起動時に何も指定しない場合にはdefault.targetが実行されます。
+手元の環境ではdefault.target は graphical.targetへのsymbolic linkになっていました.
+\begin{commandline}
+  % ls -la /lib/systemd/system/default.target
+  lrwxrwxrwx 1 root root 16 2014-04-27 19:43 /lib/systemd/system/default.target -> graphical.target
+\end{commandline}
+では graphical.target の中身を見てみましょう
+\begin{commandline}
+% cat /lib/systemd/system/graphical.target | grep -v ^#
+
+[Unit]
+Description=Graphical Interface
+Documentation=man:systemd.special(7)
+Requires=multi-user.target
+After=multi-user.target
+Conflicts=rescue.target
+Wants=display-manager.service
+AllowIsolate=yes
+
+[Install]
+Alias=default.target
+
+\end{commandline}
+「Requires」、「After」、「Conflicts」、「Wants」が依存/順序関係を表現しています。
+それぞれ
+\begin{itemize}
+\item Require: ここで指定されているユニットが起動していることが必要(依存関係)。
+  Requireで指定されたユニットの起動に失敗すると、このユニットは実行されない。
+\item Wants: ここで指定されているユニットが起動していることが求められる(依存関係)。
+  ただし、
+  Wantsで指定されたユニットの起動に失敗しても、このユニットは実行開始される。
+\item After: ここで指定されたユニットの起動「後」に実行される(順序関係)。
+\item Before: ここで指定されたユニットの起動「前」に実行される(順序関係)。
+\end{itemize}
+となっています。
+
+ユニットの操作は全て\texttt{systemctl}コマンドで行ないます。
+では、現状の依存/順序関係を表示してみましょう。
+\begin{commandline}
+  % systemctl list-dependencies [unit名]
+    unit名省略時は default.target
+  % systemctl list-dependencies [unit名] --after
+  % systemctl list-dependencies [unit名] --before
+\end{commandline}
+\begin{commandline}
+% systemctl list-dependencies
+default.target
+├─bootlogs.service
+├─chrony.service
+├─dovecot.service
+├─exim4.service
+├─hyperestraier.service
+├─lightdm.service
+├─motd.service
+├─psd.service
+├─pulseaudio.service
+├─schroot.service
+├─systemd-update-utmp-runlevel.service
+├─yaskkserv.service
+└─multi-user.target
+  ├─anacron.service
+  ├─atd.service
+   ...
+\end{commandline}
+以下、続く。
+
+
 
 \dancersection{もくもくの会}{}
 
