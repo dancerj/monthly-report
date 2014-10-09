@@ -1,4 +1,4 @@
-FILENAME=debian_flyer_squeeze
+FILENAME=debian_flyer
 PAPERSIZE=a4
 PDFQUALITY=prepress
 
