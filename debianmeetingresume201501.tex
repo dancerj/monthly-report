@@ -1,0 +1,373 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+ 
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2015}
+\newcommand{\debmtgmonth}{1}
+\newcommand{\debmtgdate}{17}
+% started from zero:
+% (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{122}
+
+% tikz picture の為のマクロ設定
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt 特集：Emacs関連パッケージの作成}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{事前課題}{野島 貴英}
+
+今回の事前課題は以下です:
+\begin{enumerate}
+\item 本日、何の作業をやるかを宣言ください。
+\item (オプション) どこで今回の勉強会の開催を知りましたか？
+\item (オプション) 何について聞きたい／参加者と話をしたいですか？
+\end{enumerate}
+この課題に対して提出いただいた内容は以下です。
+\begin{multicols}{2}
+{\small
+% \input{image201501/prework.tex}
+}
+\end{multicols}
+
+\dancersection{Debian Trivia Quiz}{野島 貴英}
+
+ Debianの昨今の話題についてのQuizです。
+
+今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}に投稿された
+内容などからです。
+
+\begin{multicols}{2}
+% \input{image201501/quiz.tex}
+\end{multicols}
+
+\dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
+
+\subsection{第121回東京エリアDebian勉強会}
+
+\begin{itemize}
+\item 場所はスクウェア・エニックスさんのセミナルームをお借りしての開催でした。
+\item 参加者は9名でした。
+\item セミナ内容は 
+\begin{itemize}
+\item @kenhysさんにより「DebianとFedoraでパッケージをリリースするまでの話」
+\item 野島さんにより、「Debianから見たLinux Mint」
+\end{itemize}
+でした。
+\item 残りの時間でhack timeを行い、成果発表をしました。
+\item 宴会の代わりに、「大戸屋ごはん処 新宿イーストサイドスクエア」で夕食会をやりました。
+\end{itemize} 
+
+　セミナですが、@kenhysさんにより、groongaについての概要とDebian/Fedoraへ公式パッケージをリリースするまでが語られました。現在のDebian/Fedoraの公式パッケージ化に関して、実際のところが語られました。また、野島さんにより、Linux Mintについて、Debianとの比較について語られました。
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[	 ]\+" "")
+
+%-------------------------------------------------------------------------------
+\dancersection{Emacs関連パッケージのDebianパッケージ作成}{henrich}
+%-------------------------------------------------------------------------------
+\index{debian-emacs-package}
+
+\subsection{はじめに}
+
+ Debianでelispパッケージをお作法に従って作る方法について語ってみます。
+
+ emacs関連パッケージのDebianパッケージ化の手続きを簡単にいうと、
+
+\begin{description}
+\item [Step 1.] emacsen-commonパッケージを入れる
+\item [Step 2.] /usr/share/doc/emacsen-common/debian-emacs-policy.gz を読む
+\item [Step 3.] ポリシーに従って作る
+\end{description}
+
+以上となります。
+
+…というのも突き放しすぎなので、step by stepで作り方を説明してみます。
+
+\subsection{step by stepでの作り方}
+
+ まず、ソースを展開しておいて、dh-makeパッケージを入れてdh\_makeコマンドでパッケージを作ります。パッケージはdh-make、コマンドはdh\_makeと「-」と「\_」の違いがあるのに注意。この際、*.elなファイルがあるとテンプレートファイルをコピーしてパッケージ名に合わせて修正してくれます（あるいは --with-emacs オプションを使います）。以前は特に.elなファイルがなくてもテンプレートファイルがコピーされていたのですが、毎度消すのが鬱陶しかったのでパッチを送って修正してもらいました(\footnote{\url{http://bugs.debian.org/696793}})
+
+\begin{commandline}
+$ sudo apt-get install dh-make
+$ dh_make --createorig
+
+Type of package: single binary, indep binary, multiple binary, library, kernel module, kernel patch?
+ [s/i/m/l/k/n] s
+
+Maintainer name  : Hideki Yamane
+Email-Address    : henrich@XXXXXX
+Date             : Sun, 04 Jan 2015 12:26:09 +0900
+Package Name     : ag-el
+Version          : 0.44
+License          : blank
+Type of Package  : Single
+Hit <enter> to confirm: 
+Currently there is no top level Makefile. This may require additional tuning.
+Done. Please edit the files in the debian/ subdirectory now. You should also
+check that the ag.el Makefiles install into $DESTDIR and not in / .
+
+\end{commandline}
+\begin{commandline}
+$ ls debian/
+README.Debian      changelog  emacsen-install.ex  manpage.sgml.ex  preinst.ex
+README.source      compat     emacsen-remove.ex   manpage.xml.ex   prerm.ex
+ag.el.cron.d.ex    control    emacsen-startup.ex  menu.ex          rules
+ag.el.default.ex   copyright  init.d.ex           postinst.ex      source
+ag.el.doc-base.EX  docs       manpage.1.ex        postrm.ex        watch.ex
+\end{commandline}
+
+ emacsen-*.ex ファイルがあることがわかります。これをリネームして.exポストフィックスを外してやりましょう。余分なファイルも消しておきます。
+
+\begin{commandline}
+$ ls
+changelog  control    docs             emacsen-remove   rules   watch
+compat     copyright  emacsen-install  emacsen-startup  source
+\end{commandline}
+%$
+
+ スッキリしました。emacsen* ファイルの中身は特にいじる必要はありません。
+
+ 次にdebian/controlを修正します。
+
+\begin{commandline}
+$ vi debian/control
+------debian/controlファイルここから---------------
+Package: ag-el
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
+
+Package: ag-el
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, emacsen-common (>= 2.0.8), emacs,
+         silversearcher-ag, 
+Description: Emacs frontend to ag
+ The Silver Searcher (a.k.a. ag) is very fast grep-like program.
+ It is faster and has an attractive features than grep.
+ ag.el is simple ag frontend for Emacs, loosely based on ack-and-half.el.
+------debian/controlファイルここまで---------------
+\end{commandline}
+%$
+
+ Architecture: は elisp スクリプトなので all に変えます。ポイントはDepends行のemacsen-common ($>=$ 2.0.8), emacsの2つです。
+
+ emacsen-common ($>=$ 2.0.8)の必要性はEmacs Policyに書いてあります。これと併せてdebian/emacs-compatファイルを置きます（中身は単に「0」とだけする）。このファイルはdh\_installemacsenが処理してくれます。man dh\_installemacsenとすると記載があります。
+
+\begin{commandline}
+$ man dh_installemacsen
+...中略...
+FILES
+       debian/package.emacsen-compat
+           Installed into usr/lib/emacsen-common/packages/compat/package in the package build directory.
+...中略...
+\end{commandline}
+%$
+ 
+ emacsはメタパッケージになっており、Emacs24などの特定バージョンに依存しています。Depends: emacs24などとすると、Emacs25が出た時に再度Depends行を書き換える必要が発生しますが、このメタパッケージを指定すればパッケージ側での都度変更は不要です。
+
+\begin{commandline}
+$ apt-cache show emacs
+Package: emacs
+Source: emacs-defaults
+Version: 46.1
+Installed-Size: 25
+Maintainer: Rob Browning <rlb@defaultvalue.org>
+Architecture: all
+Depends: emacs24 | emacs24-lucid | emacs24-nox
+Description-ja: GNU Emacs エディタ (メタパッケージ)
+ GNU Emacs は、拡張可能で自己説明的なテキストエディタです。
+ これは常に推奨の最新 Emacs リリースに依存するメタパッケージです。
+Description-md5: 21fb7da111336097a2378959f6d6e6a8
+Tag: devel::editor, role::dummy, role::metapackage, suite::emacs, suite::gnu,
+ use::editing
+Section: editors
+Priority: optional
+Filename: pool/main/e/emacs-defaults/emacs_46.1_all.deb
+Size: 1634
+MD5sum: 1f115942065ac452467e02377368ee22
+SHA1: dbb1343a3d24f60e5038994e3528dd7486e40943
+SHA256: c1fad54e790d69b83f32f2612963baba3ea8091ff3ca72c960c7312096223e3a
+\end{commandline}
+%$
+
+ その他にもXemacsを含むemacsenというパッケージでの指定もありますが、これは仮想パッケージなので単独で指定はできません。指定するとしたら"Depends: emacs | emacsen" のようにします。
+
+ …とここまで書いて「dh-makeでフォローしてくれればいいんじゃねーの？」と気づきました。では、dh-makeパッケージへのパッチを作りましょう…できましたので、BTSを…しました。将来的にはこの部分は「へーそんなのもあるんだー」的になるはず。あ、reportbugで複数ファイルを添付するには1つずつ-Aで指定が必要なようです。
+
+\begin{commandline}
+$ debcheckout dh-make
+$ cd dh-make
+$ git checkout -b support-modern-emacs-policy
+...いろいろ変更...
+$ git format-patch master
+$ ls
+0001-add-emacsen-compat-for-modern-Emacs-lisp-package.patch  0002-add-debian-control-file-for-Emacs-add-on.patch 
+debian  dh_make  dh_make.1  lib
+$ reportbug -A 0001-add-emacsen-compat-for-modern-Emacs-lisp-package.patch \
+-A 0002-add-debian-control-file-for-Emacs-add-on.patch dh-make
+\end{commandline}
+
+ これでBug\#774545として登録されました。
+
+ しかし、ここで気になることが。dh-makeでのdebian/controlファイルはどうも種類に合わせてコピーされるようです。これをそのまま適用すると、*.elファイルがある場合に否応なしにEmacs add-onパッケージ用のcontrolファイルになるわけで、複数のバイナリパッケージを生成するような場合には嬉しくありません。
+
+ 多分、大本のcontrolファイルがあって、Emacs用のが追加される形のほうが嬉しい…のでは？という気がします。…しかし、その場合の「Section: lisp」指定をどうするのか…
+
+\begin{commandline}
+Source: #PACKAGE#
+Section: lisp
+Priority: optional
+Maintainer: #USERNAME# <#EMAIL#>
+Build-Depends: #BUILD_DEPS#
+Standards-Version: #POLICY#
+Homepage: <insert the upstream URL, if relevant>
+#Vcs-Git: git://anonscm.debian.org/collab-maint/#PACKAGE#.git
+#Vcs-Browser: http://anonscm.debian.org/cgit/collab-maint/#PACKAGE#.git/
+
+Package: #PACKAGE#
+Architecture: all
+Depends: ${misc:Depends}, emacsen-common (>= 2.0.8), emacs | emacsen,
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
+\end{commandline}
+%$
+
+これ、パッケージのところだけを「追記」する形だといいのですかね？
+
+\begin{commandline}
+Package: #PACKAGE#
+Section: lisp
+Architecture: all
+Depends: ${misc:Depends}, emacsen-common (>= 2.0.8), emacs | emacsen,
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
+\end{commandline}
+%$
+
+ そうすればソースパッケージの雛形も1箇所でまとめれば済んで、いい感じになるんじゃないか？とか思い始めました。
+
+\begin{commandline}
+Source: #PACKAGE#
+Section: UNKNOWN
+Priority: optional
+Maintainer: #USERNAME# <#EMAIL#>
+Build-Depends: #BUILD_DEPS#
+Standards-Version: #POLICY#
+Homepage: <insert the upstream URL, if relevant>
+#Vcs-Git: git://anonscm.debian.org/collab-maint/#PACKAGE#.git
+#Vcs-Browser: http://anonscm.debian.org/cgit/collab-maint/#PACKAGE#.git/
+\end{commandline}
+
+ でもそれは別ハックですね…。
+
+ あとはdebuildしてlintianのwarningなどをちょこちょこと直せば完成です。
+
+\begin{commandline}
+$ dpkg --contents /var/cache/pbuilder/result/ag-el_0.44-1_all.deb 
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/share/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/share/doc/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/share/doc/ag-el/
+-rw-r--r-- root/root       175 2015-01-04 13:10 ./usr/share/doc/ag-el/changelog.Debian.gz
+-rw-r--r-- root/root      1089 2015-01-04 13:35 ./usr/share/doc/ag-el/copyright
+-rw-r--r-- root/root      5279 2014-08-05 05:58 ./usr/share/doc/ag-el/README.md.gz
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/lib/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/lib/emacsen-common/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/remove/
+-rwxr-xr-x root/root       465 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/remove/ag-el
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/install/
+-rwxr-xr-x root/root      1280 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/install/ag-el
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/compat/
+-rw-r--r-- root/root         2 2015-01-04 13:35 ./usr/lib/emacsen-common/packages/compat/ag-el
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./etc/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./etc/emacs/
+drwxr-xr-x root/root         0 2015-01-04 13:35 ./etc/emacs/site-start.d/
+-rw-r--r-- root/root      1225 2015-01-04 13:35 ./etc/emacs/site-start.d/50ag-el.el
+\end{commandline}
+%$
+
+\subsection{まとめ}
+
+\begin{itemize}
+\item elispパッケージは emacsen-common パッケージを入れて /usr/share/doc/emacsen-common/debian-emacs-policy.gz ファイルに従ってパッケージを作ろう
+\item お手軽にするにはdh-makeパッケージを使おう
+\item Policyを読んでtipsを確認する手間を省くにはdh-makeパッケージをハックしてしまえばいい
+\end{itemize}
+
+\newpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
