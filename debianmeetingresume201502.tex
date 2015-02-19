@@ -119,9 +119,408 @@
 % % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{Debian GNU/kFreeBSDにおけるJail構築を試してみた}{dictoss}
+\dancersection{Debian GNU/kFreeBSDにおけるJail構築を試してみた}{杉本 典充}
 %-------------------------------------------------------------------------------
 \index{debian-kfreebsd-jail}
+
+\subsection{はじめに}
+
+Debian GNU/kFreeBSDは、FreeBSDカーネルで動作するDebianです。
+近頃はdockerを実装例としたコンテナ環境に復権（?!）の兆しがあるようにも思えます。そこで、Debian GNU/kFreeBSDをホストとして、FreeBSD Jail環境の構築を試してみます。
+
+\subsection{Debian PortsとDebian GNU/kFreeBSD}
+
+Debian Ports \footnote{\url{https://www.debian.org/ports/}}とは、さまざまなCPUやカーネルで動作するように移植を行うプロジェクトのことです。
+
+FreeBSDカーネルで起動するDebianを作るプロジェクトがあり、そのDebianのことを「Debian GNU/kFreeBSD」と呼んでいます(kはkernelのこと)。現在ではIntel CPUのアーキテクチャのみあります(kfreebsd-amd64、kfreebsd-i386)。Debian 6 (Squeeze)ではテクノロジープレビューとして初めてstableリリースされました。Debian 7 (Wheezy)でも継続してstableリリースされたのですが、Debian 8 (Jessie)ではDropされることが決まっています。\footnote{\url{https://lists.debian.org/debian-devel-announce/2014/09/msg00002.html}において、stableを維持しつつsidの開発を進めるにはそれなりに人手が必要であるが、kFreeBSDを作業する人手は不足していることが指摘されています。}
+
+\subsection{Debianにおけるコンテナ環境の構築方法}
+
+Debianにおいて、コンテナ環境を構築するにはdebootstrapを使います。通常はホスト環境と同じアーキテクチャを引数に指定して実行します。\footnote{debootstrapについては昔の記事にまとめたものがあります。「debootstrap を有効活用してみよう」\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume2013-natsu.pdf}}
+
+\begin{commandline}
+# apt-get install debootstrap
+# mkdir -p /srv/jail
+# cd /srv/jail
+# debootstrap --arch=[arch] [release] [dir] http://ftp.jp.debian.org/debian
+\end{commandline}
+
+ホスト環境のアーキテクチャと異なるアーキテクチャのコンテナ環境を用意すると普通は動作しません。
+ところが、Debianではコンテナ環境とqemuを組み合わせることでエミュレーション動作させつつ、見た目はコンテナ環境でバイナリを実行させる方法があります。これをCrossDebootstrapと言います。\footnote{\url{https://lists.debian.org/debian-mips/2011/02/msg00031.html} 2011年頃にkfreebsd-mips対応をしていた動きがあるようで、これが動くようになればkfreebsdでCrossDebootstrapを使える日がくるかもしれません。}
+
+\begin{commandline}
+# apt-get install qemu binfmt-support qemu-user-static
+# debootstrap --foreign --arch=[arch] [release] [dir] http://ftp.jp.debian.org/debian
+# cp /usr/bin/qemu-[arch]-static /[dir]/usr/bin/
+# chroot [dir]
+# /debootstrap/debootstrap --second-stage
+\end{commandline}
+
+\subsection{Debian GNU/kFreeBSDをホストとしたJail環境の構築}
+
+Debian GNU/kFreeBSD上でJail環境を構築してみました。環境は以下で行いました。
+
+\begin{itemize}
+  \item ホスト環境 
+  \begin{itemize}
+    \item Debian GNU/kFreeBSD unstable amd64
+    \item FreeBSD-10.1 kernel (10.1~svn274115-2)
+  \end{itemize}
+  \item ネットワーク環境 
+  \begin{itemize}
+    \item ホストとコンテナが同一ネットワーク(192.168.0.0/24)
+  \end{itemize}
+  \item コンテナ環境
+  \begin{itemize}
+    \item FreeBSD Jailにて起動する
+  \end{itemize}
+\end{itemize}
+
+jailコマンドはaptでインストールできます。
+
+\begin{commandline}
+# apt-get install freebsd-utils
+# which jail
+/usr/sbin/jail
+\end{commandline}
+
+ただし現状では、jls\footnote{jlsは起動しているjailを一覧表示するコマンドです。Jail環境として動作しているコンテナは、kernelによってjidという番号を付与され識別されます。}、jexec\footnote{jexecはJail環境内でコマンドを実行するコマンドです。実行例は 「\# jexec 1 /bin/sh」}コマンドはパッケージ化されていません。そのため、今回はJail環境でsshdを動かし、sshログインできるようにすることをゴールとします。
+
+Jail環境を作成して起動するには以下の作業を行います。
+
+\begin{itemize}
+  \item Jail環境の動作に必要なバイナリや設定ファイル等のディレクトリツリーを配置する
+  \item ネットワークデバイスにIP Alias設定を行う
+  \item Jail環境内の動作に必要な/devやファイルシステムのmountを行う
+  \item jailコマンドを実行してJail環境を起動する
+\end{itemize}
+
+
+\subsubsection{kfreebsd-amd64、kfreebsd-i386のJail環境}
+
+ホスト環境と同じアーキテクチャのJail環境を作成します。以下の手順はkfreebsd-amd64を指定していますが、kfreebsd-i386も同様の手順で構築することができます。
+
+\begin{commandline}
+# mkdir -p /srv/jail
+# cd /srv/jail
+# debootstrap --arch=kfreebsd-amd64 wheezy jail_kf64_1 http://ftp.jp.debian.org/debian
+\end{commandline}
+
+Jail環境内の設定ファイルを変更します。
+
+\begin{commandline}
+# cd /srv/jail
+# vi jail_kf64_1/etc/resolv.conf
+nameserver 192.168.0.1
+
+# vi jail_kf64_1/etc/hostname
+jail_kf64_1
+\end{commandline}
+
+Jail環境内でsshdが動くように設定します。
+
+\begin{commandline}
+# chroot jail_kf64_1
+# apt-get install openssh-server
+# passwd
+# adduser user
+# passwd user
+\end{commandline}
+
+Jail環境を起動するにはdebootsrapしたディレクトリをjailコマンドの引数に指定します。Debianのwebサイトにjailを起動する前処理を含めたスクリプトの例があります\footnote{\url{https://wiki.debian.org/Debian_GNU/kFreeBSD/Jails}}。複数のJail環境を構築するため、スクリプトと起動パラメータを記述した設定ファイルに分割するよう修正しました。
+
+設定ファイルは以下です。
+
+\begin{commandline}
+$ cat jail_kf64_1
+#!/bin/sh
+JID=1
+JID_HOST=jail_kf64_1
+JID_IPADDR=192.168.0.61
+JID_NETMASK=255.255.255.0
+JID_SH_PARAM=''-- -c''
+JID_CMD=''/etc/init.d/rc S && /etc/init.d/rc 2''
+\end{commandline}
+
+起動スクリプトは以下です。
+
+\begin{commandline}
+$ cat jail-bootstrap.sh
+#!/bin/sh
+
+. ./$1
+
+echo ``----''
+echo ``start prison.''
+echo ``[target] JID: $JID, name: $JID_HOST''
+echo ``----''
+echo
+
+NIC_DEV=em0
+
+# add ip alias
+/sbin/ifconfig $NIC_DEV alias $JID_IPADDR netmask $JID_NETMASK
+
+
+# Linux-like /proc and /sys filesystems
+mount -t linprocfs linprocfs /srv/jail/$JID_HOST/proc
+mount -t linsysfs linsysfs /srv/jail/$JID_HOST/sys
+
+# Ramdisk required for /run
+mount -t tmpfs tmpfs /srv/jail/$JID_HOST/run
+
+# A read-only /dev filesystem with restricted set of devices
+mount -t devfs devfs /srv/jail/$JID_HOST/dev
+# :XXX: ruleset 4 must be initialised as explained earlier in this Wiki page
+devfs -m /srv/jail/$JID_HOST/dev rule -s 4 applyset
+# Ensure the jail has some essential devices
+for DEVICE in null random urandom zero
+do if [ ! -e /srv/jail/$JID_HOST/dev/$DEVICE ]
+    then
+        echo ``error: device '/dev/$DEVICE' MUST be available in the jail''
+        exit 1
+    fi
+done
+
+# Ensure the jail has only a limited set of devices
+#for DEVICE in mem kmem
+#do if [ -e /srv/jail/$JID_HOST/dev/$DEVICE ]
+#    then
+#        echo ``error: device '/dev/$DEVICE' MUST NOT be available in the jail''
+#        exit 1
+#    fi
+#done
+
+# Compatibility symlink from /dev/shm to /run/shm
+ln -s /run/shm /srv/jail/$JID_HOST/dev/
+
+# Optionally enable networking
+HOSTNAME=$JID_HOST
+# :XXX: this IP address *must* be assigned to one of the host's interfaces before the guest can use it
+IP=$JID_IPADDR
+
+mkdir -p /var/run/jail
+jail -J /var/run/jail/$JID.jid -c jid=$JID \
+  name=jail$JID \
+  path=/srv/jail/$JID_HOST \
+  host.hostname=$JID_HOST \
+  ip4.addr=$IP \
+  command=/bin/sh $JID_SH_PARAM ``$JID_CMD''
+\end{commandline}
+
+スクリプトを実行してJail環境を起動します。
+
+\begin{commandline}
+$ sudo ./jail-bootstrap.sh jail_kf64_jail
+
+----
+start prison.
+[target] JID: 1, name: jail_kf64_1
+----
+
+devfs rule: ioctl DEVFSIO_SAPPLY: No such process
+[info] Using makefile-style concurrent boot in runlevel S.
+hostname: the specified hostname is invalid
+kern.module_path: /lib/modules/10.1-0-amd64
+sysctl: kern.module_path=/lib/modules/10.1-0-amd64: Operation not permitted
+[....] Loading devfs rules...devfs ruleset: ioctl DEVFSIO_SUSE: Operation not permitted
+ (warning).
+mount: tmpfs: Operation not permitted
+mount: tmpfs: Operation not permitted
+[ ok ] Activating swap...done.
+mount: /: unknown special file or file system
+mount: /run: unknown special file or file system
+mount: /proc: unknown special file or file system
+mount: /sys: unknown special file or file system
+[ ok ] Activating lvm and md swap...done.
+[....] Checking file systems...fsck from util-linux 2.25.2
+done.
+[ ok ] Cleaning up temporary files... /tmp.
+[ ok ] Mounting local filesystems...done.
+/etc/init.d/mountall.sh: 59: kill: No such process
+
+[ ok ] Activating swapfile swap...done.
+mount: tmpfs: Operation not permitted
+mount: tmpfs: Operation not permitted
+[ ok ] Cleaning up temporary files....
+[....] Starting device state change daemon : devddevd: Can't open devctl device /dev/devctl: Device or resource busy
+ failed!
+[....] Configuring network interfaces...ifconfig: up: permission denied
+ifconfig: socket(family 28,SOCK_DGRAM: Protocol not supported
+done.
+[ ok ] Cleaning up temporary files....
+[FAIL] startpar: service(s) returned failure: hostname.sh kldutils ... failed!
+[info] Using makefile-style concurrent boot in runlevel 2.
+[....] Starting enhanced syslogd: rsyslogdln: failed to create symbolic link '/dev/xconsole': Operation not permitted
+. ok
+[ ok ] Starting periodic command scheduler: cron.
+[ ok ] Starting OpenBSD Secure Shell server: sshd.
+\end{commandline}
+
+Jail環境へsshログインします。
+
+\begin{commandline}
+$ ssh user@192.168.0.61
+user@192.168.0.61's password:
+
+user@jail_kf64_1:~$
+\end{commandline}
+
+Jail環境内のプロセスをすべて停止したい場合はJail環境内で以下コマンドを実行します。
+
+\begin{commandline}
+root@jail_kf64_1:~# sh /etc/init.d/rc 0
+\end{commandline}
+
+
+\subsubsection{FreeBSD-10.1-RELEASEのJail環境}
+
+FreeBSDのディレクトリツリーを取得して展開します。
+
+\begin{commandline}
+# mkdir -p /srv/jail/jail_fb101_1
+# cd /srv/jail/jail_fb101_1
+# wget http://ftp.jaist.ac.jp/pub/FreeBSD/releases/amd64/amd64/10.1-RELEASE/base.txz
+# tar xvf base.txz
+# ls
+COPYRIGHT  bin dev  lib      media  proc    root  sys  usr
+base.txz   boot  etc  libexec  mnt    rescue  sbin  tmp  var
+\end{commandline}
+
+Jail環境内の設定ファイルを変更します。
+
+\begin{commandline}
+# vi etc/resolv.conf
+nameserver 192.168.0.1
+\end{commandline}
+
+Jail環境内でsshdが動くように設定します。
+
+\begin{commandline}
+# vi etc/rc.conf
+sshd_enable=''YES''
+sendmail_enable=''NONE''
+
+# cd ..
+# chroot jail_fb101
+# passwd
+# adduser user
+# passwd user
+\end{commandline}
+
+FreeBSD-10.1-RELEASEのJail環境を起動するスクリプトの設定ファイルは以下です。
+
+\begin{commandline}
+$ cat jail_fb101_1
+JID=3
+JID_HOST=jail_fb101_1
+JID_IPADDR=192.168.0.63
+JID_NETMASK=255.255.255.0
+JID_SH_PARAM=''''
+JID_CMD=''/etc/rc''
+\end{commandline}
+
+Jail環境を起動します。
+
+\begin{commandline}
+$ sudo ./jail-bootstrap.sh jail_fb101_1
+
+----
+start prison.
+[target] JID: 3, name: jail_fb101_1
+----
+
+mount: /srv/jail/jail_fb101_1/usr/src/sys: No such file or directory
+mount: /srv/jail/jail_fb101_1/run: No such file or directory
+devfs rule: ioctl DEVFSIO_SAPPLY: No such process
+/etc/rc: WARNING: $hostname is not set -- see rc.conf(5).
+Creating and/or trimming log files.
+ln: /dev/log: Operation not permitted
+Starting syslogd.
+ELF ldconfig path: /lib /usr/lib /usr/lib/compat /usr/local/lib
+32-bit compatibility ldconfig path: /usr/lib32
+Clearing /tmp (X related).
+Updating motd:.
+Performing sanity check on sshd configuration.
+Starting sshd.
+Starting cron.
+
+Mon Feb 16 22:43:36 UTC 2015
+\end{commandline}
+
+Jail環境へsshログインします。
+
+\begin{commandline}
+$ ssh user@192.168.0.63
+Password for user@jail_fb101_1:
+
+user@jail_fb101_1:~ %
+\end{commandline}
+
+Jail環境内のプロセスをすべて停止したい場合はJail環境内で以下コマンドを実行します。\footnote{\url{https://www.freebsd.org/doc/en/books/handbook/jails-build.html}にそう記述がありプロセスはあらかた停止しているように見えますが、kernelではまだjidが生きているようでゴミが残ってしまうようです。}
+
+\begin{commandline}
+root@jail_fb101_1:/ # sh /etc/rc.shutdown
+\end{commandline}
+
+
+\subsubsection{linux-i386のJail環境}
+
+【注意】debianとしては動きませんでしたので、試したところまで述べます。
+
+
+FreeBSD kernelにはLinuxバイナリ互換機能というものがあり、32bitのlinuxバイナリを動かすことができます。FreeBSDにおいてLinuxバイナリ互換機能を有効にするには、linux\_base Portsをインストールし、linux.koをkldloadします。Debian GNU/kFreeBSDではkernelにstatic linkしていますのでlinux.koのロードは不要でした。
+
+Linuxバイナリ互換機能を動かす場合は、ホスト環境のsysctl設定でlinux kernelのバージョンを指定する必要があります。今回はlinux-2.6.32を採用しているsqueezeにしてみました。\footnote{バージョンが異なった状態でchrootしてコンテナ内のバイナリを実行すると「FATAL: kernel too old」というエラーが発生します。（新しくてもtoo oldのようです）} \footnote{FreeBSD portsにおいて「linux\_base-c6」が実験的に提供されており、機能はCentOS-6のlinux kernel相当です。CentOS-6のlinux kernelは2.6.32を採用しており、squeezeと同じです。}
+
+\begin{commandline}
+# vi /etc/sysctl.conf
+compat.linux.osrelease=2.6.32
+
+# sysctl -p /etc/sysctl.conf
+compat.linux.osrelease: 2.6.16 -> 2.6.32
+\end{commandline}
+
+
+\begin{commandline}
+# mkdir -p /srv/jail
+# cd /srv/jail
+# debootstrap --foreign --arch=i386 squeeze jail_linux32_1 http://ftp.jp.debian.org/debian
+\end{commandline}
+
+
+chrootでコンテナ環境に入ってみます。コンテナ環境の中でシェルは動きますのでlinuxバイナリ互換機能は動いているようです。
+
+\begin{commandline}
+# chroot jail_linux32_1
+I have no name!@test-kf2:/# 
+\end{commandline}
+
+しかし、debootstrapのsecond-stageでエラーになりました。
+
+\begin{commandline}
+I have no name!@test-kf2:/# /debootstrap/debootstrap --second-stage
+/debootstrap/debootstrap: 1303: /debootstrap/debootstrap: cannot create //test-dev-null: Operation not supported
+E: Cannot install into target '/' mounted with noexec or nodev
+\end{commandline}
+
+すんなり動いてはくれない状況です。mount絡みのエラーですので、mountできるようにコンテナの中を設定するか、debootstrapのスクリプトを修正するなど対処すると動くのかもしれません。
+
+今回試せたのはここまででした。
+
+\subsection{おわりに}
+
+Debian GNU/kFreeBSDでFreeBSD Jail環境の構築を試してみました。
+Debian GNU/kFreeBSD on FreeBSDの構成でも動作することは確認していますので試してみるのもおもしろいです。\footnote{FreeBSD Portsに/usr/ports/sysutils/debootstrapがあります。}
+
+本家FreeBSDのJailのように便利に利用するツールのパッケージが足りていない状況ですので、Debian GNU/kFreeBSDの開発を進めるとどんどん使いやすくなると思います。
+
+\subsection{参考資料}
+\begin{itemize}
+  \item Debian/kFreeBSDでjailを使う \url{http://hachulog.blogspot.jp/2011/11/debiankfreebsdjail.html}
+  \item Debian\_GNU kFreeBSD Jails  \url{https://wiki.debian.org/Debian\_GNU/kFreeBSD/Jails}
+  \item あんどきゅめんてっど でびあん2013年夏号 「debootstrap を有効活用してみよう」 杉本典充 \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume2013-natsu.pdf}
+\end{itemize}
 
 %-------------------------------------------------------------------------------
 \dancersection{会場での無線LANのつなぎ方}{野島 貴英,Roger}
