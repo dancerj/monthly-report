@@ -1,0 +1,244 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfm,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{第123回 \\東京エリアDebian勉強会 \\　\\Debian GNU/kFreeBSDにおけるJail構築を試してみた}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2015-02-21}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+ \begin{itemize}
+  \item 自己紹介
+  \item Debianとは
+  \item Debian PortsとDebian GNU/kFreeBSD
+  \item Debianにおけるコンテナ環境の構築方法
+  \item Debian GNU/kFreeBSDをホストとしたJail環境の構築
+  \item おわりに
+  \item 参考資料
+  \item 質疑応答
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{自己紹介}
+ \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item 仕事はソフトウェア開発者をやってます
+ \end{itemize}
+\end{frame}
+
+%\emtext{}
+
+\begin{frame}[containsverbatim]{Debianとは}
+  \begin{itemize}
+    \item Debian Project (https://www.debian.org/)
+    \item Freeなユニバーサルオペレーティングシステムを目指している
+    \item Freeの定義 ＝ Debianフリーソフトウェアガイドライン(DFSG)
+    \item 各国のDebian Developerを中心として運営している
+    \item aptというパッケージングシステムをもつ(パッケージは.debファイル)
+    \item 日本での普及活動はDebian JPが行っており、勉強会を開催している
+  \end{itemize}
+\end{frame}
+
+%\emtext{}
+
+\begin{frame}[containsverbatim]{Debian PortsとDebian GNU/kFreeBSD}
+  \begin{itemize}
+    \item Debian Ports
+    \begin{itemize}
+      \item https://www.debian.org/ports/
+      \item 様々なCPUアーキテクチャやカーネルに移植させるプロジェクト
+      \item 公式リリースと非公式リリースのものがある
+    \end{itemize}
+    \item Debian GNU/kFreeBSD
+    \begin{itemize}
+      \item https://wiki.debian.org/Debian\_GNU/kFreeBSD
+      \item FreeBSDカーネルをもつDebianであり、linuxカーネル以外でそれなりに動くものは初めて
+      \item Debianでのアーキテクチャ名はkfreebsd-i386,kfreebsd-amd64
+      \item 2011年、Debian 6(squeeze)でテクノロジープレビューとしてリリース
+      \item 2015年?、Debian 8(jessie)ではDropされたため非公式版に出戻りになった
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debianにおけるコンテナ環境の構築方法}
+  \begin{itemize}
+    \item debootstrapコマンドを使うとdebianの最小ディレクトリツリーを取得できる
+    \begin{itemize}
+      \item \# apt-get install debootstrap
+      \item \# debootstrap --arch=[arch] [release] [dir] http://ftp.jp.debian.org/debian
+      \item \# chroot [dir]を実行するとコンテナ環境に入れる
+    \end{itemize}
+    \item CrossDebootstrapという方法で異なるCPU向けのコンテナを作れる
+    \begin{itemize}
+      \item \# apt-get install qemu binfmt-support qemu-user-static
+      \item \# debootstrap --foreign --arch=[arch] [release] [dir] http://ftp.jp.debian.org/debian
+      \item \# cp /usr/bin/qemu-[arch]-static /[dir]/usr/bin/
+      \item \# chroot [dir]
+      \item \# /debootstrap/debootstrap --second-stage
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debian GNU/kFreeBSDをホストとしたJail環境の構築(1)}
+  \begin{itemize}
+    \item ホスト環境
+    \begin{itemize}
+      \item Debian GNU/kFreeBSD unstable amd64
+      \item FreeBSD-10.1 kernel (10.1~svn274115-2)
+    \end{itemize}
+    \item ネットワーク環境
+    \begin{itemize}
+      \item ホストとコンテナが同一ネットワーク(192.168.?.0/24)
+    \end{itemize}
+    \item コンテナ環境
+    \begin{itemize}
+      \item \# apt-get install freebsd-utils
+      \item \# which jail  →  /usr/sbin/jail 
+      \item ただし、現状jexec、jlsコマンドがない
+      \item Jail環境の起動、停止を管理するパッケージが現状ない
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debian GNU/kFreeBSDをホストとしたJail環境の構築(2)}
+  \begin{itemize}
+    \item Debian GNU/kFreeBSDのself環境でコンテナをつくる
+    \item 先に紹介したdebootstrapでディレクトリツリーを作成
+    \item コンテナの中の以下ファイルは書き換えておく
+    \begin{itemize}
+      \item /etc/resolv.conf, /etc/hostname
+    \end{itemize}
+    \item 一度chrootで入り、apt-get install openssh-server; \\
+passwd; adduser user; passwd user;
+    \item Jail起動スクリプト(mount処理など)を実行
+    \begin{itemize}
+      \item https://wiki.debian.org/Debian\_GNU/kFreeBSD/Jails
+      \item 少し使いやすいよう修正しました(IP alias, jailコマンドの引数)
+    \end{itemize}
+    \item sshログインすると、Jail環境の中へ入れます
+    \item kfreebsd-amd64、kfreebsd-i386のsshログインまで動作を確認
+    \item コンテナの停止はコンテナ内で以下コマンドを実行 \\
+\# sh /etc/init.d/rc 0
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debian GNU/kFreeBSDをホストとしたJail環境の構築(3)}
+  \begin{itemize}
+    \item FreeBSD 10.1-RELEASE環境のコンテナをつくる
+    \item \# wget http://ftp.jaist.ac.jp/pub/FreeBSD/releases/amd64/amd64/10.1-RELEASE/base.txz
+    \item \# tar xvf base.txz
+    \item \# ls \\
+COPYRIGHT  bin   dev  lib      media  proc    root  sys  usr \\
+base.txz   boot  etc  libexec  mnt    rescue  sbin  tmp  var \\
+    \item \# vi etc/rc.conf \\
+sshd\_enable=''YES''
+    \item Jail起動スクリプト(mount処理など)を実行
+    \item sshログインすると、Jail環境の中へ入れます
+    \item コンテナの停止はコンテナ内で以下コマンドを実行 \\
+\# sh /etc/rc.shutdown
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Debian GNU/kFreeBSDをホストとしたJail環境の構築(4)}
+  \begin{itemize}
+    \item FreeBSDのLinuxバイナリ互換機能でlinux-i386をコンテナ環境で動作するか確かめる
+    \item \# debootstrap --foreign --arch=i386 squeeze [dir] http://ftp.jp.debian.org/debian
+    \item \# sysctlでlinuxバージョンをあわせます
+    \begin{itemize}
+      \item \# vi /etc/sysctl.conf \\
+compat.linux.osrelease=2.6.32
+      \item \# sysctl -p /etc/sysctl.conf \\
+compat.linux.osrelease: 2.6.16 → 2.6.32
+    \end{itemize}
+    \item \# chroot [dir] → コンテナ環境には入れる
+    \item \# /debootstrap/debootstrap --second-stage
+    \item /debootstrap/debootstrap: 478: cannot create //test-dev-null: Operation not supported
+E: Cannot install into target '/' mounted with noexec or nodev
+    \item 現状ではうまく動かない
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+    \item Debian GNU/kFreeBSDでJail環境を試してみました
+    \item Debian GNU/kFreeBSD on FreeBSDを試したい方は以下をお試しください
+    \begin{itemize}
+      \item /usr/ports/sysutils/debootstrap
+      \item 過去にFreeBSD-8.3-RELEASE上でsqueezeを動かしていたことがあります
+    \end{itemize}
+    \item 皆さんもDebian GNU/kFreeBSDを使ってあげてください
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考情報}
+ \begin{itemize}
+  \item Debian/kFreeBSDでjailを使う http://hachulog.blogspot.jp/2011/11/debiankfreebsdjail.html
+  \item Debian\_GNU kFreeBSD Jails  https://wiki.debian.org/Debian\_GNU/kFreeBSD/Jails
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{質疑応答}
+\begin{center}
+\Large みなさまいかがでしたか
+\end{center}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
