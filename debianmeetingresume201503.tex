@@ -32,7 +32,7 @@
 \newcommand{\debmtgdate}{7}
 % started from zero:
 % (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
-\newcommand{\debmtgnumber}{122}
+\newcommand{\debmtgnumber}{124}
 
 % tikz picture の為のマクロ設定
 \usepackage[dvipdfmx]{graphicx}
@@ -52,7 +52,7 @@
 
 % ここはアップデートすること
 % 全角文字にしないとフォントのサイズが合わないので注意
-\rotatebox{10}{\fontsize{30}{30} {\gt 特集：}}\\
+\rotatebox{10}{\fontsize{30}{30} {\gt 特集：ラズパイ 2 に Debian}}\\
 
 \vspace*{-2cm}
 \hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
@@ -86,7 +86,7 @@
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-\input{image201501/prework.tex}
+\input{image201503/prework.tex}
 }
 \end{multicols}
 
@@ -97,14 +97,40 @@
 今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}に投稿された
 内容などからです。
 
-%\begin{multicols}{2}
-%\input{image201503/quiz.tex}
-%\end{multicols}
+\begin{multicols}{2}
+\input{image201503/quiz.tex}
+\end{multicols}
 
 \dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
 
-\subsection{第121回東京エリアDebian勉強会}
+\subsection{第123回東京エリアDebian勉強会}
 
+\begin{itemize}
+\item 場所はスクウェア・エニックスさんのセミナルームをお借りしての開催でした。
+\item 参加者は9名でした。
+\item セミナ内容は杉本さんによる「Debian GNU/kFreeBSDにおけるJail構築を試してみた」でした。
+\item LTは、今井さんによる「Gnukと私」でした。
+\item 残りの時間でhack timeを行い、成果発表をしました。
+\item 「世界のやまちゃん 新宿花園店」で、久々に宴会をやりました。
+\end{itemize} 
+
+ セミナですが、kFreeBSD使いの杉本さんにより、Debian GNU/kFreeBSD上のJail環境で、
+\begin{itemize}
+\item GNU/kFreeBSD
+\item FreeBSD 10.1-RELEASE
+\end{itemize}
+を動かすことについて発表がありました。さらに、FreeBSDの持つLinuxバイナリ互換機能でlinux-i386を動かすことにチャレンジされていました。linux-i386はうまくJail環境では動作しなかったとのことですが、試みとしては大変おもしろく、他では類を見ないものだったと思います。当勉強会では、うまくいった事も、うまくいかなかった事も、オリジナルな内容であれば、とても面白い話題となると考えています。今後も奇抜なアイデアの発表が当勉強会でどんどん発表されると良いですね！
+
+ また、LTとして、今井さんにより、Gnuk Tokenについて語っていただきました。途中、1990年代のインターネット界隈と秋葉原での、関係者らの数々の偉業の話が多数飛び出すなど非常に刺激的な内容でした。また、何故専用ハードに秘密鍵を保管するのか？保管すべきなのか？についても情熱的に語っていただきました。Gnuk Tokenは、オープンなハード、オープンなソフトを使った、真にセキュアで真に自由な環境を手に入れることが出来るということについて、大変良い事例だと思います。Gunk Tokenを使うのが普通の世の中に早くなって欲しいものです。
+
+\subsection{OSC 2015 Tokyo/spring出展} 
+
+ 毎年のことですが、今年も2/28(土)にて、OSC 2015 Tokyo/springが開かれました。
+ 場所はいつもの明星大学 日野キャンパスでした。セミナは、岩松さんにより「Debian Updates」が行われました。20名程度の方に来ていただけました。
+
+ 今回もブースを出展しました。今回の展示物としての目玉は、64bit ARM搭載の低価格ボードであるHikey Board(\url{https://www.96boards.org/products/hikey/})がDebian稼働状態で展示、また、Gnuk Tokenも展示されました。今回ブースの大きさが狭く、説明員が２名立つのがやっとというスペースでしたが、多くの人に立ち寄っていただけました。
+
+ 
 % % (query-replace-regexp "<.*?>" "")
 % % (query-replace-regexp "^[	 ]\+" "")
 
@@ -526,6 +552,53 @@ RPi2 から ネイティブのDebianが利用できるようになりました。
 インストーラやmicroSDカードイメージが準備されていなくても、今回解説した方法を使うと
 RPi2 に自分好みのDebianをインストールできるようになります。CPUも強化されそこそこ使い
 やすくなった Rpi2 で Debianを触ってみてはいかがでしょうか。
+
+%-------------------------------------------------------------------------------
+\dancersection{会場での無線LANのつなぎ方}{野島 貴英,Roger}
+%-------------------------------------------------------------------------------
+ \subsection{はじめに}
+
+　今回試験として、会場側でフィルタ無しのグローバル回線を用意しました。
+ただ、会場側のセキュリティポリシーにより、wpa-psk AES hidden SSIDという
+方式での提供となります。
+
+　以下にDebianマシンでの接続方法を記載します。
+
+ また、自分の環境では違うやり方でつながったという方は、野島まで
+教えて下さい。こちらでもノウハウとして溜めていく予定です。
+
+ \subsection{wpasupplicant及び/etc/network/interfacesを利用の場合}
+
+ もっとも良いマニュアルは、/usr/share/doc/wpasupplicant/README.Debian.gz
+となります。困った場合はこちらも合わせてご参照下さい。
+
+　以下に/etc/network/interfacesの定義について会場の例を記載します。
+
+\begin{commandline}
+$ sudo vi /etc/network/interfaces
+-----以下のエントリがなければ追記ここから----------
+iface wlan0_debian inet dhcp
+     wpa-conf /etc/wpa_supplicant/wpa_supplicant_debian.conf
+-----以下のエントリがなければ追記ここまで----------
+$ sudo vi /etc/wpa_supplicant/wpa_supplicant_debian.conf
+-----以下のエントリを追記ここから----------
+network={
+     ssid=<<会場のSSID>>
+     psk=<<会場のパスワード>>
+     scan_ssid=1
+}
+-----以下のエントリを追記ここまで----------
+$ sudo chmod 600 /etc/wpa_supplicant/wpa_supplicant_debian.conf
+$ sudo ifup wlan0=wlan0_debian
+\end{commandline}
+%$
+
+ また、ハマってしまった時のデバッグ方法は、
+/usr/share/doc/wpasupplicant/README.Debian.gz中の''4. Trubleshooting''の章が便利です。
+
+ \subsection{その他の無線LAN用パッケージを利用の場合}
+
+　すみません、自分が情報を持たないため、現場で教えて下さい。
 
 \cleartooddpage
 
