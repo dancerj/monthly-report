@@ -1,0 +1,48 @@
+// dot -Tpng python-ci.dot -o python-ci.png
+digraph python {
+    subgraph cluster0 {
+        label="GitHub:e";
+        wh0 [label="push\nbranch"];
+        wh1 [label="pull\nrequest"];
+        wh2 [label="PR merge"];
+        wh3 [label="push\ntag"];
+    }
+    subgraph cluster1 {
+        label="Jenkins";
+        job_a [label="job"];
+        job_b [label="job"];
+        job0 [label="tox\n(test only)"];
+        job1 [label="tox"];
+        job2 [label="build\nsphinx"];
+        job3 [label="devpi\nupload"];
+        job5 [label="notify"];
+        job_a -> job0;
+        job_b -> job1;
+        job_b -> job2;
+        job_b -> job3;
+        job1 -> job3 [style="dotted"];
+        job1 -> job2 -> job3 [style="dotted"];
+        {rank=same; job0; job1; job2; job3;}
+        job0 -> job5 [style=dashed];
+        job1 -> job5 [style=dashed];
+        job2 -> job5 [style=dashed];
+        job3 -> job5 [style=dashed];
+    }
+    subgraph cluster2 {
+        label="devpi";
+        devpi0 [label="master"];
+        devpi1 [label="slave"];
+        devpi0 -> devpi1 [label="replication"];
+        {rank=same; devpi0; devpi1}
+    }
+    hc [label="HipChat"];
+    pypi [label="PyPI"];
+    wh0 -> job_a [label="webhook"];
+    wh1 -> job_a [label="webhook"];
+    wh2 -> job_a [label="webhook"];
+    wh3 -> job_b [label="webhook"];
+    job3 -> devpi0 [label="publish\nPython package"];
+    devpi0 -> pypi [label="proxy"];
+    devpi1 -> pypi [label="proxy"];
+    job5 -> hc [label="success/fail"];
+}
