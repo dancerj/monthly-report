@@ -86,7 +86,7 @@
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-% \input{image201505/prework.tex}
+\input{image201505/prework.tex}
 }
 \end{multicols}
 
@@ -98,7 +98,7 @@
 内容などからです。
 
 \begin{multicols}{2}
-% \input{image201505/quiz.tex}
+\input{image201505/quiz.tex}
 \end{multicols}
 
 \dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
@@ -113,7 +113,7 @@
 \item 宴会の代わりに、「祥龍房 新宿イーストサイドスクエア店」で夕食会をやりました。
 \end{itemize} 
 
- セミナはまえださんにより、DebianのPythonパッケージ化に関する発表が行われました。
+ セミナはまえださんにより、PythonパッケージのローカルDebian CIに関する発表と、Pythonに関するDebian公式パッケージの考察が行われました。大統一Debian勉強会から、毎年発表のはや３年越しのシリーズものとなります。昨今の言語関係の流行りや事情から、言語のパッケージをDebianのパッケージ化を検討した方が良い場合と、あまり向かない場合がある状況とのことです。会場にHaskelの詳しい人、Perlに詳しい人がおり、様々に議論がなされました。
  
 % % (query-replace-regexp "<.*?>" "")
 % % (query-replace-regexp "^[	 ]\+" "")
@@ -122,6 +122,247 @@
 \dancersection{自然言語処理チーム(pkg-nlp-ja)とパッケージ}{野首 貴嗣}
 %-------------------------------------------------------------------------------
 
+\subsection{NOTICE}
+ 私は専門家ではありません。
+
+\subsection{pkg-nlp-ja}
+ Debianにおける自然言語処理パッケージの管理
+ \url{https://alioth.debian.org/projects/pkg-nlp-ja/}
+
+\subsection{管理パッケージ}
+\begin{itemize}
+\item ChaSen
+\begin{itemize}
+  \item dirts (Double Array実装)
+\end{itemize}
+\item 辞書
+\begin{itemize}
+\item ipadic
+\item naist-jdic
+\item unidic
+\end{itemize}
+\end{itemize}
+
+\subsection{その他のNLPパッケージ}
+\begin{itemize}
+\item 解析
+  \begin{itemize}
+  \item MeCab
+  \item Juman
+  \end{itemize}
+\item 変換
+  \begin{itemize}
+  \item Anthy (pkg-anthy)
+  \item KAKASI
+  \item mozc
+    \begin{itemize}
+    \item 変換についてはpkg-imeで管理
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\subsection{何ができるか}
+形態素解析
+\begin{itemize}
+\item 形態素(単語)を調べる
+\item 単語の属性情報を得る
+  \begin{itemize}
+  \item 品詞・読み等
+    \begin{itemize}
+    \item 辞書に依存
+    \end{itemize}
+  \end{itemize}    
+\end{itemize}
+
+ ChaSen, MeCab, Juman
+ ref:\url{http://www.phontron.com/nlptools.php?lang=ja}
+
+\subsection{応用例}
+\begin{itemize}
+\item 検索エンジン
+  \begin{itemize}
+  \item 転地インデックスの作成
+  \item Groonga, Namazu等
+  \end{itemize}
+\item 音声合成 (Text-to-Speech)
+  \begin{itemize}
+  \item open-jtalk
+  \end{itemize}n
+\item 分かち書き
+  \begin{itemize}
+  \item word2vecの下処理
+  \end{itemize}
+\item かな漢字変換
+\end{itemize}
+
+\subsection{動作原理}
+
+\begin{itemize}
+\item 解析対象を確からしい単位で分割
+  \begin{itemize}
+  \item 例: 「東京都府中市」
+    \begin{itemize}
+    \item x 「東」「京都」「府」「中」「市」
+    \item o 「東京」「都」「府中」「市」
+    \end{itemize}
+  \item 単純なルールでは処理できない
+\end{itemize}
+
+\subsection{解析の手がかり}
+
+\begin{itemize}
+\item マッチする単語の長さ
+  \begin{itemize}
+  \item 最長一致(KAKASI)
+  \end{itemize}
+  ref: KAKASIの実装と課題
+\item 品詞情報の利用
+  \begin{itemize}
+    \item 前後に来やすい品詞のつながり
+    \item  単語のつながり
+    \item  単語の頻度/スコア
+  \end{itemize}
+\item 確率
+  \begin{itemize}
+  \item 出現率、連接確率
+  \end{itemize}
+\end{itemize}
+
+\subsection{アルゴリズム}
+
+\begin{itemize}
+\item コスト最小法
+  \begin{itemize}
+  \item ChaSen
+  \end{itemize}
+\item CRF (条件付き確率場)
+  \begin{itemize}
+  \item MeCab
+  \end{itemize}
+\end{itemize}
+ref: 日本語形態素解析入門(pdf)
+\end{itemize}
+
+\subsection{辞書探索}
+
+ Common Prefix Search
+\begin{itemize}
+ \item 同じ接頭語を持つデータを高速に検索
+\end{itemize}  
+
+アルゴリズム
+\begin{itemize}
+\item トライ
+ \begin{itemize}
+  \item パトリシアトライ
+ \end{itemize}
+ \item Double Array
+   \begin{itemize}
+   \item dartsパッケージ
+   \end{itemize}
+\end{itemize}
+
+\subsection{トライ(Trie)}
+
+文字単位の木構造
+
+\begin{verbatim}
+ 漢-+->字-+->化
+   |　　　|
+   |     +->語
+   +->音
+\end{verbatim}
+
+ref: \url{http://ja.wikipedia.org/wiki/基数木}
+
+\subsection{Double Array}
+
+ トライ構造を2つの配列で表現
+
+\begin{itemize}
+\item BASE配列 (子ノード番号へのオフセット)
+\item CHECK配列 (親ノード番号)
+  \begin{itemize}
+  \item 単純な状態遷移表だと疎な配列になる
+  \item 構築に計算が必要
+    \begin{itemize}
+    \item 配列の空き要素を見つける必要がある
+    \item 動的な更新には向かない
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+ref: ダブル配列の実装方法
+
+\subsection{辞書}
+
+\begin{itemize}
+\item KAKASIDIC(kanwadic)
+  \begin{itemize}
+  \item SKKDICベース
+  \end{itemize}
+\item ipadic
+  \begin{itemize}
+  \item ChaSen, MeCab
+  \end{itemize}   
+\item naist-jdic
+  \begin{itemize}
+  \item ChaSen, MeCab
+  \end{itemize}    
+\item jumandic
+  \begin{itemize}
+  \item MeCab, JUMAN
+  \end{itemize}    
+\end{itemize}
+
+\subsection{単語の追加: KAKASI}
+
+辞書ファイルの作成(EUC-JP)
+\begin{commandline}
+# よみ [空白] 漢字
+けいさんしょう 経産省
+けいざいさんぎょうしょう 経済産業省
+\end{commandline}
+kakasiコマンドの引数に辞書のパスを追加
+\begin{commandline}
+$ echo '日本の経産省 ' | kakasi -w -iutf8 -outf8 ./extdic
+日本 の 経産省
+$ echo '日本の経産省 ' | kakasi -w -iutf8 -outf8
+日本 の 経 産 省
+\end{commandline}
+
+\subsection{単語の追加: ChaSen}
+
+\begin{itemize}
+\item ipadicのソースを取得
+\item 追加したい単語の意味に近いものを探す
+\item そのエントリーをコピーし、スコアはそのままで単語を修正する
+\item ./configure \&\& make 
+\end{itemize}
+ 注: スコアを計算するツールが付属していない
+
+\subsection{単語の追加: MeCab}
+
+\begin{enumerate}
+\item ChaSenと同じ方法
+  \begin{itemize}
+  \item 活用のある品詞はすべて開く必要がある
+  \end{itemize}
+\item mecab-cost-trainで正確なコストを算出
+  \begin{itemize}
+  \item 元となるコーパスを用意する必要がある
+  \item cf: mecab-ipadic-neologd
+  \item MeCab の IPA 辞書を再学習させてみる
+  \item MeCabの辞書をカスタマイズする
+  \end{itemize}
+\end{enumerate}
+
+\subsection{参考}
+
+ 自然言語処理ツール\\
+\url{http://www.phontron.com/nlptools.php?lang=ja}
+
+ 日本語で読める自然言語処理のチュートリアルスライドまとめ\\
+\url{http://blog.unnono.net/2015/04/nlp-tutorial.html}
 
 \newpage
 
