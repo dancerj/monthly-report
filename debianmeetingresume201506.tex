@@ -86,7 +86,7 @@
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-% \input{image201506/prework.tex}
+\input{image201506/prework.tex}
 }
 \end{multicols}
 
@@ -98,7 +98,7 @@
 内容などからです。
 
 \begin{multicols}{2}
-% \input{image201506/quiz.tex}
+\input{image201506/quiz.tex}
 \end{multicols}
 
 \dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
@@ -126,6 +126,164 @@
 
 \subsection{はじめに}
 
+ コンピュータセキュリティの勉強会にて登壇を頼まれました。ちょうど良かったので、Debianの脆弱性対応をおさらいして、発表してみることにします。
+
+\subsection{Debianのセキュリティチーム}
+
+ Debianパッケージの脆弱性問題を専門に扱っている心臓部のチームの連絡先は以下の通りです。
+
+\begin{itemize}
+\item security@debian.org または 
+\item team@security.debian.org
+\end{itemize}
+
+\subsection{脆弱性に関するML}
+
+ Debianの脆弱性に関するアナウンス・議論が行われているMLは次のとおりです。
+
+ \begin{itemize}
+ \item  Debianパッケージのセキュリティに関するアナウンス\\
+debian-security-announce@lists.debian.org\\
+アーカイブ：\\
+\url{https://lists.debian.org/debian-security-announce/}
+ \item  Debianパッケージの脆弱性に関するオープンな議論\\
+debian-security@lists.debian.org\\
+アーカイブ：\url{https://lists.debian.org/debian-security/}
+ \end{itemize}
+
+\subsection{脆弱性対応が行われないアーカイブエリア}
+
+　Debianパッケージ群は、main/contrib/non-freeのアーカイブエリアでそれぞれ提供されています。実は、脆弱性対応について、contrib/non-freeのアーカイブエリアのパッケージについては、基本的に除外されています。
+
+　こちらの理由としては、contribとnon-freeに収められたソフトウェアのライセンスの問題によります。これらのソフトウェアはライセンスの都合上、勝手に直すことが許諾されていない場合があるためとなります。もちろん、contribとnon-freeであっても、ライセンス上、直しても良いものもあり、こちらについては通常の通りセキュリティチームにて脆弱性対応が図られることがあります。
+
+\subsection{脆弱性に関しての対応の流れ}
+
+ DebianユーザあるいはDebianの関係者にかかわらず、もし脆弱性の問題を見つけたら、
+\begin{description}
+\item [PAT1:] 既知の問題(公開済脆弱性情報）の場合は、securityタグをつけてBTSしてください。
+\item [PAT2:] 既知でない場合は、そっとsecurity@debian.org またはteam@security.debian.org にメールで連絡(英文)し、あとは指示に従えば良いです。
+\end{description}
+
+　もちろん、脆弱性対策パッチも書いたのであれば、報告の際にパッチも一緒に送ると喜ばれます。
+
+\subsubsection{既知の脆弱性でない場合の動き}
+
+ 既知の脆弱性でない場合、セキュリティチームはDebian以外のベンダ（ディストリビューション等含む）関係者らにも脆弱性情報が共有され、CVEなどの脆弱性情報データベース登録にも協力する動きが取られます。
+
+\subsubsection{既知の脆弱性の収集}
+
+　Mitre社(CVEのDBを管理している会社）から、CVEの情報を定期的に取り込んでいます。こちらの情報に基づき、Debianに関係ある・なし、重要度を判定して仕分けされ、バグ追跡システムに登録していく仕組み（インフラ）があります。
+
+\subsection{脆弱性対応状況の確認方法}
+
+ 以下のサイトで状況を確認できます。
+
+ \begin{enumerate}
+\item セキュリティ観点から確認したい場合
+  \begin{itemize}
+  \item \url{https://security-tracker.debian.org/tracker/}
+  \item 様々な視点から、巷の脆弱性データベースとDebianの各パッケージの対応状況を確認可能です。
+  \end{itemize}
+\item QA観点から確認したい場合
+  \begin{itemize}
+  \item \url{https://tracker.debian.org/}
+    　\item Debianパッケージについて、現在のバグの修正状況、パッケージのリリース状況がパッケージ毎にわかります。
+  \end{itemize}
+\item BTSした・されたものを確認したい場合
+  \begin{itemize}
+  \item \url{https://bugs.debian.org/}
+  \item BTSした結果がどう扱われているか、進行しているか確認できます。
+  \end{itemize}  
+\end{enumerate}
+
+ \subsection{その他トピック}
+
+ 以上で、まとめとしては終わったので、昨今のDebianのセキュリティに関するトピックをいくつか紹介します。
+
+ \subsubsection{hardening}
+
+  C/C++で書かれたプログラムについて、gccの機能を活用して、セキュリティ強化を行ったDebianパッケージを作る試みです。hardening有効時、ビルド時に実際に付け加えられるgccのオプションは以下の通りです。
+  
+\begin{commandline}
+-fstack-protector-strong -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2
+\end{commandline}
+
+ \subsubsection{Debianパッケージ済みの脆弱性静的解析ツール群}
+
+  Debianでパッケージ済の脆弱性静的解析ツール群があります。
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|p{5cm}|}
+\hline
+項番 & パッケージ名 & 概要 \\ \hline \hline
+1 & flawfinder & C/C++にてセキュリティ上問題の起きそうな部分を指摘。 \\ \hline
+2 & rats & C, Perl, PHP, Pythonのコード上問題の起きそうな部分を指摘。\\ \hline
+3 & pscan & C/C++にてformat文の文字列について問題の起きそうな部分を指摘。 \\ \hline
+\end{tabular}
+\end{center}
+\caption{Debianパッケージ済み脆弱性静的解析ツール}
+\end{table}
+
+\subsubsection{lintian}
+
+ lintianは、Debianパッケージについて、自動でスキャンして問題点を解析して警告してくれるツールであり、ある程度のセキュリティ対策の為の対応がパッケージ開発にあたり必須になっており、こちらが過不足なく行われているかをスキャンして開発者に教えてくれます。
+
+ 昨今にて搭載されたセキュリテイ対応の例として、梱包されているドキュメントにHTMLソースがあった場合、外部リンクが含まれているかをスキャンする事が追加されました。これは、もし、パッケージに含まれるドキュメントがHTMLであった場合に、外部リンクへアクセスするようなタグが混ざっているような事が無いようにします。もし、そういったタグやリンクが残っていると、ドキュメントをブラウザで開いた時に、うっかり悪意のあるサイトへ自動的に誘導されてしまうのを防ぎます。
+
+\subsubsection{systemd}
+
+ systemdにはセキュリティに関して強化を図ることが出来るオプションがいくつもあります。こちらをどう活かして、systemdの*.serviceファイルを作るかというお話です。
+ 
+　良い文章として、「Security Features in systemd」\url{http://0pointer.net/public/systemd-nluug-2014.pdf}がありますので、見てみるとよいでしょう。
+
+\subsubsection{Reproducible Builds}
+
+ Debianの22,000を超えるソースパッケージを一旦再ビルドし、すでに配布されているDebianパッケージのバイナリと照合する試みの事です。こちらにより、Debianパッケージにいつの間にか悪意のあるバイナリが含まれているような事が無いかをチェックするのが狙いです。Debianの他にも、Fedora/OpenSUSE/NixOSでも行われているとのことです。
+
+　詳しくは、
+ \begin{description}
+\item [Debian]
+　　\url{http://reproducible.alioth.debian.org/presentations/2014-02-01-FOSDEM14.pdf}
+
+\item [Fedora]
+   \url{http://securityblog.redhat.com/2013/09/18/reproducible-builds-for-fedora/}
+ \end{description}
+
+を参照ください。
+   
+\subsubsection{LTS(Long Time Support)}
+
+Debianの各バージョンについて、セキュリティアップデートについてのサポート切れまでの期間を3年→5年へ延長する試みです。但し、数万もあるソフトウェア全部について5年もサポートするのは非現実的なので、限られたパッケージのセキュリティアップデートのみ延長します。
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[width=0.7\hsize]{image201506/debian-lts-periods.png}
+\end{center}
+\caption{LTSのサポート期間}
+\end{figure}
+
+ LTSは無料でも利用できる一方、有償サポート契約も用意されています。Freexian社と有償サポート契約を行うのですが、払った値段に応じて、サポートしてくれるパッケージの選択の要望が通りやすくなるという特典があるようです。日本の会社にて契約締結実績はGREE社があります。
+
+ 有償サポート契約について詳しくは「Debian Long Term Support」\url{https://www.freexian.com/en/services/debian-lts.html}を参照ください。
+
+\subsubsection{debian-security-supportパッケージ}
+
+ debian-security-supportパッケージを導入し、check-support-statusコマンドを実行すると、
+現在お使いのDebian機に導入されいているパッケージの脆弱性のサポートについて、サポート切れ、もしくは、何らかの理由により脆弱性対策にあたり制限を加えざるを得なかったもののリストが取れるようになりました。
+
+　このコマンドの動作としては、
+\begin{itemize}
+\item  /usr/share/debian-security-support/security-support-ended
+\item /usr/share/debian-security-support/security-support-limited
+\end{itemize}
+に記載されたパッケージのサポート状況に関する制限の情報と、実際に導入されていてるパッケージ名を照合することにより動作します。もし、これらのファイルから、制限があるパッケージがマシンに見つかった場合は、警告を出してくれます。なお、LTSでは、どこまでパッケージについて、脆弱性対応のサポートがなされているかの確認ができます。
+
+\subsection{おわりに}
+
+　Debianの脆弱性対応についてまとめてみました。Debianのセキュリティ維持の為、様々な努力が払われていることがわかりました。
+   
 \newpage
 
 \vspace*{15cm}
