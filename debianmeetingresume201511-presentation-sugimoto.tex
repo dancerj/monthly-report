@@ -1,0 +1,339 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{第133回東京エリアDebian勉強会 \\　\\Debian GNU/kFreeBSD\\セットアップガイド\\2015年版}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2015-11-21}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item Debian PortsとDebian GNU/kFreeBSD
+  \item Debian GNU/kFreeBSD のインストール
+  \item Debian GNU/kFreeBSD 固有の Debian パッケージ
+  \item Windows と Debian GNU/kFreeBSD のデュアルブート設定
+  \item ハードウェアとソフトウェアのセットアップ
+  \item おわりに
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item 仕事はソフトウェア開発者をやってます
+  \end{itemize}
+\end{frame}
+
+%\emtext{}
+
+\begin{frame}[containsverbatim]{Debian PortsとDebian GNU/kFreeBSD}
+  \begin{itemize}
+  \item Debian Ports
+    \begin{itemize}
+    \item https://www.debian.org/ports/
+    \item 様々なCPUアーキテクチャやカーネルに移植させるプロジェクト
+    \item 公式リリースと非公式リリースのものがある
+    \end{itemize}
+  \item Debian GNU/kFreeBSD
+    \begin{itemize}
+    \item https://wiki.debian.org/Debian\_GNU/kFreeBSD
+    \item FreeBSDカーネルをもつDebianであり、linuxカーネル以外でそれなりに動くものは初めて
+    \item Debianでのアーキテクチャ名はkfreebsd-i386,kfreebsd-amd64
+    \item 2011年、Debian 6(squeeze)でテクノロジープレビューとしてリリース
+    \item 2015年、Debian 8(jessie)ではDropされたため非公式版に出戻りになった
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\emtext{Debian GNU/kFreeBSDのインストール}
+
+
+\begin{frame}[containsverbatim]{イメージの作成と起動}
+  \begin{itemize}
+  \item daily-imagesのmini.isoをダウンロードする
+  \item ZFSを使う場合はkfreebsd-amd64を選択すること
+  \item USBメモリへddする
+  \item USBメモリからブートしてインストールする
+  \item インストーラの制約
+    \begin{itemize}
+    \item UEFIブートに対応していない
+    \item ディスク形式はMBRのみに対応(GPTは不可)
+    \end{itemize}
+  \item インストーラは日本語の表示ができないためLANG=Cで進める
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{パーティション構成とファイルシステム}
+  \begin{itemize}
+  \item パーティション構成には注意
+  \item rootパーティションは基本パーティションにしなければならない
+  \item 特にwindowsとデュアルブートする場合は残りの基本パーティション数を意識する
+  \item kfreebsd-amd64でメモリが多いならZFSでもよい。kfreebsd-i386の利用、またはメモリが少ないならUFSを選択する
+  \item UFSを選択するとデフォルトは同期書き込みモードのため、遅く感じるかもしれません
+  \end{itemize}
+\end{frame}
+
+
+\emtext{Debian GNU/kFreeBSD固有のDebian パッケージ}
+
+
+\begin{frame}[containsverbatim]{Debian GNU/kFreeBSD固有の\\Debian パッケージ}
+  \begin{itemize}
+  \item kfreebsd-image パッケージ
+  \item zfsutils パッケージ    
+  \item freebsd-utils パッケージ
+  \item freebsd-smbfs パッケージ
+  \item freebsd-ppp パッケージ
+  \item pf パッケージ
+  \end{itemize}
+\end{frame}
+
+
+\emtext{Windowsと Debian GNU/kFreeBSDのデュアルブート設定}
+
+
+\begin{frame}[containsverbatim]{Windowsと Debian GNU/kFreeBSDの\\デュアルブート設定}
+  \begin{itemize}
+  \item kfreebsdはgrub2を利用します 
+  \item \# vi 40\_custom.kfreebsd\\
+  menuentry ‘‘Windows (loader)’’ {\\
+    insmod part\_msdos\\
+    insmod ntfs\\
+    set root=(hd0,2)\\
+    chainloader +1\\
+  }
+  \item \# update-grub    
+  \end{itemize}
+\end{frame}
+
+
+\emtext{ハードウェアとソフトウェアのセットアップ}
+
+
+\begin{frame}[containsverbatim]{有線 LAN}
+  \begin{itemize}
+  \item インタフェース名がNICのベンダーによって変わる(em0,re0)
+  \item 設定ファイルはDebian共通で、/etc/network/interfaces
+    \begin{itemize}
+    \item allow-hotplugはLinuxのudevの機能のため利用できない
+    \item auto em0などとしておくと外出先でもDHCPでアドレスを取得しにいくので不便
+    \end{itemize}
+  \item \# ifup em0={network-name} は利用可能
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{無線 LAN}
+  \begin{itemize}
+  \item \# vi /etc/apt/sources.list で non-freeを追加    
+  \item \#apt-get install kfreebsd-image-10-amd64 firmware-iwlwifi wpasupplicant
+  \item 2つのインタフェース
+    \begin{itemize}
+    \item iwn0 (intel無線LANの場合) : 物理インタフェース
+    \item wlan0 : 論理インタフェース \\
+      \# ifconfig wlan create wlandev iwn0      
+    \end{itemize}
+  \item \$ wpa\_passphrase apname1 appassword $>$ wpa\_apname1.conf
+  \item \# wpa\_supplicant -i wlan0 -c ./wpa\_apname1.conf
+  \item \# dhclient wlan0
+  \item つながらないときのポイント
+    \begin{itemize}
+    \item 2.4GHz帯のアクセスポイントを利用する
+    \item \# ifconfig wlan0 -ht40
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{USB モデムによるダイアルアップ}
+  \begin{itemize}
+  \item \# apt-get install freebsd-ppp usb-modeswitch
+  \item \# usb\_modeswitch -c /etc/usb\_modeswitch.d/{config}.conf\\
+    を実行することで、USBモデムモードに切り替わる
+  \item \# vi /etc/ppp/ppp.conf
+  \item \#ppp -foreground {pppname}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{ビデオドライバ}
+  \begin{itemize}
+  \item Intel内蔵グラフィック、Radeonシリーズを利用するのがよい
+  \item nvidiaはドライバが古いものしかない
+  \item \# apt-get install xserver-xorg-video-intel \\
+    \# apt-get install xserver-xorg-video-ati
+  \item KMSを有効にするとコンソールで解像度が上がり、X Window Systemでも最大限性能を発揮できる
+    \begin{itemize}
+    \item \# kldunload i915\\
+      \# kldload i915kms
+    \item \# vi /etc/modules\\
+      i915kms
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{locale の再設定}
+  \begin{itemize}
+  \item \# dpkg-reconfigure locales\\
+    日本語の場合は ja\_JP.UTF-8 を選択する
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{X Window System のキーボード設定}
+  \begin{itemize}
+  \item /etc/X11/xorg.confの設定を行わない場合は英語キーボードとして認識される
+  \item FreeBSDにおけるxorgのキーボード検出はhalを利用しているため
+  \item 現状はウィンドウマネージャの起動後にウィンドウマネージャのキーボード設定やコマンドラインで対応している
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{web ブラウザ}
+  \begin{itemize}
+  \item iceweasel パッケージが提供されています
+  \item chromium パッケージはkfreebsdにはありません
+  \item Flashは本家バイナリはLinux用のみのため、gnashを使う必要がある
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{USB 3.0}
+  \begin{itemize}
+
+  \item kfreebsd-image-10.1にはxhci.koがstatic linkしている
+  \item 動作は未確認
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{サウンドドライバ}
+  \begin{itemize}
+  \item FreeBSDはOSSです
+  \item 最近のPCの多くはsnd\_hda.koドライバの利用のため概ね鳴ります
+  \item pulseaudioは動きます
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{電源関係}
+  \begin{itemize}
+  \item CPUクロック制御はpowerdで処理される
+  \item \$ sysctl dev.cpu.0.freq \\
+    dev.cpu.0.freq: 800
+  \item バッテリー残量取得は \# /usr/sbin/acpiconf -i 0
+  \item サスペンド、ハイバーネートは未確認
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{USB メモリの mount}
+  \begin{itemize}
+  \item mount\_msdosfsコマンドを使います
+  \item 文字コードの指定が必要
+  \item \# mount\_msdosfs -L ja\_JP.UTF-8 -D CP932 /dev/da0s1 /mnt/usb
+  \item exFAT、NTFSは現状エラーになりmountできない
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{Linux エミュレーション}
+  \begin{itemize}
+  \item FreeBSDのLinuxバイナリ互換機能が使える
+  \item linux-i386のバイナリが実行可能
+  \item エミュレートできるLinux-kernel APIの都合のため、squeezeならそこそこ動く
+  \item debootstrapでコンテナを作る
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{仮想化}
+  \begin{itemize}
+  \item 動くと思われるもの
+    \begin{itemize}
+    \item FreeBSD Jail
+    \item qemu
+    \end{itemize}
+  \item  まだ動かないもの
+    \begin{itemize}
+    \item VirtualBox
+    \item bhyve
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+  \item Debian GNU/kFreeBSDのセットアップ方法をまとめてみました
+  \item OSを勉強するにはいいチャンスだと思います
+  \item まずは使ってみるところから初めてみるといいと思います
+  \item 使ってみて疑問や動かないところがありましたら、相談に乗ります
+  \item がんばってstableリリースを目指しましょう
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item 「Debian GNU/kFreeBSD - Debian Wiki」 https://wiki.debian.org/Debian\_GNU/kFreeBSD
+  \item 「Debian GNU/kFreeBSD における Jail 構築を試してみた」 http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201502-presentation-sugimoto.pdf
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
