@@ -90,17 +90,6 @@
 }
 \end{multicols}
 
-\dancersection{Debian Trivia Quiz}{野島 貴英}
-
- Debianの昨今の話題についてのQuizです。
-
-今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}に投稿された
-内容などからです。
-
-\begin{multicols}{2}
-\input{image201508/quiz.tex}
-\end{multicols}
-
 \dancersection{最近のDebian関連のミーティング報告}{野島 貴英}
 
 \subsection{第128回東京エリアDebian勉強会}
@@ -128,29 +117,236 @@
 
 \subsection{はじめに}
 
+ debian-devel-announceに、''Moo! 9th preview of APT 1.1 released: Go and test new supercow powers''というタイトルで、APT 1.1のアナウンスが流れました。
+
+ 今回は、Debianの重要なツールの１つであるAPTについて、1.1に搭載された特徴をネタにして、いろいろ調べてみました。
+
 \subsection{Debconf15のセッション}
+
+　2015/8/15-8/22で開催されたDebconf15のセッションで、APT1.1のセッションが開かれました。こちらビデオが公開されていますので、興味ある方は是非ご覧ください。
+
+　ビデオ：''This\_APT\_has\_Super\_Cow\_Powers''\\
+　\url{http://meetings-archive.debian.net/pub/debian-meetings/2015/debconf15/This_APT_has_Super_Cow_Powers.webm}
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[width=0.5\hsize]{image201508/debconf15-apt.png}
+\end{center}
+\caption{Debconf15のAPT1.1のセッションの様子}
+\end{figure}
+
+\subsection{APT 1.1を評価してみる}
+
+　2015/8/22現在、APT 1.1はexperimentalリポジトリにあります。早速、試して見たい方は以下のようにすることで導入できます。
+
+\begin{commandline}
+$ sudo vi /etc/apt/source.lists
+deb http://ftp.jp.debian.org/debian/ experimental main contrib non-free
+deb-src http://ftp.jp.debian.org/debian/ experimental main contrib non-free
+$ sudo apt-get update
+$ sudo apt-get -t experimental install apt
+$ apt
+apt 1.1~exp9 (amd64)
+Usage: apt [options] command
+...中略...
+ full-upgrade - upgrade the system by removing/installing/upgrading packages
+ edit-sources - edit the source information file
+\end{commandline}
+
+ 手元のDebian sid環境に導入してしばらく使っていますが、特に動作に問題は見当たりませんでした。apt update,apt full-upgrade, apt autoremoveなど一通りの動作は問題なくできており、致命的なバグにも特に遭遇していません。是非お試しあれ。
 
 \subsection{APT 1.1の特徴}
 
-\subsection{APT 1.1の特徴の調べ方}
+　jessie搭載のAPT 1.0.9.8に比べての違いを述べてみます。
 
-\subsection{リポジトリ堅牢化}
+　先に紹介したDebconf15のビデオによれば以下の点が違いとなります。
 
-\subsection{httpredir}
+\begin{itemize}
+\item リポジトリの情報のセキュリティ検証が強化された。
+\item deb822形式でリポジトリを指定するやり方にて機能強化。(/etc/apt/*.sourcesファイル）
+\item httpredir.debian.orgを受けて、処理の途中経過の表示を変更。
+\item Pinningがちゃんと動くようになった。
+\item 依存関係をする場合、ローカルにおいた.debファイルを直接指定してもインストールでき、ソースビルドの依存関係を指定する方法が柔軟になった。
+\end{itemize}
+
+ まずは、man apt、man apt-getで記載されている内容で、トピックを絞って違いを紹介します。
+
+\subsubsection{apt autoremove}
+
+ APT1.1に搭載されたaptコマンドのautoremove命令について説明します。
+
+ 何かパッケージをインストールした場合、依存関係を満たすためだけにインストールされたパッケージが過去にあるとします。ここで、現在はその依存関係からも外されており、もはや全く使われていないパッケージがあります。このコマンドをつけてaptコマンドを起動すると、こういった使われていないパッケージを削除することが出来ます。
+
+\begin{commandline}
+$ sudo apt autoremove
+\end{commandline}
+%$
+
+\subsubsection{autoremove仕組み}
+
+ autoremoveはどのようにして消去すべきパッケージを見つけるのでしょうか？
+
+ 依存関係が見当たらないパッケージの中には、利用者が自分で明示して入れたパッケージもあります。そのため、必ずしも他のパッケージで依存していないということだけを条件にして、autoremoveでパッケージを消すようなことは避けなければなりません。autoremoveにより、自動で消去して良いパッケージを判断する基準は次の通りです。
+ 
+\begin{description}
+ \item [Step 1.] /var/lib/apt/extended\_statesファイルの記録に、過去、依存関係を満たすためにパッケージを導入したかどうかの記録である''Auto-Installed: 1''と記されているパッケージを消去の候補とする。
+ \item [Step 2.] すでにインストール済パッケージのどれからも依存関係に無いかどうか？
+ \item [Step 3.] さらに、
+\begin{itemize}
+\item Recommendsとして提案されているパッケージはインストールして欲しいと明示した場合、
+\item Suggestとして提案されているパッケージはインストールして欲しいと明示した場合、
+\end{itemize}
+のいずれにも該当していないか？
+\end{description}
+
+以上のStep 1.〜3.の判断を経たパッケージが、自動で消去して良いパッケージとして扱われます。
+
+\subsubsection{man apt-getとの違い}
+
+次にman apt-getで見た1.0.9.8との違いについて紹介します。
+
+ \begin{itemize}
+\item indextargets \\
+   apt-get updateで更新されるファイルと状態をdeb822形式で表示します。
+ \item --allow-downgrades \\
+   特定パッケージをダウングレードすることにより依存関係が満たせるときに、ユーザに尋ねず実行してまうというオプションです。
+ \item --allow-remove-essential \\
+   何らかの理由によりDebianシステムの必須パッケージ（essentialパッケージとして分類されている）ものを消せば依存関係が満たせるときに、消してよいか？を尋ねず消してしまうオプションです。
+ \item --allow-change-held-packages \\
+　　何らかの理由によりHold扱いにしたパッケージを削除すれば依存関係が満たせるときに、消してよいか？を尋ねず消してしまうオプションです。
+　\item --no-allow-insecure-repositories \\
+   リポジトリにあるReleaseファイル(InReleaseファイル）のGPGによる署名が確認出来ない等、セキュリティ上問題があるとみなされたリポジトリが含まれた場合、apt-get update操作を失敗させます。
+ \end{itemize}
+ 
+ \subsubsection{リポジトリ堅牢化}
+
+　APT 1.1はリポジトリのセキュリティの正当性評価が強化されています。正当性評価の元となるファイルにReleaseファイル(InReleaseファイル）があります。
+
+\begin{commandline}
+$ curl http://cloudfront.debian.net/debian/dists/unstable/InRelease
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+Origin: Debian
+Label: Debian
+...中略...
+MD5Sum:
+ e9f9b477f2430a7d0e2dd686da1af507 30975818 Contents-amd64.gz
+ d158f809191a841bedf9ff50e34e0ebe 30421142 Contents-armel.gz
+...中略...
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBCAAGBQJV1+IMAAoJEItIrWJGklVTgloP/0+XAch/TMtTSfH+N1QFl+q2
+Woas1LpWhHDO12U6vuPq5wghCPYE5ctNuDxFtTy9j01lsf6kWXPDh1QupNENDNHr
+lfZ7Qa9gFr8W3tH1tnPwsSqcQmu9bMkR0sRDVSfcFlDioVhN/h+jWW7j7J7nrZrE
+...中略...
+\end{commandline}
+   
+InReleaseファイルを見るとわかるとおり、
+
+\begin{itemize}
+\item リポジトリに含まれる様々なファイルは全てmd5sum付きでInReleaseファイルに記録
+\item さらにInReleaseファイルも電子署名による正当性確認が出来るようになっている
+\end{itemize}
+
+となります。
+
+　今回APT1.1では、基本的にInReleaseファイルの無い、あるいは、他に必要なファイルが欠落しているなど、セキュリティ観点からの正当性確認が出来ないリポジトリは取り扱いを完全にやめる設計にしたとのことです。
+
+\subsubsection{httpredir.debian.org対応}
+
+ 2015/5月頃、Debianユーザに最も近いmirrorサーバーをHTTP Redirectでaptに教えてくれるサービスが稼働しました。つまり、ユーザは/etc/apt/sources.listに、httpredir.debian.orgを指定すれば、ユーザに最も近いmirrorサーバーへリダイレクトされます。
+
+ ここで、リダイレクトされた結果どこのサーバから取得するのか？がわかると便利な事が多いです。このため、APT1.1のapt/apt-getはリダイレクトされた先の情報を表示するように変更されました。
+
+\subsubsection{参考：httpredir.debian.orgの様子}
+
+ httpredir.debian.orgが何を返却するのかを以下に示します。
+
+\begin{commandline}
+$curl -v http://httpredir.debian.org/debian/dists/sid/InRelease
+> GET /debian/dists/sid/InRelease HTTP/1.1
+> Host: httpredir.debian.org
+> User-Agent: curl/7.44.0
+> Accept: */*
+> 
+< HTTP/1.1 302 Found
+< Date: Sat, 22 Aug 2015 03:54:12 GMT
+< Location: http://cloudfront.debian.net/debian/dists/sid/InRelease
+< Content-Type: text/plain
+...省略...
+\end{commandline}    
+
+ 見てのとおり、cloudfront.debian.netにリダイレクトが指示されるのが確認できると思います。
 
 { \scriptsize
  \begin{itembox}[l]{cloudfront.debian.net?}
+ 前ページのリダイレクト先にて、
+\url{http://cloudfront.debian.net/}
+とリポジトリが提案されています。これは、2年前にdebian-cloudチームでアナウンスがあった、AWSのcloudfrontというCDNの仕組みを使ってデータ配布を行う試みのリポジトリです。
+(\url{https://lists.debian.org/debian-cloud/2013/05/msg00066.html})
+
+ もともと、CDNはユーザに最も効率的なサーバを提示してデータを配る仕組みであり、
+AWSのcloudfrontは相当な規模とサービスエリアを持つCDNサービスですので、
+そもそもこちらがあるなら、AWSのサービスがカバーしている国では、httpredir.debian.orgを使わなくてすみそうな気もします。しかしながら、ソフトウェア自由をモットーとするDebianとしては、一企業のサービスに依存しないようにすることが重要ですので、Debianとしては、httpredir.debian.orgを維持・運用する必要があります。
  \end{itembox}
 }
 
-\subsection{deb822って？？}
-  
-\subsection{おわりに}
-  
+\subsection{deb822形式}
 
-\begin{thebibliography}{9}
-\bibitem{ref:http-2-faq} HTTP/2 Frequently Asked Questions,\url{https://http2.github.io/faq/}
-\end{thebibliography}
+ APT 1.1では、deb822形式でリポジトリを指定するやり方にて機能強化が図られました。ここでは、deb822形式とはどんなものかを紹介します。
+
+ APT1.1が手元にあれば、簡単にdeb822形式でリポジトリの情報を表示させる事が出来ます。
+
+\begin{commandline}  
+$ apt-get indextargets
+MetaKey: main/source/Sources
+ShortDesc: Sources
+Description: http://ftp.jp.debian.org/debian sid/main Sources
+URI: http://ftp.jp.debian.org/debian/dists/sid/main/source/Sources
+Filename: /var/lib/apt/lists/ftp.jp.debian.org_debian_dists_sid_main_source_Sources
+Optional: no
+Codename: sid
+...中略...
+\end{commandline}  
+  
+ 出力されるフォーマットを見るとわかるのですが、RFC822ヘッダの形式によく似ています。ここから、deb822と名前を取ったようです。
+
+  特徴として、RFC822と同様ですので、ヘッダを増やせば、簡単に機能拡張できるという点が上げられます。
+
+  また、動作未確認ですが、DebConf15のビデオによれば、
+\begin{quote}
+  /etc/apt/source.list.d/xxxx.sources
+\end{quote}
+（末尾が、.sourcesである事が必要）という名前でdeb822形式で置いておくと、
+こちらをsources.listに指定したのと同様の動作をapt/apt-getは行う都のことです。
+  
+\subsection{牛さんパワー健在!}
+
+ APT 1.1にも''moo''命令は健在です。息抜きに、こちらを紹介しておきます。
+
+ man aptには記載の無いオプションですが、以下にaptの場合の起動方法を載せます。
+
+\begin{commandline}  
+$ apt moo 
+$ apt moo moo [--color]
+$ apt moo moo moo  
+$ faketime '1997-04-01' apt moo
+\end{commandline}    
+
+\begin{figure}[H]
+\begin{center}
+ \includegraphics[width=0.7\hsize]{image201508/apt-moo.png}
+\end{center}
+\caption{apt mooコマンド結果例}
+\end{figure}
+
+ 実行するとわかるのですが、ASCIIキャラクタで描画された各種の牛の絵が表示されます。
+
+\subsection{おわりに}
+
+ まだまだ、APT1.1について、今回ここでは書ききれない程の変更が加えられているようですが、このへんにしておきます。実際、gitで落として差分を確認しましたが、実に2万行を超える変更が行われていました。正式リリースになって、ドキュメントも充実すると良いですね。
    
 %-------------------------------------------------------------------------------
 \dancersection{会場での無線LANのつなぎ方}{野島 貴英,Roger}
