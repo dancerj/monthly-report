@@ -1891,6 +1891,253 @@ Accessibilityに関しての現状と苦労がわかる発表内容となっています。
 
 　紙面の関係で今回はセッションを２つのみ紹介しましたが、他にも非常に興味深いセッションがあります。なにぶん英語のセッションなので、見て理解するのに苦労する状況ですが、その努力を払っただけの収穫があるのが、Debconfのビデオです。是非、１つ見て、内容を考えてみませんか？きっと、今まで見えていた世界ががらっと変わるような体験が出来ると思っています。
 
+%2015KOF
+\dancersection{Debian と arm64サポート}{岩松 信洋}
+
+  \subsection{arm64}
+  \begin{itemize}
+  \item Debian 8.0 から arm64 サポートが入った
+  \item Debian でサポートする ARM アーキテクチャ
+　\begin{itemize}
+  \item armel\\
+  32bit / litte endian / ARMv5t
+
+  古いNAS(QNAP、Buffalo、etc)やルータで使用されている ARM SoCで利用可能。
+
+  \item armhf\\
+  32bit / litte endian / ARMv7 + VFP3（浮動小数点演算ユニット）
+
+  Raspberry Pi \textcolor{red}{2} などで利用可能。
+
+  \item arm64 $\leftarrow$ \textcolor{red}{New!}
+
+  \end{itemize}
+
+  \item Raspbian
+
+  \begin{itemize}
+  \item 32bit / litte endian / ARMv6 + VFP2（浮動小数点演算ユニット）
+
+       Raspberry Pi \textcolor{red}{1} などで利用可能。
+  \item Raspbian in not Debian
+
+  \end{itemize}
+
+  \end{itemize}
+
+
+
+
+
+  \subsection{arm64}
+  \begin{itemize}
+  \item ARMv8 (ARM Version 8)
+  \end{itemize}
+  \begin{center}
+  \includegraphics[width=0.7\hsize]{image201511/V5_to_V8_Architecture.jpg}
+  \end{center}
+
+
+
+  \subsection{arm64}
+
+\begin{minipage}{0.7\hsize}
+\begin{itemize}
+\item ARMv8 (ARM Version 8)
+\item オリジナルコアとしてはCortex-A57、ARM Cortex-A53とCortex-A72がある
+\item 正式名称はAArch64
+\item Linux kernel では わかりにくいということで arm64 に\\
+\url{https://lkml.org/lkml/2012/7/15/133}
+\item Debian もこれに追従して arm64 とした
+\item コンパイラなどのトリプレットは aarch64-linux-gnu 
+\item GCC の定義は \_\_aarch64\_\_ 
+\end{itemize}
+\end{minipage}
+\begin{minipage}{0.25\hsize}
+\includegraphics[width=0.8\hsize]{image201511/1254383-arm-aarch-64-300x250.jpg}
+\end{minipage}
+
+
+
+
+  \subsection{arm64}
+
+  \begin{center}
+  \includegraphics[width=0.8\hsize]{image201511/yaruoAA.png}
+  \end{center}
+
+
+
+  \subsection{Debian ARM 開発体制}
+
+  \begin{itemize}
+  \item 2012 年から開発開始
+  \item 開発に参加している多くのDebian Developer が Linaro 所属
+
+   Steve McIntyre、 Wookey、Riku Voipio など
+
+  \item GCC/binutils:
+
+    Matthias Klose (GCC Upstream, Ubuntu Developer でもある)
+  \item libc:
+    
+    Aurelien Jarno、libc メンテナチーム
+  \item Linux kernel:
+
+    Ben Hutchings(Linux 3.2 LTS メンテナ)、Ian Campbell（Xen、Allwinner SoCs 関
+連）、その他大勢
+
+  % \item Linaro の成果が Debian と Ubuntuに回るサイクルができている
+
+  \end{itemize}
+
+
+
+  \subsection{Debian ARM 開発体制}
+
+  \begin{itemize}
+  \item Buildd: Applied Micro の X-gene を使ったサーバで運用中
+     \url{https://buildd.debian.org/status/architecture.php?a=arm64&suite=sid}
+  \item SoC: X-C1 / 2.4Ghz / 8コア 独自コア
+
+  \begin{center}
+  \includegraphics[width=0.7\hsize]{image201511/x-gene.jpg}
+  \end{center}
+
+  \end{itemize}
+
+
+
+%FIXME not find image201511/graph-week-big.png
+%
+%  \subsection{Debian ARM 開発体制}
+%
+%  \begin{center}
+%  \includegraphics[width=0.7\hsize]{image201511/graph-week-big.png}
+%  \end{center}
+%
+%
+
+
+
+  \subsection{クロスコンパイル環境}
+  \begin{itemize}
+  \item Jessie リリース後Debianのクロスコンパイル環境が変わった
+  \item 今まではEmdebianから提供されているパッケージを使うか、ユーザ自身でパッケ
+ージ化する必要があった。$\leftarrow$ めんどい。
+
+  \item GCCメンテナによりクロスコンパイル用パッケージが提供されるように
+
+  \begin{itemize}
+    \item クロス用binutils $\rightarrow$ binutils ソースパッケージ
+    \item クロス用libc $\rightarrow$ cross-toolchain-base ソースパッケージ
+    \item クロス用GCC $\rightarrow$ gcc-5-cross ソースパッケージ
+
+\begin{commandline}
+    $ sudo apt-get install gcc-5-aarch64-linux-gnu
+\end{commandline}
+
+  \end{itemize}
+
+  \item リリース対象外のアーキテクチャは未サポート
+  \end{itemize}
+
+
+
+  \subsection{ユーザランドイメージ}
+  \begin{itemize}
+  \item インストーラが用意されている \\
+	  \url{https://www.debian.org/CD/http-ftp/#stable}
+  \item cdebootstrap を使うのが簡単
+
+\begin{commandline}
+   $ sudo cdebootstrap --foreign --arch arm64 \
+         jessie /tmp/root http://http.debian.net/debian/
+\end{commandline}
+  \end{itemize}
+
+
+
+
+  \subsection{サポートボード}
+  \begin{itemize}
+  \item Debian では ARM リファレンスボード（Juno）と X-gene（Applied Micro）のみサポート。
+  \item arm64 のボードは値段がクソ高い（10万円以上）上に入手性が悪い。
+%FIXME not find image201511/juno.jpg 
+%  \begin{center}
+%    \includegraphics[width=0.5\hsize]{image201511/juno.jpg}
+%  \end{center}
+  
+  \end{itemize}
+
+
+
+  \subsection{サポートボード}
+  \begin{itemize}
+    \item 96boards (Linaro Community Board Program) から入手するのがよさげ。約1万円。
+    \begin{center}
+    \includegraphics[width=0.3\hsize]{image201511/hikey.png}
+    \end{center}
+    \begin{itemize}
+    \item Linux カーネルパッケージが更新され次第、Debian でもサポートする予定。
+    \end{itemize}
+  \item QEMU を使って開発することも可能。ただし QEMU 2.0以降。
+  \end{itemize}
+
+
+
+  \subsection{ベンチマーク}
+
+\begin{table}[htb]
+  \begin{tabular}{|l|l|l||l|} \hline
+    ベンチマーク  & Raspberry Pi 2 & ODROID-XU4 & Hikey  \\ \hline \hline
+    Dhrystone-2 & 1006.6 & 3994.1 & \textcolor{red}{2943.7} \\ \hline
+    Double-Precision Whetstone & 361.0 & 1024.9 & \textcolor{red}{680.3} \\ \hline
+    Nbench 2.2.3 Integer  & 20.419 & 61.227  & \textcolor{red}{30.803} \\ \hline
+    Nbench 2.2.3 FP  & 8.434 & 25.369 & \textcolor{red}{11.889} \\ \hline
+  \end{tabular}
+\end{table}
+
+\begin{itemize}
+\item Raspberry Pi 2: Broadcom BCM2836 900MHz  ARM Cortex-A7 4 core
+\item ODROID-XU4: Samsung Exynos5422 Cortex-A15 2Ghz and Cortex-A7 Octa core CPUs
+\item Hikey: HiSilicon Kirin 6220 Cortex-A53 1.2Ghz Octa core
+\end{itemize}
+
+ \begin{center}
+ \textcolor{red}{\texttt{ODROID-XU4 > Hikey > Raspberry Pi 2}}
+ \end{center}
+
+
+
+%
+%  \subsection{ベンチマーク}
+%  \begin{center}
+%  \includegraphics[width=0.3\hsize]{image201511/20110809aa_20110809185955.jpg}
+%  \end{center}
+%
+
+
+  \subsection{ベンチマーク}
+  \begin{itemize}
+  \item ぶっちゃけ いまのところ ARMv7 の方が速い。
+  \item Cortex が遅いという話も。独自コアのSoCはそこそこ速い。
+  \item といってもこのまま32bit ARM を使っても2038年問題ががが！
+  \item Cortex-A72 に期待。
+  \end{itemize}
+
+
+
+  \subsection{まとめ}
+  \begin{itemize}
+  \item Debian では ARM64 が既に使える環境が整っている。
+  \item Upstream や 周辺組織との連携も十分。
+  \item クロスコンパイル環境もオフィシャルでサポートされるようになり、今まで以上に開発しやすくなっている。
+  \item ボードの供給問題がネック。一般向けは 96boards 頼り。
+  \item 上記の理由もあり、サポートボードは少ない。今後頑張って増やします。
+  \end{itemize}
+
+
 %201509tokyo
 \dancersection{Debian パッケージング道場 git buildpackageの使い方}{岩松 信洋}
 
