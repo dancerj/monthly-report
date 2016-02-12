@@ -1,0 +1,549 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{東京エリアDebian勉強会}
+\subtitle{第136回 2016年2月度}
+\author{野島貴英}
+\date{2016年2月13日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\begin{frame}
+\titlepage{}
+\end{frame}
+
+\begin{frame}{Agenda}
+ \begin{minipage}[t]{0.45\hsize}
+  \begin{itemize}
+   \item 事前課題発表
+   \item 最近あったDebian関連のイベント報告
+	 \begin{itemize}
+	 \item 第135回東京エリアDebian勉強会
+	 \end{itemize}
+  \end{itemize}
+ \end{minipage} 
+ \begin{minipage}[t]{0.45\hsize}
+  \begin{itemize}
+   \item Debian Trivia Quiz
+   \item Debian GNU/Linux 上での消費電力管理方法について
+   \item libhinawa というライブラリを Debian プロジェクトに ITP/RFS した話
+   \item 今日の宴会場所
+  \end{itemize}
+ \end{minipage}
+\end{frame}
+
+\section{事前課題}
+\emtext{事前課題}
+{\footnotesize
+ \input{image201602/prework.tex}
+}
+
+\section{イベント報告}
+\emtext{イベント報告}
+
+\begin{frame}{第135回東京エリアDebian勉強会 }
+
+\begin{itemize}
+\item 場所はdotsさんをお借りしての開催でした。
+\item 参加者は10名でした。
+\item セミナ内容は、2本建てで、
+  \begin{enumerate}
+  \item 参加者皆さんによる「 Debian 今年の半年分の計画を立ててみた 」
+  \item 野島さんによる「 Debian で Linux Ftrace まわりをいじってみた  」
+  \end{enumerate}
+でした。
+\item 残りの時間でhack timeを行い、成果発表をしました。
+\end{itemize} 
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+  「Debian 今年の半年分の計画を立ててみた」は、2016年6月末までのDebianプロジェクトで行う目標を書いて頂きました。みなさん、がっちり目標を立てていただけました。あとは、実行あるのみということで、よろしくおねがいします！
+
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+  「Debian で Linux Ftrace まわりをいじってみた」は、linux kernelに搭載されているデバッグI/FであるFtraceをDebianで利用してみた事について語られました。Debian sidに搭載されているkernelが4.3.3であることから、USDTを利用してみたり、kprobeを利用した話をしました。Debianに搭載されているFtrace利用のツールである、perf-toolが古かった件についても、BUG Report\footnote{https://bugs.debian.org/813769}が行われました。
+
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+  Debianは、パッケージが古いなどの件もBUG Reportすることでも改善を図ることが出来ます。もし、他に、
+\begin{itemize}
+\item パッケージが古い、
+\item 導入したパッケージのソフトウェアの挙動がおかしい（バグっている）
+\item パッケージはこうして欲しい
+\end{itemize}
+などの要望がありましたら、「誰でも」reportbugツールを使って簡単に改善の要請をすることが出来ます。是非、皆様もどしどしBUG Reportしてくださいませ。
+  
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+  また、hack timeですが、成果をtitanpad.comに記載する試みを行いました。
+以下は前回のhack time中の成果の一覧となります。
+\begin{itemize}
+\item henrichさん\\
+  proposal for Debian idea
+  \begin{itemize}
+  \item integrate piuparts into repository pipeline
+  \item replace dput $\rightarrow$ lintian + piuparts, then upload
+   + prevents regression into repository
+  \end{itemize}
+\item kenhys \\
+libhinawaのdebian/*に手をいれていくつかPRを投げたり、issueを立てたりした\\
+https://github.com/takaswie/libhinawa/pull/20\\
+https://github.com/takaswie/libhinawa/pull/21\\
+https://github.com/takaswie/libhinawa/pull/24
+\end{itemize}
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+\begin{itemize}
+\item taiさん\\
+  \begin{itemize}
+  \item キーサインを行った。 caffではなく手動で\\
+    Keysigning with the GNU/Linux Terminal\\
+    \url{http://www.phillylinux.org/keys/terminal.html}\\
+    に沿ってやってみた。しかし最後の署名したキーを送る所がGmail経由になり署名・暗号化せずに返送してしまったので、caffがやっぱりいいのか・・・
+  \item Debian Wikiの翻訳し残しの続きをもくもくと。
+  \end{itemize}
+\item wskokaさん\\
+  tilegx用パッケージ作成(10こぐらい。トータルは１２００個ぐらいある。）
+\end{itemize}
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+\begin{itemize}
+\item roshさん\\
+  \begin{itemize}
+  \item caff でキーサインが出来た\\
+  \item 前マージされたLinkstation DTS [0] をベースにて、新Linkstationデバイス (LS-QVL)の DTS を別のユーザ様が出来たとの連絡がありました。今週受け入れられた Linkstation DTS [1] にマージを行いました。これから ARM kernel lists にアップする予定です。\\
+    \begin{enumerate}
+    \item Kernel tree: arch/arm/boot/dts/kirkwood-{lswvl,lswxl}.dts
+    \item \url{http://lists.infradead.org/pipermail/linux-arm-kernel/2016-January/400949.html}
+    \end{enumerate}
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+\begin{itemize}
+\item dictossさん \\
+  \begin{itemize}
+  \item rasberry pi2のdebian jessieからbluetoothテザリングできた
+  \item キーサインしました
+  \item 東京エリアDebian勉強会のwebサイトをHTML5対応とスマートフォン対応作業(リポジトリの場所確認、ソースコードを読んで中身と作りを把握中)\footnote{2016年2月27日に無事リリースされ、tokyodebian.alioth.debian.orgは、祝!モバイルフレンドリーになりました!}
+  \end{itemize}
+\item ｙ.ｙさん
+  \begin{itemize}
+   \item 参加者とkey signを行った。
+   \item Caffで、溜まっていた keysigning 処理のキューをフラッシュできた。
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{第135回東京エリアDebian勉強会(つづき)}
+
+\begin{itemize}
+\item takaswieさん\\
+　Echo Audio Corp.のFireworksデバイスモジュール向けコマンドラインツールがだいたい書けた。\\
+\url{https://github.com/takaswie/hinawa-utils}
+\item  yy\_y\_ja\_jpさん\\
+  \begin{itemize}
+  \item uim-qt5 バグレポート
+  \item キーサイン
+  \item DDTSS
+  \end{itemize}
+\item 野島さん
+  \begin{itemize}
+  \item 9個のDDTSSのレビューを行いました。なお、yorickはtypoの''M-x Yorick''を見落とし、requeueしました。
+  \end{itemize}
+  
+\end{itemize}
+\end{frame}
+
+\if0
+\section{Debian Trivia Quiz}
+\emtext{Debian Trivia Quiz}
+\begin{frame}{Debian Trivia Quiz}
+
+  Debian の常識、もちろん知ってますよね?
+知らないなんて恥ずかしくて、知らないとは言えないあんなことやこんなこと、
+みんなで確認してみましょう。
+
+ 今回の出題範囲は\url{debian-devel-announce@lists.debian.org},
+\url{debian-news@lists.debian.org} に投稿された
+内容などからです。
+
+\end{frame}
+
+\subsection{問題}
+
+\input{image201601/quiz.tex}
+\fi
+
+\section{Debian GNU/Linux 上での消費電力管理方法について}
+\emtext{Debian GNU/Linux 上での消費電力管理方法について}
+
+% iwamatsuさんよろしく
+
+\section{libhinawa というライブラリを Debian プロジェクトに ITP/RFS した話}
+\emtext{libhinawa というライブラリを Debian プロジェクトに ITP/RFS した話}
+
+\begin{frame}{概要}
+  libhinawaというライブラリをDebianプロジェクトにITP/RFSしたので、
+  その背景や設計、機能に関して、ALSAのupstreamでの活動も踏まえて
+  お話します。
+\end{frame}
+
+\begin{frame}{内容}
+  \begin{itemize}
+  \item ALSAについて
+  \item libhinawaについて
+  \item 今回のITP/RFSについて
+  \end{itemize}
+  質疑は適宜行ってください。
+\end{frame}
+
+\begin{frame}{ALSAの概要}
+  ALSA
+  \begin{itemize}
+  \item Linux sound subsystem
+  \item ユーザースペースのアプリケーションに対し、サウンドデバイスを
+        制御する手段を提供
+  \item 特定のサウンドデバイスに対しては、CUIやGUIを伴うツールを提供
+  \end{itemize}
+  ALSAを利用しているもの
+  \begin{itemize}
+  \item Linuxカーネルを採用した製品全般
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{ALSAがサポートするサウンドデバイス}
+  \begin{itemize}
+  \item PCI/PCI-Expressバスに接続するもの
+  \item プラットフォーム固有のペリフェラルバスに接続するもの
+  \item USBに接続するもの
+  \item 他、レガシーな汎用バスに接続するもの (IEEE 1394バス)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{ALSAとIEEE 1394バス}
+  2000-2010年にかけて、IEEE 1394バスに接続して使う
+  サウンドデバイスが発売されていた。
+  \begin{itemize}
+  \item 主にレコーディング用途
+  \item 一部の高級オーディオ機器
+  \end{itemize}
+  ALSAでのサポートは2010年に始まった。
+  \begin{itemize}
+  \item Linux 2.6.39に初期のコードをマージ
+  \item 以降の開発は進まず
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{ユーザースペースのドライバ実装}
+  Linux FireWire subsystemが、キャラクタデバイス越しに
+  デバイスを制御する手段をユーザースペースに提供
+  \begin{itemize}
+  \item /dev/fw[0-9]*
+  \end{itemize}
+  FFADO
+  \begin{itemize}
+  \item ユーザースペースのドライバ開発プロジェクト
+  \item \url{http://ffado.org/}
+  \item libffado2として、CのライブラリAPIを公開
+  \item 2004年あたりに開発開始
+  \end{itemize}
+  ALSAとは異なるAPI
+  \begin{itemize}
+  \item ALSAのアプリケーションから使えない
+  \item プロトコル仕様(IEC 61883-1/6)的に、ALSA-FFADO
+        ブリッジが成立しない。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{ALSAのfirewireスタックの成長}
+  2013年1月時点。2モデルをサポート。
+  \begin{itemize}
+  \item 2,600行程度
+  \end{itemize}
+  2016年2月現在、約140モデルをサポートするに至る。
+  \begin{itemize}
+  \item 20,000行程度
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{libhinawaの概要}
+  ALSAのfirewireスタックの設計
+  \begin{itemize}
+  \item リアルタイムデータ転送以外の機能はユーザースペースに置く
+  \item どうしてもカーネルランドに必要な機能はALSAのHwDepを使って
+        ユーザースペースからアクセス可能にする
+  \end{itemize}
+  当初はFFADOの資産を再利用するつもりだった
+  \begin{itemize}
+  \item が、それは困難を伴うことが後に判明
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{FFADOの困難}
+  FFADOのツールを開発に用立てるのはむつかしい
+  \begin{itemize}
+  \item libffado2の設計上の欠陥
+  \end{itemize}
+  FFADOのコードベースの古さ
+  \begin{itemize}
+  \item FFADOのツールがPython2で書かれている
+  \end{itemize}
+  開発に用立てるツールの必要
+  \begin{itemize}
+  \item libhinawaの開発に着手
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{libhinawaの設計}
+  キャラクタデバイスに対する入出力の抽象
+  \begin{itemize}
+  \item /dev/fw[0-9]*
+  \item /dev/snd/hwC[0-9]*D0
+  \end{itemize}
+  GObject Introspectionによる、言語バインディングからの利用
+  \begin{itemize}
+  \item 140デバイスそれぞれ固有の操作が必要
+  \item デバイス操作方法を見出す試行錯誤が必要
+  \item LLで書きたかった
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{libhinawaの開発}
+  \begin{itemize}
+  \item 2014年9月あたりに開発着手。CのライブラリAPIを公開 (0.2.0)
+  % [alsa-devel] [RFC] libhinawa: a light-weight I/O library for
+status/transactions to ALSA FireWire devices
+  %
+\url{http://mailman.alsa-project.org/pipermail/alsa-devel/2014-September/081732.html}
+  \item 2015年1月にGObject Introspection対応 (0.3.0)
+  % [alsa-devel] [RFC] libhinawa: gobject introspection library for
+ALSA/FireWire transaction
+  %
+\url{http://mailman.alsa-project.org/pipermail/alsa-devel/2015-January/086371.html}
+  \item その2週間後にalsa-tools.gitに対するRFC (0.4.0)
+  % [alsa-devel] [RFC][PATCH 00/13] alsa-tools: libhinawa for control
+applications of FireWire devices
+  %
+\url{http://mailman.alsa-project.org/pipermail/alsa-devel/2015-January/086969.html}
+  \item 2015年2月にalsa-libへの依存を破棄 (0.5.0)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{libhinawaの開発(つづき)}
+  \begin{itemize}
+  \item 2015年3月に初期のdebian/rpmパッケージングとそれに伴う修正 (0.6.0)
+  \item 2016年1月にDebianへのITPとそれに伴う修正 (0.7.0)
+  %[alsa-devel] About planning of libhinawa ITP to debian project
+  %
+\url{http://mailman.alsa-project.org/pipermail/alsa-devel/2016-February/103771.html}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{libhinawa開発の裏}
+  メインラインの作業
+  \begin{itemize}
+  \item Linux 3.16 - 63パッチ
+  %\item https://lkml.org/lkml/2014/6/4/895
+  \item Linux 3.19 - 31パッチ
+  %\item https://lkml.org/lkml/2014/12/11/226
+  \item Linux 4.2 - 22パッチ
+  %\item https://lkml.org/lkml/2015/6/25/59
+  \item Linux 4.4 - 68パッチ
+  %\item https://lkml.org/lkml/2015/11/6/410
+  \end{itemize}
+  Linux stable kernel
+  \begin{itemize}
+  \item バグが報告されたら、その修正パッチを作ってstableに送る。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{libhinawaのITP/RFS}
+  作業はgithubを使って進める。
+  \begin{itemize}
+  \item \url{https://github.com/takaswie/libhinawa/}
+  \end{itemize}
+  1/14あたり
+  \begin{itemize}
+  \item 林さんと、libhinawaのITPの話をする。
+  \end{itemize}
+  1/18
+  \begin{itemize}
+  \item 林さんから最初のPR
+  \end{itemize}
+  1/24あたり
+  \begin{itemize}
+  \item Ubuntu 16.04のDebianImportFreeze(2/17)に間に合わせる方針
+  % https://wiki.ubuntu.com/XenialXerus/ReleaseSchedule
+  \end{itemize}
+  1/28あたり
+  \begin{itemize}
+  \item Autotools周りの修正終了
+  \item debian/* の用意終了
+  \end{itemize}
+\end{frame}
+\begin{frame}{libhinawaのITP/RFS(つづき)}
+  1/31
+  \begin{itemize}
+  \item DebianプロジェクトにITPすることを、Linux FireWire subsystem,
+        Linux sound subsystem、FFADOに対して連絡。
+  \item
+\url{http://mailman.alsa-project.org/pipermail/alsa-devel/2016-January/103693.html}
+  \end{itemize}
+  2/2
+  \begin{itemize}
+  \item ITP
+  \begin{itemize}
+  \item \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=813474}
+  \end{itemize}
+  \item RFS
+  \begin{itemize}
+  \item \url{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=813489}
+  \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{DebianへのITP/RFS後}
+  2/6
+  \begin{itemize}
+  \item 樋口大輔さんにスポンサードしてもらう
+  \item New queue入りする
+  \end{itemize}
+  2/7
+  \begin{itemize}
+  \item 朝、ftp-master入り。unstableリポジトリに入る
+  \begin{itemize}
+  \item \url{https://packages.debian.org/source/sid/libhinawa}
+  \end{itemize}
+  \item 夜、UbuntuのDebian AutoSync botが捕捉。universeリポジトリに入る。
+  \begin{itemize}
+  \item \url{https://launchpad.net/ubuntu/+source/libhinawa}
+  \end{itemize}
+  \item 深夜、アップストリームに報告
+  \begin{itemize}
+  \item
+\url{http://mailman.alsa-project.org/pipermail/alsa-devel/2016-February/104046.html}
+  \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{まとめ}
+\begin{itemize}
+\item libhinawaをDebianプロジェクトにITPしました
+\end{itemize}
+\end{frame}
+
+\section{Hack time}
+\emtext{Hack time}
+
+\begin{frame}{成果を記入下さい!}
+
+  今回、Hack time時の成果を記録に残してみます。
+
+\url{https://debianmeeting.titanpad.com/8}
+
+に皆さんアクセス頂き（認証不要です）、各自成果を18:40までに記録するようにおねがいします。
+
+\end{frame}
+  
+\section{今後のイベント}
+\emtext{今後のイベント}
+\begin{frame}{今後のイベント}
+\begin{itemize}
+\item 2/16 Debian developer来日迎撃GPG Beer Signing(2016/2)
+ Debianにて、LXDEのパッケージメンテナをされているAndrew Leeさんが来日され、henrichさんにて、飲み会しながらのキーサイン会が行われます。掲示：\url{http://debianjp.connpass.com/event/26965/}
+\item 関西エリアDebian勉強会。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{今後のイベント}
+\begin{itemize}
+\item 3/5 (土) 第137回東京エリアDebian勉強会\\
+  場所はサイボウズ株式会社さんにて！この日、henrichさんのお手配により、ドイツから公式Debian DeveloperのJohn Paul Adrian Glaubitzさんが合流されます！海外 DeveloperのKey Signのチャンス、海外のアクティブなDebian Developerの方とぶっちゃけトークなど出来る貴重なチャンス！さあ、そこの貴方も参加するのだ。
+\end{itemize}
+\end{frame}
+
+\begin{frame}{今後のイベント（つづき）}
+\begin{itemize}
+\item 参考：Andrew Leeさんの活動\\
+   \url{https://qa.debian.org/developer.php?login=ajqlee}\\
+    主にLXDE デスクトップ環境のパッケージなど。
+\item 参考：John Paul Adrian Glaubitzさんの活動
+  \begin{itemize}
+  \item 詳しくは、\url{https://qa.debian.org/developer.php?login=glaubitz\%40physik.fu-berlin.de} DebianのMATE デスクトップ環境の多数のパッケージ群など。
+  \item m68k/sh4/sparc64移植作業
+  \end{itemize}
+\end{itemize}
+\end{frame}
+
+\section{今日の宴会場所}
+\emtext{今日の宴会場所}
+\begin{frame}{今日の宴会場所}
+未定
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
