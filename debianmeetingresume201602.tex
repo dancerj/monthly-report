@@ -195,10 +195,410 @@ yy\_y\_ja\_jp &
 % % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{Debian GNU/Linux 上での消費電力管理方法について}{岩松}
+\dancersection{Debian GNU/Linux 上での省電力設定について}{岩松}
 %-------------------------------------------------------------------------------
 
 \subsection{はじめに}
+
+Linux がインストールされたノートPCを利用している時、スペック通りにバッテリが持たない場合が多々あります。
+数年前と比べると Linux 上の電源管理対応も進んでいますが、まだWindowsなどのOSにはまだまだ及ばないところがあります。
+とは言ってもデフォルトの状態で使うより、少しパラメータを操作してみたり、管理用のツールをインストールするだけで
+バッテリの持ちはよいものなります。少しでもDebian でのノートPCライフを過ごすために 今回は Debian GNU/Linux を題材に
+した 省電力設定方法について説明します。
+
+
+\subsection{省電力設定するためには}
+
+省電力設定するためにはどのような点で電力を消費しているのかを簡単に理解しておくことが重要です。
+Linux の場合、大きく分けて以下の点が重要となってきます。
+
+\begin{itemize}
+\item CPUと制御
+\item 動作しているデバイス
+\item 動作しているプログラム
+\end{itemize}
+
+これらについて、Debianでの対応方法について簡単に説明します。
+
+\subsubsection{CPUと制御}
+
+CPUですが、Intel製CPUのCPU状態遷移は図\ref{fig:cpustate}のようになっており、CPU稼働状態と
+スリープ状態の切り替えが頻繁に行われています。CPUにはステート（Cステート）という状態があり、
+この状態によって消費電力が異なり、CPUの復帰時間も変わってきます。最新のCPUではもっと細かいステートが提供
+されるようになっています。これらを制御しているのがACPIとなります。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.5\hsize]{image201602/cpustate.png}
+\end{center}
+\label{fig:cpustate}
+\caption{CPU状態遷移簡易図} 
+\end{figure}
+
+実際のCPUはCステートだけではなく、CPUの電圧やクロック数なども関連してきます。
+Linux の場合はCPU周波数スケーリング機能を使うことで、OSが自動的に制御できるようになっています。
+これは Linux カーネルの cpufreq によって実装されています。
+現在の cpufreq に設定されている内容を確認するには cpufrequtils パッケージで提供されている
+cpufreq-info（\ref{fig:cpufreq-info}） コマンドを使います。
+
+\begin{figure}[htbp]
+\begin{commandline}
+$ cpufreq-info
+cpufrequtils 008: cpufreq-info (C) Dominik Brodowski 2004-2009
+Report errors and bugs to cpufreq@vger.kernel.org, please.
+analyzing CPU 0:
+  driver: intel_pstate
+  CPUs which run at the same hardware frequency: 0
+  CPUs which need to have their frequency coordinated by software: 0
+  maximum transition latency: 0.97 ms.
+  hardware limits: 800 MHz - 2.90 GHz
+  available cpufreq governors: performance, powersave
+  current policy: frequency should be within 800 MHz and 2.90 GHz.
+                  The governor "powersave" may decide which speed to use
+                  within this range.
+  current CPU frequency is 1.90 GHz.
+....
+\end{commandline}
+
+\caption{cpufreq-info 実行結果}
+\label{fig:cpufreq-info}
+\end{figure}
+
+いくつか項目がありますが、重要となるのは 「available cpufreq governors」と
+「current policy」です。
+available cpufreq governors は CPUの調整可能な速度調整名（ガバナー）であり、
+以下のものが用意されています。
+
+\begin{table}[htb]
+\begin{center}
+\begin{tabular}{l|l}
+ガバナー & 内容 \\
+ondemand &	CPU負荷が大きい、または小さい時にCPUクロックを大きくに切り替える \\
+conservative &	CPU負荷が大きい、または小さい時にCPUクロックを徐々に切り替える \\
+performance &	最大周波数でCPUを動作させる \\
+powersave &	最小周波数でCPUを動作させる \\
+userspace &	ユーザーが指定した周波数でCPUを動作させる \\
+\end{tabular}
+\caption{指定できるガバナー}
+\label{tab:governors}
+\end{center}
+\end{table}
+
+これらは実際には設定できる値カーネルや環境によって異なる点に注意が必要です。
+「current policy」は現在設定されているガバナーが表示されます。
+
+この以上から、上記の結果では
+
+\begin{itemize}
+\item CPUが800MHzから2.90GHzまでをサポートしている
+\item powersave governor で動作している
+\item 最大値と最小値のポリシー設定により、800MHzから2.90GHzの間で変動させている
+\end{itemize}
+
+ということがわかります。
+
+これらを設定するには sysfs 経由で操作するか、cpufrequtils に含まれる
+cpufreq-set コマンドを使います。
+
+\begin{itemize}
+\item ガバナーを設定する
+  \begin{commandline}
+   $ sudo cpufreq-set -c CPU番号 -g ガバナー名
+   または
+   $ sudo sh -c "echo ガバナー名 > /sys/devices/system/cpu/cpuCPU番号/cpufreq/scaling_governor"
+  \end{commandline}
+
+\item 最小クロックを設定する
+  \begin{commandline}
+   $ sudo cpufreq-set -c CPU番号 -d クロック値
+   または
+   $ sudo sh -c "echo クロック値 > /sys/devices/system/cpu/cpuCPU番号/cpufreq/scaling_min_freq"
+  \end{commandline}
+
+\item 最大クロックを設定する
+  \begin{commandline}
+   $ sudo cpufreq-set -c CPU番号 -u クロック値
+   または
+   $ sudo sh -c "echo クロック値 > /sys/devices/system/cpu/cpuCPU番号/cpufreq/scaling_max_freq"
+  \end{commandline}
+
+\item 現在のクロックを設定する
+  \begin{commandline}
+   $ sudo cpufreq-set -c CPU番号 -f クロック値
+   または
+   $ sudo sh -c "echo クロック値 > /sys/devices/system/cpu/cpuCPU番号/cpufreq/scaling_cur_freq"
+  \end{commandline}
+
+\end{itemize}
+
+上記のようにしてCPUクロックを制御することにより、環境によって無駄なくCPUを利用できるようになります。
+設定した値は再起動すると消えるので、/etc/sysfs.conf に設定しておくか、cpufreq を設定するデーモン cpufreqd
+を使うとよいでしょう。
+
+\subsubsection{動作しているデバイスの設定}
+
+使っている個々のデバイスの設定も重要となります。例えば無線LANやBluetoothを使わないのに有効にしていると
+それだけで電力を消費してしまいます。よって使用する環境に応じてこれらを制御する必要が出てきます。
+
+ここではよく利用されるデバイスに対する制御方法について説明します。
+
+\begin{itemize}
+
+\item ラップトップモード
+
+Linux の場合はカーネルのモードとして、ラップトップモードが設定できるようになっています。
+これは以下のようにして設定します。
+
+\begin{commandline}
+$ sudo sh -c "echo 5 > /proc/sys/vm/laptop_mode"
+\end{commandline}
+
+あとNMI のwatchdog（nmi\_watchdog） も無効化しておきます。これはこれはカーネルハングアップを定期的にチェックする機構
+をコントロールするフラグです。
+
+\begin{commandline}
+$ sudo sh -c "echo 0 > /proc/sys/kernel/nmi_watchdog"
+\end{commandline}
+
+\item USB
+
+USB は /sys/bus/usb/devices/ 以下に対して設定を行います。
+例えば、/sys/bus/usb/devices/usb1 に対して 電源供給を切りたい場合は /sys/bus/usb/devices/usb1/power/control
+をoff に設定します。自動的にサスペンドさせたい場合には 
+/sys/bus/usb/devices/usb1/power/autosuspend に対して 1 を設定します。
+
+\begin{commandline}
+$ sudo sh -c "echo off > /sys/bus/usb/devices/usb1/power/control"
+$ sudo sh -c "echo auto > /sys/bus/usb/devices/usb1/power/autosuspend"
+\end{commandline}
+
+設定を起動時に適用したい場合は、再起動時に初期化されてしまう事とデバイスのUSB位置が変わる事が
+ありますので、 udev の rules ファイルを使って設定するのがよいでしょう。
+
+\begin{commandline}
+$ cat /etc/udev/rules.d/70-my-usb-power.rules
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="0x046d", ATTR{idProduct}=="0x08cb", TEST=="power/control", ATTR{power/control}="off"
+\end{commandline}
+
+注意しなければいけない点としてはUSBをなんでも設定してしまうとキーボードが動作しなくなる可能性もあるため、
+ベンダーID、デバイスIDなどを確認した上で設定しましょう。
+
+\item 無線LAN
+
+無線LANは iw パッケージに含まれる iw コマンドを使って設定します。
+無線LANがwlan0の場合は 以下のように設定することによって制御できます。
+
+\begin{commandline}
+$ sudo iw dev wlan0 set power_save on
+\end{commandline}
+
+これもudev の rules ファイルを使って設定すると良いです。
+
+\begin{commandline}
+$ cat /etc/udev/rules.d/70-my-wifi-power.rules
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="wlan*", RUN+="/usr/bin/iw dev %k set power_save on"
+\end{commandline}
+
+\item サウンド
+
+サウンドの場合も sysfs 経由で設定します。ドライバによって設定出来ない場合がありますが、INTEL のサウンド
+コントローラの場合は、power\_save があるので、これを1に設定することによってパワーセーブモードに設定できます。
+
+\begin{commandline}
+$ sudo sh -c "echo 1 > /sys/module/snd_hda_intel/parameters/power_save"
+\end{commandline}
+
+\item PCI/PCI-Express
+
+PCI/PCI-Express の省電力に設定するには power/control を auto に設定します。
+ｋのの場合も sysfs 経由で設定します。PCIもUSBと同様に設定先がどのようなデバイス
+なのか確認してから設定するようにしましょう。
+
+\begin{commandline}
+$ sudo sh -c "echo auto > /sys/bus/pci/devices/0000:00:00.0/power/control"
+\end{commandline}
+
+\end{itemize}
+
+\subsubsection{動作しているプログラムについて}
+
+動作しているプログラムはtopコマンドなのでざっくりとしたCPU占有率を確認できますが、実際に
+どれぐらいの頻度で使われてているのかわかりません。アイドル状態であるにもかかわらず、CPU割り込みが多い
+プログラム・プロセスが省電力の効果が得にくいものとなりますので、このようなプログラム・プロセスを
+調べる必要があります。これらを調べるには下記で説明する PowerTop を使うとようでしょう。
+
+\subsection{電力管理するためのツール}
+
+先では長々と書きましたが、知識がないユーザが上記を一つづつやっていくのは非常に大変です。
+Linux では専門の知識がなくとも使っているマシンを省電力状態に設定できるツールがいくつか
+準備されています。以下ではそれらの使い方について紹介します。
+
+\subsubsection{PowerTOP}
+
+PowerTOP はIntelが開発しているソフトウェアで、カーネル、ハードウェア、ユーザランドで制御可能な省電力項目を
+有効にするツールです。プロセスを監視して、CPU負荷やデバイスドライバの使用状況のレポートからプロセスの操作
+を行う事ができます。
+
+\begin{enumerate}
+
+\item インストール
+
+PowerTOP はDebian でも提供されており、apt でインストールできます。
+\begin{commandline}
+% sudo apt-get install powertop	
+\end{commandline}
+
+\item 起動
+
+起動すると図\ref{fig:powertop0}のような画面が表示されます。
+「The battery reports a discharge rate ...」 に現在の消費電力が
+表示され、現在動作しているプロセスと使用状況がわかります。
+筆者の環境で、何も設定しない場合は 13Wのようです。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.5\hsize]{image201602/powertop_00.png}
+\end{center}
+\label{fig:powertop0}
+\caption{PowerTOP起動画面} 
+\end{figure}
+
+Tunables タブを選択すると調整可能なシステムの設定が表示されます。
+Badが省電力に有効な項目にもかかわらず無効な設定、
+Good が既に有効になっている設定となっています。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.5\hsize]{image201602/powertop_01.png}
+\end{center}
+\label{fig:powertop1}
+\caption{Tunables画面} 
+\end{figure}
+
+この状態ではまだシステムに最適化された設定になっていないため、一度終了し、
+キャリブレーションを行います。
+
+\item キャリブレーション
+
+設定するPCの状態を取得するためにキャリブレーションを行います。
+実行するとデバイスなどから使用状況を読み取り、マシンに対して適切な設定を
+行います。
+ノートPCの場合はいきなりモニターのバックライトが消えるので注意しましょう。
+
+\begin{commandline}
+$ sudo powertop --calibrate
+\end{commandline}
+
+キャリブレーションが終わると、\texttt{/var/cache/powertop/saved\_parameters.powertop}
+以下にデータが保存されます。次回のPowerTOP起動時からはキャリブレーションデータを元に
+省電力にされた環境で起動します。
+
+\item キャリブレーション後
+
+キャリブレーション後に起動すると、
+「The battery reports a discharge rate ...」 の項目に表示される消費電力値が変わり、システム
+全体で省電力で稼働していることがわかります。
+
+\item PowerTOP の起動時有効化
+
+PowerTOP は起動すると保存されている設定を元に省電力状態にしてくれますが、PCを立ち上げるたびに
+PowerTOP自体を立ち上げる必要があります。
+
+起動時に自動的にPowerTOP を立ち上げるようにするには、以下のように systemd の ユニットファイル
+を用意し、有効にしておきます。
+
+\begin{commandline}
+$ cat /etc/systemd/system/powertop.service
+
+[Unit]
+Description=PowerTOP
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/powertop
+Environment="TERM=xterm"
+
+[Install]
+WantedBy=multi-user.target
+\end{commandline}
+
+\begin{commandline}
+$ sudo systemctl enable powertop
+\end{commandline}
+
+\end{enumerate}
+
+\subsubsection{TLP を使った設定}
+
+PowerTOP の他にTLPというツールもあります。これは PowerTOPのように詳細なレポートは
+出してくれませんが、AC接続時などの状況に応じたスクリプトが準備されており、インストール
+するだけである程度省電力設定を行ってくれる便利なツールです。
+もちろん、Debian ではパッケージ化されており、apt でインストールできます。
+
+\begin{commandline}
+$ sudo apt-get install tlp
+\end{commandline}
+
+無線LANの設定等に NetworkManager を使っているなら tlp-rdw パッケージもインストールしておくと
+無線LAN、Bluetooth関連の設定も行ってくれます。
+デフォルトの設定は /etc/default/tlp にあり、このファイルを変更して環境に合わせた省電力設定を
+行います（図\ref{fig:TLP}）。設定はよく使われる項目しかなく、使っている環境の設定がない場合もあります。このような場合は
+TLPはシェルスクリプトで書かれていますので、自分で設定を追加するか、先に説明したようにsysfs / procfs 経由
+の設定を別途行う必要があります。
+
+
+\begin{figure}[H]
+\begin{center}
+\begin{commandline}
+# Set to 0 to disable, 1 to enable TLP.
+TLP_ENABLE=1
+
+# Operation mode when no power supply can be detected: AC, BAT
+# Concerns some desktop and embedded hardware only.
+TLP_DEFAULT_MODE=AC
+
+# Seconds laptop mode has to wait after the disk goes idle before doing a sync.
+# Non-zero value enables, zero disables laptop mode.
+DISK_IDLE_SECS_ON_AC=0
+DISK_IDLE_SECS_ON_BAT=2
+
+# Dirty page values (timeouts in secs).
+MAX_LOST_WORK_SECS_ON_AC=15
+MAX_LOST_WORK_SECS_ON_BAT=60
+...
+\end{commandline}
+\end{center}
+\label{fig:TLP}
+\caption{/etc/default/tlp 例} 
+\end{figure}
+
+TLP は systemd やその他init用の起動ファイルが用意されているのでPC起動時に設定が反映されるのも
+良い点です。
+
+\subsubsection{省電力設定後}
+図\ref{fig:powertop2}が省電力設定した後に PowerTOP で消費電力を確認した内容です。
+消費電力が13W から 11W に下がっていることがわかります。またPC稼働時間も5時間半から6時間50分に
+伸びていることがわかります。
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=0.5\hsize]{image201602/powertop_02.png}
+\end{center}
+\label{fig:powertop2}
+\caption{省電力設定後} 
+\end{figure}
+
+\subsection{まとめ}
+
+Debian での省電力設定について説明しました。
+現在の状態をとりあえず確認するには cpufreq-info を使い、カーネルの設定やドライバの設定は
+sysfs や proc fs 経由で設定します。プログラムやプロセスの詳細な状態の確認するには PowerTOP
+を使います。省電力設定できる項目もわかり、ユーザインターフェイスから各種設定ができるようになっています。
+また再立ち上げすると省電力設定を再設定する必要がありますので、sysytem用のservice
+ファイルを別途用意するなどの対策が必要です。
+細かい設定を行わなくても、とりあえず省電力設定を行いたい場合はTLPを使うのがよいでしょう。ただ全ての
+PCをサポートしているわけではありませんので、環境に合わせてプログラムを修正するなりの対応が必要となります。
+
 
 %-------------------------------------------------------------------------------
 \dancersection{libhinawa というライブラリを Debian プロジェクトに ITP/RFS した話}{takaswie}
