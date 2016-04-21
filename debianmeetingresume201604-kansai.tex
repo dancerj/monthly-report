@@ -255,7 +255,244 @@ wiki:ChangesFormat2.0%
   \end{enumerate}
 \end{prework}
 
-\dancersection{OpenFOAM による数値流体解析}{Yosuke Otsuki}
+
+\dancersection{OpenFOAM で数値流体解析}{Yosuke Otsuki}
+
+\subsection{背景: 仕事で数値計算}
+飛行機の翼が発生する揚力、建物の耐震性、新薬の成分などは先人たちの発見してくれた数学的な法則によって、ある程度は計算によって導くことができます。
+今日では、これらの方程式を人間が手で解くことは少なくなりつつあります。
+数値計算と呼ばれる、人間が方程式を計算機で計算できる形に変形し、実装して、計算機に解かせる方法にが広がってきたためです。
+流体や構造と行った方程式をすでにプログラムしておいて、設計者が数値を入力するだけで使えるようになっているソフトウェアを使用し工学に応用することを CAE (Computer Aided Engineering)といいます。
+\vspace{1em}\\
+CAEは主に3つの分野に分類できます。
+解析する形状を作成する (CAD)、解析を行う (ソルバー)、そして、解析の結果を確認する (可視化) の3分野です。
+本日紹介する OpenFOAM は、流体分野に特化した解析を行うソフトです。
+\subsection{概要: なぜOpen Sourceの解析ソフト ? }
+数値計算は多くの計算資源を必要とします。
+ハードウェアが安価になったことから、複数ノードによる分散処理によって大規模な問題を解く方法が一般的に広まってきました。
+しかし、大抵の場合、商用のCAEソフトウェアはノード単位でライセンスを購入する必要があり、たとえ計算資源が十分でも金銭的な余裕がなければ、並列計算を利用した解析を実行できないことがあります。
+このような問題から、Opensource の解析ソフトが注目されるようになりました。
+実際に製造業の分野での使用も広がっています。
+また、商用のソフトとの違いは、拡張性に富んでいることです。
+メッシュ関連のライブラリ、乱流モデルのライブラリ、移流行離散化方法のライブラリなどが用意されており、既存のアプリケーションもそれらのライブラリを呼び出した数百行程度のソースコードで書かれています。
+\subsection{Install}
+\subsubsection{Debian}
+debian では freefoam というパッケージ名でビルド済みの OpenFOAM を使用することができます。
+freefoam と OpenFOAM との違いは、freefoam では、kiva \footnote{内燃機関に特化した商用解析ソフト}のピストンモデルなどがなく、商用可視化ソフトへの出力形式なども削られているようです。
+OpenFOAM の開発は続けられていますが、freefoam の開発は数年前から止まったままのようです。
+\subsubsection{Build: ビルドの準備}
+freefoam は debian 系のパッケージならば、お手軽に OpenFOAM を体験できる点で有利ですが、最新のOpenFOAMには新機能や不具合の修正なども反映されているため、最新版を使用することをおすすめします。
+最新の安定版は、\url{http://www.openfoam.com}からダウンロードできます。
+開発版は github のレポジトリを参照してください。\url{https://github.com/OpenFOAM}
+ダウンロードするべきアーカイブは 2 つあります。
+\begin{commandline}
+OpenFOAM-x.y.z.tgz
+ThirdParty-x.y.z.tgz
+\end{commandline}
+OpenFOAM 自体のソースコードと OpenFOAM が必要とするライブラリをまとめたものです。
+このライブラリ群は debian のものを使用することもできます。
+ただし、OpenFOAM に同梱されたものを使用したほうが、バージョンの互換性が取れるため安全です。
+OpenFOAM が必要とするライブラリのうち ThirdParty にソースが同伴されているものは以下です。　
+\begin{commandline}
+ThirdParty-x.y.z
+ |-- openmpi
+ |-- scotch
+ |-- pscotch
+ |-- metis (option)
+ |-- libcgal 
+\end{commandline}
+openmpi は Message Passing Interface のライブラリです。
+scotch は領域分割ツール、ptscotch は scotch の並列計算版です。
+metis も領域分割ツールです。
+libcgal は計算機科学ライブラリです。ドロネー分割機能が依存しています。この機能が必要なければ、インストールしなくても問題ありません。
+boost がバージョン3.0から必要になりました。
+ビルドを開始する前に必要なパッケージをインストールしておきます。
+\begin{commandline}
+sudo apt-get install build-essential flex bison \
+	cmake zlib1g-dev libboost-system-dev \
+	libboost-thread-dev libopenmpi-dev openmpi-bin \
+	gnuplot libreadline-dev libncurses-dev libxt-dev 
+\end{commandline}
+以上で、ビルド環境が整いました。
+さらに詳しいシステム要件、どのパッケージをビルドするのに何が依存しているか, redhat 系での環境構築方法などは、本家のサイトを参照してください。
+\url{http://www.openfoam.com/documentation/system-requirements.php}
+\subsubsection{Build: ビルド作業}
+インストール用のディレクトリを作成してください。ビルド作業もこのディレクトリの中で行われます。
+このディレクトリの場所は必須ではありませんが、これ以外のディレクトリにする場合、設定ファイルの編集が必要になります。
+\begin{commandline}
+$ mkdir $HOME/OpenFOAM
+\end{commandline}
+上記のディレクトリの中で、ソースコードを展開します。
+以下、バージョンを3.0.xとします。
+\begin{commandline}
+$ tar xzf OpenFOAM-3.0.x.tgz
+$ tar xzf ThirdParty-3.0.x.tgz
+\end{commandline}
+設定ファイルは以下です。\verb|$HOME/OpenFOAM| をインストール先にしていない場合は、これらのファイルの編集をしてください。
+また、時間短縮のため、平行コンパイルをおすすめします。
+使用する設定ファイルをテキストエディタで開いて、\verb|WM_NCOMPPROCS=4| (\verb|set WM_NCOMPPROCS=4|) と記述しておくと4並行でコンパイルしてくれます。
+\begin{commandline}
+$HOME/OpenFOAM/OpenFOAM-3.0.x/etc/bashrc
+$HOME/OpenFOAM/OpenFOAM-3.0.x/etc/cshrc
+\end{commandline}
+設定が完了したら、ビルドを開始します。
+まず、設定した変数を反映し、各種ツールにパスが通ったか確認します。
+\begin{commandline}
+$ cd $HOME/OpenFOAM/OpenFOAM-3.0.x
+$ . etc/bashrc
+$ cd $WM_PROJECT_DIR | pwd
+/home/yosuke/OpenFOAM/OpenFOAM-3.0.x
+\end{commandline}
+ビルドしようとしている OpenFOAM のディレクトリが表示されるはずです。問題なければ、ビルドを始めます。
+相当高性能なマシンでも30-40分ぐらいかかります。
+\begin{commandline}
+wmake >& build.log
+\end{commandline}
+ログにエラーが出ていなければ、ビルド完了です。
+ついでに、解析結果を可視化するためのツールもインストールしておきましょう。
+paraview という kitware が作成している並列可視化ツールをインストールします。
+debian ならば、下記コマンドで簡単にインストールできます。
+\begin{commandline}
+# apt-get install paraview
+\end{commandline}
+\subsection{解析してみる}
+チュートリアルを利用して解析を行ってみましょう。
+今回は、バイクの周りの空気の流れの解析を行ってみましょう。
+\begin{commandline}
+cd OpenFOAM-3.0.x/tutorials/incompressible/pisoFoam/les/motoBike/motorBike
+ls
+0        物理量の初期状態を格納、形状が時間変化する場合は形状情報も格納される
+constant 時間変化しない物理量と形状情報を格納
+system   各種設定を格納: 空間離散化の方法、時間積分方法、線形ソルバ、領域分割設定、結果出力の時間間隔、時間増分など
+\end{commandline}
+実際には、このチュートリアルでは、これ以外のファイルがあるはずです。
+しかし、これらは簡易実行用のスクリプトやチュートリアル用の初期データなので、解析には必須ではありません。
+必須なのは上記で挙げたディレクトリのみです。
+\subsubsection{メッシュの作成}
+解析を行うには、1) メッシュを作成, 2) 入力値を設定する, 3) 並列計算する場合は、領域を分割する, 4) 解析を実行する。
+以上のようなステップを踏みます。まずはメッシュから作成しましょう。
+OpenFOAM では blockMesh と単純形状のみ作成できるメッシャーと snappyHexMesh という複雑な形状に対応したメッシャーが利用できます。
+他にも、一般的なメッシュ作成ツールから形状を取り込むこともできます。
+snappyHexMesh は blockMesh で作成した計算領域を少しずつ形状を変化させ最終形上に近づけてゆきます。そのため、最初に blockMesh の実行が必要です。
+\begin{commandline}
+blockMesh 
+
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  3.0.x                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : 3.0.x-c20b114ceb6f
+Exec   : blockMesh
+Date   : Apr 19 2016
+Time   : 00:17:19
+Host   : "ca200"
+PID    : 4720
+
+.
+. 中略
+.
+
+  patch 3 (start: 3840 size: 64) name: outlet
+  patch 4 (start: 3904 size: 160) name: lowerWall
+  patch 5 (start: 4064 size: 160) name: upperWall
+
+End
+\end{commandline}
+一度 paraview を起動して現在どのようなメッシュが作成されているか観察してみることにしましょう。
+まず、paraview を起動します。
+\begin{commandline}
+$ paraview &
+\end{commandline}
+[File] / [Open] から Open File: ダイアログを開きます。 [Files of type] から [All files (*)] を選択すると、Filename に controlDict というファイルが現れるはずです。
+そのファイルを選択し [OK] ボタンを押し、[Open With] ダイアログのファイル形式のリストから OpenFOAM を選択してください。 
+[OK] ボタンを押下すると、メインの画面に戻ります。
+その後 [Apply] ボタンを押すと
+四角いブロックが表示されるはずです。\vspace{1em} \\
+今度は、snappyHexMesh を使用して実形状のメッシュを作ります。
+このメッシャーは、並列実行することが可能です。
+\verb|numberOfSubdomains| を編集して 2 にし、そして、\verb|simpleCoeffs| の \verb|n ( 2 1 1 )| としてあります。
+これは、先ほどの四角いブロックを2分割して並列でメッシュ作成を行います。
+\verb|n| の成分をすべて乗算したとき、\verb|numberOfSubdomains| と同じになるようにしてください。
+\begin{commandline}
+vi system/decomposeParDict 
+
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  3.0.x                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      decomposeParDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+numberOfSubdomains 2;
+
+method          ptscotch;
+
+simpleCoeffs
+{
+    n               (2 1 1);
+    delta           0.001;
+}
+
+hierarchicalCoeffs
+{
+    n               (2 1 1);
+    delta           0.001;
+    order           xyz;
+}
+
+manualCoeffs
+{
+    dataFile        "cellDecomposition";
+}
+
+
+// ************************************************************************* //
+\end{commandline}
+お使いの計算機のコア数と同じにすると、最も効率よく実行できます。
+並列で snappyHexMesh を使用するには下記のように実行します。
+\begin{commandline}
+mpirun -np 2 snappyHexMesh -parallel >& snappyHexMesh.log
+\end{commandline}
+計算にはかなり時間がかかります。
+先ほどと同じように、paraview で作成したメッシュを見てみましょう。
+バイクを運転しているひとのメッシュが作成されているはずです。\\
+\includegraphics[scale=0.5]{image201604/motorbike_mesh.jpg}
+\subsection{解析結果を実行する}
+解析を実行してみましょう。
+今回のチュートリアルは、非圧縮性の粘性流体を PISO 法で解きます。
+このアルゴリズムは、pisoFoam というアプリケーションで利用できます。
+移流項の空間離散は 1 次風上差分、拡散項は 2 次精度の中心差分を利用しています。
+これらは、\verb|system/fvSchemes| で設定されています。
+線形ソルバは AMG 前処理ありの CG 法を使用します。
+こちらは、\verb|system/fvSolutions| で設定されています。　
+\subsection{解析結果を見てみる}
+解析は終了しましたが、解析結果はデータファイルとして出力されただけです。
+数値ファイルから、数百万点の要素を持つメッシュから空気の流れを読み取ることなどはほぼ不可能です。
+そのため、解析結果のデータファイルを人間が目で見て理解できるように表示してくれる可視化ソフトを使用します。
+すでにメッシュ作成のところで紹介済みですが、ここでも paraview を使用します。\\ 
+\includegraphics[scale=0.5]{image201604/motorbike_velocity_and_pressure.jpg}
+\subsection{まとめ}
+\subsubsection{良い点}
+OpenFOAMは、商用ソフトと比べて数学的な法則に乗っとてくれているので嬉しいです。商用のソフトは、数値解析の安定性を確保するために、数学的なトリックを多用していることが多いです。
+1000並列ぐらいまでならば、問題なくスケーリングすることが知られています。ただし、理論性能比は察してください。
+そして、ソースコードさえ読めれば、どんな機能でも自分でカスタマイズなどができることです。
+\subsubsection{悪い点}
+数値解析の安定性はあまり良くないです。かなりの数値流体の知識が要求されます。
+Unix/Linux に詳しくない技術者にはとっつきにくいかもしれない。
+
 
 \dancersection{今後の予定}{Debian JP}
 
