@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
 % latex beamer presentation.
-% platex, latex-beamer でコンパイルすることを想定。 
+% platex, latex-beamer でコンパイルすることを想定。
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2012 Junichi Uekawa
@@ -12,7 +12,7 @@
 %     (at your option) any later version.
 
 %     This program is distributed in the hope that it will be useful,
-%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
 %     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %     GNU General Public License for more details.
 
@@ -24,7 +24,7 @@
 \usetheme{Tokyo}
 \usepackage{monthlypresentation}
 
-%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 %  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
@@ -51,7 +51,7 @@
 
 \title{東京エリアDebian勉強会\\　\\Buffalo Linkstation向け\\Debian Installer}
 \subtitle{第139回 2016年5月度}
-\author{Roger Shimizu\\rogershimizu@gmail.com}
+\author{Roger Shimizu}
 \date{2016年5月21日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
@@ -63,9 +63,9 @@
 \begin{frame}{Agenda}
 \begin{enumerate}
 \item 自己紹介
-\item 背景
+\item Buffalo Linkstation と Debian Installer
 \item Linkstation へ Debian のインストール仕方
-\item TODO
+\item ToDo
 \item Demo
 \end{enumerate}
 \end{frame}
@@ -75,18 +75,18 @@
 
 \begin{frame}{自己紹介}
 \begin{itemize}
-\item 10年以上(静かな) Debian user
-\item 2年前にLinkstation LS-WXL の Device-tree 対応を初め、Kernel DTS や Debian 様々への貢献を行う
-\item wide-dhcpv6, adjtimex パッケージをメインテインしており
-\item Debian Kernel Team と Debian Installer Team を参加しており、組み込み系 Device がより簡単に使えるように頑張ります
+\item 10年以上(静かな) Debian user.
+\item 2年前にLinkstation LS-WXL の Device-tree 対応を初め、Linux Kernel へ ARM Device の Device-Tree や Debian Project など、様々の貢献を行いました。
+\item Debian Package: wide-dhcpv6, adjtimex をメインテインしております。
+\item Debian の Kernel Team と Installer Team を参加しており、組み込み系 Device がより簡単に使えるように頑張ります。
 \end{itemize}
 \end{frame}
 
 
-\section{背景}
-\emtext{背景}
+\section{Buffalo Linkstation と Debian Installer}
+\emtext{Buffalo Linkstation と Debian Installer}
 
-\begin{frame}{Buffalo Linkstation NAS 歴史}
+\begin{frame}{Buffalo Linkstation NAS の歴史}
 \begin{itemize}
 \item 第０世代: Linkstation / Kuro-Box
 \item 第１世代: Linkstation HG / Kuro-Box HG
@@ -95,9 +95,8 @@
 	\item IDE/PATA のみ (SATA がなし)
 	\item 現在あっても使いづらいと思います
 	\end{itemize}
-\item 第２世代: Kuro-Box Pro / Linkstation Live\\
-/ Linkstation LS-GL/LS-WTGL/LS-WSGL/LS-QL
-\footnote{MIPSの方が少ないて、出てすぐデスコンになってしまったので、省略させて頂きます。}
+\item 第２世代\footnote{MIPSのModelも出たけれど、Model数が少ないし、出てすぐデスコンになってしまったので、こちら省略させて頂きます。}: 
+Kuro-Box Pro / Linkstation Live\\/ Linkstation LS-GL/LS-WTGL/LS-WSGL/LS-QL
 	\begin{itemize}
 	\item ARM architecture
 		\begin{itemize}
@@ -115,65 +114,65 @@
 \& Linkstation LS-VL/LS-WVL/LS-QVL, etc
 	\begin{itemize}
 	\item Marvell kirkwood 6281 / 6282 chipset
-	\item armel architecture なので、第２世代と rootfs の互換性があり、また Debian Kernel 4.4 から同じ「-marvell」という flavour で対応されます。
+	\item armel architecture なので、第２世代と rootfs の互換性があり、また Debian Kernel 4.4 から同じ「-marvell」との flavour で共通に対応されます。
+\footnote{HDDを異なる型番の機器に入れる前に、flash-kernelで適切なDTBをuImage.buffaloに入れ置かないと行けません。}
 	\end{itemize}
 \item 第４世代: LS-210/LS-220/LS-410/LS-420, etc
 	\begin{itemize}
 	\item Marvell armada-370 chipset
-	\item armhf architecture
-	\item 残念ながら、Kernel の方がまだ対応されてない
+	\item armhf architecture (hard-float)
+	\item 残念ながら、Linux Kernel の方がまだ対応されてないようです。
 	\end{itemize}
 \end{itemize}
 \end{frame}
 
 \begin{frame}{Debian Installer}
 \begin{itemize}
-\item Debian Installer では、様々機器に Debian をインストールしてくれるツールです。
+		\item Debian Installer (略は D-I となります)では、様々機器に Debian をインストールしてくれるツールとなります。
 	\begin{itemize}
 	\item 非 Linux な OS でも対応される、例え kFreeBSD や GNU/Hurd など
 	\item モニターなど表示デバイスが付いてない機器でも対応される──network-console イメージ\\
 	　⇒ ちょうど Buffalo Linkstation など NAS 機器に向け
 	\end{itemize}
-\item 現在対応されてる Linkstation リスト:
-\footnote{d-i daily が含まれる}
+\item 現在 D-I に対応されている Linkstation リスト\footnote{d-i daily image が含まれる}:
 	\begin{itemize}
 	\item Kuro-Box Pro / Linkstation Pro/Live
 	\item Linkstation LS-GL / LS-WSGL / LS-WTGL
 	\item Linkstation LS-XHL / LS-CHLv2 / LS-WXL / LS-WSXL / LS-VL / LS-WVL / LS-QVL\\
-	　⇒ 第２世代と第３世代はほとんど対応されてます
+	　⇒ armel の第２世代と第３世代はほとんど対応されてます
 	\end{itemize}
 \end{itemize}
 \end{frame}
 
 
-\section{Linkstation へ Debian のインストール仕方}
-\emtext{Linkstation へ Debian のインストール仕方}
+\section{Linkstationへ Debian の インストール仕方}
+\emtext{Linkstationへ Debian の インストール仕方}
 
-\begin{frame}{D-I インストール手順}
-Buffalo Linkstation では、u-boot という boot loader が、1番目の partition (/dev/sda1 or /dev/md0) に保存される kernel と initrd を読み込んで起動を行います。
-それから、D-I イメージを1番目の partition に置いとけば、debian installer が起動されます。
-大体の手順は、下記の通りとなります。
+\begin{frame}{Linkstation に Debian Installer を起動させる}
+Buffalo Linkstation では、u-boot という boot loader が、1番目の partition (/dev/sda1 又は /dev/md0) に保存される kernel と initrd を読み込んで起動を行います。
+それから、D-I イメージを1番目の partition に置いとけば、Debian Installer が起動されます。
+手順は下記の通りとなります。
 \begin{itemize}
-\item 1番目の partition をフォーマットする(既に存在するなら省略可)
-\footnote{1番目の partition は ext2/ext3 に限られます。}
+\item 1番目の partition をフォーマットする\footnote{1番目の partition は ext2/ext3 に限られます。}(既に存在するなら省略可)
 \item D-I kernel/initrd イメージを、1番目の partition にコピーする。D-I イメージは下記URLでダウンロード出来ます。
 	\begin{itemize}
-	\item https://d-i.debian.org/daily-images/armel/daily/orion5x/network-console/buffalo
-	\item https://d-i.debian.org/daily-images/armel/daily/kirkwood/network-console/buffalo
+	\item https://d-i.debian.org/daily-images/armel/daily\\/orion5x/network-console/buffalo
+	\item https://d-i.debian.org/daily-images/armel/daily\\/kirkwood/network-console/buffalo
 	\end{itemize}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{D-I インストール手順 (続き)}
+\begin{frame}{Linkstation に Debian Installer を起動させる(続)}
 \begin{itemize}
-\item Linkstation を起動し、暫く待って、DHCPでIPを割り当てられたら、そのIPに SSH にします。
-\item 画面を沿って、普通な debian install 行うことが出来ます。
+\item D-I kernel/initrd image を入れた HDD を Linkstation に取り付けます。
+\item Linkstation を起動し、DHCP で IP Address を割り当てられるまで暫く待って、それから割り当てられた IP Address に SSH で接続します。
+\item 画面に沿って、通常な Debian Install 行うことが出来ます。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{詳細な手順 (その 0)}
+\begin{frame}[containsverbatim]{詳細な手順: HDD Partition の作成}
 LinkstationのHDDをLinkstationから外し、SATA-USBアダプターなど方法経由でPCに接続します。例えば、その HDD が /dev/sdc として説明します。
-LS-WXL/WSXL/WVL/QVL などRAID機器の場合は、すべてのHDDを同じ partition にしても良いです。
+LS-WXL/WSXL/WVL/QVL など RAID 機器の場合は、すべての HDD を同じ partition にしても良いです。
 \begin{commandline}
 # parted /dev/sdc
 (parted) mklabel gpt
@@ -181,15 +180,17 @@ LS-WXL/WSXL/WVL/QVL などRAID機器の場合は、すべてのHDDを同じ pa
 (parted) mkpart root 1024MiB 6144MiB
 (parted) mkpart swap 6144MiB 6400MiB
 (parted) mkpart data 6400MiB -1
+/* 下記のコマンドは RAID 構成の機種だけ必要となります。*/
 (parted) set 1 raid on
 (parted) set 2 raid on
 (parted) set 3 raid on
 (parted) set 4 raid on
+/* 最後にpartedを終了させます。*/
 (parted) quit
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{詳細な手順 (その 1)}
+\begin{frame}[containsverbatim]{詳細な手順: HDD Partition の確認}
 \begin{itemize}
 \item Partition を作ったら、確認するとこうなります。
 \end{itemize}
@@ -207,131 +208,139 @@ Num Start   End     Size    File sys  Name  Flags
  4  6711MB  250GB   243GB             data  raid
 \end{commandline}
 \begin{itemize}
-\item RAIDの場合は他の HDD も同じようにセットしてください。
+\item RAID 構成の場合は他の HDD も同じようにセットしてください。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{詳細な手順 (その 2)}
+\begin{frame}[containsverbatim]{詳細な手順: boot image のセット}
 \begin{itemize}
-\item kernel/initrd イメージを第１番目 partition にコピーします。(例え、LS-WXL のイメージ)
+\item boot image kernel/initrd を第１番目 partition にコピーします。(例え、LS-WXL のイメージ)
 \item RAID の複数HDDの場合は、念のためすべてHDDをコピーしましょう。
 \end{itemize}
-\begin{commandlinesmall}
+\begin{commandline}
 # mkfs.ext3 /dev/sdc1
 # mount /dev/sdc1 /mnt; cd /mnt
-# wget https://d-i.debian.org/daily-images/armel/daily/kirkwood/\
-  network-console/buffalo/ls-wxl/uImage.buffalo
-# wget https://d-i.debian.org/daily-images/armel/daily/kirkwood/\
-  network-console/buffalo/ls-wxl/initrd.buffalo
+# wget https://d-i.debian.org/daily-images/armel\
+  /daily/kirkwood/network-console/buffalo/ls-wxl\
+  /uImage.buffalo
+# wget https://d-i.debian.org/daily-images/armel\
+  /daily/kirkwood/network-console/buffalo/ls-wxl\
+  /initrd.buffalo
 # cd - ; umount /mnt
-\end{commandlinesmall}
+\end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{詳細な手順 (その 3)}
+\begin{frame}[containsverbatim]{詳細な手順: SSH で接続}
 \begin{itemize}
 \item HDDs を Linkstation に戻して、起動させます。
 \item 暫く待つと、Android/iOS アプリ「Fing」のような IP/port scanner で Linkstation に割り当てた IP を見つけます。また、DHCP サーバ側のログでも
 \item IP を分かると、SSH コマンドを叩くと debian installer 画面が出て来る：
 \end{itemize}
 \begin{commandline}
-$ ssh installer@<IP of Linkstation>
+$ ssh installer@<IP address of Linkstation>
 \end{commandline}
 \begin{itemize}
-\item D-I SSHのデフォルトパスワードは「install」となります。
+\item D-I のデフォルトパスワードは「install」となります。
+\item command line で操作や log 確認などのため、もう一本 SSH を接続しても良いです。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{インストール時に伝えたいポイント(その 0)}
+\begin{frame}[containsverbatim]{RAID 構成向け Install 時のポイント(その０)}
 \begin{itemize}
-\item ほとんど RAID についてポイントなので、LS-GL/CHL/XHL/VL などRAIDなしの機種ならスキップください。
-\item もし RAID の設定が見つからない場合は、Partman の画面から一旦「バック」し、「Download installer components」に partman-md などモジュールを選択してから、出来るようになります。
+\item LS-GL/CHL/XHL/VL などRAID構成ではない機種ならスキップください。
+\item もし RAID の設定が見つからない場合は、D-I Partman の画面から一旦「バック」し、「Download installer components」に partman-md などモジュールを選択してから、出来るようになります。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{インストール時に伝えたいポイント(その 1)}
+\begin{frame}[containsverbatim]{RAID 構成向け Install 時のポイント(その１)}
 \begin{itemize}
-\item もし D-I で RAID を新規する場合、一番目の /dev/md0 が metadata=0 (version 0.90) にしないと再起動しなくなります。原因は u-boot が第１番目 partition の kernel/initrd を読み込まなくなるため。現在 partman-md に設定出来なくて、command line にしましょう：
+\item もし D-I で RAID を新規する場合、一番目の /dev/md0 が metadata=0 (version 0.90) にしないと再起動しなくなります。原因は u-boot が第１番目 partition の kernel/initrd を読み込まなくなるため。現在 partman-md に設定出来なくて\footnote{\url{https://bugs.debian.org/815569}}、command line にしましょう：
 \begin{commandline}
 # mdadm --create /dev/md0 --level=1 --raid-devices=2 \
-  -e 0 /dev/sda1 /dev/sdb1
+  --metadata=0 /dev/sda1 /dev/sdb1
 \end{commandline}
-\item または (他のHDDが後にします)
+\item または (他の HDD が後にします)
 \begin{commandline}
 # mdadm --create /dev/md0 --level=1 --raid-devices=2 \
-  -e 0 /dev/sda1 missing
+  --metadata=0 /dev/sda1 missing
 \end{commandline}
 \item /dev/md0 以外の RAID は partman-md で設定しても良いです。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{インストール時に伝えたいポイント(その 2)}
+\begin{frame}[containsverbatim]{RAID 構成向け Install 時のポイント(その２)}
 \begin{itemize}
-\item RAID を新規すると resync 作業が始められ、とても重くて、D-I に影響ならないように /dev/md0 以外の resync 速度を制限かけた方が良いです：
+\item RAID を新規する (create) と resync 作業がすぐに始めされ、とても重くて、進行中 Debian Install の作業に影響ならないように /dev/md0 以外の resync 速度を制限かけた方が良いです：
 \end{itemize}
 \begin{commandline}
 # echo 100 > /sys/block/md{1,2,3}/md/sync_speed_max
 \end{commandline}
 \begin{itemize}
-\item インストールを終わって再起動したら、RAID resync は自動的に再開されるので、特に作業が必要なし。
+\item インストールが終わって再起動したら、RAID resync は自動的に再開されるので、その後の作業は特に必要ありません。
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{インストール後の設定}
+\begin{frame}[containsverbatim]{Debian インストール後の設定}
 \begin{itemize}
-\item u-boot 設定を確認・変更のための fw\_printenv / fw\_setenv
+\item u-boot 環境変数を確認・変更のため、コマンド fw\_printenv / fw\_setenv の設定
+\footnote{u-boot 環境変数を変更すると起動しない場合があり、修復手段があまりなくて、気をつけましょう。}
 	\begin{itemize}
-	\item 変更して起動しない場合があり、修復手段があまりなくて、気をつけましょう。
 	\item ほとんどの機種は下記の設定が済みです：
 	\end{itemize}
-\begin{commandlinesmall}
-# echo /dev/mtd2 0x00000 0x10000 0x10000 > /etc/fw_env.config
-\end{commandlinesmall}
+\begin{commandline}
+# echo /dev/mtd2 0x00000 0x10000 0x10000 \
+	> /etc/fw_env.config
+\end{commandline}
 	\begin{itemize}
 	\item Kuro-Box Pro は mtd/flash の数が多いので、下記の設定にしてください。
 	\end{itemize}
-\begin{commandlinesmall}
-# echo /dev/mtd5 0x00000 0x10000 0x10000 > /etc/fw_env.config
-\end{commandlinesmall}
+\begin{commandline}
+# echo /dev/mtd5 0x00000 0x10000 0x10000 \
+	> /etc/fw_env.config
+\end{commandline}
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{インストール後の設定(続き)}
+\begin{frame}[containsverbatim]{Debian インストール後の設定 (続き)}
 \begin{itemize}
-\item 他の機器で起動ログを確認するための netconsole
+\item 他の機器で Linkstation の起動ログを確認するため、netconsole の設定
 	\begin{itemize}
-	\item Linkstation の設定：
+	\item Linkstation 側の設定：
 	\end{itemize}
-\begin{commandlinesmall}
+\begin{commandline}
 # cat << EOT >> /etc/initramfs-tools/modules
 marvell
 mv643xx_eth
-netconsole netconsole=@192.168.11.150/,6666@192.168.11.1/
+netconsole netconsole=@192.168.11.5/,6666@192.168.11.1/
 mvmdio
 EOT
-update-initramfs -u
-\end{commandlinesmall}
+
+# update-initramfs -u
+\end{commandline}
 	\begin{itemize}
-	\item 他のログ収集の機器の設定：
+	\item 他の機器でログ収集するコマンド：
 	\end{itemize}
-\begin{commandlinesmall}
+\begin{commandline}
 $ sudo ip a add 192.168.11.1/24 dev eth0
 $ nc -l -u -p 6666 | tee ~/netconsole.log
-\end{commandlinesmall}
+\end{commandline}
 \end{itemize}
 \end{frame}
 
 
-\section{TODO}
-\emtext{TODO}
+\section{ToDo}
+\emtext{ToDo}
 
 \begin{frame}{これからのこと}
 \begin{itemize}
-\item D-I に screen/tmux を対応する
+\item Debian Installer に GNU/screen 又は tmux を対応する
+\footnote{\url{https://lists.debian.org/debian-boot/2016/02/msg00547.html}}\footnote{\url{https://bugs.debian.org/819397}}\footnote{\url{https://bugs.debian.org/819988}}
 	\begin{itemize}
-	\item SSH connection が切れても、再接続すると元の状態に再開されます。
-	\item シェルやログなど便利にアクセス出来ます。
+	\item SSH 接続が切れても、installer がバックグラウンドに回せて、SSH で再接続すると元の状態に再開できます。
+	\item シェルやログなどより便利にアクセス出来ます。
 	\end{itemize}
-\item 第４世代の armhf/armada-370 Linkstation を対応する
+\item partman-md へ RAID の metadata 指定できるように、対応する\footnote{\url{https://bugs.debian.org/815569}}。
+\item 第４世代、armhf/armada-370 の Linkstation を対応する
 \end{itemize}
 \end{frame}
 
@@ -339,9 +348,9 @@ $ nc -l -u -p 6666 | tee ~/netconsole.log
 \section{Demo}
 \emtext{Demo}
 
-\begin{frame}{Buffalo Linkstation NAS のインストールデモ}
+\begin{frame}{Buffalo Linkstation 向け Debian Install Demo}
 \begin{itemize}
-\item 2-Bay 2.5’ HDD model Linkstation LS-WSXL
+\item 機材: 2-Bay 2.5’ HDD model Linkstation LS-WSXL
 \end{itemize}
 \end{frame}
 
