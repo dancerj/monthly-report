@@ -114,8 +114,9 @@ Debian$B$N:r:#$NOCBj$K$D$$$F$N(BQuiz$B$G$9!#(B
 \dancersection{Buffalo Linkstation $B8~$1(B Debian Installer}{Roger Shimizu}
 %-------------------------------------------------------------------------------
 
-\subsection{$B$O$8$a$K(B}
-blahblah
+\subsection{$B;O$a$K(B}
+VGA/HDMI port $B$d(B Keyboard $B$J$IIU$$$F$J$$5!4o!"Nc$($P%5!<%P8~$1$F(BPC$B!"$=$l$+$i(B ARM $B3+H/%\!<%I$J$I$N5!4o$K!"$I$&$d$C$F(B Debian $B$rF~$l$F$*$/$G$7$g$&$+!)(B
+RAID $BIU$-$N(B Buffalo Linkstation NAS $B$rNc$H$7$F!">R2pCW$7$^$9!#(B
 
 \subsection{Buffalo Linkstation $B$NNr;K(B}
 
@@ -154,9 +155,10 @@ Kuro-Box Pro / Linkstation Live / Linkstation LS-GL/LS-WTGL/LS-WSGL/LS-QL
 \subsection{Debian Installer $B$N>R2p(B}
 
 \begin{itemize}
-		\item Debian Installer ($BN,$O(B D-I $B$H$J$j$^$9(B)$B$G$O!"MM!95!4o$K(B Debian $B$r%$%s%9%H!<%k$7$F$/$l$k%D!<%k$H$J$j$^$9!#(B
+\item Debian Installer ($BN,$O(B D-I $B$H$J$j$^$9(B)$B$G$O!"MM!95!4o$K(B Debian $B$r%$%s%9%H!<%k$7$F$/$l$k%D!<%k$H$J$j$^$9!#(B
 	\begin{itemize}
 	\item $BHs(B Linux $B$J(B OS $B$G$bBP1~$5$l$k!"Nc$((B kFreeBSD $B$d(B GNU/Hurd $B$J$I(B
+	\item $B%a%G%#%"$O(B CD/DVD $B$K8B$i$l$:!"(BPXE netboot $B$d(B u-boot $B$J$IMM!9=@Fp$J%$%s%9%H!<%k%a%G%#%"$rDs6!$5$l$F$*$j$^$9!#(B
 	\item $B%b%K%?!<$J$II=<(%G%P%$%9$,IU$$$F$J$$5!4o$G$bBP1~$5$l$k(!(!(Bnetwork-console $B%$%a!<%8(B\\
 	$B!!"M(B $B$A$g$&$I(B Buffalo Linkstation $B$J$I(B NAS $B5!4o$K8~$1(B
 	\end{itemize}
@@ -191,19 +193,17 @@ Buffalo Linkstation $B$G$O!"(Bu-boot $B$H$$$&(B boot loader $B$,!"(B1$BHV
 Linkstation$B$N(BHDD$B$r(BLinkstation$B$+$i30$7!"(BSATA-USB$B%"%@%W%?!<$J$IJ}K!7PM3$G(BPC$B$K@\B3$7$^$9!#Nc$($P!"$=$N(B HDD $B$,(B /dev/sdc $B$H$7$F@bL@$7$^$9!#(B
 LS-WXL/WSXL/WVL/QVL $B$J$I(B RAID $B5!4o$N>l9g$O!"$9$Y$F$N(B HDD $B$rF1$8(B partition $B$K$7$F$bNI$$$G$9!#(B
 \begin{commandline}
-# parted /dev/sdc
+$ sudo parted /dev/sdc
 (parted) mklabel gpt
 (parted) mkpart boot 2048s 1024MiB
 (parted) mkpart root 1024MiB 6144MiB
 (parted) mkpart swap 6144MiB 6400MiB
 (parted) mkpart data 6400MiB -1
-/* $B2<5-$N%3%^%s%I$O(B RAID $B9=@.$N5!<o$@$1I,MW$H$J$j$^$9!#(B*/
+# $B2<5-$N%3%^%s%I$O(B RAID $B9=@.$N5!<o$@$1I,MW$H$J$j$^$9!#(B
 (parted) set 1 raid on
 (parted) set 2 raid on
 (parted) set 3 raid on
 (parted) set 4 raid on
-/* $B:G8e$K(Bparted$B$r=*N;$5$;$^$9!#(B*/
-(parted) quit
 \end{commandline}
 
 \subsubsection{$B>\:Y$J<j=g(B: HDD Partition $B$N3NG'(B}
@@ -222,6 +222,9 @@ Num Start   End     Size    File sys  Name  Flags
  2  1074MB  6442MB  5369MB            root  raid
  3  6442MB  6711MB  268MB             swap  raid
  4  6711MB  250GB   243GB             data  raid
+
+# $B:G8e$K(Bparted$B$r=*N;$5$;$^$9!#(B
+(parted) quit
 \end{commandline}
 \begin{itemize}
 \item RAID $B9=@.$N>l9g$OB>$N(B HDD $B$bF1$8$h$&$K%;%C%H$7$F$/$@$5$$!#(B
@@ -230,18 +233,19 @@ Num Start   End     Size    File sys  Name  Flags
 \subsubsection{$B>\:Y$J<j=g(B: boot image $B$N%;%C%H(B}
 \begin{itemize}
 \item boot image kernel/initrd $B$rBh#1HVL\(B partition $B$K%3%T!<$7$^$9!#(B($BNc$(!"(BLS-WXL $B$N%$%a!<%8(B)
-\item RAID $B$NJ#?t(BHDD$B$N>l9g$O!"G0$N$?$a$9$Y$F(BHDD$B$r%3%T!<$7$^$7$g$&!#(B
+\item RAID $B$NJ#?t(BHDD$B$N>l9g$O!"G0$N$?$a$9$Y$F(BHDD$B$r%3%T!<$7$^$7$g$&!#(B\footnote{$B$3$N;~E@$K!V(Bmdadm --create$B!W$G(B RAID $B$N9=@.$r$7$J$/$F$bNI$$$G$9!#(BInstall$B$N:]$K(B RAID $B$N:n@.$r9T$$$^$9!#(B}
 \end{itemize}
 \begin{commandline}
-# mkfs.ext3 /dev/sdc1
-# mount /dev/sdc1 /mnt; cd /mnt
-# wget https://d-i.debian.org/daily-images/armel\
+$ sudo mkfs.ext3 /dev/sdc1
+$ sudo mount /dev/sdc1 /mnt
+$ wget https://d-i.debian.org/daily-images/armel\
   /daily/kirkwood/network-console/buffalo/ls-wxl\
   /uImage.buffalo
-# wget https://d-i.debian.org/daily-images/armel\
+$ wget https://d-i.debian.org/daily-images/armel\
   /daily/kirkwood/network-console/buffalo/ls-wxl\
   /initrd.buffalo
-# cd - ; umount /mnt
+$ sudo cp *.buffalo /mnt
+$ sudo umount /mnt
 \end{commandline}
 
 \subsubsection{$B>\:Y$J<j=g(B: SSH $B$G@\B3(B}
@@ -258,11 +262,11 @@ $ ssh installer@<IP address of Linkstation>
 \item command line $B$GA`:n$d(B log $B3NG'$J$I$N$?$a!"$b$&0lK\(B SSH $B$r@\B3$7$F$bNI$$$G$9!#(B
 \end{itemize}
 
-\subsubsection{RAID $B9=@.8~$1(B Install $B;~$N%]%$%s%H(B}
+\subsubsection{RAID $B9=@.8~$1(B Install $B;~$NCm0U;v9`(B}
 \begin{itemize}
-\item LS-GL/CHL/XHL/VL $B$J$I(BRAID$B9=@.$G$O$J$$5!<o$J$i%9%-%C%W$/$@$5$$!#(B
-\item $B$b$7(B RAID $B$N@_Dj$,8+$D$+$i$J$$>l9g$O!"(BD-I Partman $B$N2hLL$+$i0lC6!V%P%C%/!W$7!"!V(BDownload installer components$B!W$K(B partman-md $B$J$I%b%8%e!<%k$rA*Br$7$F$+$i!"=PMh$k$h$&$K$J$j$^$9!#(B
-\item $B$b$7(B D-I $B$G(B RAID $B$r?75,$9$k>l9g!"0lHVL\$N(B /dev/md0 $B$,(B metadata=0 (version 0.90) $B$K$7$J$$$H:F5/F0$7$J$/$J$j$^$9!#860x$O(B u-boot $B$,Bh#1HVL\(B partition $B$N(B kernel/initrd $B$rFI$_9~$^$J$/$J$k$?$a!#8=:_(B partman-md $B$K@_Dj=PMh$J$/$F(B\footnote{\url{https://bugs.debian.org/815569}}$B!"(Bcommand line $B$K$7$^$7$g$&!'(B
+\item LS-GL/CHL/XHL/VL $B$J$I(BRAID$B9=@.$G$O$J$$5!<o$@$H%9%-%C%W$/$@$5$$!#(B
+\item $B$b$7(B RAID $B$N@_Dj$,8+$D$+$i$J$$>l9g$O!"(BD-I Partman $B$N2hLL$+$i0lC6!V%P%C%/!W$7!"!V(BDownload installer components$B!W$K(B partman-md $B$d(B sata-modules $B$J$I%b%8%e!<%k$rA*Br$7$F$+$i!"=PMh$k$h$&$K$J$j$^$9!#(B
+\item $B$b$7(B D-I $B$G(B RAID $B$r?75,$K:n@.$9$k>l9g!"0lHVL\$N(B /dev/md0 $B$O(B metadata=0 (version 0.90) $B$K@_Dj$7$J$$$H:F5/F0$7$J$/$J$j$^$9!#860x$O(B u-boot $B$,Bh#1HVL\(B partition $B$N(B kernel/initrd $B$rFI$_9~$^$J$/$J$k$?$a!#8=:_(B partman-md $B$K@_Dj=PMh$J$/$F(B\footnote{\url{https://bugs.debian.org/815569}}$B!"(Bcommand line $B$K$7$^$7$g$&!'(B
 \begin{commandline}
 # mdadm --create /dev/md0 --level=1 --raid-devices=2 \
   --metadata=0 /dev/sda1 /dev/sdb1
@@ -273,16 +277,16 @@ $ ssh installer@<IP address of Linkstation>
   --metadata=0 /dev/sda1 missing
 \end{commandline}
 \item /dev/md0 $B0J30$N(B RAID $B$O(B partman-md $B$G@_Dj$7$F$bNI$$$G$9!#(B
-\item RAID $B$r?75,$9$k(B (create) $B$H(B resync $B:n6H$,$9$0$K;O$a$5$l!"$H$F$b=E$/$F!"?J9TCf(B Debian Install $B$N:n6H$K1F6A$J$i$J$$$h$&$K(B /dev/md0 $B0J30$N(B resync $BB.EY$r@)8B$+$1$?J}$,NI$$$G$9!'(B
+\item RAID $B$r?75,$K:n@.$9$k(B (create) $B$HF14|2=$N:n6H$,$9$0$K;O$a$5$l!"$H$F$b=E$/$F!"?J9TCf(B Debian Install $B$N:n6H$K1F6A$J$i$J$$$h$&$K(B /dev/md0 $B0J30$NF14|2=$NB.EY$r@)8B$+$1$?J}$,NI$$$G$9!'(B
 \end{itemize}
 \begin{commandline}
 # echo 100 > /sys/block/md{1,2,3}/md/sync_speed_max
 \end{commandline}
 \begin{itemize}
-\item $B%$%s%9%H!<%k$,=*$o$C$F:F5/F0$7$?$i!"(BRAID resync $B$O<+F0E*$K:F3+$5$l$k$N$G!"$=$N8e$N:n6H$OFC$KI,MW$"$j$^$;$s!#(B
+\item $B%$%s%9%H!<%k$,=*$o$C$F:F5/F0$7$?$i!"(BRAID $B$NF14|2=$N:n6H$O<+F0E*$K:F3+$5$l$k$N$G!"$=$N8e$N:n6H$OFC$KI,MW$"$j$^$;$s!#(B
 \end{itemize}
 
-\subsubsection{Debian $B%$%s%9%H!<%k8e$N@_Dj(B}
+\subsubsection{Debian Install $B8e$N@_Dj(B}
 \begin{itemize}
 \item u-boot $B4D6-JQ?t$r3NG'!&JQ99$N$?$a!"%3%^%s%I(B fw\_printenv / fw\_setenv $B$N@_Dj(B
 \footnote{u-boot $B4D6-JQ?t$rJQ99$9$k$H5/F0$7$J$$>l9g$,$"$j!"=$I|<jCJ$,$"$^$j$J$/$F!"5$$r$D$1$^$7$g$&!#(B}
@@ -290,29 +294,29 @@ $ ssh installer@<IP address of Linkstation>
 	\item $B$[$H$s$I$N5!<o$O2<5-$N@_Dj$,:Q$_$G$9!'(B
 	\end{itemize}
 \begin{commandline}
-# echo /dev/mtd2 0x00000 0x10000 0x10000 \
+$ sudo echo /dev/mtd2 0x00000 0x10000 0x10000 \
 	> /etc/fw_env.config
 \end{commandline}
 	\begin{itemize}
-	\item Kuro-Box Pro $B$O(B mtd/flash $B$N?t$,B?$$$N$G!"2<5-$N@_Dj$K$7$F$/$@$5$$!#(B
+	\item Kuro-Box Pro $B$O(B mtd/flash $B$N?t$,0[$J$k$N$G!"2<5-$N@_Dj$K$7$F$/$@$5$$!#(B
 	\end{itemize}
 \begin{commandline}
-# echo /dev/mtd5 0x00000 0x10000 0x10000 \
+$ sudo echo /dev/mtd5 0x00000 0x10000 0x10000 \
 	> /etc/fw_env.config
 \end{commandline}
-\item $BB>$N5!4o$G(B Linkstation $B$N5/F0%m%0$r3NG'$9$k$?$a!"(Bnetconsole $B$N@_Dj(B
+\item $BB>$N5!4o$G(B Linkstation $B$N5/F0%m%0$r3NG'$9$k$?$a(B($B$"$k$$$O!":F5/F0ITG=$N:]$K%G%P%C%0<jCJ$H$7$F(B)$B!"(Bnetconsole $B$N@_Dj(B
 	\begin{itemize}
 	\item Linkstation $BB&$N@_Dj!'(B
 	\end{itemize}
 \begin{commandline}
-# cat << EOT >> /etc/initramfs-tools/modules
+$ sudo cat << EOT >> /etc/initramfs-tools/modules
 marvell
 mv643xx_eth
 netconsole netconsole=@192.168.11.5/,6666@192.168.11.1/
 mvmdio
 EOT
 
-# update-initramfs -u
+$ sudo update-initramfs -u
 \end{commandline}
 	\begin{itemize}
 	\item $BB>$N5!4o$G%m%0<}=8$9$k%3%^%s%I!'(B
@@ -324,8 +328,10 @@ $ nc -l -u -p 6666 | tee ~/netconsole.log
 \end{itemize}
 
 
-\subsection{ToDo}
+\subsection{$B=*$o$j$K(B}
 
+Kernel $B$N(B Device-Tree $B$rBP1~$7$?$j!"(BDebian-Installer $B$K%Q%C%A$rEj$2$?$j!"(BLinkstation $B$K(B Debian Install $B$O$d$C$H=PMh$k$h$&$K$J$j$^$7$?!#(B
+$B:#8e$O(B Debian Installer $B$r0z$-B3$-2~A1!&?J2=$r9T$C$F9T$-$?$$$H;W$$$^$9!#(B
 \begin{itemize}
 \item Debian Installer $B$K(B GNU/screen $BKt$O(B tmux $B$rBP1~$9$k(B
 \footnote{\url{https://lists.debian.org/debian-boot/2016/02/msg00547.html}}\footnote{\url{https://bugs.debian.org/819397}}\footnote{\url{https://bugs.debian.org/819988}}
@@ -336,15 +342,6 @@ $ nc -l -u -p 6666 | tee ~/netconsole.log
 \item partman-md $B$X(B RAID $B$N(B metadata $B;XDj$G$-$k$h$&$K!"BP1~$9$k(B\footnote{\url{https://bugs.debian.org/815569}}$B!#(B
 \item $BBh#4@$Be!"(Barmhf/armada-370 $B$N(B Linkstation $B$rBP1~$9$k(B
 \end{itemize}
-
-
-\subsection{$B=*$o$j$K(B}
-blahblah
-
-
-
-
-
 
 
 \cleartooddpage
