@@ -1,0 +1,251 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+ 
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011, 2015 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2016}
+\newcommand{\debmtgmonth}{3}
+\newcommand{\debmtgdate}{5}
+% started from zero:
+% (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{138}
+
+% tikz picture の為のマクロ設定
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt 特集 ： Debian Ports/移植作業関連}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+%\dancersection{事前課題}{}
+%
+%今回の事前課題は以下です:
+%\begin{enumerate}
+%\item q1
+%\item Hack Timeは何をしますか。
+%\end{enumerate}
+%この課題に対して提出いただいた内容は以下です。
+%\begin{multicols}{2}
+%{\small
+%\input{image201603/prework.tex}
+%}
+%\end{multicols}
+
+
+%\dancersection{Debian Trivia Quiz}{}
+%
+%Debianの昨今の話題についてのQuizです。
+%
+%今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}に投稿された内容などからです。
+%
+%\begin{multicols}{2}
+%\input{image201603/quiz.tex}
+%\end{multicols}
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[	 ]\+" "")
+
+%-------------------------------------------------------------------------------
+\dancersection{Debianの移植作業用のインフラを借りるには}{林 健太郎（@kenhys）}
+%-------------------------------------------------------------------------------
+
+\index{lets-use-porterbox}
+
+\subsection{はじめに}
+
+そのへんに生えているDebian使いにとって、メンテナンスしているパッケージのバグレポートというのはありがたいものです。なぜなら、気づいていなかった問題をバグレポートをきっかけに改善できるからです。その一方で、実機を持っていなかったりすると、いくら報告してもらえても、手元に環境がなくてつらい思いをすることがあります。
+
+今回はDebianの移植作業用のインフラを借りる機会があったのでその内容を紹介します。\footnote{2016年3月現在の情報で、現在では若干記述が古くなっている箇所があります。該当箇所には注記を入れてあります。}
+
+\subsection{porterboxとは何か？}
+
+porterboxは移植作業用のベアメタルサーバーの総称です。Debian開発者なら誰でも使えることになっています。Debianではさまざまなアーキテクチャをサポートしているので、アーキテクチャごとにサーバーが用意されています。
+
+Debianの開発に用いられているサーバーのリストは\url{https://db.debian.org/machines.cgi}から入手することができます。ただし、移植作業用のサーバー以外のものも含まれているため、porterboxのみ知りたいときには向きません。
+
+そんなときに便利なのが、porterboxコマンドです。\url{https://github.com/jbernard/porterbox}から入手することができます。シンプルなPythonスクリプトで、これを実行すると移植作業用のサーバーのリストが得られます。
+
+\begin{commandline}
+$ ./porterbox
+Architecture       Hostname                 Access
+--------------------------------------------------------------------
+armel              abel.debian.org          public
+arm64              asachi.debian.org        public
+amd64              barriere.debian.org      public
+mipsel             etler.debian.org         public
+hurd-i386          exodar.debian.net        public (non-DSA-machine)
+kfreebsd-amd64     falla.debian.org         public
+kfreebsd-i386      fischer.debian.org       public
+armhf              harris.debian.org        [unknown]
+mips               minkus.debian.org        public
+sparc64            notker.debian.net        public (non-DSA-machine)
+powerpc            partch.debian.org        public
+powerpc            pizzetti.debian.org      [unknown]
+ppc64el            plummer.debian.org       [unknown]
+sh4                sh4.g15.jp               public (non-DSA-machine)
+sh4                sumotsu.debian.net       public (non-DSA-machine)
+armhf              turfan.debian.net        public (non-DSA-machine)
+s390x              zelenka.debian.org       public
+
+Found 17 machines
+\end{commandline}
+
+\subsection{なぜporterboxを借りたのか？}
+
+みなさんおなじみ、FTBFS\footnote{Fails To Build From Source。あまり遭遇したくない魔法の言葉。GCC-6への移行であなたもたぶん無縁ではいられない。}です。バグレポートがきました。しかも非x86\_64アーキテクチャです。実機など当然ありません。
+
+しかも、以下の環境で問題があることがわかっていました。
+
+\begin{itemize}
+\item mips
+\item mipsel
+\item m68k
+\end{itemize}
+
+ふつうのDebian使いには、なかなかつらい環境です。QEMUを使えばいいのかとも思いましたが、あまりその方面に明るくなかったため、たまたまその存在を知ったporterboxを借りることにしました。
+
+\subsection{どうやって借りたらいいのか？}
+
+ゲストアカウントの申請については、ドキュメントがまとめられています。（ただし、現在ではこの情報は古くなっていて、\url{https://nm.debian.org/}からporterboxのゲストアカウントの申請を行えるようになっているとのことです。便利になりましたね。そのため、以前はこうだったという紹介にとどめます。）
+
+\begin{itemize}
+\item Guest Access to porter machines\footnote{\url{https://dsa.debian.org/doc/guest-account/}}
+\end{itemize}
+
+ざっくりまとめると以下の通りです。
+
+\begin{description}
+\item [Step 1.] Debian開発者を探す
+\item [Step 2.] porterboxのアカウント申請メールをDebian開発者に送付する
+\item [Step 3.] Debian開発者によりrt.debian.orgへチケットを起票してもらう
+\item [Step 4.] ひたすら座して待つ
+\item [Step 5.] LDAP ゲートウェイ(db.debian.org)を経由してssh鍵を登録する
+\end{description}
+
+最初のStep 1.ではスポンサーしてくれるDebian開発者を探します。さすがにどこの馬の骨だかわからない人にまでサーバーを気前よく貸してくれたりはしません。次のStep 2.では必要事項を記入したアカウント申請メールをスポンサーすることにこころよく応じてくれたDebian開発者へと送ります。アカウント名や、DMUPへの同意、借りたいサーバーやその理由などをしたためます。
+
+Step 3.ではスポンサーしてくれたDebian開発者にお願いして\url{http://rt.debian.org}にそのためのチケットを起票してもらいます。このチケットは基本的にふつうのDebian使いには見れません。あとは、ひたすらDSAの中の人がアカウントを用意してくれるのを待ちます。
+
+アカウントの用意ができると、メールで中の人から通知が届きます。以下のようなコマンド\footnote{ldapscriptsパッケージが必要です。}を実行すると、実際に申請したアカウントの用意ができているか確認できます。
+
+\begin{commandline}
+$ ldapsearch -LLL -b dc=debian,dc=org -x -h db.debian.org uid=(申請したユーザー名) \
+  allowedHost dn: uid=(申請したユーザー名),ou=users,dc=debian,dc=org
+allowedHost: minkus.debian.org 20160427
+allowedHost: etler.debian.org 20160427
+\end{commandline}    
+
+上記の例だと、minkus\footnote{ホスト名の由来は作曲家・劇場指揮者・ヴァイオリニストであるLeon Fedorovich Minkusから。}とetler\footnote{ホスト名の由来は作曲家・オーボエ奏者であるAlvin Derald Etlerから。CPUは龍芯3号 by 中国科学院だったりします。}が使えることがわかります。
+
+最後に忘れてはならないのが、ssh鍵の登録です。次のようにして、ssh鍵を登録します。
+
+\begin{itemize}
+\item 公開鍵の先頭にallowed\_hosts=...を入れる（...は申請したホスト名）
+\item 公開鍵をgpg --armor --signで署名する
+\item changes@db.debian.orgに署名した内容をメールする
+\end{itemize}
+
+それぞれのサーバーに伝播するまでしばらく待ちましょう。ログインできるようになっているはずです。
+
+\subsection{おわりに}
+
+今回は、Debianのインフラのひとつであるporterboxを借りる方法を紹介しました。実環境を用意するのが難しい場合には、ぜひ活用するとよいのではないでしょうか。1度の申請につき、3ヶ月くらい借りられます。
+
+\begin{thebibliography}{1}
+\bibitem{ref:kde-devel-debian}「Debianのインフラを借りるには」 第137回東京エリアDebian勉強会資料,\url{http://slide.rabbit-shocker.org/authors/kenhys/tokyodebian-porterbox-20160305/}
+\end{thebibliography}
+
+\cleartooddpage
+
+
+%-------------------------------------------------------------------------------
+\dancersection{tilegxについて}{wskoka}
+%-------------------------------------------------------------------------------
+
+発表資料をご参照ください。
+
+
+%-------------------------------------------------------------------------------
+\dancersection{Introduction to Debian Ports}{John Paul Adrian Glaubitz}
+%-------------------------------------------------------------------------------
+
+発表資料をご参照ください。
+
+%
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+%\dancersection{メモ}{}
+%\mbox{}\newpage
+%\mbox{}\newpage
+
+\cleartooddpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
