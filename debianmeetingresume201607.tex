@@ -107,7 +107,7 @@ Debianの昨今の話題についてのQuizです。
 2016年6月25日(土)に第140回東京エリアDebian勉強会を開催しました。会場は渋谷にあるdotsさんをお借りして行いました。参加者は10名でした。
 
 発表者はkenhysさんで、表題は「debexpo(mentors.d.n)をハックするには」という内容でした。
-
+Debian Projectへの貢献の1つにDebianパッケージを作成する作業があります。誰もが最初は初心者であるため、作成したDebianパッケージをメンター(=Debian Developer)に確認していただき、鍛えてもらう場がmentors.debian.netです。kenhysさんはメンターであるDebian Developerにチェックしていただく過程でmentors.debian.netのwebサイトを利用していましたが、使い勝手が悪いと感じる部分があったためwebサイト自体を改善する作業を行ったという報告でした。
 
 発表終了後は、各自の課題をこなす作業時間としました。
 
@@ -128,6 +128,336 @@ Debianの昨今の話題についてのQuizです。
 \dancersection{Debianでlxcをセットアップしてみよう}{杉本 典充}
 %-------------------------------------------------------------------------------
 
+\subsection{はじめに}
+
+コンピュータの仮想化技術にコンテナ型仮想化という仕組みがあります。本発表では、コンテナ型仮想化技術の1つであるlxcについて説明します。
+
+\subsection{仮想化技術について}
+
+\subsubsection{仮想化技術の分類}
+
+コンピュータにおける仮想化技術にはいくつかの種類があります。
+
+\begin{itemize}
+  \item コンテナ型仮想化
+  \begin{itemize}
+  \item ゲスト環境はホスト環境のあるディレクトリに配置した実行ファイルおよびライブラリの集合であり、実行中のゲスト環境はホスト環境から見ると単なるプロセス群である。実装例はOpenVZ、LXC。
+  \end{itemize}
+  \item 準仮想化型
+  \begin{itemize}
+  \item ホスト環境とやりとりするAPIを利用できるように修正が入ったOSをゲスト環境として動作させる方式(=既存のOSそのままでは動かない)。実装例はXen。
+  \end{itemize}
+  \item 完全仮想化型(エミュレーション型)
+  \begin{itemize}
+  \item 既存のOSを無修正のままゲスト環境として動作させる。ホスト環境上で動作する仮想化アプリケーションがゲスト環境をエミューションする。実装例はQEMU、VirtualBox。
+  \end{itemize}
+\item 完全仮想化型(ハイパーバイザ型)
+  \begin{itemize}
+  \item 既存のOSを無修正のままゲスト環境として動作させる。CPUの仮想化機能を使うことでホスト環境におけるオーバーヘッドを極力減らし、エミュレーション型より高いパフォーマンスを出せる。実装例はKVM。
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{仮想化技術のメリットとデメリット}
+
+準仮想化型および完全仮想化型におけるゲスト環境は、特定のハードウェアをもつ物理マシンをエミュレートするいわゆる「仮想マシン」を実行の単位とするため、仮想サーバ上でもカーネルを実行させる必要があることからCPU、メモリ、ディスクを多く使用します。その代わり、物理マシンへ普通にOSをインストールして実行していたプログラムをそのまま実行できる場合が非常に多いことが優位です。
+
+コンテナ型仮想化におけるゲスト環境は、ホスト環境のカーネルで動作するプロセス群であるため、余分なカーネルや管理デーモンを動作させる必要がなく省リソースで動作できる点が優位です。その代わり、ホスト環境のOSや設定によってゲスト環境に動作制約がつくことがあります\footnote{rawソケットが利用できない、共有メモリが利用できない、loopbackが利用できない、同一ホスト環境で動作している他のコンテナと通信できてしまう、などの制約がある場合があります。}。
+
+\subsubsection{コンテナ型仮想化技術の基本chroot}
+
+コンテナ型仮想化の基礎技術にchrootがあります\footnote{chrootシステムコールは1982年にウィリアム・ネルソン・ジョイ(ビル・ジョイの名で知られている)が開発したことを起源とされています。ビル・ジョイはプログラムをクリーンビルドできる環境がほしかったため通常利用の環境と分離する手段として開発したと言われています。}。あるディレクトリ配下に実行ファイル、ライブラリ、設定ファイルを適切に配置したrootfs(=コンテナ環境)に対してchroot(2)またはchroot(3)を実行することで、コンテナ環境内のライブラリを使ってコマンドを実行できます。
+
+\subsection{lxcとは}
+
+lxcとは、コンテナ型仮想化として動作する単位であるゲスト環境(=rootfs)の配置、起動、終了、コンソール入出力、ネットワーク等を管理する仕組みです。
+lxcを使うことによって、コンテナ環境を起動し、IPアドレスを割り当て、あたかもそこに1台の仮想マシンが起動したかのように振る舞うことができます。
+
+\subsection{lxcのインストール}
+
+今回はDebian GNU/Linux 8 Jessieのamd64上でlxcをインストールして動作させてみます。
+Debian Projectでは以下にドキュメントがまとまっています。
+
+\begin{itemize}
+\item https://wiki.debian.org/LXC
+\item https://wiki.debian.org/LXC/SimpleBridge
+\end{itemize}
+
+まず、lxcパッケージと仮想ネットワークを構築するパッケージをインストールします
+
+\begin{commandline}
+# apt-get install lxc bridge-utils libvirt-bin
+\end{commandline}
+
+
+lxcをインストールすると、lxc-*コマンドが使えるようになります。
+
+\begin{commandline}
+  $ ls /usr/bin/lxc*
+  /usr/bin/lxc-attach       /usr/bin/lxc-start                   /usr/bin/lxc-test-list
+  /usr/bin/lxc-autostart    /usr/bin/lxc-start-ephemeral         /usr/bin/lxc-test-locktests
+  /usr/bin/lxc-cgroup       /usr/bin/lxc-stop                    /usr/bin/lxc-test-lxcpath
+  /usr/bin/lxc-checkconfig  /usr/bin/lxc-test-apparmor           /usr/bin/lxc-test-may-control
+  /usr/bin/lxc-clone        /usr/bin/lxc-test-attach             /usr/bin/lxc-test-reboot
+  /usr/bin/lxc-config       /usr/bin/lxc-test-autostart          /usr/bin/lxc-test-saveconfig
+  /usr/bin/lxc-console      /usr/bin/lxc-test-cgpath             /usr/bin/lxc-test-shutdowntest
+  /usr/bin/lxc-create       /usr/bin/lxc-test-clonetest          /usr/bin/lxc-test-snapshot
+  /usr/bin/lxc-destroy      /usr/bin/lxc-test-concurrent         /usr/bin/lxc-test-startone
+  /usr/bin/lxc-device       /usr/bin/lxc-test-console            /usr/bin/lxc-test-symlink
+  /usr/bin/lxc-execute      /usr/bin/lxc-test-containertests     /usr/bin/lxc-unfreeze
+  /usr/bin/lxc-freeze       /usr/bin/lxc-test-createtest         /usr/bin/lxc-unshare
+  /usr/bin/lxc-info         /usr/bin/lxc-test-destroytest        /usr/bin/lxc-usernsexec
+  /usr/bin/lxc-ls           /usr/bin/lxc-test-device-add-remove  /usr/bin/lxc-wait
+  /usr/bin/lxc-monitor      /usr/bin/lxc-test-get_item
+  /usr/bin/lxc-snapshot     /usr/bin/lxc-test-getkeys
+\end{commandline}
+
+libvirt-binをインストールしてlibvirtdを起動すると、デフォルトで192.168.122.0/24のNATネットワークが構成されます。今回は作成したコンテナ環境をこのNATネットワークに接続し、ホスト環境とつながる192.168.122.1(=virbr0)をデフォルトゲートウェイとして通信できるようにします。\footnote{仮想ネットワークはノートパソコンやVPSで構築する場合はNATの方がよいかもしれませんが、社内ネットワークで利用する場合はブリッジ接続(=ホスト環境とコンテナ環境が同一ネットワークに属する形態)にすることを考えた方がよいかもしれません。}
+
+
+次に、lxcで動作するコンテナ環境にリソース制約を行う仕組みであるcgroupsを設定します。
+
+\begin{commandline}
+  # vi /etc/fstab
+  cgroup  /sys/fs/cgroup  cgroup  defaults  0   0
+
+  # mount /sys/fs/cgroup
+  # mount | grep cgroups
+  cgroup on /sys/fs/cgroup/systemd type cgroup (rw,nosuid,nodev,noexec,relatime,xattr,
+  release_agent=/lib/systemd/systemd-cgroups-agent,name=systemd)
+\end{commandline}
+
+この状態で、lxcを使える環境であるか確認するコマンド"lxc-checkconfig"を実行してみます。「enabled」と書かれているところは、実際のターミナル上では緑色で表示されます。disableの機能はありませんので、動作できる環境であることが確認できました。
+
+\begin{commandline}
+  # lxc-checkconfig
+  Kernel configuration not found at /proc/config.gz; searching...
+  Kernel configuration found at /boot/config-3.16.0-4-amd64
+  --- Namespaces ---
+  Namespaces: enabled
+  Utsname namespace: enabled
+  Ipc namespace: enabled
+  Pid namespace: enabled
+  User namespace: enabled
+  Network namespace: enabled
+  Multiple /dev/pts instances: enabled
+
+  --- Control groups ---
+  Cgroup: enabled
+  Cgroup clone_children flag: enabled
+  Cgroup device: enabled
+  Cgroup sched: enabled
+  Cgroup cpu account: enabled
+  Cgroup memory controller: enabled
+  Cgroup cpuset: enabled
+
+  --- Misc ---
+  Veth pair device: enabled
+  Macvlan: enabled
+  Vlan: enabled
+  File capabilities: enabled
+
+  Note : Before booting a new kernel, you can check its configuration
+  usage : CONFIG=/path/to/config /usr/bin/lxc-checkconfig
+\end{commandline}
+
+\subsection{lxcによるコンテナ環境の操作}
+
+\subsubsection{コンテナの作成:lxc-create}
+
+ゲスト環境となるコンテナ環境(=rootfs)はlxc-createコマンドで作成することができます。
+今回のlxcのコンテナ環境は、ホスト環境と同じDebian GNU/Linux 8 Jessie amd64を作成します\footnote{ゲスト環境は、ホスト環境のlinuxカーネルで動作するバイナリであればホスト環境と異なるディストリビューションでも動作可能です}。今回は、''debstudy1''という名前でコンテナを作成します。
+
+\begin{commandline}
+  # LANG=C SUITE=jessie MIRROR=http://ftp.jp.debian.org/debian lxc-create -n debstudy1 -t debian
+
+  debootstrap is /usr/sbin/debootstrap
+  Checking cache download in /var/cache/lxc/debian/rootfs-jessie-amd64 ...
+  Copying rootfs to /var/lib/lxc/debstudy1/rootfs...Generating locales (this might take a while)...
+  Generation complete.
+  insserv: warning: current start runlevel(s) (empty) of script `checkroot.sh' overrides LSB defaults (S).
+  insserv: warning: current stop runlevel(s) (S) of script `checkroot.sh' overrides LSB defaults (empty).
+  insserv: warning: current start runlevel(s) (empty) of script `checkroot.sh' overrides LSB defaults (S).
+  update-rc.d: error: umountfs Default-Start contains no runlevels, aborting.
+  insserv: warning: current start runlevel(s) (empty) of script `hwclock.sh' overrides LSB defaults (S).
+  insserv: warning: current stop runlevel(s) (0 6 S) of script `hwclock.sh' overrides LSB defaults (0 6).
+  update-rc.d: error: cannot find a LSB script for hwclockfirst.sh
+  Creating SSH2 RSA key; this may take some time ...
+  2048 df:99:56:34:c7:6d:d1:0a:2d:e2:b4:6a:fd:a0:62:f5 /etc/ssh/ssh_host_rsa_key.pub (RSA)
+  Creating SSH2 DSA key; this may take some time ...
+  1024 9d:42:45:1d:fd:03:92:04:6c:e0:fb:e6:06:cc:07:06 /etc/ssh/ssh_host_dsa_key.pub (DSA)
+  Creating SSH2 ECDSA key; this may take some time ...
+  256 6a:4a:1a:6f:27:59:33:6c:58:5c:58:27:03:08:3b:ea /etc/ssh/ssh_host_ecdsa_key.pub (ECDSA)
+  Creating SSH2 ED25519 key; this may take some time ...
+  256 36:d6:9b:d3:9d:96:a4:af:af:8c:75:11:90:76:56:75 /etc/ssh/ssh_host_ed25519_key.pub (ED25519)
+  Failed to read /proc/cmdline. Ignoring: No such file or directory
+  invoke-rc.d: policy-rc.d denied execution of start.
+
+  Current default time zone: 'Asia/Tokyo'
+  Local time is now:      Sun Jul 10 13:26:07 JST 2016.
+  Universal Time is now:  Sun Jul 10 04:26:07 UTC 2016.
+
+  Root password is 'Won4EiUa', please change !
+\end{commandline}
+
+lxc-createを実行すると、''/var/lib/lxc/debstudy1''というディレクトリが作成され、その配下にrootfsとlxcのゲスト環境用設定ファイルが生成されます。
+なお、一度コンテナを作成するとダウンロードしたrootfsファイルはキャッシュされます。(2回目以降の作成でDebianパッケージのダウンロードが不要になり早く処理が終わります)
+
+\begin{commandline}
+  # ls -l /var/lib/lxc/debstudy1
+  合計 8
+  -rw-r--r--  1 root root  479  7月 10 13:26 config
+  -rw-r--r--  1 root root    0  7月 10 13:26 fstab
+  drwxr-xr-x 22 root root 4096  7月 10 13:26 rootfs
+
+  # ls /var/lib/lxc/debstudy1/rootfs
+  bin  boot  dev  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  selinux  srv  sys  tmp  usr  var
+\end{commandline}
+
+lxcが参照する設定ファイルの初期状態は以下になります。
+
+\begin{commandline}
+  # cat /var/lib/lxc/debstudy1/config
+  # Template used to create this container: /usr/share/lxc/templates/lxc-debian
+  # Parameters passed to the template:
+  # For additional config options, please look at lxc.container.conf(5)
+  lxc.network.type = empty
+  lxc.rootfs = /var/lib/lxc/debstudy1/rootfs
+
+  # Common configuration
+  lxc.include = /usr/share/lxc/config/debian.common.conf
+
+  # Container specific configuration
+  lxc.mount = /var/lib/lxc/debstudy1/fstab
+  lxc.utsname = debstudy1
+  lxc.arch = amd64
+  lxc.autodev = 1
+  lxc.kmsg = 0
+\end{commandline}
+
+このconfigファイルにコンテナ環境が利用するネットワーク設定を行います。
+
+\begin{commandline}
+  # vi /var/lib/lxc/debstudy1/config
+  (末尾に以下を追加)
+
+  lxc.network.type = veth
+  lxc.network.flags = up
+  lxc.network.link = virbr0
+  lxc.network.name = eth0
+  lxc.network.ipv4 = 192.168.122.203/24
+  lxc.network.ipv4.gateway = 192.168.122.1
+\end{commandline}
+
+
+\subsubsection{コンテナの一覧:lxc-ls}
+
+lxc-lsコマンドで作成したコンテナの一覧を表示できます。
+
+\begin{commandline}
+  # lxc-ls
+  debstudy1
+\end{commandline}
+
+
+\subsubsection{コンテナの削除:lxc-destroy}
+
+lxc-destroyコマンドでコンテナを削除できます。
+
+\begin{commandline}
+  # lxc-destroy -n <lxc-name>
+\end{commandline}
+
+
+\subsubsection{コンテナの起動:lxc-start}
+
+lxc-startコマンドでコンテナを起動します。コンテナを起動すると、コンテナ環境内にあるinitプログラムが実行され常駐します。
+
+-dオプションはコンテナ環境をバックグラウンドで起動するオプションです。-dオプションを付けない場合、lxc-startを実行したターミナルはコンテナ環境のコンソールに接続されます。
+
+\begin{commandline}
+  # lxc-start -n debstudy1
+  　または
+  # lxc-start -n debstudy1 -d
+\end{commandline}
+
+
+\subsubsection{コンテナの終了:lxc-stop}
+
+lxc-stopコマンドでコンテナを終了します。コンテナを終了すると、initプログラムが起動中のデーモンを終了させ、initプログラム自身も終了します。
+
+\begin{commandline}
+  # lxc-stop -n debstudy1
+\end{commandline}
+
+\subsubsection{コンテナのコンソールへ接続する}
+
+lxc-consoleコマンドでコンテナ環境のコンソールへ接続します。
+
+``Ctrl+a q''の順にキー入力すると、コンソールから抜けることができます。
+
+\begin{commandline}
+  # lxc-console -n debstudy1
+
+  Connected to tty 1
+  Type <Ctrl+a q> to exit the console, <Ctrl+a Ctrl+a> to enter Ctrl+a itself
+
+  Debian GNU/Linux 8 debstudy1 tty1
+
+  debstudy1 login:
+\end{commandline}
+
+
+\subsection{lxcを実用する}
+\subsubsection{lxcのゲスト環境をを利用可能な状態までセットアップする流れ}
+
+lxcのゲスト環境へのログインはsshでログインしたいと思うことが多いと考えます。
+そのため、lxcのゲスト環境を作成して動作させるまでのセットアップの流れの一例をまとめてみます。
+
+なお、debianの場合はlxc-createしたときのrootfs内にopenssh-serverパッケージもインストールされます。
+
+\begin{itemize}
+\item lxc-createコマンドでゲスト環境を作成する
+\item configファイルを修正し、IPアドレス付与及びネットワーク設定を行う
+\item chrootコマンドでrootfsへ直接入る(または、lxc-startでコンテナ環境を起動してコンソールへ接続する)
+  \begin{itemize}
+  \item passwdコマンドでrootパスワードを書き換える
+  \item adduserコマンドでユーザを作成する
+  \item apt-get install sudo vim-tiny
+  \item visudo
+  \item dpkg-reconfigure locales  (初期値はlxc-createしたときにLANG値となります)
+  \end{itemize}
+\item lxc-start -n \{lxc-name\} -d を実行し、バックグラウンドでゲスト環境を起動
+\item ホスト環境からsshコマンドでゲスト環境のIPアドレスとユーザを指定してログインする
+\end{itemize}
+
+sshログインができ、sudoが利用できるようになれば後はお好みで設定ができると思います。
+
+\newpage
+
+\subsubsection{何にlxcを使うか}
+
+lxcをどのような場面で利用するかはその人次第です。自分は以下の用途で利用しています。
+
+\begin{itemize}
+\item 一時的な検証で、ホスト環境にいろいろインストールしたくない場合(例：デーモンの再起動が必要になる)
+\item python2系とpython3系が混在した複数のwebアプリケーションを1つのホストで動かしたい場合(debianの場合、libapache2-mod-wsgiとlibapache2-mod-wsgi-py3は共存できない)
+\item ホスト環境はsystemdのままで、ゲスト環境はsysvinitで動作させたい場合(systemdに対応しないプログラムを利用する苦肉の策)
+\item 開発したアプリケーションをクリーンな環境でビルドやインストールできるかテストを行う場合\footnote{きちんとdebianパッケージにしてインストールするようにすれば、この用途で利用することはないはずです}\footnote{debianにあるpbuilderやcowbuilderはクリーンなrootfsへchrootしてdebianパッケージのビルドができるかをテストする便利コマンドです}
+\item amd64上でi386環境がほしい、または異なるCPUアーキテクチャのコンテナ環境が動作するクロス環境がほしい場合\footnote{cross debootstrapといい、QEMUと組み合わせます。}
+\end{itemize}
+
+
+\subsection{おわりに}
+
+Debian GNU/Linux上でlxcを試してみました。lxcは、複数ホストのlxc環境を制御するLXDやdockerの基礎技術であるため、皆さま試してみてください。
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+  \item 「LXC - Debian Wiki」 \url{https://wiki.debian.org/LXC}
+  \item 杉本 典充 (2013) 「debootstrapを有効活用してみよう」 \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201304.pdf}
+\end{itemize}
 
 \cleartooddpage
 
