@@ -1333,15 +1333,15 @@ Enjoy Debian and LibreOffice Life!
 %201512
 \dancersection{Debian モバイル wifi ルータ化}{野島 貴英}
 
-\begin{frame}{はじめに}
+\subsection{はじめに}
 
  最近のモバイルルータは、7GBytes/月、300MBytes/日などの、一定の通信量を超えるとたちまち通信制限がかかってしまい、とても実用にならないぐらいに通信帯域を絞られてしまいます。
   
 　たまたま、手元に通信制限が非常にゆるい（というか気にならない）FOMAのモデムがありましたので、こちらとDebianを使ってモバイルルータが作れないかを試してみました。また、Linuxで無線APを作る時の仕組みについてもちょっと調べてみました。
  
-\end{frame}
 
-\begin{frame}{用意するもの}
+
+\subsection{用意するもの}
 
   用意するものは次のとおり。
 
@@ -1351,16 +1351,16 @@ Enjoy Debian and LibreOffice Life!
   \item BUFFALO WLI-UC-GNM2 (備考：Ralink製 Ralink RT3070搭載。900円/1個ぐらいの小型USB無線LANアダプタ）
   \end{itemize}    
 
-\end{frame}
 
-\begin{frame}[containsverbatim]{bridgeを作る}
+
+\subsection{bridgeを作る}
 
   \begin{description}
     \item [Step 1-1] apt install bridge-utils
     \item [Step 1-2] vi /etc/network/interfaceして以下を追記
   \end{description}      
  /etc/network/interfaceの追記部分：
-\begin{verbatim}
+\begin{commandline}
 auto br0
 iface br0 inet static
         address 192.168.0.1
@@ -1369,64 +1369,52 @@ iface br0 inet static
         bridge_stp off
         bridge_fd 0
         bridge_maxwait 0
-\end{verbatim}  
-
-\end{frame}
-
-\begin{frame}[containsverbatim]{bridgeを作る}
+\end{commandline}
 
   \begin{description}
     \item [Step 1-3] ifup br0
     \item [Step 1-4] vi /etc/sysctl.d/bridge-filter-workaround.conf
   \end{description}      
 /etc/sysctl.d/bridge-filter-workaround.conf中身：
-\begin{verbatim}
+\begin{commandline}
 net.bridge.bridge-nf-call-ip6tables = 0
 net.bridge.bridge-nf-call-iptables = 0
 net.bridge.bridge-nf-call-arptables = 0
-\end{verbatim}  
-\end{frame}
-
-\begin{frame}[containsverbatim]{bridgeを作る(つづき)}
+\end{commandline}
 
   \begin{description}
     \item [Step 1-5] vi /etc/sysctl.d/forward-yes.conf
   \end{description}      
  /etc/sysctl.d/forward-yes.conf中身：
-\begin{verbatim}
+\begin{commandline}
 net.ipv4.ip_forward=1
-\end{verbatim}  
-\end{frame}
-
-\begin{frame}{bridgeを作る(つづき)}
+\end{commandline}
 
   \begin{description}
   \item [Step 1-6] sysctl -p /etc/sysctl.d/bridge-filter-workaround.conf
   \item [Step 1-7] sysctl -p /etc/sysctl.d/forward-yes.conf
 　\end{description}
-\end{frame}
 
-\begin{frame}{ここまでの設定を図示}
+
+\subsection{ここまでの設定を図示}
 
 \begin{figure}[htbp]
 \includegraphics[width=0.8\hsize]{image201512/bridge.eps}
 \caption{bridgeの設定の状況}
 \end{figure}
   
-\end{frame}
 
-\begin{frame}{L-05A側設定}
+
+\subsection{L-05A側設定}
 
   \begin{description}
     \item [Step 2-1] apt install ppp
     \item [Step 2-2] vi /etc/ppp/peers/l-05a
   \end{description}      
-\end{frame}
 
-\begin{frame}[containsverbatim]{L-05A側設定(つづき)}
 
  /etc/ppp/peers/l-05aの中身：
-\begin{verbatim}
+\begin{commandline}
 hide-password 
 noauth 
 connect "/usr/sbin/chat -v -f /etc/chatscripts/l-05a"
@@ -1441,28 +1429,20 @@ ipparam l-05a
 persist 
 usepeerdns 
 idle 300
-\end{verbatim}
+\end{commandline}
   
-\end{frame}
-
-\begin{frame}[containsverbatim]{L-05A側設定(つづき)}
-
   \begin{description}
     \item [Step 2-3] vi /etc/chatscripts/l-05a
   \end{description}      
  /etc/chatscripts/l-05aの中身：
-\begin{verbatim}
+\begin{commandline}
 ABORT BUSY ABORT 'NO CARRIER' ABORT VOICE 
 ABORT 'NO DIALTONE' ABORT 'NO DIAL TONE' 
 ABORT 'NO ANSWER' ABORT DELAYED
 '' ATZ
 OK-AT-OK "ATDT*99***5#"
 CONNECT \d\c
-\end{verbatim}
- 
-\end{frame}
-
-\begin{frame}[containsverbatim]{L-05A側設定(つづき)}
+\end{commandline}
 
   \begin{description}
     \item [Step 2-4] chown root:dip /etc/ppp/peers/l-05a /etc/chatscripts/l-05a
@@ -1470,52 +1450,44 @@ CONNECT \d\c
     \item [Step 2-6] vi /etc/ppp/ip-up.d/bridge-up
   \end{description}      
  /etc/ppp/ip-up.d/bridge-upの中身：
-\begin{verbatim}
+\begin{commandline}
 #!/bin/sh
 iptables -t nat -A POSTROUTING -o $PPP_IFACE \
 -j MASQUERADE
 iptables -A FORWARD -i br0 -o $PPP_IFACE -j ACCEPT
 iptables -A FORWARD -o br0 -i $PPP_IFACE -j ACCEPT
-\end{verbatim}
-
-\end{frame}
-
-\begin{frame}[containsverbatim]{L-05A側設定(つづき)}
+\end{commandline}
 
   \begin{description}
     \item [Step 2-7] vi /etc/ppp/ip-down.d/bridge-down
   \end{description}      
  /etc/ppp/ip-down.d/bridge-downの中身：
-\begin{verbatim}
+\begin{commandline}
 #!/bin/sh
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 iptables -t nat -D POSTROUTING -o $PPP_IFACE \
 -j MASQUERADE
 iptables -D FORWARD -i br0 -o $PPP_IFACE -j ACCEPT
 iptables -D FORWARD -o br0 -i $PPP_IFACE -j ACCEPT
-\end{verbatim}
-
-\end{frame}
-
-\begin{frame}{L-05A側設定(つづき)}
+\end{commandline}
 
   \begin{description}
     \item [Step 2-8] chown 755 /etc/ppp/ip-up.d/bridge-up /etc/ppp/ip-up.d/bridge-down
     \item [Step 2-9] pon l-05a
   \end{description}      
  これで、L-05aはグローバルに接続されるようになります。
-\end{frame}
 
-\begin{frame}{ここまでの設定を図示}
+
+\subsection{ここまでの設定を図示}
 
 \begin{figure}[htbp]
 \includegraphics[width=0.8\hsize]{image201512/pppd.eps}
 \caption{pppの設定の状況}
 \end{figure}
   
-\end{frame}
 
-\begin{frame}{補足：L-05A側トラブルシュート}
+
+\subsection{補足：L-05A側トラブルシュート}
 
  つながらない時は次のとおりです。
 
@@ -1525,9 +1497,9 @@ iptables -D FORWARD -o br0 -i $PPP_IFACE -j ACCEPT
  modprobe -r uas;modprobe uas;eject /dev/sr0
  \end{itemize} 
 
-\end{frame}
 
-\begin{frame}[containsverbatim]{hostapdの設定}
+
+\subsection{hostapdの設定}
 
   いよいよ無線APを立てます。
 
@@ -1537,7 +1509,7 @@ iptables -D FORWARD -o br0 -i $PPP_IFACE -j ACCEPT
   \item [Step 3-3] lsmodして以下のモジュールがロードされたことを確認。
   \end{description}      
  lsmodの結果抜粋
-\begin{verbatim}
+\begin{commandline}
 rt2800usb              28672  0
 rt2x00usb              24576  1 rt2800usb
 rt2800lib              90112  1 rt2800usb
@@ -1547,26 +1519,19 @@ mac80211              630784  4 rt2x00lib,rt2x00usb,
                                 rt2800lib
 cfg80211              532480  4 mac80211,rt2x00lib
 rfkill                 24576  5 cfg80211
-\end{verbatim}
+\end{commandline}
 
-\end{frame}
 
-\begin{frame}[containsverbatim]{hostapdの設定}
+
+\subsection{hostapdの設定}
 
   \begin{description}
   \item [Step 3-4] ip addr showして、wlxXXXXXXXXXXXXという名前のI/Fを探す。
   \item [Step 3-5] vi /etc/hostapd/hostapd.conf
   \end{description}      
 
-\end{frame}
-
-
-\begin{frame}[containsverbatim]{hostapdの設定(つづき)}
-
 /etc/hostapd/hostapd.confの中身：
-\begin{center}
-\small
-\begin{verbatim}
+\begin{commandline}
 interface=wlxXXXXXXXXXXXX 
 bridge=br0
 driver=nl80211
@@ -1582,11 +1547,10 @@ wpa_pairwise=CCMP
 logger_syslog=-1
 logger_syslog_level=2
 ctrl_interface=/var/run/hostapd
-\end{verbatim}
-\end{center}
-\end{frame}
+\end{commandline}
 
-\begin{frame}{hostapdの設定}
+
+\subsection{hostapdの設定}
 
   \begin{description}
   \item [Step 3-6] chmod 600 /etc/hostapd/hostapd.conf
@@ -1594,19 +1558,19 @@ ctrl_interface=/var/run/hostapd
   \end{description}      
 
   これで無線APが稼働します。iphone/Android端末で見ると、SSID: debianspotというSSIDが見えるはずです。ただ、まだ、dhcpサービスを有効にしていないため、パスワードを入れても接続できません。
-\end{frame}
 
 
-\begin{frame}{hostapdの設定までを図示}
+
+\subsection{hostapdの設定までを図示}
 
 \begin{figure}[htbp]
 \includegraphics[width=0.8\hsize]{image201512/hostapd.eps}
 \caption{hostapd稼働の状況}
 \end{figure}
 
-\end{frame}
 
-\begin{frame}[containsverbatim]{DHCPの設定}
+
+\subsection{DHCPの設定}
 
   今回簡易的にdhcpサーバを立てるため、dnsmasqを利用します。
   \begin{description}
@@ -1615,16 +1579,13 @@ ctrl_interface=/var/run/hostapd
   \end{description}      
 
 dhcp.confの中身：
-\begin{verbatim}
+\begin{commandline}
 interface=br0
 bind-interfaces
 dhcp-range=192.168.2.129,192.168.2.254,
 255.255.255.0,1h
-\end{verbatim}
+\end{commandline}
   
-\end{frame}
-
-\begin{frame}[containsverbatim]{DHCPの設定（つづき）}
 
   \begin{description}
   \item [Step 4-3] systemctl start dnsmasq.service
@@ -1632,33 +1593,28 @@ dhcp-range=192.168.2.129,192.168.2.254,
 
   以上で、dhcpサービスがbr0経由で開始され、無事、無線APとして稼働します。iphone/AndroidからもSSID: debianspotに接続し、パスワード'abcdef'を入れると、WPA2-PSKにて接続されます。
   
-\end{frame}
 
-\begin{frame}{dhcpの設定までを図示}
+
+\subsection{dhcpの設定までを図示}
 
 \begin{figure}[htbp]
 \includegraphics[width=0.8\hsize]{image201512/dhcp.eps}
 \caption{無線AP稼働の状況}
 \end{figure}
 
-\end{frame}
 
-\begin{frame}{hostapdはどのようにWLI-UC-GNM2を操作するのか？}
+
+\subsection{hostapdはどのようにWLI-UC-GNM2を操作するのか？}
 
 \begin{figure}[htbp]
 \includegraphics[width=0.8\hsize]{image201512/mac80211_arch.jpg}
 \caption{nl80211の図示}
 \end{figure}
 
-\end{frame}
-
-
-\begin{frame}{hostapdはどのようにWLI-UC-GNM2を操作するのか？（つづき）}
-
   cfg8011とhostapdは通信をしてWLI-UC-GNM2を操作するのですが、こちらで使われる
  プロトコルは、linuxのNETLINKが利用されます。
 
-\end{frame}
+
 
 %201601 kansai
 \dancersection{VyOSを入れてAPを構築してみた。}{かわだてつたろう}
@@ -2613,35 +2569,31 @@ allowedHost: etler.debian.org 20160427
 %201601 tokyo
 \dancersection{Debianで、Linux ftraceまわりをいじってみた}{野島 貴英}
 
-\begin{frame}{はじめに}
+\subsection{はじめに}
 
  Linuxカーネルのデバッグ支援機能で人気のあるものに、ftraceという仕組みがあります。今回はDebian unstableで提供されているlinux-4.3.3を利用して、ftraceを使ってみます。
   
-\end{frame}
 
-\begin{frame}{ftraceとは}
+
+\subsection{ftraceとは}
 
   Linuxカーネル内部の実行トレースを効率的に取れるようにしたデバッグ支援機構となります。カーネル内部のCの関数単位でトレースが取れたりします。
 
   人気があるせいか、機能拡張がどんどん続いています。最近では、ユーザプロセスのトレースも取れる機能が追加される、kprobeとの連携などが追加されています。
 
-\end{frame}
-
-\begin{frame}{ftraceとは（つづき）}
-
 　Debianのバグ潰しに、是非活用してみてはいかがでしょう！
   
-\end{frame}
 
-\begin{frame}{ftrace注意点}
+
+\subsection{ftrace注意点}
 
   評価中に何度か経験したのですが、一部のftraceの機能(uevent,kprobe)にて、プローブの手続きを書き間違えたりすると、カーネル全体が突然ハングアップしたり、マシンが突然リブートすることがありました。
 
 　利用にあたっては、必ず十分に事前に動作を検証してから、重要なサーバ上などで実行する事をおすすめします。もちろん、重要でないサーバ上なら、いくらでも試行錯誤くださいませ（笑）
   
-\end{frame}
 
-\begin{frame}[containsverbatim]{よく知られている使い方について}
+
+\subsection{よく知られている使い方について}
 
  カーネル内部の関数の実行トレースを取ってみます。なお、実行にあたってはroot権限が必要。
   
@@ -2653,10 +2605,6 @@ allowedHost: etler.debian.org 20160427
  # cat trace_pipe
  \end{commandline}   
  
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
-
 結果：
  \begin{commandline}
 # tracer: function
@@ -2681,10 +2629,6 @@ allowedHost: etler.debian.org 20160427
 ※紙面の都合で、一部改行を入れています。 また、<-XXXはXXXが呼び出し元。
  \end{commandline}   
 
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
-
  カーネル内部の特定の関数の呼び出しをトレースしてみます。以下のコマンドラインは先程の続きの操作からとなります。
  \begin{commandline}
  一旦、トレースを止める。
@@ -2698,9 +2642,6 @@ allowedHost: etler.debian.org 20160427
  # cat trace_pipe
  \end{commandline}   
 ※ トレースを止めるには、tracing\_onファイルに0や1を書き込んで止めるのが本式らしいのですが、今回は簡易にnopを指定して止めています。
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
 
 結果：
  \begin{commandline}
@@ -2727,9 +2668,6 @@ allowedHost: etler.debian.org 20160427
    　　　　　　　　　　　　　　<-schedule_preempt_disabled
 ※紙面の都合で、一部改行を入れています。 また、<-XXXはXXXが呼び出し元。
  \end{commandline}   
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき)}
 
  カーネル内部の特定の関数の呼び出しをトレースしてみます。以下のコマンドラインは先程の続きの操作からとなります。
  \begin{commandline}
@@ -2743,9 +2681,7 @@ allowedHost: etler.debian.org 20160427
    もしくは、
  # cat trace_pipe
  \end{commandline}   
-\end{frame}
 
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき)}
  補足:
 \begin{itemize}
  \item set\_ftrace\_filterには、*のワイルドカードが利用でき、例えば、
@@ -2756,9 +2692,6 @@ allowedHost: etler.debian.org 20160427
    という指定が可能です。\verb+*lock*+はlockを名前に含む関数がトレースされるようになります。\verb+ppp*+は行頭がpppで始まる関数がトレースされるようになります。
  \item トレースから除外する関数を指定する場合は、\verb+set_ftrace_notrace+に指定すると合致したものがトレースから除外されます。
 \end{itemize}
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき)}
 
  参考：set\_ftrace\_filterに指定可能な関数一覧
  \begin{commandline}
@@ -2771,10 +2704,6 @@ name_to_dev_t
 rootfs_mount
 ...中略(相当量ある）...  
  \end{commandline}   
-\end{frame}
-    
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
 
  コールツリーをとってみます。以下のコマンドラインは先程の続きの操作からとなります。
   
@@ -2790,10 +2719,6 @@ rootfs_mount
  # tail -f trace   
  \end{commandline}   
  
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
-
 結果：
  \begin{commandline}
 # tracer: function_graph
@@ -2812,9 +2737,6 @@ rootfs_mount
  2)               |          find_vma() {
  2)   0.191 us    |            vmacache_find();
  \end{commandline}   
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
 
   \begin{itemize}
     \item  他にも、割り込みが長時間止められた関数のトレース(irqsoff)がありますが、
@@ -2822,9 +2744,6 @@ rootfs_mount
     \item 他に利用できるトレースは、\verb+available_tracers+ファイルを確認するとよいと思います。
 　\end{itemize}
   
-\end{frame}
-
-\begin{frame}[containsverbatim]{よく知られている使い方について（つづき）}
 
   今回紹介した以上のよく知られている使い方のチュートリアルは、LWNの記事が良いです。\\
 
@@ -2838,24 +2757,18 @@ rootfs_mount
 \url{https://lwn.net/Articles/370423/}
 \end{itemize}  
   
-\end{frame}  
+  
 
-\begin{frame}[containsverbatim]{ユーザプロセスのトレースをやってみる}
+\subsection{ユーザプロセスのトレースをやってみる}
 
   最近のカーネルのftraceは、''use user-level statically defined tracing (USDT) probe''というユーザプロセス側のトレースを取れる機能があります。まずはこちらを紹介します。
 
   実際には、\verb+uprobe_events+ファイルを操作するのですが、関数のエントリポイントのメモリアドレスを指定しなければならないなどの使い勝手の問題があるため、perf-toolというツール経由で操作する方法について述べます。
 
-\end{frame}  
-
-\begin{frame}{ユーザプロセスのトレースをやってみる（つづき）}
-
+  
  ところで、Debian unstableには、このperf-toolがパッケージ化されているのですが、残念ながら2015年1月時点のupstreamのソースであるため、USDT probeに対応したコマンドが入っていません\footnote{bug report上げておきます。}。仕方が無いので、upstreamからソースを引っ張ってくることにします。なお、シェルスクリプトですので、手元に持ってくるだけで使えます。
   
-\end{frame}  
-
-\begin{frame}[containsverbatim]{ユーザプロセスのトレースをやってみる（つづき）}
-
+  
  ソースの入手と準備
  \begin{commandline}
    $ git clone https://github.com/brendangregg/perf-tools.git
@@ -2863,10 +2776,7 @@ rootfs_mount
    $ su root
    #
 　\end{commandline}
- \end{frame}  
-
-\begin{frame}[containsverbatim]{ユーザプロセスのトレースをやってみる（つづき）}
-
+   
 　試しに、Debian unstable全体のプロセスを対象に、libc中のopen関数を呼び出しをファイル名も含めてトレースしてみます。
 
  \begin{commandline}
@@ -2881,18 +2791,13 @@ rootfs_mount
 	 ....中略...
 　※紙面の都合で改行を入れています。
  \end{commandline}
-\end{frame}  
-
-\begin{frame}[containsverbatim]{ユーザプロセスのトレースをやってみる（つづき）}
+  
 
  uprobeの引数の文言についての説明は、linuxソースの\verb+Documentation/trace/uprobetracer.txt+にその説明があります。
 
  先のページの例は、\verb+/lib/x86_64-linux-gnu/libc-2.21.so+に含まれるopen関数について、関数の第一引数の文字列が格納されている場所の指定（CPUのdiレジスタが指し示す先のオフセット0番地を文字列データという指定で）\footnote{AMD64アーキテクチャでは正確には、ediレジスタですが、現状ではdiと指定するようです。}を表示せよという意味となります。
  
-\end{frame}  
-
-\begin{frame}[containsverbatim]{ユーザプロセスのトレースをやってみる（つづき）}
-
+  
  uprobeはトレース条件も指定でき、例えば、/var/log/以下のファイルをopenしたプロセスのみをトレース表示せよという指定は、
 \begin{commandline}
   # ./uprobe 'p:/lib/x86_64-linux-gnu/libc-2.21.so:open
@@ -2901,19 +2806,16 @@ rootfs_mount
 
 となります。
 
-\end{frame}  
+  
 
-\begin{frame}[containsverbatim]{kprobe経由のftraceを使ってみる}
+\subsection{kprobe経由のftraceを使ってみる}
 
   linux 3系列のカーネルであれば、ftraceはkprobe機能を活用したトレースを取ることが出来ます。
 トレース条件にkprobeで指定できるような条件を指定できるので、kprobeに造形が深い場合は、こちらがよいかもしれません。
 
   ここでは、先ほど入手したperf-toolに梱包されているkprobeを利用してみます。
   
-\end{frame}  
-
-\begin{frame}[containsverbatim]{kprobe経由のftraceを使ってみる}
-
+  
   使ってみる：
 \begin{commandline}
   # ./kprobe 'p:myopen do_sys_open
@@ -2928,19 +2830,12 @@ rootfs_mount
 　※紙面の都合で改行を入れています。
 \end{commandline}  
 
-\end{frame}  
+  
 
-\begin{frame}[containsverbatim]{ftraceについてさらに詳しく知る}
+\subsection{ftraceについてさらに詳しく知る}
 
  他にも最新カーネルにはいくつもここでは語られない機能がftraceに実装されています。さらに詳しく知りたい方は\verb+Documentation/trace/+以下のファイルを読むとよいと思います。
-  
-\end{frame}  
-
-\begin{frame}{おわりに}
-
  Linuxカーネルのftrace機能はいろいろと強力です。今回紹介出来なかった、機能もまだまだ存在します。将来、Linuxカーネルの挙動を追いかける必要が出てきた時に、ftraceで出来ることをささっと調査できるようになっていると、何かと便利かと思います。
-  
-\end{frame}
 
 %201602 kansai
 \dancersection{勉強会資料の歩き方}{かわだてつたろう}
