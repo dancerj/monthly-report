@@ -1,0 +1,260 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{第142回東京エリアDebian勉強会 \\　\\Debianでlxcをセットアップしてみよう}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2016-08-20}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item 仮想化技術について
+  \item lxcとは
+  \item lxcのインストール
+  \item lxcによるコンテナ環境の操作
+  \item lxcを実用する
+  \item おわりに
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item tilegxに少し手を出したがなかなか手ごわい
+  \item 仕事はソフトウェア開発者をやってます
+  \end{itemize}
+\end{frame}
+
+
+\emtext{仮想化技術について}
+
+\begin{frame}[containsverbatim]{仮想化技術の分類}
+  \begin{itemize}
+  \item コンテナ型仮想化
+  \item 準仮想化型
+  \item 完全仮想化型 (エミュレーション型)
+  \item 完全仮想化型 (ハイパーバイザ型)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{仮想化技術のメリット・デメリット}
+  \begin{itemize}
+  \item 準仮想化型、完全仮想化型
+    \begin{itemize}
+    \item 物理マシンをエミュレートした仮想マシンとして動作する
+    \item 仮想マシン上でもカーネルを動作させる
+    \item 物理マシンで動かしていたプログラムはほぼそのまま動く
+    \item CPU、メモリ、ディスクを多く消費する
+    \end{itemize}
+  \item コンテナ型仮想化
+    \begin{itemize}
+    \item ゲスト環境の動作にカーネルは不要(ホスト環境のカーネル上で動作)
+    \item ゲスト環境は、ホスト環境から見るとプロセスとして扱われる
+    \item ゲスト環境が利用できるリソースに制約がつく場合がある
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{chroot}
+  \begin{itemize}
+  \item chrootシステムコールとchrootコマンド
+  \item 1982年にビル・ジョイが開発したとされている
+  \item \# chroot rootfsdir でコンテナ環境に入れることができる
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxc}
+
+\begin{frame}[containsverbatim]{lxcとは}
+  \begin{itemize}
+  \item LinuX Containersのことで、省略してlxcと読んでいる
+  \item あるディレクトリ配下に実行ファイル、ライブラリ、設定ファイルを適切に配置したrootfsを準備する
+  \item rootfsをchroot環境で起動し、仮想マシンのように動かすことができる
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxcのインストール}
+
+\begin{frame}[containsverbatim]{lxcのインストール}
+  \begin{itemize}
+  \item apt-get install lxc bridge-utils libvirt-bin
+  \item lxc-*コマンドが使えるようになります
+  \item 今回はlibvirtdでNATネットワークをlxcゲスト環境に割り当てます
+  \item cgroupsのmount設定
+  \item lxc-checkconfigで動作環境チェック
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxcを使う}
+
+\begin{frame}[containsverbatim]{lxc-create(1)}
+  \begin{itemize}
+  \item LANG=C SUITE=jessie MIRROR=http://ftp.jp.debian.org/debian lxc-create -n debstudy1 -t debian
+  \item 中でdebootstrapを実行してrootfsをダウンロードする
+  \item できたlxcのゲスト環境のディレクトリの中
+    \begin{itemize}
+    \item config
+    \item fstab
+    \item rootfs
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-create(2)}
+  \begin{itemize}
+  \item configを修正して、ネットワークの設定を行う
+  \item lxc.network.type = veth
+  \item lxc.network.flags = up
+  \item lxc.network.link = virbr0
+  \item lxc.network.name = eth0
+  \item lxc.network.ipv4 = 192.168.122.203/24
+  \item lxc.network.ipv4.gateway = 192.168.122.1
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-ls}
+  \begin{itemize}
+  \item lxc-lsで/var/lib/lxc配下にいるコンテナ環境の一覧を表示します
+  \item --active, --running、--stoppedなどのオプションを指定すると、その状態に絞って一覧を表示できます
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-destroy}
+  \begin{itemize}
+  \item lxc-destroy -n debstudy1
+  \item コンテナ環境を削除できます
+  \item コンテナが実行中の場合は削除できないのがデフォルト
+  \item --forceオプションを指定すれば、コンテナが実行中ならstopさせて削除する
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-start}
+  \begin{itemize}
+  \item lxc-start -n debstudy1 または lxc-start -n debstudy1 -d
+  \item -dまたは--daemonオプションを指定するとバックグラウンドでlxcのゲスト環境が起動する
+  \item -dまたは--daemonを指定しない場合はそのターミナル上でlxcのゲスト環境が起動し、コンソールに接続します
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-stop}
+  \begin{itemize}
+  \item lxc-stop -n debstudy1
+  \item コンテナ環境を終了するよう指示を出します
+  \item コンテナ環境の終了とは、initプログラムを終了することをいいます
+  \item コンテナ環境でshutdown命令は実行できません
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-console}
+  \begin{itemize}
+  \item lxc-console -n debstudy1
+  \item lxcのゲスト環境のコンソールに接続します
+  \item コンソールを抜ける場合は、「Ctrl+a q」の順に入力してください
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxcを実用する}
+
+\begin{frame}[containsverbatim]{コンテナ環境のセットアップの流れ}
+  \begin{itemize}
+  \item lxc-createする
+  \item lxcのゲスト環境のconfigを書き換えてネットワークを設定
+  \item chrootでゲスト環境に入る
+    \begin{itemize}
+    \item passwdでrootパスワード変更
+    \item adduser
+    \item apt-get install sudo vim-tiny
+    \item visudo
+    \end{itemize}
+  \item lxc-start
+  \item sshログインしてお好みに設定します
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{何にlxcを使うか}
+  \begin{itemize}
+  \item 一時的な検証で、ホスト環境にいろいろインストールしたくない場合
+  \item python2系とpython3系のwsgiアプリを1つのホストで動かしたい場合
+  \item ホスト環境はsystemd、ゲスト環境はsysvinitと使い分ける
+  \item アプリケーションのクリーンビルドやクリーンインストールをテストする場合
+  \item ホスト環境と異なるCPUアーキテクチャのクロス環境がほしい場合
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+  \item Debian上でlxcを試してみました
+  \item 発展系であるLXDやdockerへつなげていきましょう
+  \item コンテナは便利ですので試してみてください
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item 「LXC」 \url{https://linuxcontainers.org/}
+  \item 「LXC - Debian Wiki」 \url{https://wiki.debian.org/LXC}
+  \item 「debootstrap を有効活用してみよう」 \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201304.pdf}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
