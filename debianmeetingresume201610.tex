@@ -81,6 +81,8 @@
 
 2016年9月17日(土)に第143回東京エリアDebian勉強会を開催しました。会場は銀座にある朝日ネットさんをお借りして行いました。参加者は6名でした。発表は、iwamatsuさんによる「DEP5 Machine-readable debian/copyright 再考」でした。
 
+iwamatsuさんによる「DEP5 Machine-readable debian/copyright 再考」では、machine reableなcopyrightの記述方法が提案されていること、ファイルごとにライセンスが異なる場合は記述が複雑になること、現在はoptional扱いであるため普及に時間がかかっていることなどの課題を共有しました。
+
 勉強会終了後は参加者で懇親会を行いました。
 
 
@@ -112,14 +114,250 @@ Debianの昨今の話題についてのQuizです。
 % % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{title}{user}
+\dancersection{preseedでDebianを自動インストールをしてみよう}{杉本典充}
 %-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+仮想化技術が進み、OSをインストールする機会が減った人、増えた人とそれぞれ皆様の事情があると思います。
+今回はDebianをインストールする機会の多い方がインストール作業を自動で行う機能であるpreseedをご紹介します。
+
+\subsection{debianをインストールする方法}
+
+DebianをPCやサーバへインストールする場合は、Debian Installerを使うことが多いです。\footnote{ボードデバイスのようにDebian Installerを使わないでインストールしている猛者もいます。}
+
+Debian Installerは以下の形式で提供されており、状況によって使い分けることを想定しています。
+
+\begin{itemize}
+\item すべてのDebianパッケージを収録したイメージ。CD, DVD, Blu-rayのISO形式で提供。
+\item ネットワークインストール用のブートイメージ。通称netinstイメージ。CDのISO形式、USBメモリ形式で提供。
+\item vmlinuz、initrd.gzファイルを単体で提供。仮想化環境やボードデバイス向け。
+\end{itemize}
+
+日常環境で利用する場合は最新バージョンを利用すると思いますので、ネットワークインストール用イメージを使うことをお勧めします（ネットワークから最新のパッケージをダウンロードしてインストールするためです）。
+
+
+\subsection{preseed}
+\subsubsection{preseedとは}
+
+preseedとは、Debian Installerの「インストールの実行中に手動で回答を入力せずに、インストールプロセス中の質問の答を設定する方法を提供」する機能をいいます。\footnote{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
+
+preseed機能では、インストール処理のパラメータを定義した入力ファイルが必要になります。そのファイルのデフォルトのファイル名はpreseed.cfgとなっています。
+
+\subsubsection{preseedの種類}
+
+preseed機能は3種類に分かれており、preseed.cfgを読み込む方法やタイミングが異なります。
+
+\begin{itemize}
+\item initrd preseed
+  \begin{itemize}
+  \item Debian Installerのinitrd.gzの中に/preseed.cfgを追加で配置する
+  \item インストーラ起動直後の選択肢から/preseed.cfgの定義に従い自動インストールする
+  \end{itemize}
+\item file preseed
+  \begin{itemize}
+  \item Debian InstallerのISOファイルの中に/preseed.cfgを追加で配置する（＝要リマスタリング）
+  \item Debian InstallerのUSBメモリの中に/preseed.cfgを追加で配置する
+  \item Debian Installerのkernelブートパラメータにpreseed/file、preseed/file/checksumを指定する必要がある
+  \end{itemize}
+\item network preseed
+  \begin{itemize}
+  \item IPアドレスの取得または設定後にpreseed.cfgをwgetでダウンロードして読み込む
+  \item Debian Installerのkernelブートパラメータにpreseed/url、preseed/url/checksumを指定する必要がある
+  \item Debian InstallerではIPアドレスを設定する前にも選択肢が出てくるため、完全な自動インストールをするには追加のkernelブートパラメータが必要
+  \end{itemize}
+\end{itemize}
+
+
+\subsubsection{preseedファイルの仕様}
+
+preseedファイルで指定できるパラメータの解説は以下に詳しく書かれています。
+
+\begin{itemize}
+\item 「B.4. 事前設定ファイルの内容 (jessie 用)」
+  \begin{itemize}
+  \item \url{https://www.debian.org/releases/stable/amd64/apbs04.html.ja}
+  \end{itemize}
+  \item 「B.2.4. preseed で利用できるエイリアス」
+  \begin{itemize}
+  \item \url{https://www.debian.org/releases/stable/amd64/apbs02.html.ja#preseed-aliases}
+  \end{itemize}
+\end{itemize}
+
+Debian-8(jessie)用のサンプルpreseedファイルは以下で提供しています。
+
+\begin{itemize}
+\item \url{https://www.debian.org/releases/jessie/example-preseed.txt}
+\end{itemize}
+
+
+\subsubsection{インストール中のカスタムコマンド実行}
+
+preseedで自動インストールをしているときに任意な処理（＝カスタムコマンド）を実行する機能があります。カスタムコマンドの実行タイミングは以下の3パターンを指定できます。
+
+\subsubsubsection{preseed/early\_command}
+
+全体のインストール処理が始まる前にコマンドを実行したい場合は、"preseed/early\_command"で指定できます。
+
+\begin{commandline}
+d-i preseed/early_command string anna-install some-udeb
+\end{commandline}
+
+\subsubsubsection{処理名/early\_command}
+
+ある処理の実行前にコマンドを実行したい場合は、"処理名/early\_command"で指定できます。
+
+\begin{commandline}
+d-i partman/early_command string debconf-set partman-auto/disk ``$(list-devices disk | head -n1)''
+\end{commandline}
+
+\subsubsubsection{preseed/late\_command}
+
+インストールが完了して再起動する前にコマンドを実行したい場合は、"preseed/late\_command"で指定できます。なお、この状況ではインストール先ディスクの/パーティションが/targetへマウントした状態になっています。
+
+\begin{commandline}
+d-i preseed/late_command string apt-install zsh; in-target chsh -s /bin/zsh
+\end{commandline}
+
+
+\subsection{preseedを使ってdebianをインストールする}
+
+\subsubsection{インストールする環境}
+
+インストールするホスト構成とネットワーク構成は以下の環境とします。
+
+\begin{itemize}
+\item Debian GNU/Linux 8のKVMホスト環境を準備
+\item インストールするホストは、KVMの仮想マシンとする
+  \begin{itemize}
+  \item ネットワークカードは1つ
+  \item ディスクの接続バスはsata\footnote{KVMを使う場合はディスクの接続バスをvirtioにする方が性能はよいです。virtioを使う場合はpreseedの定義にある/dev/sdaの部分を/dev/vdaに変更することを忘れないでください。}
+  \item KVMホストからKVMゲストへの接続はシリアルコンソール接続とする
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{今回作成したpreseed.cfgファイル}
+
+以下のpreseed.cfgファイルの設定で自動インストールします。
+
+\begin{commandline}
+  d-i debian-installer/language string C
+  d-i debian-installer/country string JP
+  d-i debian-installer/locale string ja_JP.UTF-8
+  d-i keyboard-configuration/xkb-keymap select jp
+  d-i netcfg/enable boolean true
+  d-i netcfg/choose_interface select auto
+  d-i netcfg/get_hostname string deb-preseed
+  d-i netcfg/get_domain string localdomain
+  d-i netcfg/hostname string dev-preseed
+  d-i netcfg/wireless_wep string
+  d-i hw-detect/load_firmware boolean false
+  d-i mirror/country string manual
+  d-i mirror/http/hostname string ftp.jp.debian.org
+  d-i mirror/http/directory string /debian
+  d-i mirror/http/proxy string
+  d-i mirror/suite string jessie
+  d-i passwd/root-login boolean true
+  d-i passwd/make-user boolean true
+  d-i passwd/root-password password rootpass
+  d-i passwd/root-password-again password rootpass
+  d-i passwd/user-fullname string Test User
+  d-i passwd/username string testuser
+  d-i passwd/user-password password testpass
+  d-i passwd/user-password-again password testpass
+  d-i passwd/user-default-groups string audio cdrom video sudo
+  d-i clock-setup/utc boolean true
+  d-i time/zone string Asia/Tokyo
+  d-i clock-setup/ntp boolean true
+  d-i clock-setup/ntp-server string ntp.nict.jp
+  d-i partman-auto/init_automatically_partition select biggest_free
+  d-i partman-auto/disk string /dev/sda
+  d-i partman-auto/method string regular
+  d-i partman-lvm/device_remove_lvm boolean true
+  d-i partman-md/device_remove_md boolean true
+  d-i partman-lvm/confirm boolean true
+  d-i partman-lvm/confirm_nooverwrite boolean true
+  d-i partman-auto/choose_recipe select atomic
+  d-i partman-partitioning/confirm_write_new_label boolean true
+  d-i partman/choose_partition select finish
+  d-i partman/confirm boolean true
+  d-i partman/confirm_nooverwrite boolean true
+  d-i partman-md/confirm boolean true
+  d-i partman-partitioning/confirm_write_new_label boolean true
+  d-i partman/choose_partition select finish
+  d-i partman/confirm boolean true
+  d-i partman/confirm_nooverwrite boolean true
+  d-i partman/mount_style select uuid
+  d-i base-installer/install-recommends boolean false
+  d-i base-installer/kernel/image string linux-image-amd64
+  d-i apt-setup/non-free boolean false
+  d-i apt-setup/contrib boolean true
+  d-i apt-setup/use_mirror boolean true
+  tasksel tasksel/first multiselect ssh-server
+  d-i pkgsel/include string ntp ntpdate sudo curl
+  d-i pkgsel/upgrade select none
+  popularity-contest popularity-contest/participate boolean false
+  d-i grub-installer/skip boolean false
+  d-i grub-installer/only_debian boolean true
+  d-i grub-installer/with_other_os boolean true
+  d-i grub-installer/bootdev  string /dev/sda
+  d-i debian-installer/add-kernel-opts string console=ttyS0,115200n8
+  d-i finish-install/reboot_in_progress note
+  d-i cdrom-detect/eject boolean true
+  d-i preseed/late_command string \
+  in-target /usr/bin/curl http://192.168.22.102/preseed/done.cgi
+\end{commandline}
+
+
+\subsubsection{netinstイメージを使った自動インストール}
+
+netinst用ISOファイルからブートしてインストールする場合は、Debian Installerのkernelブートパラメータに以下のようなコマンドを追加で指定します。
+
+\begin{commandline}
+auto=true priority=critical url=http://192.168.22.41/preseed.cfg preseed/url/checksum=8e85ff2ddb966321b91f13f9aba9dc9f
+\end{commandline}
+
+preseed/url/checksumはmd5sumなのですが、指定が必須となっているため注意しながら入力します。もしchecksumが合わない場合はpreseed.cfgファイルは無効と判定される仕様になっています\footnote{その場合は、インストールがストップしたり、手動でインストール場合と同じく質問に答える画面で入力待ち状態になります。}。
+
+
+\subsubsection{virt-installを使った自動インストール}
+
+KVMの仮想マシンをインストールするコマンドに"virt-install"があります。このvirt-installを使ってKVMゲストマシンのインストールにpreseedを使う場合は、"--initrd-inject"オプションを指定します。
+
+"-initrd-inject"オプションはinitrd.gzの中に指定したファイルを忍び込ませることができます。なお、このインストール方法の場合はDebian Installerのブート時に/preseed.cfgファイルが存在することからinitrd preseedの動作でインストール処理が進みます。
+
+\begin{commandline}
+$ sudo virt-install \
+  --name deb-preseed-1 \
+  --disk path=/var/lib/libvirt/images/deb-preseed-1.img,format=qcow2,bus=sata \
+  --vcpus 1 --ram 1024 \
+  --network bridge=br0,model=e1000 \
+  --graphics none \
+  --os-type linux --os-variant generic \
+  --console pty,target_type=serial \
+  --location 'http://ftp.jp.debian.org/debian/dists/jessie/main/installer-amd64/' \
+  --initrd-inject=/var/lib/libvirt/images/preseed.cfg \
+  --extra-args 'console=ttyS0,115200n8 serial'
+\end{commandline}
+
+
+\subsection{まとめ}
+
+Debianにあるpreseed機能を使って自動インストールを試してみました。KVMなどの仮想環境を扱っていて日常的にDebianをインストールしている場合は効率的に作業ができると思いますので活用してみてください。
+
+\subsection{参考文献}
+
+\begin{itemize}
+\item 「DebianInstallerPreseed」 \url{https://wiki.debian.org/DebianInstaller/Preseed}
+\item 「付録B preseed を利用したインストールの自動化」 \url{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
+\end{itemize}
 
 
 %
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
 %\dancersection{メモ}{}
+\mbox{}\newpage
 \mbox{}\newpage
 
 
