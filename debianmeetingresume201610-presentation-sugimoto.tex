@@ -1,0 +1,243 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{第144回東京エリアDebian勉強会 \\　\\preseedでDebianを自動インストールをしてみよう}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2016-10-15}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item debianをインストールする方法
+  \item pressedとは
+  \item preseedを使ってdebianをインストールする
+  \item netinstイメージを使った自動インストール
+  \item virt-installを使った自動インストール
+  \item まとめ
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item tilegxに少し手を出したがなかなか手ごわい
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
+  \end{itemize}
+\end{frame}
+
+
+\emtext{debianをインストールする方法}
+
+\begin{frame}[containsverbatim]{debianをインストールする方法}
+  \begin{itemize}
+  \item Debian Installerを使うことが多い
+    \begin{itemize}
+    \item 全パッケージを収録したISOイメージ群。CD、DVD、Blu-ray形式
+    \item netinstイメージ。CDのISO形式、USBメモリ形式
+    \item vmlinuz、initrd.gzの単体ファイル。ミラーサイトに置いてあります
+    \end{itemize}
+  \item 日常利用するPCへインストールするならnetinstイメージの利用がおすすめ
+  \end{itemize}
+\end{frame}
+
+
+\emtext{preseed}
+
+\begin{frame}[containsverbatim]{preseedとは}
+  \begin{itemize}
+  \item Debian Installerの「インストールの実行中に手動で回答を入力せずに、インストールプロセス中の質問の答を設定する方法を提供」する機能
+  \item \url{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
+  \item preseed.cfg = インストール処理のパラメータを定義したファイル
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{preseedの区分}
+  \begin{itemize}
+  \item initrd preseed
+    \begin{itemize}
+    \item Debian Installerのinitrd.gzの中に/preseed.cfgを配置する
+    \item インストーラ起動直後の選択肢から/preseed.cfgの定義に従い自動インストールする
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{preseedの区分}
+  \begin{itemize}
+  \item file preseed
+  \begin{itemize}
+    \item Debian InstallerのISOファイルの/preseed.cfgを配置する（＝要リマスタリング）
+    \item Debian InstallerのUSBメモリの/preseed.cfgを配置する
+    \item kernelブートパラメータでファイルの場所を指定する（preseed/file、preseed/file/checksum）
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{preseedの区分}
+  \begin{itemize}
+  \item network preseed
+    \begin{itemize}
+    \item IPアドレスの取得または設定後にpreseed.cfgをwgetでダウンロードする
+    \item kernelブートパラメータでファイルの場所を指定する（preseed/url、preseed/url/checksum）
+    \item IPアドレスを取得する前の選択肢を出さないようにするため追加のkernelブートパラメータも指定が必要
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{preseedファイルの仕様}
+  \begin{itemize}
+  \item 仕様はwebサイトに説明があります
+    \begin{itemize}
+    \item 「B.4. 事前設定ファイルの内容 (jessie 用)」
+    \item \url{https://www.debian.org/releases/stable/s390x/apbs04.html.ja}
+    \item 「B.2.4. preseed で利用できるエイリアス」
+    \item \url{https://www.debian.org/releases/stable/s390x/apbs02.html.ja#preseed-aliases}
+    \end{itemize}
+  \item Debian 8(Jessie)用のサンプルがあります
+    \begin{itemize}
+    \item \url{https://www.debian.org/releases/jessie/example-preseed.txt}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{インストール中のカスタムコマンド実行}
+  \begin{itemize}
+  \item preseed/early\_command
+    \begin{itemize}
+    \item 全体のインストール処理が始まる前にコマンドを実行する
+    \end{itemize}
+  \item 処理名/early\_command　
+    \begin{itemize}
+      \item ある処理が始まる前にコマンドを実行する
+      \item 例） partman/early\_command 
+    \end{itemize}
+  \item preseed/late\_command
+    \begin{itemize}
+    \item インストールが完了し、再起動する前にコマンドを実行する
+    \item インストール先ディスクの/は、/targetとしてマウント中
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\emtext{preseedを使ってdebianをインストールする}
+
+\begin{frame}[containsverbatim]{インストールテスト環境}
+  \begin{itemize}
+  \item Debian GNU/Linux 8のKVMホスト環境とした仮想マシンへインストールする
+  \item 使用するpreseed.cfgは資料参照
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{netinstでpreseed}
+  \begin{itemize}
+  \item netinstのISOイメージなどからブートした場合に使う
+  \item network preseedとして動作する
+  \item Debian Installerのkernelブートパラメータに以下を入力して起動
+  \end{itemize}
+  \begin{commandline}
+    auto=true priority=critical \
+    url=http://192.168.122.41/preseed.cfg \
+    preseed/url/checksum=cdd4bc6c41bd8d96dbcd37c6df442222
+  \end{commandline}
+  \begin{itemize}
+  \item preseed/url/checksumはmd5sumです（必須）
+  \item md5sumが誤っている場合、preseedファイルは使用されない
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{virt-installでpreseed}
+  \begin{itemize}
+  \item virt-installの機能にあるinitrd-injectオプションを使う
+  \item initrd preseedとして動作する
+  \item ファイル名は必ずpreseed.cfgにすること
+  \end{itemize}
+  \begin{commandline}
+$ sudo virt-install \
+    --name deb-preseed-1 \
+    (省略) \
+    --os-type linux --os-variant generic \
+    --console pty,target_type=serial \
+    --location 'http://ftp.jp.debian.org/debian/dists/jessie/main/installer-amd64/' \
+    --initrd-inject=/var/lib/libvirt/images/preseed.cfg \
+    --extra-args 'console=ttyS0,115200n8 serial'
+  \end{commandline}
+\end{frame}
+
+
+\emtext{まとめ}
+
+\begin{frame}[containsverbatim]{まとめ}
+  \begin{itemize}
+  \item preseed機能を試してみました
+  \item 仮想化環境へ日常的にDebianをインストールしている場合は効率が上がると思います
+  \item うまく活用してdebianライフをお楽しみください
+  \end{itemize}
+\end{frame}
+
+  
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item 「DebianInstallerPreseed」 \url{https://wiki.debian.org/DebianInstaller/Preseed}
+  \item 「付録B preseed を利用したインストールの自動化」 \url{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
