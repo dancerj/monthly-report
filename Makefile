@@ -46,9 +46,9 @@ publish: $(RELEASEFILES)
 	[ -x .git/hooks/pre-commit ]
 	## end of linting stuff
 	platex -shell-escape -halt-on-error $< # create draft input
-	-mendex $(<:%.tex=%)
+	-mendex -l euc -J $(<:%.tex=%)
 	platex -shell-escape -halt-on-error $< # create draft content with correct spacing for index and toc
-	-mendex $(<:%.tex=%) # recreate index with correct page number
+	-mendex -l euc -J $(<:%.tex=%) # recreate index with correct page number
 	platex -shell-escape -halt-on-error $< # recreate toc with correct page number
 
 clean:
