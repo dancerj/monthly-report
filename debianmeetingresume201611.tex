@@ -121,10 +121,539 @@ Debianの昨今の話題についてのQuizです。
 % % (query-replace-regexp "^[	 ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{seminar1}{user}
+\dancersection{dh\_strip\_nondeterminism について}{吉野 与志仁}
 %-------------------------------------------------------------------------------
-\subsection{outline1}
+\subsection{はじめに}
 
+2015 年に debhelper の \verb|dh(1)| シーケンスに組み込まれた
+\verb|dh_strip_nondeterminism(1)| ですが、これが
+具体的に何をやっているのか調べてみました。調べたバージョンは
+dh-strip-nondeterminism パッケージの 0.028-1 です。
+
+なお、このコマンドの目的は reproducible builds（再現可能なビルド）ですが、詳細は
+\url{https://wiki.debian.org/ReproducibleBuilds} や
+\url{https://reproducible-builds.org/} などを見ると良いでしょう。
+
+再現可能なビルドを実現するため、このコマンドはビルドツールが生成した
+データに埋め込まれた時刻などを指定した値に書き換えます。実際に見ていきま
+しょう。
+
+\subsection{具体例}
+\subsubsection{ar}
+*.a のうち \verb|ar archive| のもの
+
+\begin{commandline}
+$ file /usr/lib/x86_64-linux-gnu/libglib-2.0.a
+/usr/lib/x86_64-linux-gnu/libglib-2.0.a: current ar archive
+\end{commandline}
+
+\verb|dh_strip_nondeterminism(1)| は、パッケージの debian/changelog
+ファイルの中に書いてある時刻を使うようになっています。
+この .a ファイルを含むパッケージの debian/changelog ファイルの時刻を見てみます。
+\begin{commandline}
+$ dpkg -S /usr/lib/x86_64-linux-gnu/libglib-2.0.a
+libglib2.0-dev: /usr/lib/x86_64-linux-gnu/libglib-2.0.a
+$ dpkg-parsechangelog -l /usr/share/doc/libglib2.0-dev/changelog.Debian.gz
+Source: glib2.0
+Version: 2.50.2-1
+Distribution: unstable
+Urgency: medium
+Maintainer: Michael Biebl <biebl@debian.org>
+Timestamp: 1478561825
+Date: Tue, 08 Nov 2016 00:37:05 +0100
+Changes:
+ glib2.0 (2.50.2-1) unstable; urgency=medium
+ .
+   * New upstream release.
+   * Track stable releases in debian/watch.
+\end{commandline}
+この \verb|Date:|で始まる行（もしくは\verb|Timestamp:|で始まる行）の値が使われます。
+
+ファイルの中を見てみます。
+\begin{commandline}
+$ env TZ=UTC 7z l /usr/lib/x86_64-linux-gnu/libglib-2.0.a | head -n 20
+
+7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+p7zip Version 16.02 (locale=ja_JP.UTF-8,Utf16=on,HugeFiles=on,64 bits,4 CPUs Intel(R) Core(TM) i5-4250U CPU @ 1.30GHz (40651),ASM,AES-NI)
+
+Scanning the drive for archives:
+1 file, 1973536 bytes (1928 KiB)
+
+Listing archive: /usr/lib/x86_64-linux-gnu/libglib-2.0.a
+
+--
+Path = /usr/lib/x86_64-linux-gnu/libglib-2.0.a
+Type = Ar
+Physical Size = 1973536
+SubType = a
+
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2016-11-07 23:37:05 .....        84550        84550  1.txt
+2016-11-07 23:37:05 .....         4584         4584  libglib_2_0_la-gallocator.o
+2016-11-07 23:37:05 .....         6352         6352  libglib_2_0_la-gcache.o
+$ env TZ=UTC ar tv /usr/lib/x86_64-linux-gnu/libglib-2.0.a | head -n 4
+rw-r--r-- 0/0   4584 Nov  7 23:37 2016 libglib_2_0_la-gallocator.o
+rw-r--r-- 0/0   6352 Nov  7 23:37 2016 libglib_2_0_la-gcache.o
+rw-r--r-- 0/0   5960 Nov  7 23:37 2016 libglib_2_0_la-gcompletion.o
+rw-r--r-- 0/0  11464 Nov  7 23:37 2016 libglib_2_0_la-grel.o
+\end{commandline}
+
+固められた各ファイルの
+\begin{itemize}
+ \item タイムスタンプ (mtime) を指定した時刻に書き換えています。
+ \item 所有者 (owner) を 0 に上書きしています。
+ \item グループ (group) を 0 に上書きしています。
+ \item パーミッション (mode) を 755 か 644 のいずれかに揃えています。
+\end{itemize}
+
+\subsubsection{zip}
+
+*.zip, *.pk3, *.epub, *.whl, *.xpi, *.htb, *.zhfst のうち \verb|Zip archive data|
+または \verb|EPUB document| のもの
+
+\begin{commandline}
+$ file /usr/share/go-1.7/src/archive/zip/testdata/symlink.zip
+/usr/share/go-1.7/src/archive/zip/testdata/symlink.zip: Zip archive data, at least v1.0 to extract
+$ file /usr/share/debian-reference/debian-reference.ja.epub
+/usr/share/debian-reference/debian-reference.ja.epub: Zip archive data, at least v1.0 to extract
+\end{commandline}
+
+調べたパッケージの時刻はそれぞれ
+\begin{commandline}
+$ dpkg -S /usr/share/go-1.7/src/archive/zip/testdata/symlink.zip
+golang-1.7-src: /usr/share/go-1.7/src/archive/zip/testdata/symlink.zip
+$ dpkg-parsechangelog -l /usr/share/doc/golang-1.7-src/changelog.Debian.gz | grep ^Date:
+Date: Thu, 20 Oct 2016 09:10:47 +1300
+\end{commandline}
+
+\begin{commandline}
+$ dpkg -S /usr/share/debian-reference/debian-reference.ja.epub
+debian-reference-ja: /usr/share/debian-reference/debian-reference.ja.epub
+$ dpkg-parsechangelog -l /usr/share/doc/debian-reference-ja/changelog.gz | grep ^Date:
+Date: Mon, 17 Oct 2016 22:28:00 +0900
+\end{commandline}
+です。
+
+中身を見てみます。
+
+\begin{commandline}
+$ env TZ=UTC 7z l /usr/share/go-1.7/src/archive/zip/testdata/symlink.zip | tail -n 5
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2016-10-19 20:10:47 .....            9            9  symlink
+------------------- ----- ------------ ------------  ------------------------
+2016-10-19 20:10:47                  9            9  1 files
+\end{commandline}
+
+\begin{commandline}
+$ zipinfo -v /usr/share/go-1.7/src/archive/zip/testdata/symlink.zip | tail -n 36
+Central directory entry #1:
+---------------------------
+
+  symlink
+
+  offset of local header from start of archive:   0
+                                                  (0000000000000000h) bytes
+  file system or operating system of origin:      Unix
+  version of encoding software:                   3.0
+  minimum file system compatibility required:     MS-DOS, OS/2 or NT FAT
+  minimum software version required to extract:   1.0
+  compression method:                             none (stored)
+  file security status:                           not encrypted
+  extended local header:                          no
+  file last modified on (DOS date/time):          2016 Oct 19 20:10:46
+  file last modified on (UT extra field modtime): 2016 Oct 20 05:10:47 local
+  file last modified on (UT extra field modtime): 2016 Oct 19 20:10:47 UTC
+  32-bit CRC value (hex):                         8e9efad1
+  compressed size:                                9 bytes
+  uncompressed size:                              9 bytes
+  length of filename:                             7 characters
+  length of extra field:                          24 bytes
+  length of file comment:                         0 characters
+  disk number on which file begins:               disk 1
+  apparent file type:                             binary
+  Unix file attributes (100755 octal):            -rwxr-xr-x
+  MS-DOS file attributes (00 hex):                none
+
+  The central-directory extra field contains:
+  - A subfield with ID 0x5455 (universal time) and 5 data bytes.
+    The local extra field has UTC/GMT modification/access times.
+  - A subfield with ID 0x7875 (Unix UID/GID (any size)) and 11 data bytes:
+    01 04 00 00 00 00 04 00 00 00 00.
+
+  There is no file comment.
+
+\end{commandline}
+
+\begin{commandline}
+$ env TZ=JST-9 7z l /usr/share/debian-reference/debian-reference.ja.epub | head -n 24 | tail -n 10
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2016-10-17 22:28:00 D....            0            0  META-INF
+2016-10-17 22:28:00 .....          255          175  META-INF/container.xml
+2016-10-17 22:28:00 D....            0            0  OEBPS
+2016-10-17 22:28:00 .....        10451         3596  OEBPS/apa.html
+2016-10-17 22:28:00 .....       123568        16458  OEBPS/bk01-toc.html
+2016-10-17 22:28:00 .....       279742        45365  OEBPS/ch01.html
+2016-10-17 22:28:00 .....       306201        49878  OEBPS/ch02.html
+2016-10-17 22:28:00 .....        86922        15031  OEBPS/ch03.html
+$ env TZ=JST-9 7z l /usr/share/debian-reference/debian-reference.ja.epub | tail -n 4
+2016-10-17 22:28:00 .....        96004        19619  OEBPS/toc.ncx
+2016-10-17 22:28:00 .....           20           20  mimetype
+------------------- ----- ------------ ------------  ------------------------
+2016-10-17 22:28:00            2593315       425235  23 files, 2 folders
+\end{commandline}
+\begin{commandline}
+$ env TZ=UTC zipinfo -v /usr/share/debian-reference/debian-reference.ja.epub OEBPS/ch01.html | tail -n 12
+  apparent file type:                             text
+  Unix file attributes (100644 octal):            -rw-r--r--
+  MS-DOS file attributes (00 hex):                none
+
+  The central-directory extra field contains:
+  - A subfield with ID 0x5455 (universal time) and 5 data bytes.
+    The local extra field has UTC/GMT modification/access times.
+  - A subfield with ID 0x7875 (Unix UID/GID (any size)) and 11 data bytes:
+    01 04 00 00 00 00 04 00 00 00 00.
+
+  There is no file comment.
+
+\end{commandline}
+
+固められた各ファイルの
+\begin{itemize}
+ \item 並びを名前順に直しています。
+ \item DOS 時刻のフィールドを指定した時刻に書き換えています。しかし、精
+       度が2秒しかないようです。
+ \item 属性を 755 か 644 のいずれかに揃えています。
+ \item central directory header（と local header）の
+       \begin{itemize}
+	\item ID 0x5455 (\verb|UT| universal time)のフィールドに時刻が入っているの
+	      で、指定した時刻に書き換えています。
+	\item ID 0x7875 (\verb|ux| Unix UID/GID)のフィールドにあるUIDとGIDを0
+	      に上書きしています。
+       \end{itemize}
+\end{itemize}
+
+\subsubsection{jar}
+*.jar, *.war, *.hpi, *.apk のうち \verb|Java archive| または \verb|Zip archive| のもの
+
+\begin{commandline}
+$ file ./usr/share/java/commons-lang3.jar
+./usr/share/java/commons-lang3.jar: Zip archive data, at least v1.0 to extract
+\end{commandline}
+
+\begin{commandline}
+$ dpkg-parsechangelog -l ./usr/share/doc/libcommons-lang3-java/changelog.Debian.gz | grep ^Date:
+Date: Thu, 20 Oct 2016 19:08:15 +0200
+\end{commandline}
+
+中を見てみます。
+\begin{commandline}
+$ env TZ=UTC 7z l ./usr/share/java/commons-lang3.jar | head -n 24 | tail -n 10
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2016-10-20 17:08:14 D....            0            0  META-INF
+2016-10-20 17:08:14 .....         1844          732  META-INF/MANIFEST.MF
+2016-10-20 17:08:14 .....        11358         3949  META-INF/LICENSE.txt
+2016-10-20 17:08:14 .....          301          187  META-INF/NOTICE.txt
+2016-10-20 17:08:14 D....            0            0  META-INF/maven
+2016-10-20 17:08:14 D....            0            0  META-INF/maven/org.apache.commons
+2016-10-20 17:08:14 D....            0            0  META-INF/maven/org.apache.commons/commons-lang3
+2016-10-20 17:08:14 .....           91           83  META-INF/maven/org.apache.commons/commons-lang3/pom.properties
+$ env TZ=UTC 7z l ./usr/share/java/commons-lang3.jar | tail -n 4
+2016-10-20 17:08:14 .....         3231         1289  org/apache/commons/lang3/tuple/Pair.class
+2016-10-20 17:08:14 .....         3190         1250  org/apache/commons/lang3/tuple/Triple.class
+------------------- ----- ------------ ------------  ------------------------
+2016-10-20 17:08:14             986869       404745  265 files, 19 folders
+\end{commandline}
+
+\begin{commandline}
+$ unzip -p ./usr/share/java/commons-lang3-3.5.jar META-INF/MANIFEST.MF
+Manifest-Version: 1.0
+Bundle-License: http://www.apache.org/licenses/LICENSE-2.0.txt
+Bundle-SymbolicName: org.apache.commons.lang3
+Archiver-Version: Plexus Archiver
+Implementation-Vendor-Id: org.apache
+Specification-Title: Apache Commons Lang
+Bundle-DocURL: http://commons.apache.org/proper/commons-lang/
+Include-Resource: META-INF/LICENSE.txt=LICENSE.txt,META-INF/NOTICE.txt
+ =NOTICE.txt
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.5))"
+Export-Package: org.apache.commons.lang3;version="3.5",org.apache.comm
+ ons.lang3.builder;version="3.5",org.apache.commons.lang3.concurrent;v
+ ersion="3.5",org.apache.commons.lang3.event;version="3.5",org.apache.
+ commons.lang3.exception;version="3.5",org.apache.commons.lang3.math;v
+ ersion="3.5",org.apache.commons.lang3.mutable;version="3.5",org.apach
+ e.commons.lang3.reflect;version="3.5",org.apache.commons.lang3.text;v
+ ersion="3.5",org.apache.commons.lang3.text.translate;version="3.5",or
+ g.apache.commons.lang3.time;version="3.5",org.apache.commons.lang3.tu
+ ple;version="3.5"
+Bundle-Name: Apache Commons Lang
+Implementation-Title: Apache Commons Lang
+Bundle-Description: Apache Commons Lang, a package of Java utility cla
+ sses for the  classes that are in java.lang's hierarchy, or are consi
+ dered to be so  standard as to justify existence in java.lang.
+Implementation-Version: 3.5
+Specification-Vendor: The Apache Software Foundation
+Bundle-ManifestVersion: 2
+Bundle-Vendor: The Apache Software Foundation
+Tool: Bnd-2.4.1.201608301338
+Implementation-Vendor: The Apache Software Foundation
+Bundle-Version: 3.5.0
+X-Compile-Target-JDK: 1.5
+Implementation-Build: ${scmBranch}@r${buildNumber}; 2016-10-20 17:08:1
+ 5+0000
+X-Compile-Source-JDK: 1.5
+Created-By: Apache Maven Bundle Plugin
+Build-Jdk: 1.8.0_102
+Specification-Version: 3.5
+
+\end{commandline}
+
+jar は zip ファイルなので、*.zip と同じ変更も加えています。
+
+さらに、
+\begin{itemize}
+ \item 各ファイルの並びを名前順に直しています。ただ \verb|META-INF/| と
+       \verb|META-INF/MANIFEST.MF| は先頭にしているようです。
+ \item META-INF/MANIFEST.MF から
+       \begin{itemize}
+	\item \verb|Bnd-LastModified:| で始まる生成時刻が書かれた行を削除しています。
+	\item \verb|Built-By:| で始まるビルドしたユーザ名が書かれた行を
+	      削除しています。
+	\item コンパイラやビルドツールのバージョン番号は残しているようで
+	      す。コンパイラのバグ修正等を想定しているのかもしれません。
+       \end{itemize}
+ \item *.properties も変更しています（後述）。
+ \item javadoc な *.html があったら変更するらしいです（後述）。
+ \item *.jar があったら再帰的に変更するらしいです。
+ \item META-INF/*.SF を含んだ jar ファイルは処理の対象外にしています
+       (Bug\#807669)。署名付き jar ファイルに含まれるようですが、普通は
+       ビルド時に自動署名しないだろうという想定なのでしょう。
+\end{itemize}
+
+\subsubsection{javadoc}
+*.html のうち \verb|<!-- Generated by javadoc| があるもの
+
+\begin{commandline}
+$ grep \<html ./usr/share/doc/libcommons-lang3-java/api/org/apache/commons/lang3/StringUtils.html
+<html>
+$ grep '<!-- Generated by javadoc' ./usr/share/doc/libcommons-lang3-java/api/org/apache/commons/lang3/StringUtils.html
+<!-- Generated by javadoc -->
+\end{commandline}
+
+ファイル内の
+\begin{itemize}
+ \item 生成時の環境の言語に基づいて書かれたhtml要素のlang属性
+       (\verb|<html lang=|) を削除しています。
+ \item \verb|<!-- Generated by javadoc| 行から他の文字列（生成時刻や生成ツールのバー
+       ジョン番号）をすべて削除しています。ドキュメントの生成ツールは多
+       少バージョンが変わっても生成結果は変わらない想定なのでしょう。
+\end{itemize}
+
+\subsubsection{javaproperties}
+*.properties のうち Java 系のビルドツールで自動生成されたように見える、
+\verb|#Generated by Apache Maven| などを含むもの
+
+\begin{commandline}
+$ unzip -p ./usr/share/java/commons-lang3-3.5.jar META-INF/maven/org.apache.commons/commons-lang3/pom.properties
+#Generated by Apache Maven
+version=3.5
+groupId=org.apache.commons
+artifactId=commons-lang3
+\end{commandline}
+
+\verb|#| で始まる自動生成時刻が書かれた行を削除しています。
+
+\subsubsection{png}
+*.png のうち \verb|PNG image data| のもの
+
+\begin{commandline}
+$ file /usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png
+/usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png: PNG image data, 750 x 450, 8-bit/color RGB, non-interlaced
+$ file /usr/share/emacs/24.5/etc/images/splash.png
+/usr/share/emacs/24.5/etc/images/splash.png: PNG image data, 275 x 188, 8-bit/color RGBA, non-interlaced
+\end{commandline}
+
+\begin{commandline}
+$ dpkg -S /usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png
+debian-handbook: /usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png
+$ dpkg-parsechangelog -l /usr/share/doc/debian-handbook/changelog.gz | grep ^Date:
+Date: Thu, 22 Sep 2016 16:09:44 +0200
+\end{commandline}
+
+\begin{commandline}
+$ dpkg -S /usr/share/emacs/24.5/etc/images/splash.png
+emacs24-common: /usr/share/emacs/24.5/etc/images/splash.png
+$ dpkg-parsechangelog -l /usr/share/doc/emacs24-common/changelog.Debian.gz | grep ^Date:
+Date: Mon, 05 Sep 2016 15:05:00 -0500
+\end{commandline}
+
+中を見てみます。
+\begin{commandline}
+$ hd /usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png | grep tIME
+00000070  00 00 07 74 49 4d 45 07  e0 09 16 0e 09 2c 4b 76  |...tIME......,Kv|
+#               ^^
+#              長さ
+#                              ^^^^^^ ^^ ^^ ^^ ^^ ^^
+#                               2016  09 22 14 09 44
+$ strings -a /usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png | grep -A1 '[tiz]EXtdate:'
+%tEXtdate:create
+2016-09-22T14:09:44-00:00
+%tEXtdate:modify
+2016-09-22T14:09:44-00:00
+$ exiftool /usr/share/doc/debian-handbook/html/ja-JP/images/developers-map.png | tail -n 5
+Modify Date                     : 2016:09:22 14:09:44
+Datecreate                      : 2016-09-22T14:09:44-00:00
+Datemodify                      : 2016-09-22T14:09:44-00:00
+Image Size                      : 750x450
+Megapixels                      : 0.338
+\end{commandline}
+
+変更時刻 (\verb|tIME|)、\verb|date:| の値を指定した時刻に書き換えています。
+
+\begin{commandline}
+$ strings -a /usr/share/emacs/24.5/etc/images/splash.png | grep -A1 '[tiz]EXtCreation Time'
+'tEXtCreation Time
+2016-09-05T20:05:00-00:00
+$ exiftool /usr/share/emacs/24.5/etc/images/splash.png | tail -n 4
+Description                     : GNU Emacs splash image
+Creation Time                   : 2016-09-05T20:05:00-00:00
+Image Size                      : 275x188
+Megapixels                      : 0.052
+\end{commandline}
+
+作成時刻 (\verb|Creation Time|) を指定した時刻に書き換えています。
+
+自動生成しないアートワーク等もあると思いますが、どちらか区別が付かないから全部書き
+換えているのでしょうか。
+
+\subsubsection{gettext}
+*.mo, *.gmo のうち \verb|GNU message catalog| のもの
+
+\begin{commandline}
+$ file /usr/share/locale/ja/LC_MESSAGES/grub.mo
+/usr/share/locale/ja/LC_MESSAGES/grub.mo: GNU message catalog (little endian), revision 0.0, 233 messages
+$ file /usr/share/locale/ja/LC_MESSAGES/apt.mo
+/usr/share/locale/ja/LC_MESSAGES/apt.mo: GNU message catalog (little endian), revision 0.0, 367 messages
+\end{commandline}
+
+各パッケージの時刻は
+\begin{commandline}
+$ dpkg -S /usr/share/locale/ja/LC_MESSAGES/grub.mo
+grub-common: /usr/share/locale/ja/LC_MESSAGES/grub.mo
+$ dpkg-parsechangelog -l /usr/share/doc/grub-common/changelog.Debian.gz | grep ^Date:
+Date: Tue, 01 Nov 2016 11:10:52 +0000
+\end{commandline}
+
+\begin{commandline}
+$ dpkg -S /usr/share/locale/ja/LC_MESSAGES/apt.mo
+apt: /usr/share/locale/ja/LC_MESSAGES/apt.mo
+$ dpkg-parsechangelog -l /usr/share/doc/apt/changelog.gz | grep ^Date:
+Date: Tue, 04 Oct 2016 19:43:35 +0200
+\end{commandline}
+です。
+
+中を見てみると
+\begin{commandline}
+$ grep -a POT-Creation-Date: /usr/share/locale/ja/LC_MESSAGES/grub.mo
+POT-Creation-Date: 2016-11-01 11:10+0000
+\end{commandline}
+
+\verb|POT-Creation-Date:| で始まる行に生成時刻が入っているので、指定した
+時刻に書き換えています。
+
+ただ、指定した時刻より新しい場合のみ上書きしています。
+
+\begin{commandline}
+$ grep -a POT-Creation-Date: /usr/share/locale/ja/LC_MESSAGES/apt.mo
+POT-Creation-Date: 2016-08-30 22:20+0200
+\end{commandline}
+
+指定した時刻より古いので書き換えていません。
+
+\subsubsection{pearregistry}
+
+*.reg のうち先頭が \verb|a:| のもの
+
+\begin{commandline}
+$ file ./usr/share/php/.registry/services_weather.reg
+./usr/share/php/.registry/services_weather.reg: ASCII text, with very long lines
+$ hd ./usr/share/php/.registry/services_weather.reg | head -n 4
+00000000  61 3a 32 32 3a 7b 73 3a  37 3a 22 61 74 74 72 69  |a:22:{s:7:"attri|
+00000010  62 73 22 3b 61 3a 36 3a  7b 73 3a 31 35 3a 22 70  |bs";a:6:{s:15:"p|
+00000020  61 63 6b 61 67 65 72 76  65 72 73 69 6f 6e 22 3b  |ackagerversion";|
+00000030  73 3a 35 3a 22 31 2e 39  2e 34 22 3b 73 3a 37 3a  |s:5:"1.9.4";s:7:|
+\end{commandline}
+
+\begin{commandline}
+$ dpkg-parsechangelog -l ./usr/share/doc/php-services-weather/changelog.Debian.gz | grep -e ^Date: -e ^Timestamp:
+Timestamp: 1460011442
+Date: Thu, 07 Apr 2016 08:44:02 +0200
+\end{commandline}
+
+\begin{commandline}
+$ hd ./usr/share/php/.registry/services_weather.reg | tail -n 8
+00003580  65 22 3b 73 3a 33 3a 22  65 72 75 22 3b 73 3a 34  |e";s:3:"eru";s:4|
+00003590  3a 22 72 6f 6c 65 22 3b  73 3a 34 3a 22 6c 65 61  |:"role";s:4:"lea|
+000035a0  64 22 3b 7d 7d 7d 73 3a  31 30 3a 22 78 73 64 76  |d";}}}s:10:"xsdv|
+000035b0  65 72 73 69 6f 6e 22 3b  73 3a 33 3a 22 32 2e 30  |ersion";s:3:"2.0|
+000035c0  22 3b 73 3a 31 33 3a 22  5f 6c 61 73 74 6d 6f 64  |";s:13:"_lastmod|
+000035d0  69 66 69 65 64 22 3b 69  3a 31 34 36 30 30 31 31  |ified";i:1460011|
+000035e0  34 34 32 3b 7d                                    |442;}|
+000035e5
+\end{commandline}
+
+\verb|_lastmodified| に生成時刻が書かれているので、指定した時刻に書き換えています。
+
+\subsubsection{gzip}
+
+*.gz, *.dz のうち \verb|gzip compressed data| のもの
+
+
+\begin{itemize}
+ \item ファイル名 (FNAME) の削除
+ \item ヘッダCRC (FHCRC) の削除
+ \item ヘッダ内の時刻 (mtime) が空でなく新しい場合は書き換え
+\end{itemize}
+をするらしいんですが、現物を探せませんでした。というのも、Debianパッケージ
+内によくある*.gzファイル（今までたくさん見てきたchangelogファイルやmanペー
+ジなど）
+は\verb|dh_compress(1)|がファイル名や時刻を保存しないオプションで圧縮し
+ています。しかも\verb|dh(1)|シーケンスでは
+\verb|dh_strip_nondeterminism(1)| の後が \verb|dh_compress(1)|なので書き
+換え対象になっていません。
+
+\begin{commandline}
+$ grep -C2 dh_strip_nondeterminism /usr/bin/dh
+	dh_installwm
+	dh_installxfonts
+	dh_strip_nondeterminism
+	dh_compress
+	dh_fixperms
+\end{commandline}
+
+\subsection{まとめ}
+
+\verb|dh_strip_nondeterminism(1)| は、再現可能なビルドにしていくに当たり、
+ビルド結果（バイナリなど）を使う際には通常不要な生成時刻などの情報を決まった
+値に書き換えています。
+
+ビルドツール等を開発している方は、これに頼らず、そもそもビルド時にこういっ
+た情報を埋め込まないようにしたほうがよいでしょう。
+
+普通のパッケージメンテナの方は、このコマンドはこのような書き換えをしているので
+（manページには\verb|good guesses|していると書いてありますが）バグっている
+ものがあったら報告しましょう。
+
+reproducible builds に興味がある方は、もっと書き換えたほうがいいかもしれ
+ないものがあったらバグ報告したほうがよいかもしれません。
+
+\subsection{参考文献}
+
+dh-strip-nondeterminism 0.028-1, p7zip-full, unzip, zip, libarchive-zip-perl,
+libimage-exiftool-perl 各パッケージ
 
 %
 % 冊子にするために、4の倍数にする必要がある。
