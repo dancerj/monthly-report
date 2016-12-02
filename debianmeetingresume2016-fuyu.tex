@@ -3549,9 +3549,70 @@ reproducible builds に興味がある方は、もっと書き換えたほうがいいかもしれ
 dh-strip-nondeterminism 0.028-1, p7zip-full, unzip, zip, libarchive-zip-perl,
 libimage-exiftool-perl 各パッケージ
 
+\dancersection{go-apt-cacher/mirror}{湯谷啓明}
+
+\subsection{go-apt-cacher/go-apt-mirrorとは}
+Aptレポジトリに特化したキャッシュプロキシ/ミラーリングツール\\
+ハッシュの一致をチェックするので壊れない！\\
+Go製
+
+https://github.com/cybozu-go/aptutil
+
+\subsection{CybozuとDebian}
+サーバはUbuntu\\
+サービスに必要なコンポーネントはdebパッケージ化してAptレポジトリ(JFrog Artifactory)で集中管理\\
+参考：社内利用のための deb パッケージング入門http://blog.cybozu.io/entry/2016/05/16/111500
+
+\subsection{JFrog Artifactory}
+アーティファクト管理ツール\\
+OSS 版は Maven レポジトリ機能のみ\\
+商用版は apt, yum, npm, PyPI, … と多種\\
+REST API で CI/CD ツールと連携できる\\
+リモートレポジトリのミラーはできない\\
+リバースプロキシ兼キャッシュはできる\\
+
+\subsection{キャッシュ/ミラーが必要な理由}
+Artifactoryの負荷を減らしたい\\
+パッケージダウンロードを速くしたい\\
+
+更新頻度が高く、ファイルが少ない\\
+　→　必要なものだけキャッシュ\\
+更新頻度が低く、ファイルが多い\\
+　→　(レポジトリの一部を)まるごとミラー\\
+
+\subsection{go-apt-cacherの特徴}
+ReleaseやPackagesからチェックサム情報を抽出\\
+ダウンロードしたファイルのチェックサムが合わなければ破棄\\
+Release は定期的にチェックし、チェックサムが更新されたファイルのキャッシュは自動破棄\\
+HTTP ヘッダは無視\\
+キャッシュした Release を定期的に自動更新\\
+他のファイルは上記チェックサム変更の自動破棄で対応\\
+Go なので速い\\
+同時 1,000 クライアントも余裕\\
+キャッシュ済みファイルは 1ms 以下で処理\\
+部分的ミラー\\
+Suite, Section, Architecture, Source を指定\\
+必要なものだけミラー\\
+rsync より高速な更新\\
+インデックスを先に処理してファイルのチェックサム情報を入手\\
+以前と変化がなければローカルファイルシステム上で再利用\\
+不完全なミラーは決して作らない\\
+インデックスおよびファイルのチェックサムはすべてチェック\\
+正しいセットが作れない場合、ロールバック\\
+ミラーの更新がアトミック\\
+更新中の状態は決して見せない\\
+\subsection{実装で大変だったところ}
+Debian Control Fileのパース\\
+存在しないファイルがRelease/Packagesに記載されている\\
+ファイルはひとつのインデックスだけに書かれているとは限らない\\
+ファイルが存在しないと違うフォーマットのファイルを返してくる\\
+…
+\subsection{Feedbacks are welcome!!}
+リリースしたばかりなのでバグもあると思いますが、よければ使ってみてください
+※弊社での必要性に応じて作られたツールで、既存のツールを置き換えるものではありません
 
 %-------------------------------------------------------------------------------
-\dancersection{Debian Trivia Quiz}{}
+\dancersection{Debian Trivia Quiz　未修正}{}
 %-------------------------------------------------------------------------------
 
 ところで、みなさん Debian 関連の話題においついていますか？Debian関連の話
