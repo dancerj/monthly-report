@@ -1511,64 +1511,100 @@ yosuke@ca200 $ gpg --send 84D1A6F2
 
 \dancersection{go-apt-cacher/mirror}{湯谷啓明}
 
-\subsection{go-apt-cacher/go-apt-mirrorとは}
-Aptレポジトリに特化したキャッシュプロキシ/ミラーリングツール\\
-ハッシュの一致をチェックするので壊れない！\\
-Go製
+サイボウズ株式会社　湯谷啓明です。
+作成、公開したgo-apt-cacher/go-apt-mirrorについて説明します。
 
+\subsection{go-apt-cacher/go-apt-mirrorとは}
+
+\begin{itemize}
+ \item Aptレポジトリに特化したキャッシュプロキシ/ミラーリングツール
+ \item ハッシュの一致をチェックするので壊れない！
+ \item Go製
+\end{itemize}
+
+GitHubで公開してます。
 https://github.com/cybozu-go/aptutil
 
 \subsection{CybozuとDebian}
-サーバはUbuntu\\
-サービスに必要なコンポーネントはdebパッケージ化してAptレポジトリ(JFrog Artifactory)で集中管理\\
+\begin{itemize}
+ \item サーバはUbuntu
+ \item サービスに必要なコンポーネントはdebパッケージ化してAptレポジトリ(JFrog Artifactory)で集中管理
+\end{itemize}
 参考：社内利用のための deb パッケージング入門http://blog.cybozu.io/entry/2016/05/16/111500
 
 \subsection{JFrog Artifactory}
-アーティファクト管理ツール\\
-OSS 版は Maven レポジトリ機能のみ\\
-商用版は apt, yum, npm, PyPI, … と多種\\
-REST API で CI/CD ツールと連携できる\\
-リモートレポジトリのミラーはできない\\
-リバースプロキシ兼キャッシュはできる\\
+\begin{itemize}
+ \item アーティファクト管理ツール
+ \item OSS 版は Maven レポジトリ機能のみ
+ \item 商用版は apt, yum, npm, PyPI, … と多種
+ \item REST API で CI/CD ツールと連携できる
+ \item リモートレポジトリのミラーはできない
+ \item リバースプロキシ兼キャッシュはできる
+\end{itemize}
 
 \subsection{キャッシュ/ミラーが必要な理由}
-Artifactoryの負荷を減らしたい\\
-パッケージダウンロードを速くしたい\\
+\begin{itemize}
+ \item Artifactoryの負荷を減らしたい
+ \item パッケージダウンロードを速くしたい
+\end{itemize}
 
-更新頻度が高く、ファイルが少ない\\
-　→　必要なものだけキャッシュ\\
-更新頻度が低く、ファイルが多い\\
-　→　(レポジトリの一部を)まるごとミラー\\
+\begin{itemize}
+ \item 更新頻度が高く、ファイルが少ない\mbox{}\\
+　→　必要なものだけキャッシュ
+ \item 更新頻度が低く、ファイルが多い\mbox{}\\
+　→　(レポジトリの一部を)まるごとミラー
+\end{itemize}
 
 \subsection{go-apt-cacherの特徴}
-ReleaseやPackagesからチェックサム情報を抽出\\
-ダウンロードしたファイルのチェックサムが合わなければ破棄\\
-Release は定期的にチェックし、チェックサムが更新されたファイルのキャッシュは自動破棄\\
-HTTP ヘッダは無視\\
-キャッシュした Release を定期的に自動更新\\
-他のファイルは上記チェックサム変更の自動破棄で対応\\
-Go なので速い\\
-同時 1,000 クライアントも余裕\\
-キャッシュ済みファイルは 1ms 以下で処理\\
-部分的ミラー\\
-Suite, Section, Architecture, Source を指定\\
-必要なものだけミラー\\
-rsync より高速な更新\\
-インデックスを先に処理してファイルのチェックサム情報を入手\\
-以前と変化がなければローカルファイルシステム上で再利用\\
-不完全なミラーは決して作らない\\
-インデックスおよびファイルのチェックサムはすべてチェック\\
-正しいセットが作れない場合、ロールバック\\
-ミラーの更新がアトミック\\
-更新中の状態は決して見せない\\
+\begin{itemize}
+ \item ReleaseやPackagesからチェックサム情報を抽出
+\begin{itemize}
+ \item ダウンロードしたファイルのチェックサムが合わなければ破棄
+ \item Release は定期的にチェックし、チェックサムが更新されたファイルのキャッシュは自動破棄
+\end{itemize}
+ \item HTTP ヘッダは無視
+\begin{itemize}
+ \item キャッシュした Release を定期的に自動更新
+ \item 他のファイルは上記チェックサム変更の自動破棄で対応
+\end{itemize}
+ \item Go なので速い
+\begin{itemize}
+ \item 同時 1,000 クライアントも余裕
+ \item キャッシュ済みファイルは 1ms 以下で処理
+\end{itemize}
+\end{itemize}
+\subsection{go-apt-mirrorの特徴}
+\begin{itemize}
+ \item 部分的ミラー
+\begin{itemize}
+ \item Suite, Section, Architecture, Source を指定
+ \item 必要なものだけミラー
+\end{itemize}
+ \item rsync より高速な更新
+\begin{itemize}
+ \item インデックスを先に処理してファイルのチェックサム情報を入手
+ \item 以前と変化がなければローカルファイルシステム上で再利用
+\end{itemize}
+ \item 不完全なミラーは決して作らない
+\begin{itemize}
+ \item インデックスおよびファイルのチェックサムはすべてチェック
+ \item 正しいセットが作れない場合、ロールバック
+\end{itemize}
+ \item ミラーの更新がアトミック
+\begin{itemize}
+ \item 更新中の状態は決して見せない
+\end{itemize}
+\end{itemize}
 \subsection{実装で大変だったところ}
-Debian Control Fileのパース\\
-存在しないファイルがRelease/Packagesに記載されている\\
-ファイルはひとつのインデックスだけに書かれているとは限らない\\
-ファイルが存在しないと違うフォーマットのファイルを返してくる\\
-…
+Debian Control Fileのパース
+\begin{itemize}
+ \item 存在しないファイルがRelease/Packagesに記載されている
+ \item ファイルはひとつのインデックスだけに書かれているとは限らない
+ \item ファイルが存在しないと違うフォーマットのファイルを返してくる
+ \item …
+\end{itemize}
 \subsection{Feedbacks are welcome!!}
-リリースしたばかりなのでバグもあると思いますが、よければ使ってみてください
+リリースしたばかりなのでバグもあると思いますが、よければ使ってみてください\\
 ※弊社での必要性に応じて作られたツールで、既存のツールを置き換えるものではありません
 
 %201610kansai
