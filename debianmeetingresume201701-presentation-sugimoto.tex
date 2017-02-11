@@ -1,0 +1,243 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{第147回東京エリアDebian勉強会 \\　\\debhepler 10の新機能を確認してみよう}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2017-01-21}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item debhelperとは
+  \item debhelper 10の変更点
+    \begin{itemize}
+    \item autoreconfの自動実行
+    \item dh-systemdが不要
+    \item parallelオプションの自動付与
+    \item dh\_installdebの変更
+    \end{itemize}
+  \item まとめ
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
+  \end{itemize}
+\end{frame}
+
+
+\emtext{debhelper}
+
+\begin{frame}[containsverbatim]{debhelperとは}
+  \begin{itemize}
+  \item debianパッケージを作成するための便利ツール
+  \item dhで始まるコマンドが多い
+  \item dh\_make、dchなどのdebianディレクトリ配下のファイルの生成、編集
+  \item dh、dh\_clean、dh\_installなどパッケージのビルド処理を行う
+  \item debian/rules中で、override\_dh\_cleanのようにオーバーライドすることができる
+  \end{itemize}
+\end{frame}
+
+\emtext{debhelper 10の使い方例}
+
+\begin{frame}[containsverbatim]{GNU helloのパッケージ化の例}
+  \begin{commandline}
+    $ vi ~/.bashrc
+    export DEBEMAIL=''dictoss@live.jp''
+    export DEBFULLNAME=''Norimitsu Sugimoto''
+    
+    $ sudo apt-get install dh-make build-essential
+  \end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{GNU helloのパッケージ化の例}
+  \begin{commandline}
+    $ sudo apt-get install autotools-dev
+    $ wget https://ftp.gnu.org/gnu/hello/hello-2.10.tar.gz
+    $ tar xf hello-2.10.tar.gz
+    $ cd hello-2.10
+    $ dh_make -f ../hello-2.10.tar.gz
+    $ vi debian/changelog
+    $ vi debian/control
+    $ vi debian/rules
+    $ dpkg-buildpackage -uc -us
+  \end{commandline}
+\end{frame}
+
+
+\emtext{debhelper 10の変更点}
+
+\begin{frame}[containsverbatim]{debian/compat}
+  \begin{itemize}
+  \item debhelperの互換性レベルを記述するファイル
+  \item debhelper 10の場合は''10''と書きます
+    \begin{commandline}
+      $ cat debian/compat
+      10
+    \end{commandline}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{autoreconfの自動実行}
+  \begin{itemize}
+  \item dhコマンドによるビルド処理の一連の流れで、autoreconfが実行されるようになった
+    \begin{commandline}
+      (省略)
+      +   dh_autoreconf_clean
+      dh_clean
+      dpkg-source -b hello-2.10
+      dpkg-source: info: using source format '3.0 (quilt)'
+      @@ -64,6 +23,82 @@
+      dh build
+      dh_testdir
+      dh_update_autotools_config
+      +   dh_autoreconf
+      (省略)
+    \end{commandline}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{Build-Dependsにdh-systemdが不要になった}
+  \begin{itemize}
+  \item dh-systemdパッケージというのがあります
+  \item dh\_systemd\_enable、dh\_systemd\_start、systemd2initコマンドが入っている
+  \item systemdによるデーモンのブート時起動設定や開始する処理を行うパッケージのビルド時に必要だった
+  \item debian/compatが9以下の場合、dh-systemdが必要
+    \begin{itemize}
+      \item Build-Depends: debhelper, dh-systemd
+    \end{itemize}
+  \item debian/compat=10の場合、dh-systemdが不要
+    \begin{itemize}
+      \item Build-Depends: debhelper (>= 9.20160709)
+    \end{itemize}    
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{parallelオプションの自動付与}
+  \begin{itemize}
+  \item "--parallel"オプションが自動的に付与されるようになった
+  \item make -j4のようにビルドのジョブ数が調整される
+  \item "--max-parallel"オプションで利用するコア数を指定可能
+    \begin{itemize}
+    \item --parallelなし時は1
+    \item --parallelあり、--max-parallelなし時は論理CPUコア数
+    \end{itemize}
+  \item --no-parallelオプションもあります
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{parallelオプションの自動付与}
+  \begin{itemize}
+  \item 2コアHTありのCPUの場合、ジョブ数は4になります
+  \end{itemize}
+  \begin{commandline}
+    $ diff -u hello_2.10-1_amd64.build.compat9 hello_2.10-1_amd64.build.compat10 | grep ``make -j''
+    -make -j1
+    +make -j4
+    -make -j1 check VERBOSE=1
+    +make -j4 check VERBOSE=1
+    -make -j1 install DESTDIR=/home/norimitu/mkdeb/hello-2.10/debian/hello AM_UPDATE_INFO_DIR=no
+    +make -j4 install DESTDIR=/home/norimitu/mkdeb/hello-2.10/debian/hello AM_UPDATE_INFO_DIR=no
+  \end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{dh\_installdebの変更}
+  \begin{itemize}
+  \item dh\_installdebはパッケージのインストール時の特別処理を記述する
+  \item debian/package.maintscriptが変更
+    \begin{itemize}
+    \item パラメータがエスケープされるようになりました
+    \end{itemize}
+  \item debian/package.shlibsが変更
+    \begin{itemize}
+    \item debian/compatが9以下はdh\_installdebで実行
+    \item debian/compatが10以降はdh\_makeshlibsで実行
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{まとめ}
+  \begin{itemize}
+  \item debhelper 10の新機能と変更点を紹介しました
+  \item stretchはdebhelper 10が含まれておりこれからの標準になるため対応しましょう
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item 「debhelper 10 is now available」
+    \begin{itemize}
+      \item \url{https://nthykier.wordpress.com/2016/09/11/debhelper-10-is-now-available/}
+    \end{itemize}
+  \item man debhelper(7), dh(1), dh\_installdeb(1)
+  \item Debian 新メンテナーガイド
+    \begin{itemize}
+      \item \url{https://www.debian.org/doc/manuals/maint-guide/}
+    \end{itemize}
+  \item 「dh-systemdはdebhelper 9.20160709で統合された」
+    \begin{itemize}
+      \item \url{http://qiita.com/henrich/items/e1651e3284c6b3d0d39e}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\emtext{質疑応答}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
