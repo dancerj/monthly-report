@@ -162,13 +162,444 @@
 \begin{prework}{ yosuke\_san }
 \end{prework}
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \dancersection{ qmakeなQtアプリのdebを作ろうとして試行錯誤した話」}{小林 克希}
 
-%%% 小林さんのを追加予定
+\subsection{はじめに}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+昨年の6月に開催された関西Debian勉強会
+\footnote{\url{https://wiki.debian.org/KansaiDebianMeeting/20160626}}
+に参加して、生産性向上のための手法の一つであるポモドーロ・テクニック
+\footnote{\url{http://cirillocompany.de/pages/pomodoro-technique/}}
+用の、Qtで書かれたtomighty
+\footnote{\url{http://tomighty.org/}}
+という名前のツールのパッケージングに挑戦してみました。
+
+私の作業前の状態は、かなーり昔にAutotoolsで書かれたソフトの
+debパッケージをつくったことはある、といった感じでした。
+なので、実際のところ、このツールをひとまずdebにするところまでは
+\textbf{そこまで}苦労しなかったのですが、
+\begin{itemize}
+ \item lintianの警告がいっぱい出る!!
+ \item qmakeのプロジェクトではdebian/rulesはどう書くのがお作法?
+ \item GitHub+TravisCIとかどう使うの……?
+\end{itemize}
+などの課題が発生したので、
+ここでは、それらを解決するためにやってみたり調べた内容を書かせていただこ
+うと思います。
+なお、全ては解決に至っておりませんので、
+ヒントとか色々頂ければうれしいなぁ、と思っております。
+どうぞよろしくお願いします。
+
+\subsection{tomighty}
+
+\subsubsection{どんなツール?}
+
+まずは今回パッケージングしたツール、その名も ``tomighty'' の紹介をします。
+が、前述した通り、こちらはポモドーロ・テクニック用のツールですので、
+まずはポモドーロ・テクニックについて説明しておきます。
+このポモドーロ・テクニックは、生産性向上のための手法で、
+ざっくりと以下の流れで作業を行なう事が推奨されています。
+\begin{enumerate}
+ \item 完了させたいタスクを選択して紙に書き出す
+ \item ポモドーロ(タイマー)を25分にセットする
+ \item タイマが鳴るまで集中する (やる事変えるのはOK)
+ \item タイマが鳴ったら紙にチェックを入れる (ここまでの$25$分が$1$ポモドーロという単位)
+ \item short-break($5$分程度?)を取る、
+   もしくは$4$回ポモドーロを完了していたらlong-break($20\sim 30$分?)を取る
+\end{enumerate}
+この、''$1$ポモドーロ=$25$分'' というのがミソでして、
+集中してやるのに(個人的な主観で)長すぎず、短かすぎず、ちょうど良いくらいの時間で、
+後々そのタスクにかけて時間の単位としても使用できる、という感じの手法になっております。
+とか書いてますが、私も触りしか知らないので、ボロが出ないこの辺りで止めておきますので、
+興味が沸きましたら公式のドキュメント等を読んでいただければと思います。
+
+で、tomightyはなにかというと、
+ツールバーに表示されるタイプのポモドーロ専用タイマアプリで、
+\begin{itemize}
+ \item $1$ポモドーロの$25$分
+ \item 休憩時間の$5$分(short)もしくは15分(long)
+\end{itemize}
+を計測できます。
+ちなみに、ポモドーロ(pomodoro)というのはイタリア語でトマトの意味で、
+手法の提唱者のFrancesco Cirillo氏が使っていたキッチンタイマーが
+トマトの形だったからこの名前になったようです。
+ちなみに、tomightyのアイコンもトマトですし、
+名前もtomatoから来てるものと思われます。
+
+\subsubsection{まずはビルドしてみる}
+
+では、ひとまず普通にビルドしてみたいと思います。
+tomightyのコードはGitHubにて公開されています
+\footnote{\url{https://github.com/tomighty/tomighty}}
+ので、適当なディレクトリで以下のようにコマンドを叩いて取得します。
+\begin{commandline}
+ % git clone -b develop https://github.com/tomighty/tomighty
+ Cloning into 'tomighty'...
+ remote: Counting objects: 4621, done.
+ remote: Total 4621 (delta 0), reused 0 (delta 0), pack-reused 4621
+ Receiving objects: 100% (4621/4621), 1.83 MiB | 378.00 KiB/s, done.
+ Resolving deltas: 100% (2023/2023), done.
+\end{commandline}
+ここでは、cloneしつつdevelopブランチをcheckoutしてます。
+developブランチを開発用として運用しているプロジェクトは
+結構あるかと思いますが、このプロジェクトは
+masterがJavaで書かれた全く別物で、
+READMEにも
+「masterのJavaコードは開発を中止していて、
+現在developブランチにてQt5で書き直しているよ
+\footnote{実は、developブランチの開発も止まっているという
+哀しい現実が待ち構えています。}
+」
+となっております……。
+
+コードの取得が完了したら、まずは以下の通りにして新規ディレクトリ中に
+Makefileを作成します。
+qmakeは、基本的にビルド用に作ったディレクトリ上に
+.pro ファイルの設定からMakefileを生成してビルドを行なう形になるようです。
+\begin{commandline}
+ % cd tomighty
+ % mkdir build
+ % cd build
+ % qmake -qt=qt5 ../src/tomighty.pro
+ Info: creating stash file /tmp/tomighty/build/.qmake.stash
+\end{commandline}
+qmakeと同じように、ビルド用のディレクトリを掘ってMakefileを
+生成するツールにはcmakeもあるそうで、
+こちらもQtのアプリ用によく使われているようです。
+qmakeの利点---と言いますか、cmakeとの使い分けは、
+少し調べた感じだと Qt Creator
+\footnote{\url{https://www.qt.io/ide/}}
+と呼ばれるQtのIDEを使うかどうか、というのが一つ大きな理由としてありそうでした。
+詳しくは調べきれてませんので、もっと他に何かあれば教えていただきたく。
+
+ところで、qmakeにさらりと \verb|-qt=qt5| というオプションを使っていますが、
+これは複数バージョンのQtを共存させるためにqtchooserという仕組みが
+upstreamの時点から入っており、各コマンドを叩くときに
+\verb|-qt| オプション、もしくは QT\_SELECT という環境変数で
+バージョンを指定することができるようです。
+各コマンドの名前のシンボリックリンクを作成するという、
+組み込み系でよく使われるbusyboxみたいな
+\footnote{私が組み込み畑の人間なのでこういう表現になってますが、
+本当はもっと良い表現があるかもしれません……。}
+仕組みのようです。
+以下のコマンドを叩くとおもしろいかと。
+ \begin{commandline}
+% ls -l /usr/bin | grep qtchooser
+  ...
+lrwxrwxrwx 1 root   root           9 11月 11 00:29 qmake -> qtchooser*
+  ...
+-rwxr-xr-x 1 root   root       43728 11月 11 00:29 qtchooser*
+  ...
+ \end{commandline}
+
+さて、ではmakeをしてみたのですが……、ベロベロとログを吐いた挙句、
+以下のようにエラーが出ました……。
+\begin{commandline}
+ tomighty/build/test-runner/../core-tests//libtomighty-core-tests.so:
+    `tmty::InMemoryPreferences::InMemoryPreferences(QObject*)' に対する定義されていない参照です
+ tomighty/build/test-runner/../core-tests//libtomighty-core-tests.so:
+    `tmty::FakeTimer::interval() const' に対する定義されていない参照です
+\end{commandline}
+「なんでかなぁ? こっちの環境の問題かなぁ?」と思いつつ、
+以下のパッチを作成してビルドが通る事は確認しました。
+\begin{commandline}
+diff --git src/test-runner/test-runner.pro src/test-runner/test-runner.pro
+index 44ac2b4..82bc4c8 100644
+--- src/test-runner/test-runner.pro
++++ src/test-runner/test-runner.pro
+@@ -29,2 +29,3 @@ win32:CONFIG(release, debug|release): LIBS += \
+   -L$$OUT_PWD/../core-tests/release/ -ltomighty-core-tests \
++  -L$$OUT_PWD/../core-mock/release/ -ltomighty-core-mock \
+   -L$$OUT_PWD/../ui-tests/release/ -ltomighty-ui-tests
+@@ -35,2 +36,3 @@ else:win32:CONFIG(debug, debug|release): LIBS += \
+   -L$$OUT_PWD/../core-tests/debug/ -ltomighty-core-tests \
++  -L$$OUT_PWD/../core-mock/debug/ -ltomighty-core-mock \
+   -L$$OUT_PWD/../ui-tests/debug/ -ltomighty-ui-tests
+@@ -41,2 +43,3 @@ else:unix: LIBS += \
+   -L$$OUT_PWD/../core-tests/ -ltomighty-core-tests \
++  -L$$OUT_PWD/../core-mock/ -ltomighty-core-mock \
+   -L$$OUT_PWD/../ui-tests/ -ltomighty-ui-tests
+\end{commandline}
+
+なお、コケたのはテスト用のビルドで、代わりに
+\begin{commandline}
+% make sub-app-all sub-core-all sub-ui-all
+\end{commandline}
+としてやれば、一応アプリ自体はビルドできます。
+windowsのmingwとかだとエラーが出ないようです。
+疑問を持ちつつも自分でパッチを書いてりしてdeb化の作業をすすめていたのですが、
+よくよく見ると、githubのトップページのプロジェクトの説明欄に
+(私にとって)残念な記載が……!!
+\begin{quote}
+ Old Tomighty repo. For the new repos, please refer to: tomighty-osx and tomighty-windows
+\end{quote}
+どうやら、今回Qtアプリとしてさわってはみたものの、
+開発はObjective-Cで書かれたMac用とC\#で書かれたWindows用しか行なわれてい
+ないようです。
+\textbf{「``Fork me on GitHub''リボンでこのプロジェクトにリンクしといて、
+それはないじゃーーーん」}
+と思わなくもないのですが……。
+ひとまず、deb化の練習には問題がない(?)ので、
+次に進めていこうかと思います……。
+
+\subsection{debの作成}
+
+ようやくここからdebianパッケージ作成の開始です。
+まずは \verb|dh_make| を実行するところからなのですが、
+upstreamがGitHubでタグもまだ付けていてくれない場合はどうするのか…………
+結局のところわかりませんでした。
+gitのハッシュをバージョン名に入れているパッケージは数あれど、
+パッケージによって結構表記が違うようで……。
+どなたか教えてください……。
+
+結局、今回は lua-torch-doc とか lua-torch-sundown パッケージ
+(by Debian Science Maintainers) で使われている "0~(日付)-g(git hash)"
+が一番しっくり来たので、以下のようにしました。
+\texttt{0f673359} の部分がdeb化する前のupstreamの最終コミットのgit hash
+といった感じです。
+\begin{commandline}
+% dh_make --createorig -p 'tomighty_0.0.0+git0f673359' -s -c apache
+\end{commandline}
+
+さて、ひとまずむりくりビルドだけ通したくて、
+debian/rulesを以下のように記述してみました。
+色々なターゲットを大胆に上書いています。
+これで、一応ビルドは通ります……。
+\begin{commandline}
+#!/usr/bin/make -f
+
+override_dh_auto_configure:
+        mkdir build
+        cd build; qmake -qt=qt5 ../src/tomighty.pro
+
+override_dh_auto_build:
+        cd build; make
+
+override_dh_auto_clean:
+        rm -rf build
+
+override_dh_auto_install:
+        cd build; make install INSTALL_ROOT=$(PWD)/debian/tomighty
+
+%:
+        dh $@
+\end{commandline}
+
+が、もちろん決め打ち部分が多すぎてかなりイケてないのは私でもわかります。
+せっかくdhコマンドを使っているのにoverrideした上に、
+普通にコマンドを叩いてしまっていますし……。
+ということで、色々と調べていくうちに、
+Common Debian Build System(CDBS)%
+\footnote{\url{https://build-common.alioth.debian.org/cdbs-doc.html}}
+に行きあたりました。
+こちらは、debian/rulesの記述を色々とモジュール化して
+再利用を狙ったものということで、ばっちりqmake用のmakeも存在してました。
+で、CDBSを使って書き直したものが以下になります。
+\begin{commandline}
+QT_SELECT = qt5
+DEB_QMAKE_ARGS = ../src/tomighty.pro
+
+DEB_SRCDIR = $(CURDIR)/src
+DEB_BUILDDIR = $(CURDIR)/build
+
+cleanbuilddir::
+        -rm -rf $(DEB_DESTDIR)
+
+clean::
+        -rm $(DEB_BUILDDIR)/files
+        -rm $(CURDIR)/debian/tomighty.substvars
+
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/qmake.mk
+\end{commandline}
+cleanまわりがまだ怪しいのですが、だいぶすっきり書けたのではないでしょうか。
+%おそらく「今ならdhコマンドでいいのでは?」と言うツッコミもあるかと思いますが、
+%残念ながらdhコマンドではqmakeは2017年2月現在addonとして存在しないようです。
+%(kdeは違いそう?)
+%
+%\begin{commandline}
+%% dh --list | column
+%autoreconf              dkms                    perl-dbi                python3                 tex
+%autotools-dev           dpatch                  perl-openssl            quilt                   xml-core
+%bash-completion         gir                     pkgkde-symbolshelper    ruby
+%build-stamp             gnome                   pypy                    scour
+%buildinfo               kde                     python-support          sodeps
+%cme-upgrade             kf5                     python2                 systemd
+%\end{commandline}
+…………と、そこまで書いてみから「もしかして……」と調べたら、
+実はdhもしっかりqmakeに対応していました……。
+ドキュメントは見当たらなかったのですが、
+\verb|/usr/share/perl5/Debian/Debhelper/Buildsystem/qmake.pm|
+を見て以下のように記載しました。
+
+\begin{commandline}
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=qmake --builddirectory=build --sourcedirectory=src
+
+override_dh_auto_configure:
+	(export QT_SELECT=qt5; dh_auto_configure -- $(CURDIR)/src/tomighty.pro)
+\end{commandline}
+
+overrideしちゃってるのが気になりますが、CDBSよりもさっくりと書けてしまい
+ました……。
+もし、このoverrideをもっと綺麗に消せる方法がありましたら、
+教えていただければと思います(他力本願)。
+ソースを眺めていると、ソースディレクトリから.proファイルを
+拾ってくれそうなんですが、 \verb|--sourcedirectory| オプション付けても
+うまく拾ってくれませんでした……。
+
+あと、 \verb|dh_auto_configure|に ``\verb|export QT_SELECT=qt5|''
+が並んでいる件ですが、
+これをやっておかないとpbuilder環境でqtchooserが彷徨ってしまって
+以下のようなエラーになってしまいました……。
+ \begin{commandline}
+  qmake: could not find a Qt installation of ''
+ \end{commandline}
+qt5-defaultパッケージを入れると直るという情報があったり、
+でもQtのメンテナがqtX-defaultにビルド依存してくれるなという
+情報もあったり
+\footnote{\url{http://stackoverflow.com/questions/16607003/qmake-could-not-find-a-qt-installation-of}}
+で、ちょっと正解はわかりませんでした……。
+なお、Qt4に関しては、 \verb|--buildsystem| オプションを \verb|qmake| から
+\verb|qmake_qt4| にしてあげればよさそうです……。
+
+
+\subsection{gbpを使う}
+
+upstreamがgitで管理されている場合、
+gbp (git-buildpackage)
+\footnote{\url{https://honk.sigxcpu.org/piki/projects/git-buildpackage/}}
+を使うのがよいらしいので、
+ひとまず今回のパッケージングでもgbpを使ってみることにしました。
+とはいいつつも、ごめんなさい、
+今回gbpについては全然使いこなせておりません。
+
+とりあえず、gbpの設定をしたいと思います。
+今回、前述した通りupstreamのbranchはdevelopとなっています。
+debを作成するにあったっては、通常はdebianという名前でbranchを切って、
+その中で \verb|dh_make| でdebianディレクトリを作ってあげるのが
+良いようです。
+今回は、先にdevelop branchで \verb|dh_make| しちゃってましたが、
+特にコミットはしていないので \verb|git checkout -b debian|
+でよろしかったかと。
+
+続けて、gbpの設定ファイルを作ります。
+ユーザ毎の設定は \~{}/.gbp.conf に、
+deb用のリポジトリ毎の設定なら、 debian/gbp.conf につくるのがよさそうです。
+今回は、以下のようにupstreamとdebianのbranchを設定しました。
+
+\begin{commandline}
+[DEFAULT]
+upstream-branch=develop
+debian-branch=debian
+\end{commandline}
+
+この状態で、未コミットの物がある場合は \verb|--git-ignore-new|
+オプションを付けつつ \texttt{buildpackage} を実行すると、
+orig.tar.gzを含めて作成してくれました。
+
+\subsection{travis.debian.netを使う}
+
+%upstreamのリポジトリがGitHubなのでforkして使ってますが、
+せっかくdebを作れるようになったので、できればCIツールを使いたいと思い、
+GitHubならTravis CI
+\footnote{\url{https://travis-ci.org/}}
+が有名なのかなと調べてみたところ、travis.debian.net
+\footnote{\url{http://travis.debian.net/}}
+というのがあるようです。
+こちらは、ビルド依存しているパッケージを含めたDebianのDockerイメージを作成して
+ビルドのテストを行なってくれるようです。
+なお、gbpでビルドできる事が前提のようです……。
+
+設定は比較的簡単で、
+\begin{enumerate}
+ \item Travis CIでテストしたいリポジトリのビルドを有効にし、
+       ``Build only if .travis.yml is present'' である事を確認しておく。
+ \item リポジトリのルートディレクトリにビルド設定ファイル .travis.yml を
+       置く。
+ \item debian/source/optionsに
+       \verb|extend-diff-ignore = "^\.travis\.yml$"'|
+       と書いておく
+\end{enumerate}
+となっております。
+設定ファイルの.travis.ymlの中身が問題なわけですが、
+私の場合はひとまず以下のようになりました。
+\begin{commandline}
+sudo: required
+language: c++
+
+env:
+  global:
+    - TRAVIS_DEBIAN_GIT_BUILDPACKAGE="gbp buildpackage --git-upstream-tag=6afa215"
+    - TRAVIS_DEBIAN_DISTRIBUTION="sid"
+    - TRAVIS_DEBIAN_EXTRA_REPOSITORY_GPG_URL=""
+    - TRAVIS_DEBIAN_EXTRA_REPOSITORY=""
+
+services:
+  - docker
+
+script:
+  - wget -O- http://travis.debian.net/script.sh | sh -
+
+branches:
+  except:
+    - /^debian\/\d/
+\end{commandline}
+upstreamの指定がうまくできず、
+ひとまず \verb|--git-upstream-tag| オプションにて
+無理矢理コミットのハッシュ値つっこんでます……。
+いずれ、良い感じに直したい……。
+
+ymlのファイルを見て、
+「``\verb@wget | sh -@'' て!!」
+と思われた方もいらっしゃると思いますが、
+それについてはtravis.debian.netのFAQでも一応触れられていて、
+「自分のマシンなら、こんなコマンドは実行すべきではないけど、
+使い捨てのコンテナの中で実行されて、
+生成された.debも使われないから良いんだ」
+的な感じでまとめられています。
+ひとまず、ここまで設定すると、
+GitHubにコミットしたタイミングでTravisCIでビルドが走るようになりました。
+
+\subsection{まとめ}
+
+ということで、若干中途半端ではありますが、
+ひとまずはここまでの内容で当初の課題のうち、
+\begin{itemize}
+ \item qmakeのプロジェクト向けなdebian/rulesの記述
+ \item GitHub+TravisCIでもビルドのチェック
+\end{itemize}
+はできるようになりました。
+もちろん、改善すべき点はまだ色々と残っていそうですし、
+まだ解決に至っていない問題も多く、今後は
+\begin{itemize}
+ \item gbpの使い方 (特にtravis.debian.netとの連携部分)
+ \item lintianの警告の修正
+\end{itemize}
+あたりの確認をしていかねばと思ってます。
+ちなみに、2つ目は、tomightyのupstreamがポモドーロ・テクニック用の
+共有ライブラリを作るので、
+その辺りがまだ調査できておらず色々と怒られてます……。
+
+なんにせよ、今回、随分とひさしぶりにdebを作ってみたのですが、
+以前と比べて、
+\begin{itemize}
+ \item dhコマンドすごい……。
+ \item tar.gzで配布されてるソフトでgbpはかなり便利そう。
+ \item (今回は使わなかったですが)quiltでパッチの管理が楽になってる。
+\end{itemize}
+と感じました。
+upstreamの開発が止まっているという根本的な問題があるので、
+今回のtomightyのdebはどうするのかというのは
+ちょっと悩み中なのですが、
+今後、上記の未解決案件に加えて
+ITPとかの手順も調べていけたらなぁと思っています。
+
+ここまでお付き合い頂き、ありがとうございました。
+
+
 \dancersection{今後の予定}{Debian JP}
 
 \subsection{関西Debian勉強会 10周年記念回}
