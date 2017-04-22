@@ -133,9 +133,936 @@ Debianの昨今の話題についてのQuizです。
 
 \subsection{はじめに}
 
+Debianパッケージをカスタマイズしたいけどやり方が（特にどこに書いてあるのか）
+分からないという話があったので、まとめてみました。
+
+まずパッケージングの前提を見ていきます。
+
+次に、カスタマイズしたい場所は大きく2つあるでしょう。
+
+\begin{itemize}
+ \item Debianパッケージングの部分
+ \item 上流のコード自体
+\end{itemize}
+
+また、これらカスタマイズした内容をその後メンテナンスしていく必要があります。
+
+それぞれ見ていきましょう。
+
+\subsection{前提}
+パッケージングについての概要は``パッケージングチュートリアル''にあるので
+\verb|apt install packaging-tutorial|を実行してから
+\verb|/usr/share/doc/packaging-tutorial/|の中を見てみましょう
+\footnote{\url{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}
+にもあります。}。
+
+カスタマイズするにはパッケージのソースコードを手元に用意する必要が
+あります。\verb|apt-get source|やdget(1)（devscriptsパッケージに
+あります）でダウンロードできます。
+メンテナがパッケージング作業用のgitレポジトリなどを公開している場合
+（\verb|Vcs-*|フィールド）は、debcheckout(1)（devscriptsパッケージ）も使うとそ
+のレポジトリをcloneしたりしてくれるようです。
+
+そして、Debianパッケージは ``Debianポリシー''（debian-policyパッケージ）
+に従って作られています。
+Debianポリシーは、Debianがうまく動くように定められたルールです。
+カスタマイズしたパッケージもポリシーに従ったほうがよいでしょう。
+本当はポリシー全文を読むとよいでしょう、と言いたいところですが長文です。
+また、Debianポリシー以外にも従っておいたほうがよい慣習が ``Debian 開発者
+リファレンス''（developers-reference-jaパッケージ）
+\footnote{\url{https://www.debian.org/doc/manuals/developers-reference/index.ja.html}
+にもあります。}などいくつかに書かれています。
+
+debhelperなどのパッケージングヘルパーはポリシーにできるだけ自動的に従っ
+てパッケージが作られるように仕組んであります。なので普通にパッケージングヘルパー
+を使ってパッケージング作業をしていればある程度はポリシーに勝手に従ってい
+るはずです。
+
+また、lintian(1)というツール（lintianパッケージ）がDebianポリシーに違反していないか、慣習に沿ってい
+るかチェックしてくれます。lintianはインストール済みならパッケージングコ
+マンドdebuildの最後で自動的に呼ばれます。
+実際のところいろんな慣習がいろんな場所に書いて
+あってわからないことも多いので、まずは作ったパッケージをdebuildしてみて、
+lintianの結果を見て、エラーや警告が出たら詳細説明を読んで修正しましょう。
+
+特に、慣習の1つにはバージョン番号があります。開発者レファレンスによると、
+パッケージメンテナ以外がパッケージを変更してDebian本体にアップロードする
+とき(Non-Maintainer Upload, NMU)に
+は、変更内容を debian/changelog に書き、特別なバージョン番号にしなければなりません。
+常にメンテナのアップロードするバージョンが優先されるように、次にメンテナ
+がアップロードするであろうバージョン番号よりも低くしているからです。
+本当にNMUするわけではないにせよ重要なので、これについては以降も見ていきます。
+
+\subsection{Debianパッケージングの部分\label{sec:customize-debpkg}}
+
+これについては
+
+\begin{itemize}
+ \item コンパイルオプションなどを変更したい
+ \item 依存関係やパッケージ構成などを変更したい
+ \item 不安定版(unstable)にあるバージョンを安定版(stable)などにバックポートしたい
+\end{itemize}
+
+などがあるでしょう。
+
+\subsubsection{コンパイルオプション}
+
+パッケージングでは debian/rules ファイルからコンパイルが実行されます。
+コンパイルオプションを変更するときは、これを変更するだけのことが多いです
+（正確には、一通り変更して、その変更内容を dch(1) コマンドで
+debian/changelog ファイルに新しいバージョン番号で記入したら完成です。以
+降も同様です）。
+
+ここでは例として hello というパッケージを見てみます。
+
+\begin{commandline}
+$ apt-get source hello
+パッケージリストを読み込んでいます... 完了
+733 kB のソースアーカイブを取得する必要があります。
+取得:1 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (dsc) [1,323 B]
+取得:2 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (tar) [726 kB]
+取得:3 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (diff) [6,072 B]
+733 kB を 0秒 で取得しました (938 kB/s)
+dpkg-source: info: extracting hello in hello-2.10
+dpkg-source: info: unpacking hello_2.10.orig.tar.gz
+dpkg-source: info: unpacking hello_2.10-1.debian.tar.xz
+$ cd hello-2.10/
+\end{commandline}
+
+\begin{commandline}
+$ editor debian/rules
+\end{commandline}
+\begin{commandline}
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_clean:
+	[ ! -f Makefile ] || $(MAKE) distclean
+
+override_dh_installdocs:
+	dh_installdocs NEWS
+\end{commandline}
+
+このhelloにはあまり面白そうなオプションが見当たらないのですが、とりあえず \verb|./configure| に
+\verb|--disable-nls|を付けてみます。さて、どこに書けばいいかわからないの
+でとりあえずdebuildしてみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1
+dpkg-buildpackage: info: source distribution unstable
+(snip)
+ debian/rules build
+dh build
+   dh_testdir
+   dh_update_autotools_config
+   dh_auto_configure
+	./configure --build=x86_64-linux-gnu --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var --disable-silent-rules --libdir=\${prefix}/lib/x86_64-linux-gnu --libexecdir=\${prefix}/lib/x86_64-linux-gnu --disable-maintainer-mode --disable-dependency-tracking
+configure: WARNING: unrecognized options: --disable-maintainer-mode
+(snip)
+\end{commandline}
+
+どうやら\verb|dh_auto_configure|にオプションを渡せばいいようなのでそうしてみます。
+
+\begin{commandline}
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_clean:
+	[ ! -f Makefile ] || $(MAKE) distclean
+
+override_dh_installdocs:
+	dh_installdocs NEWS
+
+override_dh_auto_configure:
+	dh_auto_configure -- --disable-nls
+\end{commandline}
+
+debian/changelog を書きます。\verb|dch|を実行すると\footnote{実行前に
+\texttt{DEBFULLNAME}, \texttt{DEBEMAIL} 環境変数を設定してください。詳しくは``新メンテナーガイド''（後述）にあります。}、メンテナではないた
+め自動的に\verb|--nmu|モードになります。ディストリビューションが
+\verb|UNRELEASED|に仮で書かれます。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10-1.1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * debian/rules: Use --disable-nls.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 08:58:38 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+
+とりあえず debuild してみます。最後にlintianが実行されてるので見ましょう。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1.1
+dpkg-buildpackage: info: source distribution unstable
+(snip)
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'hello-dbgsym' in '../hello-dbgsym_2.10-1.1_amd64.deb'.
+dpkg-deb: building package 'hello' in '../hello_2.10-1.1_amd64.deb'.
+ dpkg-genbuildinfo
+ dpkg-genchanges  >../hello_2.10-1.1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+lintianの各行の詳細説明は lintian-info(1) で見られます
+\footnote{\url{https://lintian.debian.org/tags/ancient-standards-version.html}
+でも見られますが、問題のある全パッケージが載っているので重いです。}。
+
+\begin{commandline}
+$ lintian-info --tags ancient-standards-version
+W: ancient-standards-version
+N:
+N:   The source package refers to a Standards-Version that has been
+N:   obsolete for more than two years. Please update your package to latest
+N:   Policy and set this control field appropriately.
+N:   
+N:   If the package is already compliant with the current standards, you
+N:   don't have to re-upload the package just to adjust the
+N:   Standards-Version control field. However, please remember to update
+N:   this field next time you upload the package.
+N:   
+N:   See /usr/share/doc/debian-policy/upgrading-checklist.txt.gz in the
+N:   debian-policy package for a summary of changes in newer versions of
+N:   Policy.
+N:   
+N:   Refer to https://www.debian.org/doc/debian-policy/upgrading-checklist
+N:   for details.
+N:   
+N:   Severity: normal, Certainty: certain
+N:   
+N:   Check: standards-version, Type: source
+N:
+\end{commandline}
+
+なお、この例ではカスタマイズする前から\verb|ancient-standards-version|が
+出ているようなので、修正せずそのままにしておきます。メンテナが次にリリースしたと
+きに直すでしょうし、それに対して自分のカスタマイズをしたいときに、自分の
+カスタマイズ内容だけを変更すればよいからです。
+
+カスタマイズが完了したらディストリビューションを確定させます。
+以下を実行してエディタで保存します。
+
+\begin{commandline}
+$ dch -r
+$ head -n 10 debian/changelog
+hello (2.10-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * debian/rules: Use --disable-nls.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:00:30 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+
+debuild すれば完成です。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1.1
+dpkg-buildpackage: info: source distribution unstable
+(snip)
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'hello-dbgsym' in '../hello-dbgsym_2.10-1.1_amd64.deb'.
+dpkg-deb: building package 'hello' in '../hello_2.10-1.1_amd64.deb'.
+ dpkg-genbuildinfo
+ dpkg-genchanges  >../hello_2.10-1.1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+さて、ここまで（\verb|dch|と引数なしで起動することで）NMUするパッケージング作業を
+してきました。Debian本体にアップロードするのではなく個人的に使ったりする
+ためのカスタマイズであれば、NMUではなく``ローカルアップロード''にしたほ
+うがよいでしょう。ローカルアップロードには名前を付けます。ここでは名前をysnに
+してみます。
+
+\begin{commandline}
+$ dch --local ysn
+\end{commandline}
+
+\begin{commandline}
+$ head -n 10 debian/changelog
+hello (2.10-1ysn1) UNRELEASED; urgency=medium
+
+  * debian/rules: Use --disable-nls.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 08:44:10 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/patches: Drop 01-fix-i18n-of-default-message, no longer needed.
+(snip)
+\end{commandline}
+
+debuild してみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1ysn1
+dpkg-buildpackage: info: source distribution UNRELEASED
+(snip)
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'hello-dbgsym' in '../hello-dbgsym_2.10-1ysn1_amd64.deb'.
+dpkg-deb: building package 'hello' in '../hello_2.10-1ysn1_amd64.deb'.
+ dpkg-genbuildinfo
+ dpkg-genchanges  >../hello_2.10-1ysn1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: changelog-should-mention-nmu
+W: hello source: source-nmu-has-incorrect-version-number 2.10-1ysn1
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+lintianが警告しているようなので見てみます。
+
+\begin{commandline}
+$ lintian-info --tags changelog-should-mention-nmu source-nmu-has-incorrect-version-number
+W: changelog-should-mention-nmu
+N:
+N:   When you NMU a package, that fact should be mentioned on the first
+N:   line in the changelog entry. Use the words "NMU" or "Non-maintainer
+N:   upload" (case insensitive).
+N:   
+N:   Maybe you didn't intend this upload to be a NMU, in that case, please
+N:   double-check that the most recent entry in the changelog is
+N:   byte-for-byte identical to the maintainer or one of the uploaders. If
+N:   this is a local package (not intended for Debian), you can suppress
+N:   this warning by putting "local" in the version number or "local
+N:   package" on the first line of the changelog entry.
+N:   
+N:   Refer to Debian Developer's Reference section 5.11.3 (Using the
+N:   DELAYED/ queue) for details.
+N:   
+N:   Severity: normal, Certainty: certain
+N:   
+N:   Check: nmu, Type: source
+N:
+\end{commandline}
+\begin{commandline}
+W: source-nmu-has-incorrect-version-number
+N:
+N:   A source NMU should have a Debian revision of "-x.x" (or "+nmuX" for a
+N:   native package). This is to prevent stealing version numbers from the
+N:   maintainer.
+N:   
+N:   Maybe you didn't intend this upload to be a NMU, in that case, please
+N:   double-check that the most recent entry in the changelog is
+N:   byte-for-byte identical to the maintainer or one of the uploaders. If
+N:   this is a local package (not intended for Debian), you can suppress
+N:   this warning by putting "local" in the version number or "local
+N:   package" on the first line of the changelog entry.
+N:   
+N:   Refer to Debian Developer's Reference section 5.11.2 (NMUs and
+N:   debian/changelog) for details.
+N:   
+N:   Severity: normal, Certainty: certain
+N:   
+N:   Check: nmu, Type: source
+N:
+\end{commandline}
+
+Debian にアップロードする目的のパッケージではないので、debian/changelogを修正します。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10-1ysn1) UNRELEASED; urgency=medium
+
+  * Local package.
+  * debian/rules: Use --disable-nls.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 08:44:10 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+
+ここでは \verb|Local package|と書くことにしましたが、
+\verb|dch --local local|でもいいでしょう。
+debuild します。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1ysn1
+dpkg-buildpackage: info: source distribution UNRELEASED
+(snip)
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'hello-dbgsym' in '../hello-dbgsym_2.10-1ysn1_amd64.deb'.
+dpkg-deb: building package 'hello' in '../hello_2.10-1ysn1_amd64.deb'.
+ dpkg-genbuildinfo
+ dpkg-genchanges  >../hello_2.10-1ysn1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+問題なさそうなので\verb|dch -r|してdebuildすれば完成です。
+
+\subsubsection{依存関係・パッケージ構成}
+
+依存関係やパッケージ構成は debian/control に書かれているので、変更するな
+らこれを変更するだけです。
+
+\subsubsection{バックポート}
+
+バックポートする際には、基本的には \verb|dch --bpo| するだけで、他の場所は変更
+してはいけません。バックポート先のライブラリのバージョンが古いときは
+debian/control の依存関係を変更する必要があることがあります。
+
+jessie にバックポートしてみます。
+
+\begin{commandline}
+$ apt-get source hello
+(snip)
+$ cd hello-2.10/
+$ dch --bpo
+\end{commandline}
+
+\verb|  * | だけの行が自動的に追加されますが、今回は特に依存関係は変えてないので削除して保存します。
+
+\begin{commandline}
+$ head -n 10 debian/changelog
+hello (2.10-1~bpo8+1) jessie-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:09:11 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/patches: Drop 01-fix-i18n-of-default-message, no longer needed.
+\end{commandline}
+
+debuild してみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1~bpo8+1
+dpkg-buildpackage: info: source distribution jessie-backports
+(snip)
+   dh_md5sums
+   dh_builddeb
+dpkg-deb: building package 'hello-dbgsym' in '../hello-dbgsym_2.10-1~bpo8+1_amd64.deb'.
+dpkg-deb: building package 'hello' in '../hello_2.10-1~bpo8+1_amd64.deb'.
+ dpkg-genbuildinfo
+ dpkg-genchanges  >../hello_2.10-1~bpo8+1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: changelog-should-mention-nmu
+W: hello source: source-nmu-has-incorrect-version-number 2.10-1~bpo8+1
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+lintian に従って修正してみます。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10-1~bpo8+1) jessie-backports; urgency=medium
+
+  * Local package.
+  * Rebuild for jessie-backports.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:09:11 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1~bpo8+1
+dpkg-buildpackage: info: source distribution jessie-backports
+(snip)
+ dpkg-genchanges  >../hello_2.10-1~bpo8+1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+とりあえず解消しました。ですが、個人的にはDebianで公式なバックポートがリ
+リースされたら更新されてほしいのでちょっと不満です。lintian エラーはうまく
+消えないのですが、少しバージョン番号を下げて使うことにしています。
+
+\begin{commandline}
+$ head -n 10 debian/changelog
+hello (2.10-1~bpo8+0.1) jessie-backports; urgency=medium
+
+  * Local package.
+  * Rebuild for jessie-backports.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:09:11 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1~bpo8+0.1
+dpkg-buildpackage: info: source distribution jessie-backports
+(snip)
+ dpkg-genchanges  >../hello_2.10-1~bpo8+0.1_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+E: hello changes: backports-upload-has-incorrect-version-number 2.10-1~bpo8+0.1
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+$ lintian-info --tags backports-upload-has-incorrect-version-number
+E: backports-upload-has-incorrect-version-number
+N:
+N:   The version number doesn't comply with the standard backport version
+N:   rules. It should end in ~bpoX+N, where X is the release version number
+N:   of the target distribution.
+N:   
+N:   Refer to http://backports.debian.org/Contribute/ for details.
+N:   
+N:   Severity: serious, Certainty: certain
+N:   
+N:   Check: changes-file, Type: changes
+N:
+\end{commandline}
+
+lintian が示しているDebian Backportsのページを見ても特に書いていないので、
+個人的にはこのまま使うことにしています。
+
+\subsection{上流のコード自体}
+
+これについては
+
+\begin{itemize}
+ \item コードに変更を加えたい
+ \item 新しいバージョンなどに置き換えたい
+\end{itemize}
+
+があるでしょう。
+\subsubsection{コードに変更を加える}
+Debianパッケージのバージョンによって違いますが、debian/source/format に
+\verb|3.0 (quilt)|と書いてある最近のパッケージであれば ``quilt''というもので上流コードに対
+する変更差分を管理しています\footnote{debian/source/formatがでない場合は
+古いバージョン 1.0 です。これはDebianパッケージングの部分と上流のコード
+への変更を分離して管理していないので、\ref{sec:customize-debpkg}節と同じ
+作業でできます。}。quilt(1)コマンドでも作業はできるのですが、変更
+を加えるだけなら\verb|dpkg-source --commit|が使えます。使い方は2013年2月のDebianパッケージング道場資料\footnote{\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201302-dojo.pdf}}を見る
+とよいでしょう。
+
+Debian パッケージのメンテナが git-buildpackage を使っている場合は gbp pq
+も使えます。2015年9月
+の第130回東京エリアDebian勉強会でのDebianパッケージング道場の資料\footnote{\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201509-presentation.pdf}}を見る
+とよいでしょう。
+
+% XXX 1.0
+
+日本語訳を書き換えてみます。
+
+\begin{commandline}
+$ apt-get source hello
+(snip)
+$ cd hello-2.10/
+$ editor po/ja.po
+\end{commandline}
+
+変更内容をdebian/changelogに書きます。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10-1.1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * po/ja.po: Refine translation.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 12:02:56 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+
+debuild してみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1.1
+dpkg-buildpackage: info: source distribution UNRELEASED
+(snip)
+ dpkg-source -b hello-2.10
+dpkg-source: info: using source format '3.0 (quilt)'
+dpkg-source: info: building hello using existing ./hello_2.10.orig.tar.gz
+dpkg-source: info: local changes detected, the modified files are:
+ hello-2.10/po/ja.po
+dpkg-source: error: aborting due to unexpected upstream changes, see /tmp/hello_2.10-1.1.diff.sbQf7t
+dpkg-source: info: you can integrate the local changes with dpkg-source --commit
+dpkg-buildpackage: error: dpkg-source -b hello-2.10 gave error exit status 2
+debuild: fatal error at line 1116:
+dpkg-buildpackage -rfakeroot -us -uc failed
+\end{commandline}
+
+\verb|dpkg-source --commit| するとパッチ名が聞かれます。入力するとその
+名前のファイルに変更差分を保存されてエディタが起動します。パッチの説明を
+先頭に書くことになっているので、自動生成されたテンプレートに書かれている通り ``DEP-3''\footnote{\url{http://dep.debian.net/deps/dep3/}}に従って書いてください。
+
+\begin{commandline}
+$ dpkg-source --commit
+dpkg-source: info: local changes detected, the modified files are:
+ hello-2.10/po/ja.po
+Enter the desired patch name: refine-ja-translation
+dpkg-source: info: local changes have been recorded in a new patch: hello-2.10/debian/patches/refine-ja-translation
+\end{commandline}
+
+debuild します。
+
+\begin{commandline}
+$ debuild -us -uc
+(snip)
+\end{commandline}
+
+さて、ここでさらにデフォルトのhello出力を変えてみることにします。
+
+\begin{commandline}
+$ editor src/hello.c
+\end{commandline}
+
+変更内容をdebian/changelogに追記します。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10-1.1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * po/ja.po: Refine translation.
+  * src/hello.c: Change default message.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 12:02:56 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+\end{commandline}
+
+debuild してみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1.1
+(snip)
+dpkg-source: info: using source format '3.0 (quilt)'
+dpkg-source: info: building hello using existing ./hello_2.10.orig.tar.gz
+dpkg-source: info: local changes detected, the modified files are:
+ hello-2.10/src/hello.c
+dpkg-source: error: aborting due to unexpected upstream changes, see /tmp/hello_2.10-1.1.diff.xIhd5q
+dpkg-source: info: you can integrate the local changes with dpkg-source --commit
+dpkg-buildpackage: error: dpkg-source -b hello-2.10 gave error exit status 2
+debuild: fatal error at line 1116:
+dpkg-buildpackage -rfakeroot -us -uc failed
+\end{commandline}
+
+\verb|dpkg-source --commit|します。何度でもできます。
+
+\begin{commandline}
+$ dpkg-source --commit
+dpkg-source: info: local changes detected, the modified files are:
+ hello-2.10/src/hello.c
+Enter the desired patch name: change-default-message
+dpkg-source: info: local changes have been recorded in a new patch: hello-2.10/debian/patches/change-default-message
+\end{commandline}
+
+debuild します。
+
+\begin{commandline}
+$ debuild -us -uc
+(snip)
+dh_auto_test: make -j1 check VERBOSE=1 returned exit code 2
+debian/rules:3: ターゲット 'build' のレシピで失敗しました
+make: *** [build] エラー 2
+dpkg-buildpackage: error: debian/rules build gave error exit status 2
+debuild: fatal error at line 1116:
+dpkg-buildpackage -rfakeroot -us -uc failed
+\end{commandline}
+
+テストが通らなかったので直します。最後に保存したパッチファイルの修正が必要なので、ここからはquilt(1)の知識が必要です。詳細は2007年1月の第24回東京エリアDebian勉強会資料にある
+``パッチ管理ツールquiltの使い方''\footnote{\url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume200701.pdf}}を見るとよいでしょう。
+
+\begin{commandline}
+$ export QUILT_PATCHES=debian/patches
+$ quilt add tests/hello-1
+ファイル tests/hello-1 をパッチ debian/patches/change-default-message に追加しました
+$ editor tests/hello-1
+$ quilt refresh
+パッチ debian/patches/change-default-message をリフレッシュしました
+\end{commandline}
+
+debuild して内容に満足したでしょうか。
+さて、ここまでバージョン番号をNMUの\verb|2.10-1.1|にしましたが、Debian本
+体でもNMUが行われて同じ\verb|2.10-1.1|が出現してしまうかもしれません。ロー
+カルのカスタマイズなのでもう少しバージョンを下げておくことにします。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10-1.0) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * po/ja.po: Refine translation.
+  * src/hello.c: Change default message.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 12:02:56 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+\end{commandline}
+
+debuild してみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1.0
+(snip)
+ dpkg-genchanges  >../hello_2.10-1.0_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build hello-2.10
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+特にlintian警告は出ないようなので、これでとりあえずよさそうです。
+\verb|dch -r|して再度debuildすれば完成です。
+
+\subsubsection{新しいバージョンなどに置き換える}
+%XXX make-kpkg, java-package
+%XXX gem2deb, ...
+
+uscan(1), uupdate(1) などが使えます。
+``新メンテナーガイド'' (\verb|apt install maint-guide-ja|を実行してから
+\verb|/usr/share/doc/maint-guide-ja/|の中を見てみましょう
+\footnote{\url{https://www.debian.org/doc/manuals/maint-guide/index.ja.html}
+にもあります。}) の
+``8. パッケージの更新''を読むとよいでしょう。
+
+git-buildpackage を使っている場合は
+\verb|gbp import-orig|と\verb|gbp pq|も使えます。
+
+なお、カスタマイズしているパッケージがRubyなどの言語のパッケージ（特にラ
+イブラリパッケージ）で、使っているライブラリの依存関係などが大きく更新さ
+れている場合は一からパッケージングをやり直したほうがよいこともあります。
+
+GNU hello の最新Gitスナップショットに置き換えてみます。
+
+\begin{commandline}
+$ git clone https://git.savannah.gnu.org/git/hello.git
+(snip)
+$ cd hello/
+$ ./bootstrap 
+./bootstrap: Bootstrapping from checked-out hello sources...
+(snip)
+./bootstrap: done.  Now you can run './configure'.
+$ ./configure
+(snip)
+$ make check syntax-check distcheck
+(snip)
+====================================================
+hello-2.10.17-4339 archives ready for distribution:
+hello-2.10.17-4339.tar.gz
+====================================================
+\end{commandline}
+
+\begin{commandline}
+$ uupdate ../hello-2.10.17-4339.tar.gz
+uupdate: new version number not recognized from given filename
+uupdate: Please run uupdate with the -v option
+$ uupdate ../hello-2.10.17-4339.tar.gz -v 2.10.17-4339
+uupdate: New Release will be 2.10.17-4339-1.
+Symlinking to pristine source from hello_2.10.17-4339.orig.tar.gz...
+uupdate: Untarring the new sourcecode archive ../hello-2.10.17-4339.tar.gz
+uupdate: Unpacking the debian/ directory from version 2.10-1 worked fine.
+uupdate: Remember: Your current directory is the OLD sourcearchive!
+uupdate: Do a "cd ../hello-2.10.17-4339" to see the new package
+$ cd ../hello-2.10.17-4339
+\end{commandline}
+
+debuild してみます。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10.17-4339-1
+(snip)
+ dpkg-genchanges  >../hello_2.10.17-4339-1_amd64.changes
+dpkg-genchanges: info: including full source code in upload
+ dpkg-source --after-build hello-2.10.17-4339
+dpkg-buildpackage: info: full upload (original source is included)
+Now running lintian...
+W: hello source: changelog-should-mention-nmu
+W: hello source: source-nmu-has-incorrect-version-number 2.10.17-4339-1
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+lintian に従って、``Debian 開発者リファレンス''も読みつつdebian/changelogを直します。
+あとは、まだ \verb|New upstream release| でもないので直します。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10.17-4339-0.1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream snapshot.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 13:01:54 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+
+debuild します。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10.17-4339-0.1
+(snip)
+dpkg-buildpackage: info: full upload (original source is included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+lintian は問題なさそうです。前節同様、Debian本体でもこのGitスナップショット
+のNMUが出てしまうかもしれないので、さらにもう少しバージョンを下げておくことにします。
+
+\begin{commandline}
+$ dch
+$ head -n 10 debian/changelog
+hello (2.10.17-4339-0.0) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+  * New upstream snapshot.
+
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 13:01:54 +0900
+
+hello (2.10-1) unstable; urgency=low
+
+  * New upstream release.
+\end{commandline}
+
+debuild します。
+
+\begin{commandline}
+$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -us -uc
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10.17-4339-0.0
+(snip)
+ dpkg-source --after-build hello-2.10.17-4339
+dpkg-buildpackage: info: full upload (original source is included)
+Now running lintian...
+W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
+Finished running lintian.
+\end{commandline}
+
+lintian はとりあえず問題なさそうです。\verb|dch -r|してdebuildすれば完成です。
+
+\subsection{メンテナンス}
+
+カスタマイズしていたパッケージの新バージョンがそのパッケージの配布元
+（Debianなど）でリリースされたときは、カスタマイズ作業やり直しです。
+
+そうではないが上流コードのさらに新しいバージョンがリリースされたときは、
+uscanとuupdate、gbp pqなどが使えます。
+
 \subsection{まとめ}
 
+Debianポリシーなどの慣習に従うことで、Debianシステムの恩恵が受けられます。
+そのためにポリシーなどを本当は読む必要がありますが、debhelperを素直に使っていれ
+ばある程度はポリシーなどに従って作れるので、まずは作ってみてdebuildして、
+lintian の結果を無視しないで詳細説明も読んで従いましょう。
+読んでもわからないところがあったらDebian JPメーリングリストやDebian勉強
+会などで質問すれば答えてくれるでしょう。
 \subsection{参考文献}
+
+\begin{itemize}
+ \item packaging-tutorial
+ \item maint-guide-ja
+ \item debian-policy
+ \item lintian
+ \item developers-reference-ja
+ \item Debian Backports - Contribute
+       \url{https://backports.debian.org/Contribute/}
+ \item DEP-3: Patch Tagging Guidelines \url{http://dep.debian.net/deps/dep3/}
+ \item 小林儀匡 ``パッチ管理ツールquiltの使い方'' 2007年1月 第24回東京エリアDebian勉強会資料
+ \item 岩松信洋 ``基本的なパッケージの作成方法手引書'' 2013年2月 Debianパッケージング道場資料
+ \item 岩松信洋 ``git build-package'' 2015年9月 第130回東京エリアDebian勉強会 Debianパッケージング道場 資料
+\end{itemize}
 
 %
 % 冊子にするために、4の倍数にする必要がある。
