@@ -222,10 +222,7 @@ $ apt-get source hello
 取得:1 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (dsc) [1,323 B]
 取得:2 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (tar) [726 kB]
 取得:3 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (diff) [6,072 B]
-733 kB を 0秒 で取得しました (938 kB/s)
-dpkg-source: info: extracting hello in hello-2.10
-dpkg-source: info: unpacking hello_2.10.orig.tar.gz
-dpkg-source: info: unpacking hello_2.10-1.debian.tar.xz
+(snip)
 $ cd hello-2.10/
 \end{commandline}
 
@@ -265,7 +262,7 @@ configure: WARNING: unrecognized options: --disable-maintainer-mode
 (snip)
 \end{commandline}
 
-どうやら\verb|dh_auto_configure|にオプションを渡せばいいようなのでそうしてみます。
+どうやら\verb|dh_auto_configure|のmanページを読むと、これにオプションを渡せばいいようなのでそうしてみます。
 
 \begin{commandline}
 #!/usr/bin/make -f
@@ -554,24 +551,47 @@ Finished running lintian.
 してはいけません。バックポート先のライブラリのバージョンが古いときは
 debian/control の依存関係を変更する必要があることがあります。
 
-jessie にバックポートしてみます。
+jessie にバックポートしてみます。まず新しいバージョンのソースパッケージ
+を手元にダウンロードします。
 
 \begin{commandline}
-$ apt-get source hello
+$ apt-get source -d hello
+パッケージリストを読み込んでいます... 完了
+733 kB のソースアーカイブを取得する必要があります。
+取得:1 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (dsc) [1,323 B]
+取得:2 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (tar) [726 kB]
+取得:3 http://ftp.jp.debian.org/debian sid/main hello 2.10-1 (diff) [6,072 B]
+733 kB を 1秒 で取得しました (634 kB/s)
+ダウンロードオンリーモードでパッケージのダウンロードが完了しました
+\end{commandline}
+
+このソースパッケージをバックポート先(jessie)環境に持っていきます。
+
+\begin{commandline}
+$ scp -p hello_2.10.orig.tar.gz hello_2.10-1.d* jessie:~/
 (snip)
-$ cd hello-2.10/
-$ dch --bpo
+\end{commandline}
+
+jessie 環境で持ってきたソースパッケージを展開して作業します。
+
+\begin{commandline}
+jessie$ dpkg-source -x hello_2.10-1.dsc
+dpkg-source: info: extracting hello in hello-2.10
+dpkg-source: info: unpacking hello_2.10.orig.tar.gz
+dpkg-source: info: unpacking hello_2.10-1.debian.tar.xz
+jessie$ cd hello-2.10/
+jessie$ dch --bpo
 \end{commandline}
 
 \verb|  * | だけの行が自動的に追加されますが、今回は特に依存関係は変えてないので削除して保存します。
 
 \begin{commandline}
-$ head -n 10 debian/changelog
+jessie$ head -n 10 debian/changelog
 hello (2.10-1~bpo8+1) jessie-backports; urgency=medium
 
   * Rebuild for jessie-backports.
 
- -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:09:11 +0900
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 17:05:44 +0900
 
 hello (2.10-1) unstable; urgency=low
 
@@ -582,90 +602,122 @@ hello (2.10-1) unstable; urgency=low
 debuild してみます。
 
 \begin{commandline}
-$ debuild -us -uc
- dpkg-buildpackage -rfakeroot -us -uc
-dpkg-buildpackage: info: source package hello
-dpkg-buildpackage: info: source version 2.10-1~bpo8+1
-dpkg-buildpackage: info: source distribution jessie-backports
+jessie$ debuild -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc
+dpkg-buildpackage: source package hello
+dpkg-buildpackage: source version 2.10-1~bpo8+1
+dpkg-buildpackage: source distribution jessie-backports
 (snip)
-   dh_md5sums
-   dh_builddeb
-dpkg-deb: building package 'hello-dbgsym' in '../hello-dbgsym_2.10-1~bpo8+1_amd64.deb'.
-dpkg-deb: building package 'hello' in '../hello_2.10-1~bpo8+1_amd64.deb'.
- dpkg-genbuildinfo
- dpkg-genchanges  >../hello_2.10-1~bpo8+1_amd64.changes
-dpkg-genchanges: info: not including original source code in upload
- dpkg-source --after-build hello-2.10
-dpkg-buildpackage: info: binary and diff upload (original source NOT included)
 Now running lintian...
+E: hello changes: backports-changes-missing
 W: hello source: changelog-should-mention-nmu
 W: hello source: source-nmu-has-incorrect-version-number 2.10-1~bpo8+1
-W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
 Finished running lintian.
 \end{commandline}
 
-lintian に従って修正してみます。
+lintian エラーが出ています。
 
 \begin{commandline}
-$ dch
-$ head -n 10 debian/changelog
+jessie$ lintian-info --tags backports-changes-missing
+E: backports-changes-missing
+N:
+N:   The changes file only has changelog entries from a single version. For
+N:   backports, all changes since (old)stable or the previous backport
+N:   should be listed (usually by adding the '-v' option to the build).
+N:   
+N:   Refer to http://backports.debian.org/Contribute/ for details.
+N:   
+N:   Severity: serious, Certainty: possible
+N:   
+N:   Check: changes-file, Type: changes
+N:
+\end{commandline}
+
+jessie の最新版は\verb|2.9-2+deb8u1|のようです。
+
+このDebian Backportsのページを見ると、
+\verb|debuild -v2.9-2+deb8u1|とすればよいようです。
+
+他のlintian警告も修正してみます。
+
+\begin{commandline}
+jessie$ dch
+jessie$ head -n 10 debian/changelog
 hello (2.10-1~bpo8+1) jessie-backports; urgency=medium
 
   * Local package.
   * Rebuild for jessie-backports.
 
- -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:09:11 +0900
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 17:05:44 +0900
 
 hello (2.10-1) unstable; urgency=low
 
   * New upstream release.
-$ debuild -us -uc
- dpkg-buildpackage -rfakeroot -us -uc
-dpkg-buildpackage: info: source package hello
-dpkg-buildpackage: info: source version 2.10-1~bpo8+1
-dpkg-buildpackage: info: source distribution jessie-backports
+\end{commandline}
+
+言われたようにdebuildしてみます。
+
+\begin{commandline}
+jessie$ debuild -v2.9-2+deb8u1 -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -v2.9-2+deb8u1
+dpkg-buildpackage: source package hello
+dpkg-buildpackage: source version 2.10-1~bpo8+1
+dpkg-buildpackage: source distribution jessie-backports
 (snip)
- dpkg-genchanges  >../hello_2.10-1~bpo8+1_amd64.changes
-dpkg-genchanges: info: not including original source code in upload
+   dh_builddeb
+dpkg-deb: `../hello_2.10-1~bpo8+1_amd64.deb' にパッケージ `hello' を構築しています。
+ dpkg-genchanges -v2.9-2+deb8u1 >../hello_2.10-1~bpo8+1_amd64.changes
+parsechangelog/debian: warning: 'since' option specifies non-existing version
+parsechangelog/debian: warning: use newest entry that is earlier than the one specified
+dpkg-genchanges: not including original source code in upload
  dpkg-source --after-build hello-2.10
-dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+dpkg-buildpackage: binary and diff upload (original source NOT included)
 Now running lintian...
-W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
 Finished running lintian.
 \end{commandline}
 
-とりあえず解消しました。ですが、個人的にはDebianで公式なバックポートがリ
-リースされたら更新されてほしいのでちょっと不満です。lintian エラーはうまく
+なんかdpkg-genchangesの警告が出てますがとりあえず解消しました。
+
+ですが、個人的にはDebianで公式なバックポートがリリースされたら更新されて
+ほしいのでちょっと不満です。lintian エラーはうまく
 消えないのですが、少しバージョン番号を下げて使うことにしています。
 
 \begin{commandline}
-$ head -n 10 debian/changelog
+jessie$ dch
+jessie$ head -n 10 debian/changelog
 hello (2.10-1~bpo8+0.1) jessie-backports; urgency=medium
 
   * Local package.
   * Rebuild for jessie-backports.
 
- -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 09:09:11 +0900
+ -- YOSHINO Yoshihito <yy.y.ja.jp@gmail.com>  Sat, 22 Apr 2017 17:05:44 +0900
 
 hello (2.10-1) unstable; urgency=low
 
   * New upstream release.
 \end{commandline}
+
+debuildします。
+
 \begin{commandline}
-$ debuild -us -uc
- dpkg-buildpackage -rfakeroot -us -uc
-dpkg-buildpackage: info: source package hello
-dpkg-buildpackage: info: source version 2.10-1~bpo8+0.1
-dpkg-buildpackage: info: source distribution jessie-backports
+jessie$ debuild -v2.9-2+deb8u1 -us -uc
+ dpkg-buildpackage -rfakeroot -D -us -uc -v2.9-2+deb8u1
+dpkg-buildpackage: source package hello
+dpkg-buildpackage: source version 2.10-1~bpo8+0.1
+dpkg-buildpackage: source distribution jessie-backports
 (snip)
- dpkg-genchanges  >../hello_2.10-1~bpo8+0.1_amd64.changes
-dpkg-genchanges: info: not including original source code in upload
+ dpkg-genchanges -v2.9-2+deb8u1 >../hello_2.10-1~bpo8+0.1_amd64.changes
+parsechangelog/debian: warning: 'since' option specifies non-existing version
+parsechangelog/debian: warning: use newest entry that is earlier than the one specified
+dpkg-genchanges: not including original source code in upload
  dpkg-source --after-build hello-2.10
-dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+dpkg-buildpackage: binary and diff upload (original source NOT included)
 Now running lintian...
 E: hello changes: backports-upload-has-incorrect-version-number 2.10-1~bpo8+0.1
-W: hello source: ancient-standards-version 3.9.6 (current is 3.9.8)
 Finished running lintian.
+\end{commandline}
+エラー消えませんが、あきらめます。
+\begin{commandline}
 $ lintian-info --tags backports-upload-has-incorrect-version-number
 E: backports-upload-has-incorrect-version-number
 N:
