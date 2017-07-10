@@ -1,0 +1,342 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Debian / Ubuntu ユーザーミートアップ in 札幌 2017.07 \\　\\lxcについて}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2017-07-14}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item 仮想化技術について
+  \item lxcとは
+  \item lxcのインストール
+  \item lxcのコマンド解説
+  \item lxcを実用する
+  \item おわりに
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian-3.1、FreeBSD-6.2の頃から使っています
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item 仕事はソフトウェア開発者をやってます
+  \end{itemize}
+\end{frame}
+
+
+\emtext{仮想化技術について}
+
+\begin{frame}[containsverbatim]{仮想化技術の分類}
+  \begin{itemize}
+  \item コンテナ型仮想化
+  \item 準仮想化型
+  \item 完全仮想化型 (エミュレーション型)
+  \item 完全仮想化型 (ハイパーバイザ型)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{仮想化技術のメリット・デメリット}
+  \begin{itemize}
+  \item 準仮想化型、完全仮想化型
+    \begin{itemize}
+    \item 物理マシンをエミュレートした仮想マシンとして動作する
+    \item 仮想マシン上でもカーネルを動作させる
+    \item 物理マシンで動かしていたプログラムはほぼそのまま動く
+    \item CPU、メモリ、ディスクを多く消費する
+    \end{itemize}
+  \item コンテナ型仮想化
+    \begin{itemize}
+    \item ゲスト環境の動作にカーネルは不要(ホスト環境のカーネル上で動作)
+    \item ゲスト環境は、ホスト環境から見るとプロセスとして扱われる
+    \item ゲスト環境が利用できるリソースに制約がつく場合がある
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{chroot}
+  \begin{itemize}
+  \item chrootシステムコールとchrootコマンド
+  \item 1982年にビル・ジョイが開発したとされている
+  \item \# chroot rootfsdir でコンテナ環境に入れることができる
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxc}
+
+\begin{frame}[containsverbatim]{lxcとは}
+  \begin{itemize}
+  \item LinuX Containersのことで、省略してlxcと読んでいる
+  \item あるディレクトリ配下に実行ファイル、ライブラリ、設定ファイルを適切に配置したrootfsを準備する
+  \item rootfsをchroot環境で起動し、仮想マシンのように動かすことができる
+  \item Debian 9 Stretch では lxc-2.0.5 を採用
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxcのインストール}
+
+% https://wiki.debian.org/LXC/LibVirtDefaultNetwork
+\begin{frame}[containsverbatim]{インストールの流れ}
+  \begin{itemize}
+  \item ブリッジネットワークとlibvirtdの準備
+  \item lxcのインストール
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{ブリッジネットワークとlibvirtdの準備}
+
+パッケージのインストール
+\begin{commandline}
+  # apt-get install apt-get install libvirt-clients \
+  libvirt-daemon-system ebtables dnsmasq
+\end{commandline}
+
+仮想ネットワークの設定
+\begin{commandline}
+  # virsh net-autostart default
+  # virsh net-start default
+\end{commandline}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{ブリッジネットワークとlibvirtdの準備}
+確認
+\begin{commandline}
+  $ sudo virsh net-info default
+  Name:           default
+  UUID:           78564864-f237-4059-a12a-3ec04369a27b
+  Active:         yes
+  Persistent:     yes
+  Autostart:      yes
+  Bridge:         virbr0
+  
+  $ ip a show virbr0
+  →192.168.122.1/24 が付与されている
+\end{commandline}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{lxcのインストール}
+  コンテナ内のリソース制約を処理するcgroupの確認
+  \begin{commandline}
+    # mount | grep cgroup
+    →stretchは標準でmountされている
+  \end{commandline}
+  パッケージのインストール
+  \begin{commandline}
+    # apt-get install lxc libvirt0 libpam-cgroup \
+    libpam-cgfs
+  \end{commandline}
+  環境を確認
+  \begin{commandline}
+  $ ls /usr/bin | grep lxc
+  # lxc-checkconfig
+  \end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxcのインストール}
+  \begin{itemize}
+  \item lxc-create
+  \item lxc-destroy
+  \item lxc-start
+  \item lxc-stop
+  \item lxc-console
+  \item lxc-attach
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxcのコマンド解説}
+
+\begin{frame}[containsverbatim]{lxc-create(1)}
+  \begin{commandline}
+    # lxc-create -n demo1 -t debian -- \
+    --release=stretch --arch=amd64 \
+    --mirror=http://ftp.jp.debian.org/debian
+  \end{commandline}   
+  \begin{itemize}
+  \item 実行するとテンプレートがdebianの場合はdebootstrapを実行してrootfsをダウンロードする
+  \item lxcのゲスト環境のディレクトリは、/var/lib/lxc/''コンテナ名'' 。中身は以下。
+    \begin{itemize}
+    \item config (設定ファイル)
+    \item rootfs (コンテナの中身)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-create(2)}
+  \begin{itemize}
+  \item configを修正して、ネットワークの設定を行う
+  \item lxc.network.type = veth
+  \item lxc.network.flags = up
+  \item lxc.network.link = virbr0
+  \item lxc.network.name = eth0
+  \item lxc.network.ipv4 = 192.168.122.60/24
+  \item lxc.network.ipv4.gateway = 192.168.122.1
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-destroy}
+  \begin{commandline}
+  # lxc-destroy -n demo1
+  \end{commandline}
+  \begin{itemize}
+  \item コンテナを削除します
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-start}
+  \begin{commandline}
+  # lxc-start -n demo1
+  \end{commandline}
+  \begin{itemize}
+  \item 実行して何もエラーが表示されなければ、バックグラウンドでlxcコンテナが動き出します
+  \item 起動したコンテナへの接続は、後述するlxc-consoleまたはlxc-attachで行います
+  \item コンテナへのログインはsshでもログインできますが、ユーザを作成する必要があります
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-stop}
+  \begin{commandline}
+  # lxc-stop -n demo1
+  \end{commandline}
+  \begin{itemize}
+  \item コンテナ環境を終了するよう指示を出します
+  \item コンテナ環境の終了とは、コンテナ内のinitプログラムを終了することをいいます
+  \item コンテナ環境でshutdown命令は実行できません
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-console}
+  \begin{commandline}
+  # lxc-console -n demo1
+  \end{commandline}
+  \begin{itemize}
+  \item lxcのゲスト環境のコンソールに接続します
+  \item コンソールを抜ける場合は、「Ctrl+a q」の順に入力してください
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{lxc-attach}
+  \begin{commandline}
+  # lxc-attach -n demo1 {command}
+  \end{commandline}
+  \begin{itemize}
+  \item lxcのゲスト環境でコマンドを実行します
+  \item コマンドを指定しない場合は、コンテナ内のユーザのデフォルトシェルが実行されます
+  \item lxc-consoleでログインすることに比べ、いきなりコンテナ内でシェルを実行できるため、lxc-attachの方がコンテナ内の整備がしやすいです
+  \end{itemize}
+\end{frame}
+
+
+\emtext{lxcを実用する}
+
+\begin{frame}[containsverbatim]{コンテナ環境のセットアップの流れ}
+  \begin{itemize}
+  \item lxc-create を実行してコンテナを生成する
+  \item lxcのゲスト環境のconfigを書き換えてネットワークを設定する
+  \item lxc-startしてコンテナを起動する
+  \item lxc-attachでゲスト環境に入る
+  \begin{commandline}
+  # passwd
+  # adduser username
+  # apt-get install sudo vim-tiny
+  # visudo
+  \end{commandline}
+  \item sshログインしてお好みに設定する
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{何にlxcを使うか}
+  \begin{itemize}
+  \item 一時的な検証で、ホスト環境にいろいろインストールしたくない場合
+  \item アプリケーションのクリーンビルドやクリーンインストールをテストする場合
+  \item ホスト環境はsystemd、ゲスト環境はsysvinitと使い分ける場合
+  \item python2系とpython3系のwsgiアプリを1つのホストで動かしたい場合
+  \item ホスト環境と異なるCPUアーキテクチャのエミュレーション環境がほしい場合
+    \begin{itemize}
+    \item apt-get install qemu qemu-user-static binfmt-support
+    \item その後、lxc-createを実行してください
+    \item 詳しくは CrossDebootstrap を調べてみてください
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+  \item Debian上でlxcを試してみました
+  \item 発展系であるLXDやdockerへつなげていきましょう
+  \item コンテナは便利ですので試してみてください
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item 「LXC」 \url{https://linuxcontainers.org/}
+  \item 「LXC - Debian Wiki」 \url{https://wiki.debian.org/LXC}
+  \item 「LXCLibVirtDefaultNetwork」 \url{https://wiki.debian.org/LXC/LibVirtDefaultNetwork}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
