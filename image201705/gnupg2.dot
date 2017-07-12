@@ -1,0 +1,41 @@
+digraph gnupg2 {
+        rankdir = LR;
+        newrank = false;
+        user [label="user", style="solid,filled", fillcolor="#cccccc"];
+
+        internet [label="Internet: e.g. Keyserver", shape=plaintext];
+
+        pubkey [label="public key", shape=hexagon, style="solid,filled", fillcolor="#cccccc"];
+        privkey [label="private key", shape=hexagon, style="solid,filled", fillcolor="#cccccc"];
+        smartcard [label="smartcard", shape=hexagon, style="solid,filled", fillcolor="#cccccc"];
+
+        pinentry [label="pinentry", shape=box];
+        ssh [label="ssh", shape=box];
+        gpg [label="gpg", shape=box];
+        dirmngr [label="dirmngr", shape=box];
+        gpgagent [label="gpg-agent", shape=box];
+        scdaemon [label="scdaemon", shape=box];
+
+        { rank = same; pinentry; ssh; gpg; pubkey };
+        { rank = same; gpgagent; dirmngr; privkey; };
+        { rank = same; scdaemon; smartcard; internet; };
+
+        user -> pinentry [ dir = both] ;
+        pinentry -> gpgagent [ dir = both] ;
+
+        user -> ssh [ dir = both] ;
+        ssh -> gpgagent [ dir = both] ;
+
+        user -> gpg [ dir = both] ;
+        gpg -> gpgagent [ dir = both] ;
+
+        gpgagent -> privkey [arrowhead = none];
+        gpgagent -> scdaemon [ dir = both] ;
+
+        scdaemon -> smartcard [arrowhead = none];
+
+        gpg  -> pubkey  [arrowhead = none];
+        gpg  -> dirmngr [dir = both];
+        pubkey -> dirmngr [arrowhead = none];
+        dirmngr -> internet [dir = both];
+}
