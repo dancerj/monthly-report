@@ -1,0 +1,313 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Debian 9 Stretch のネットワークインターフェース名について}
+\subtitle{Debian / Ubuntu ユーザーミートアップ in 札幌 2017.07}
+\author{吉野 与志仁}
+\date{2017年7月14日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{自己紹介}
+
+\begin{itemize}
+ \item 吉野 与志仁（よしの よしひと）
+ \item 東京のほうから来ました
+ \item @yy\_y\_ja\_jp
+ \item Debian 公式開発者ではないです
+ \item manpages-ja パッケージのメンテナ
+ \item Debian JP Project メンバー
+\end{itemize} 
+\end{frame}
+
+% \section{Agenda}
+% \begin{frame}{Agenda}
+%  Debian 9 Stretch のネットワークインターフェース名について
+% \begin{enumerate}
+%  \item 
+% % XXX
+% \end{enumerate}
+% \end{frame}
+
+\section{ネットワークインターフェース名}
+\begin{frame}{ネットワークインターフェース名}
+ デフォルトの名前が変わりました
+ \pause
+ 
+ \begin{itemize}[<+->]
+  \item Debian 8 Jessieまで
+	\begin{itemize}
+	 \item 有線LANインターフェース: eth0, eth1, ...
+	 \item 無線LANインターフェース: wlan0, wlan1, ...
+	\end{itemize}
+  \item Debian 9 Stretchから
+	\begin{itemize}
+	 \item 有線LANインターフェース: enp0s1 など、ハードウェア構成に
+	       より異なる
+	 \item 無線LANインターフェース: wlp1s0 など、ハードウェア構成に
+	       より異なる
+	\end{itemize}
+ \end{itemize}
+ 
+\end{frame}
+
+%\section{アップグレード}
+\begin{frame}{Jessie からのアップグレード}
+ Jessie からアップグレードしたときは
+ \pause
+
+ \begin{itemize}[<+->]
+  \item 今まで使っていたインターフェースの名前は変わりません
+  \item 今後新たに使うインターフェースは新しい名前の形式になります -- 新
+	しいUSB NICを差したときなど
+ \end{itemize}
+ \pause
+ {\small\texttt{/usr/share/doc/udev/README.Debian.gz}}によると
+ Debian 10 Busterでは昔の方式はサポートされないと言ってるので、新しい名前に移行したほうが
+ よいかもしれません
+\end{frame}
+
+\begin{frame}{なぜ名前が変わったのか}
+ 今までの名前の変え方だとうまくいかないことがあったから
+
+ \pause
+ \vspace{2em}
+ \texttt{eth0: renamed from eth1}
+\end{frame}
+
+\begin{frame}{なぜ名前を変えているのか}
+ \begin{itemize}[<+->]
+  \item Linux カーネルはネットワークインターフェースを認識するたびに名前を付
+	けている eth0, eth1, ...
+  \item 認識する順番は保証されない\\ \pause
+	⇒ ネットワークインターフェースが複数あるときは、同じインター
+	フェースが起動するたびに別の名前になることがある\\ \pause
+	⇒ カーネルで認識されたらユーザーランド側で名前を修正することに
+	した
+ \end{itemize}
+\end{frame}
+
+\begin{frame}{名前の変え方 -- Jessieまで}
+ udevパッケージの
+
+ {\small{\texttt{/lib/udev/rules.d/75-persistent-net-generator.rules}}} と
+ {\small{\texttt{/lib/udev/write\_net\_rules}}}\\
+ \pause
+ （Stretch にはもう存在しない！）
+
+ \pause
+ 知らないインターフェースが現れたら
+ \pause
+ \begin{enumerate}[<+->]
+  \item 空いている次の番号の名前を探す: eth1 など
+  \item 「そのインターフェースが現れたらその名前に変える」というudevルールを\\
+	{\small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}}} に
+	書き込む
+  \item その名前に変える
+ \end{enumerate}
+ \pause
+ Stretchでは無くなったため、
+ \small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}} が今後自動で書き換
+ わることはありません
+\end{frame}
+
+\begin{frame}{名前の変え方 -- Stretchから}
+ udevパッケージの
+ {\footnotesize{\texttt{/lib/udev/rules.d/75-net-description.rules}}}、
+ udevの{\footnotesize{\texttt{net\_id}}}ビルトイン、
+ {\footnotesize{\texttt{/lib/udev/rules.d/80-net-setup-link.rules}}}、
+ {\footnotesize{\texttt{net\_setup\_link}}}ビルトイン、
+ {\footnotesize{\texttt{/lib/systemd/network/99-default.link}}} など
+
+ \pause
+ 知らないインターフェースが現れたら
+ \pause
+
+ \begin{enumerate}[<+->]
+  \item そのインターフェースを特定する情報（ハードウェア配置、MACアド
+	レス、ユーザー設定ファイルなど）を取得する
+  \item その情報に基づいて名前を決める: PCIバス0のスロット1に差さって
+	いるとき enp0s1 など\\ \pause
+	USB NICの場合は、USBの差す位置で名前が変わって
+	ほしくないのでMACアドレスベースの名前にする設定になっている({\footnotesize{\texttt{/lib/udev/rules.d/73-usb-net-by-mac.rules}}}): enxaabbccxxyyzz など
+ \end{enumerate}
+\end{frame}
+
+\begin{frame}{名前の変え方 -- （参考）一時期のUbuntu}
+ Debianにはないが、Ubuntuはbiosdevnameパッケージで名前を決めている時期があった
+
+ \begin{itemize}[<+->]
+  \item インターフェース名: em0, p1p0 など
+  \item 後発のudev net\_idはさらに別の名前形式にした
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{移行するには}
+
+ \begin{enumerate}%[<+->]
+  \item どんな名前になるか調べる eth0なら\\
+	{\small{\texttt{udevadm test-builtin net\_id /sys/class/net/eth0}}}
+       {\scriptsize
+       \begin{verbatim}
+# udevadm test-builtin net_id /sys/class/net/eth0
+calling: test-builtin
+（略）
+Parsed configuration file /lib/systemd/network/99-default.link
+Created link configuration context.
+ID_NET_NAME_MAC=enx000d0bxxyyzz
+ID_OUI_FROM_DATABASE=BUFFALO.INC
+ID_NET_NAME_PATH=enp0s20u2
+Unload module index
+Unloaded link configuration context.
+\end{verbatim}}
+	{\footnotesize\texttt{ID\_NET\_NAME\_*}}のうち、順に
+	{\footnotesize\texttt{ONBOARD}}、{\footnotesize\texttt{SLOT}}、
+	{\footnotesize\texttt{PATH}}がもしあればそれが使われる({\footnotesize\texttt{/lib/systemd/network/99-default.link}})、ただしUSB NICは{\footnotesize\texttt{MAC}}が使われる
+  \item 今までの名前を使っている設定ファイルを置き換える
+  \item \small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}} を消
+	すかどこかに移動する
+  \item 再起動
+ \end{enumerate}
+\end{frame}
+
+\begin{frame}[containsverbatim]{移行せず、名前を変えさせないには}
+ もともとeth0, wlan0しかなかったのに変えてほしくないときなど
+
+ いくつかの方法
+\begin{itemize}
+ \item 空っぽの設定ファイルを\texttt{/etc}に置いて上書きする\\
+       {\small{\verb|ln -s /dev/null /etc/systemd/network/99-default.link|}}
+ \item カーネルコマンドライン引数に\texttt{net.ifnames=0}を追加\\
+       /etc/default/grub に書いて update-grub を実行
+\end{itemize}
+
+ もちろんカーネルが決めた名前そのままになるので、インターフェースが複数
+ あったらうまくいかないことが起きるでしょう
+\end{frame}
+
+\begin{frame}[containsverbatim]{名前を自分で設定するには}
+\begin{itemize}
+ \item \texttt{net\_setup\_link}のユーザー設定ファイル {\small{\texttt{/etc/systemd/network/*.link}}}
+       を作る(systemd.link(5))\\
+       例えばMACアドレス aa:bb:cc:xx:yy:zz のインターフェースを ethernet1 という名前にしたいなら
+       {\footnotesize
+       \begin{verbatim}
+[Match]
+MACAddress=aa:bb:cc:xx:yy:zz
+[Link]
+Name=ethernet1
+\end{verbatim}} ただし、USB NICの名前を設定するには\\
+       {\footnotesize{\verb|ln -s /dev/null /etc/udev/rules.d/73-usb-net-by-mac.rules|}}\\
+       が必要
+ \item udevルールファイル {\small{\texttt{/etc/udev/rules.d/*.rules}}} を作
+       る(udev(7))\\
+       Jessieまで自動で書き込まれてきた 
+       {\small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}}} に同
+       じように追加するなど
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{うまくいかないときは}
+ udev をデバッグするしかない
+\begin{itemize}
+ \item 書いた\texttt{*.link}が期待通りに動くか見るには {\small{\texttt{net\_setup\_link}}}ビルトインを試す:\\
+       {\footnotesize{\verb|udevadm test-builtin net_setup_link /sys/class/net/eth0|}}
+ \item udevをdebugモードで起動する
+       {\footnotesize
+       \begin{verbatim}
+# invoke-rc.d udev stop
+# /lib/systemd/systemd-udevd --debug
+\end{verbatim}}
+ \item マシン起動時のudevをdebugモードにする\\
+       /etc/udev/udev.conf を {\small{\verb|udev_log="debug"|}} にして
+       {\small{\verb|dpkg-reconfigure linux-image-`uname -r`|}}
+       して再起動
+\end{itemize}
+
+ 名前変更に失敗してカーネルが決めた名前のままになっていることがある...
+ 見つけたらバグレポートしたほうがよいかもしれません
+\end{frame}
+
+\section{まとめ}
+\begin{frame}[containsverbatim]{まとめ}
+\begin{itemize}
+ \item udevが変わり、Debian 9 Stretch からはネットワークインターフェースが新しい名前の
+       形式になった
+ \item 新しいインターフェースは新しい名前になる
+ \item Jessie からアップグレードした場合は直ちに影響はないが、変えたほう
+       がいいらしい
+ \item 移行前に新しい名前を見るには\\
+ {\footnotesize{\texttt{udevadm test-builtin net\_id /sys/class/net/<今の名前>}}}\\
+ などが使える
+ \item 名前付け替えを一切したくないときは \texttt{/etc} で
+       \texttt{99-default.link}を上書き設定するとよい
+ \item 自分で名前を付けたいときは
+       {\small{\texttt{/etc/systemd/network/*.link}}} を作る、
+       または昔ながらの udev ルール
+       {\small{\texttt{/etc/udev/rules.d/*.rules}}} を作る
+ \item うまく行かないときは udev をデバッグする。
+       名前変更に失敗して元の名前のままになっていることがある
+\end{itemize}
+\end{frame}
+
+
+\section{参考文献}
+\begin{frame}[containsverbatim]{参考文献}
+\begin{itemize}
+ \item PredictableNetworkInterfaceNames
+      {\scriptsize\verb|http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/|}
+ \item systemd ソースパッケージ \verb|src/udev/udev-builtin-net_id.c|
+ \item udev パッケージ \verb|/usr/share/doc/udev/README.Debian.gz|, man
+       ページ \verb|systemd.link(5)|, \verb|udev(7)|
+ \item biosdevname パッケージ(Ubuntu)
+\end{itemize}
+\end{frame}
+
+%XXX
+%
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
