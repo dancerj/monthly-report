@@ -99,6 +99,45 @@
 % ---------------------------------------------------
 \dancersection{最近のDebian関係のイベント報告}{Debian JP}
 
+\subsection{東京エリアDebian勉強会 出張}
+\begin{itemize}
+  \item Debian / Ubuntu ユーザーミートアップ in 札幌 2017.07
+    \begin{itemize}
+        \item{LXCについて by 杉本さん}
+        \item{Debian 9 Strech のネットワークインターフェイス名について by 吉野さん}
+    \end{itemize}
+  \item 2017年7月OSC 2017 Hokkaido 出張勉強会
+    \begin{itemize}
+        \item{Debian Updates by 杉本典充}
+    \end{itemize}
+\end{itemize}
+
+\subsection{Debian 9.1 \& Debian 8.9  がリリースされました。}
+\begin{itemize}
+  \item 両バージョンとも、7月22日にリリース
+\end{itemize}
+
+\subsection{第125回関西Debian勉強会@OSC2017Kyoto}
+\begin{itemize}
+\item 日時: 08月05日(日)
+\item 場所: 京都リサーチパーク
+    \begin{itemize}
+        \item{オープンソースカンファレンス 2017@Kyoto}
+        \item{Debian updates by 佐々木 洋平}
+    \end{itemize}
+\end{itemize}
+
+\subsection{Debian Conference 2017}
+\begin{itemize}
+  \item モントリオール、カナダ
+  \item 8月6日 - 8月12日 
+\end{itemize}
+
+録画されたセッションは、以下からご覧に慣れます。\\
+\url{http://meetings-archive.debian.net/pub/debian-meetings/2017/debconf17/}
+
+また、 Debconf 2018 の日程が発表されました。7月29日 から 8月5日です。
+会場は台湾の新竹市(Hsinchu)です。
 
 % ---------------------------------------------------
 \dancersection{事前課題}{関西Debian勉強会}
@@ -110,7 +149,202 @@
   「タスク」と「代替コマンド(alternatives)」について、『Debian管理者ハンドブック』の該当の項目に目を通しておいてください。Debian 管理者ハンドブックは\href{https://debian-handbook.info/browse/ja-JP/stable/}{https://debian-handbook.info/browse/ja-JP/stable/} です。
 \end{itemize}
 
+%---
 参加者の皆さんは以下の通りです:
+
+\begin{itemize}
+\item ikunya
+\item ipv6waterstar
+\item YukiharuYABUKI
+\item yosuke\_san
+\item lurdan
+\item Say\_no
+\item matsuzawa
+\item t3rkwd
+\item murase\_syuka 
+\end{itemize}
+
+%---
+\dancersection{よくわかってないので、事前課題に関して調べてみた}{Yosuke OTSUKI}
+
+\subsection{alternatives とは？}
+
+"同一システム上で、同じ名前や似たような機能を切り替えるための機能" [1] \vspace{1em}\\
+
+例えば、/usr/bin/editor を実行するとどのテキストエディタが立ち上がってくるでしょうか？
+私の場合、デフォルト(auto mode)では nano でした。しかし、私は vim ユーザーなので vim が起動してほしい。
+ /usr/bin/editor は /bin/nano へのシンボリックリンクでもないのに, なぜ nano が起動するのでしょうか？
+
+そこで調べてみました。
+私の環境では、editor は以下のような設定になっていました。
+デフォルトの状態なので、auto mode で nano が設定されています。
+
+\begin{commandline}
+$ update-alternatives --display editor 
+editor - auto mode
+  link best version is /bin/nano
+  link currently points to /bin/nano
+  link editor is /usr/bin/editor
+  slave editor.1.gz is /usr/share/man/man1/editor.1.gz
+  slave editor.fr.1.gz is /usr/share/man/fr/man1/editor.1.gz
+         :
+         :
+\end{commandline}
+
+\subsection{alternatives の設定を変更してみる}
+
+下記のコマンドで、config を変更することができます。(このやり方は、全ユーザーに対して影響があります)
+editor を nano から vim に変更しましょう。
+
+\begin{commandline}
+# update-alternatives --set ${名前}
+\end{commandline}
+
+やってみたところ、変更できませんでした。
+
+\begin{commandline}
+# update-alternatives --set editor /usr/bin/vim
+update-alternatives: error: alternative /usr/bin/vim for editor not registered; not setting
+\end{commandline}
+
+/usr/bin/vim が editor の alternatives リストに登録されていませんね。
+どうやらこれが原因のようです。
+
+\begin{commandline}
+$ update-alternatives --list editor
+/bin/nano
+/usr/bin/vim.basic
+/usr/bin/vim.tiny
+\end{commandline}
+
+リストに追加しましょう。最初に、update-alternatives --config で優先度を確認します。
+リスト追加時に優先度が必要です。
+
+\begin{commandline}
+$ update-alternatives --config editor
+There are 3 choices for the alternative editor (providing /usr/bin/editor).
+
+  Selection    Path                Priority   Status
+------------------------------------------------------------
+* 0            /bin/nano            40        auto mode
+  1            /bin/nano            40        manual mode
+  2            /usr/bin/vim.basic   30        manual mode
+  3            /usr/bin/vim.tiny    15        manual mode
+
+Press <enter> to keep the current choice[*], or type selection number: 
+\end{commandline}
+
+以下のコマンドでリストに追加します。
+自動選択でつかいたかったので、nano よりも優先度を上げて登録しました。
+優先度にかかわらず、手動で選択することもできます。
+
+\begin{commandline}
+$ update-alternatives --config editor
+update-alternatives --install ${シンボリックリンク} ${名前} ${実パス} ${優先度}
+\end{commandline}
+
+やってみた
+\begin{commandline}
+# update-alternatives --install /usr/bin/editor editor /usr/bin/vim 50
+update-alternatives: using /usr/bin/vim to provide /usr/bin/editor (editor) in auto mode
+\end{commandline}
+
+追加されていました。
+
+\begin{commandline}
+$ update-alternatives --config editor
+There are 4 choices for the alternative editor (providing /usr/bin/editor).
+
+  Selection    Path                Priority   Status
+------------------------------------------------------------
+* 0            /usr/bin/vim         50        auto mode
+  1            /bin/nano            40        manual mode
+  2            /usr/bin/vim         50        manual mode
+  3            /usr/bin/vim.basic   30        manual mode
+  4            /usr/bin/vim.tiny    15        manual mode
+\end{commandline}
+
+ただし、 /usr/bin/vim が /etc/alternatives を指しています。そのため、/usr/bin/editor から参照するのは何度もシンボリックリンクをたどることになり良くないかも。
+/usr/bin/bim.basic も登録されていますし。
+\begin{commandline}
+$ ls -la /usr/bin/vim
+lrwxrwxrwx 1 root root 21 Aug 14 07:32 /usr/bin/vim -> /etc/alternatives/vim
+\end{commandline}
+
+なので、私はもとに戻しておきます。
+\begin{commandline}
+update-alternatives --remove ${名前} ${シンボリックリンク}
+\end{commandline}
+
+やってみた
+\begin{commandline}
+# update-alternatives --remove editor /usr/bin/vim
+update-alternatives: using /bin/nano to provide /usr/bin/editor (editor) in auto mode
+\end{commandline}
+
+ちなみに、GUI により alternatives の設定を行う galternatives というパッケージもあるようです。
+また、debian 固有の機能ではなく Redhat 系 OS でも利用可能です。
+
+\subsection{どのようにして切り替えているか調べてみた}
+
+debian wiki と man に記載されている範囲で調べてみました。
+% --- bibitem が更新されない --- 佐々木さんに聞く by OTSUKI
+% 問題: \ref が ? で表示される。普通は2回更新を latex を実行。.pdf を touch しても make に最新だと言われ実行できない。何か良い方法はないか？ 
+%
+%\ref{site:debianwiki} によると /etc/alternatives 以下に各項目の config ファイルがあります。
+%update-alternatives の man によると、/usr/bin/editor から /etc/alternatives/editor が参照され、この config ファイル内にシンボリックリンクがあると説明されています。\ref{os:man}
+[1] によると /etc/alternatives 以下に各項目の config ファイルがあります。
+update-alternatives の man によると、/usr/bin/editor から /etc/alternatives/editor が参照され、この config ファイル内にシンボリックリンクがあると説明されています。[2]
+
+\begin{commandline}
+$ update-alternatives --display editor 
+editor - auto mode
+  link best version is /bin/nano
+  link currently points to /bin/nano
+  link editor is /usr/bin/editor
+  slave editor.1.gz is /usr/share/man/man1/editor.1.gz
+  slave editor.fr.1.gz is /usr/share/man/fr/man1/editor.1.gz
+  slave editor.it.1.gz is /usr/share/man/it/man1/editor.1.gz
+  slave editor.ja.1.gz is /usr/share/man/ja/man1/editor.1.gz
+  slave editor.pl.1.gz is /usr/share/man/pl/man1/editor.1.gz
+  slave editor.ru.1.gz is /usr/share/man/ru/man1/editor.1.gz
+/bin/nano - priority 40
+  slave editor.1.gz: /usr/share/man/man1/nano.1.gz
+/usr/bin/vim.basic - priority 30
+  slave editor.1.gz: /usr/share/man/man1/vim.1.gz
+  slave editor.fr.1.gz: /usr/share/man/fr/man1/vim.1.gz
+  slave editor.it.1.gz: /usr/share/man/it/man1/vim.1.gz
+  slave editor.ja.1.gz: /usr/share/man/ja/man1/vim.1.gz
+  slave editor.pl.1.gz: /usr/share/man/pl/man1/vim.1.gz
+  slave editor.ru.1.gz: /usr/share/man/ru/man1/vim.1.gz
+/usr/bin/vim.tiny - priority 15
+  slave editor.1.gz: /usr/share/man/man1/vim.1.gz
+  slave editor.fr.1.gz: /usr/share/man/fr/man1/vim.1.gz
+  slave editor.it.1.gz: /usr/share/man/it/man1/vim.1.gz
+  slave editor.ja.1.gz: /usr/share/man/ja/man1/vim.1.gz
+  slave editor.pl.1.gz: /usr/share/man/pl/man1/vim.1.gz
+  slave editor.ru.1.gz: /usr/share/man/ru/man1/vim.1.gz
+\end{commandline}
+
+alternatives は、link group で管理されています。 link group は、master と slave から構成されます。[2]
+例えば、/usr/bin/editor が nano を使うようになっていた場合、man editor とターミナルに入力すると nano のマニュアルが表示されます。
+これは、master に nano が設定されており、slave に nano の man page が設定されているためです。 
+gcc や ruby のバージョン管理もできるのは便利です。
+\vspace{1em}\\
+まとめ:
+\begin{itemize}
+\item 同一システム上で、同じ名前や似たような機能を切り替えるための機能
+\item link group が、機能とそれに関連した設定項目を管理している
+\item /etc/alternatives/* に config ファイルがあり、シンボリックリンクと link group が設定されている
+\item 設定を調べたり・変更するには update-alternative コマンド
+\end{itemize}
+
+\begin{thebibliography}{4}
+\bibitem{site:debianwiki} \url{https://wiki.debian.org/DebianAlternatives} (accessed 2017/08/26)
+\bibitem{os:man} man update-alternatives
+\bibitem{site:ubunbu} \url{https://askubuntu.com/questions/492029/update-alternatives-install} (accessed 2017/08/26)
+\bibitem{site:hatena} \url{http://d.hatena.ne.jp/ksmemo/20100525/p1} (accessed 2017/08/26)
+\end{thebibliography}
 
 \pagebreak
 % ---------------------------------------------------
@@ -118,7 +352,7 @@
 
 \subsection{はじめに}
 
-去る6月17日にリリースされたDebian GNU/Linux 9.0 StretchのGNOME版を（仮想マシンに）インストールしてみましたが、日本語入力が難解であるという印象を持ちました。私はUbuntuでインプッ トメソッド関連をごそごそしている経験があり、その知識を元にDebian 9.0の各デスクトップ環境 でスムーズにインプットメソッドを使用する方法を探っていきたいと思います。
+去る6月17日にリリースされたDebian GNU/Linux 9.0 StretchのGNOME版を（仮想マシンに）インストールしてみましたが、日本語入力が難解であるという印象を持ちました。私はUbuntuでインプットメソッド関連をごそごそしている経験があり、その知識を元にDebian 9.0の各デスクトップ環境でスムーズにインプットメソッドを使用する方法を探っていきたいと思います。
 
 なお、今後の提案等も含まれていますが、私自身は全く手を動かせないということをあらかじめご了承ください。
 
@@ -256,11 +490,13 @@ Jessieでは追加できるウィジェットに表示されていました。
 \pagebreak
 \subsection{uim-mozcの問題}
 
-uim-mozcを使用すると、Mozcの各種ツール(mozc\_tool)が起動しません\footnote{\href{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=700307}{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=700307}}。正確にはprotobufの問題\footnote{\href{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=721791}{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=721791}}ですが、もう何年も未解決です。IBusやFcitxにはこのような問題がないため、uim-mozcを避けることができるのであれば避けたほうがいいでしょう。
+uim-mozcを使用すると、Mozcの各種ツール(mozc\_tool)が起動しません\footnote{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=700307}。正確にはprotobufの問題\footnote{https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=721791}ですが、もう何年も未解決です。IBusやFcitxにはこのような問題がないため、uim-mozcを避けることができるのであれば避けたほうがいいでしょう。
 
 \subsection{短期的な修正の提案}
 
 以上の現状を鑑みるに、インストールする人が多そうなGNOMEが特に影響が大きいので、短期的にどうにかできるものであればしたほうがいいのかもしれません。GNOMEの場合は専用のタスクがあるので、これだけをいじればなんとかなるということもあります。
+
+GNOMEは現状IBusで使用することしか考えられていないため、IBus一式と初期セットアップ(gnome-initial-setup)をtask-japanese-gnome-desktopに追加すれば、おおむね問題が解決します。初期セットアップは初回ログイン時に各種設定を行いますが、その中にキーボードやインプットメソッド（GNOMEでは同様に扱われる）の設定も含まれるため、設定の難易度が大幅に低下します。
 
 \begin{figure}[htbp!]
 \centering
@@ -272,19 +508,30 @@ uim-mozcを使用すると、Mozcの各種ツール(mozc\_tool)が起動しません
 
 $B長期的には、uimからIBusに移行するのがよさそうに思います。uimのメンテナンスは現状特定の個人に負荷が集中していますが、IBusであればある程度負荷が分散されているというのが大きな理由です。特に各種ツールキットやデスクトップ環境向けの対応を考えなくてもいいのが楽です。技術的には概ねこれまで挙げてきた問題が解決されますが、uimでは問題とならなかったことが問題となり得ます。具体的には愛用者が多いと思われるSKKの実装であるibus-skkやそのバックエンドのlibskkが現在メンテナーがいないこと、fbtermで使用するibus-fbtermがパッケージになっておらず、またなったとしてもどの程度実用的なのか疑問符がつくことです。
 
-もちろんFcitxも選択肢に入ってきますが、現状のFcitxはWaylandに非対応でかつツールキットはQt4であり、現在最新バージョンであるFcitx5の開発中ですが、Fcitx5のリリースが早いかQt4の削除が早いかは誰にもわかりません。ちなみに中国語（簡体字）ではFcitxが使用されているため、このリソースに乗っかれるというメリットはあります。
+もちろんFcitxも選択肢に入ってきますが、現状のFcitxはWaylandに非対応でかつツールキットはQt
+4であり、現在最新バージョンであるFcitx5の開発中ですが、Fcitx5のリリースが早いかQt
+4の削除が早いかは誰にもわかりません。ちなみに中国語（簡体字）ではFcitxが使用されているため、このリソースに乗っかれるというメリットはあります。
 
-uimを使い続けるのであれば、uim-toolbarの切り替えをalternativesでやるのではなく、環境変数を使用してデスクトップ環境に応じてより適切な選択をするのがいいと思います。ただしQt/KDE Plasma 5対応をより進め、また開発が進んでいるGTK+4にも対応していくのは、かなりの労力が必要なことでしょう。
+uimを使い続けるのであれば、uim-toolbarの切り替えをalternativesでやるのではなく、環境変数を使用してデスクトップ環境に応じてより適切な選択をするのがいいと思います。ただしQt/KDE
+Plasma 5対応をより進め、また開発が進んでいるGTK+
+4にも対応していくのは、かなりの労力が必要なことでしょう。
 
 \pagebreak
 % ---------------------------------------------------
 \dancersection{今後の予定}{Debian JP}
 
+\subsection{第127回関西Debian勉強会}
+\begin{itemize}
+\item 日時: 09月24日(日)
+\item 場所: 調整中
+\end{itemize}
+
+
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
 \dancersection{メモ}{}
 \mbox{}\newpage
-\mbox{}\newpage
+%\mbox{}\newpage
 % \mbox{}\newpage
 
 \pagebreak
