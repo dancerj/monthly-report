@@ -1,0 +1,327 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{caff と mail-transport-agent}
+\subtitle{第156回 2017年10月度 東京エリアDebian勉強会}
+\author{yy\_y\_ja\_jp}
+\date{2017年10月21日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+\section{Agenda}
+
+\begin{frame}{Agenda}
+\begin{enumerate}
+ \item caff
+ \item Mail Transport Agent
+ \item mail-transport-agent
+ \item caff と mail-transport-agent
+% XXX
+\end{enumerate}
+\end{frame}
+
+\section{caff}
+\begin{frame}{caff}
+\begin{itemize}
+ \item caff(1) -- CA - Fire \& Forget
+
+ キーサインパーティなどで便利なツール
+
+ \item 
+ signing-party パッケージでインストールできる
+
+ \item 
+ キーサインパーティに参加した後で、このコマンドを実行すれば必要な作業をやってくれる
+
+ \pause
+
+ \begin{enumerate}
+  \item 参加した人の公開鍵を取得
+  \item その公開鍵に自分の秘密鍵で署名
+  \item 署名済みの公開鍵をその人にメールで送信
+ \end{enumerate}
+
+\end{itemize}
+  
+\end{frame}
+
+\section{Mail Transport Agent}
+\begin{frame}{Mail Transport Agent (1/3)}
+ メール転送エージェント MTA
+
+ 受け付けたメッセージを他のサーバなどに転送する
+ \pause
+ \begin{itemize}
+  \item 受け付けかた（インターフェース）
+	\begin{itemize}
+	 \item SMTP（TCP 25番ポートなど）
+	 \item sendmail互換（/usr/sbin/sendmailコマンドを実行して標準入力に
+	       渡すなど）
+	 \item など
+	\end{itemize}
+ \pause
+  \item 転送のしかた
+	\begin{itemize}
+	 \item 自力でDNSを引いて送付先サーバに転送
+	 \item 他のサーバに渡して転送してもらう（リレー）
+	\end{itemize}
+ \end{itemize}
+ 
+\end{frame}
+
+\begin{frame}{Mail Transport Agent (2/3)}
+ 受け付けかた（インターフェース）
+	\begin{itemize}
+	 \item SMTP（TCP 25番ポートなど）
+	 \item sendmail（/usr/sbin/sendmailコマンドを実行して標準入力に
+	       渡すなど）
+	 \item など
+	\end{itemize}
+
+ メッセージをマシン上にある（ローカル）MTAに
+	       渡すだけなら、わざわざメールサーバ（SMTPサーバ）を立ち上
+ げてそれ経由で渡す必要はない\\
+ -- /usr/sbin/sendmailコマンドを起動して、
+ そのコマンド自体が転送してくれれば充分
+\end{frame}
+
+\begin{frame}{Mail Transport Agent (3/3)}
+転送のしかた
+	\begin{itemize}
+	 \item 自力でDNSを引いて送付先サーバに転送
+	 \item 他のサーバに渡して転送してもらう（リレー）
+	\end{itemize}
+
+ \pause
+ 自力で転送してしまうと
+ \pause
+ \begin{itemize}
+  \item そのメールサーバをインターネット公開にしていない場合は自分宛てのメー
+	ルが受信できない -- エラーメールも受け取れない
+  \pause
+  \item 自分のメールアドレスのドメインがそのサーバ管理でない場合はなりす
+	まし（フィッシング）になってしまう
+
+	\begin{quote}
+This message may not have been sent by: xxx@example.com
+	\end{quote}
+\begin{quote}
+Why is this message in Spam? It's similar to messages that were detected by our spam filters.
+\end{quote}
+ \end{itemize}
+
+\end{frame}
+
+\section{mail-transport-agent}
+\begin{frame}[containsverbatim]{mail-transport-agent (1/4)}
+
+\begin{itemize}
+ \item Debianポリシーで定められた仮想パッケージのうちの1つ
+
+ \scriptsize
+ \verb|/usr/share/doc/debian-policy/virtual-package-names-list.txt.gz|
+ \footnotesize
+ \url{https://www.debian.org/doc/packaging-manuals/virtual-package-names-list.txt}
+ \normalsize
+ で見られる
+
+% \begin{verbatim}
+\begin{quote}
+mail-transport-agent{ }{ }{ }{ }a mail transport agent (e.g. Smail, Sendmail, \&c)
+\end{quote}
+% \end{verbatim}}
+
+ \item 
+ mail-transport-agent を提供しているパッケージは
+ \verb|apt-cache showpkg mail-transport-agent|
+ や
+ \footnotesize
+ \url{https://packages.debian.org/stable/mail-transport-agent}
+ \normalsize
+ で見られる
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{mail-transport-agent (2/4)}
+ \begin{itemize}
+  \item Debianのデフォルトは exim4-daemon-light\\
+	-- 仮想パッケージ default-mta も提供(Provides)
+ \item どのパッケージも Conflicts: mail-transport-agent, Replaces:
+       mail-transport-agent, Provides: mail-transport-agent と書いてある\\
+       ⇒ 2つ以上インストールできない
+ \end{itemize}
+
+ \scriptsize
+\begin{verbatim}
+$ apt-cache show exim4-daemon-light
+Package: exim4-daemon-light
+Source: exim4
+Version: 4.89-2+deb9u1
+Installed-Size: 1167
+Maintainer: Exim4 Maintainers <pkg-exim4-maintainers@lists.alioth.debian.org>
+Architecture: amd64
+Replaces: exim4-base (<= 4.61-1), mail-transport-agent
+Provides: default-mta, exim4-localscanapi-2.0, mail-transport-agent
+Depends: exim4-base (>= 4.89), libc6 (>= 2.16), libdb5.3, libgnutls30 (>= 3.5.6), libpcre3, debconf (>= 0.5) | debconf-2.0
+Conflicts: mail-transport-agent
+\end{verbatim}
+ \normalsize
+\end{frame}
+
+\begin{frame}[containsverbatim]{mail-transport-agent (3/4)}
+ \begin{itemize}
+ \item MTAのパッケージが2つに分かれていることもある --
+       mail-transport-agentを提供するパッケージがsendmail互換インターフェー
+       ス(/usr/sbin/sendmail)などを提供
+ \end{itemize}
+
+ \scriptsize
+\begin{verbatim}
+$ apt-cache show msmtp-mta
+Package: msmtp-mta
+Source: msmtp
+Version: 1.6.6-1
+（略）
+Replaces: mail-transport-agent
+Provides: mail-transport-agent
+Depends: msmtp
+Conflicts: mail-transport-agent
+Description-en: light SMTP client with support for server profiles - the regular MTA
+（以下略）
+\end{verbatim}
+\begin{verbatim}
+$ apt-cache show msmtp
+Package: msmtp
+Version: 1.6.6-1
+（略）
+Depends: libc6 (>= 2.22), libgnutls30 (>= 3.5.6), libgsasl7 (>= 1.1), debconf (>= 0.5) | debconf-2.0, ucf
+Recommends: ca-certificates
+Suggests: msmtp-mta
+Description-en: light SMTP client with support for server profiles
+（以下略）
+\end{verbatim}
+ \normalsize
+\end{frame}
+
+\begin{frame}[containsverbatim]{mail-transport-agent (4/4)}
+どのMTAがSMTPサーバも提供するかはパッケージのプログラム次第
+
+ \begin{itemize}
+  \item SMTPサーバも提供する -- exim4-daemon-light, postfix, nullmailer
+	など
+  \item SMTPサーバを提供しない（リレー専用） -- msmtp など
+ \end{itemize}
+\end{frame}
+
+\section{caff と mail-transport-agent}
+\begin{frame}[containsverbatim]{caff と mail-transport-agent (1/2)}
+caff は署名済みの公開鍵をその人にメールで送信 
+
+ \begin{itemize}%[<+->]
+  \item 実行されたマシン上にある（ローカル）MTA を使ってメール送信している
+  \item デフォルトの MTA だとローカル配送のみ
+ \footnotesize
+\begin{verbatim}
+Subject: Mail delivery failed: returning message to sender
+（略）
+	 Mailing to remote domains not supported
+\end{verbatim}
+ \normalsize
+	インターネットに出ていかない！ MTAの設定が必要
+%   \item 
+
+% 	\pause
+% 	\begin{itemize}
+% 	 \item x
+% 	\end{itemize}
+
+
+ \end{itemize}
+
+\end{frame}
+
+\begin{frame}{caff と mail-transport-agent (2/2)}
+        もし自分の（uidに使っている）メールアドレスが自分の管理するメー
+       ルサーバのドメインでないのなら
+
+ \begin{itemize}
+  \item メールサーバ（SMTPサーバ）なし
+  \item リレー専用
+ \end{itemize}
+
+       なMTAを選べば設定がかんたん\\
+       -- 例: msmtp-mta パッケージ
+
+\pause
+ \url{https://wiki.debian.org/msmtp}
+
+ \begin{itemize}
+  \item  個人の設定ファイル \textasciitilde/.msmtprc にGmailアカウントとSMTPサーバの情報を書いてリレー
+ する方法が書かれている
+  \item  パスワードをGPG鍵で暗号化して保存する方法も書かれている
+ \end{itemize}
+\end{frame}
+
+%XXX
+%
+\section{まとめ}
+\begin{frame}{まとめ}
+\begin{itemize}
+ \item caff はローカルのMTAを使ってメール送信する
+ \item ローカルのMTAはmail-transport-agent仮想パッケージを提供するパッケー
+       ジをインストールすればよい
+ \item マシンにはmail-transport-agent仮想パッケージを提供するパッケージのうち
+       1つだけをインストールできる(Conflicts/Replaces/Provides)
+ \item MTAのパッケージが2つに分かれていることもある（msmtp/msmtp-mta,
+       qmail/qmail-runなど）
+ \item MTA にはSMTPだけでなくsendmailインターフェースもある -- caff作業マシンが
+       インターネット公開のメールサーバでないならSMTPは不要
+ \item 自分が管理していないドメインのメールアドレスなら、その外部SMTPサー
+       バにリレーするようにローカルのMTAをインストール（msmtp-mtaなど）
+       し設定するとよい
+\end{itemize}
+\end{frame}
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
