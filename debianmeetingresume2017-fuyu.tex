@@ -541,51 +541,39 @@ $ caff 一人目の公開鍵ID 二人目の公開鍵ID...
 
 
 \subsection{Mail Transport Agent}
- メール転送エージェント MTA
-
- 受け付けたメッセージを他のサーバなどに転送する
+ メール転送エージェント (MTA)
+は、
+ 受け付けたメッセージを他のサーバなどに転送するプログラムです。ここで
  
  \begin{itemize}
-  \item 受け付けかた（インターフェース）
+  \item 受け付けかた（インターフェース）には
 	\begin{itemize}
 	 \item SMTP（TCP 25番ポートなど）
 	 \item sendmail互換（/usr/sbin/sendmailコマンドを実行して標準入力に
 	       渡すなど）
 	 \item など
 	\end{itemize}
- 
-  \item 転送のしかた
+ があり、
+  \item 転送のしかたには
 	\begin{itemize}
 	 \item 自力でDNSを引いて送付先サーバに転送
 	 \item 他のサーバに渡して転送してもらう（リレー）
 	\end{itemize}
+	があります。
  \end{itemize}
  
 
 
- 受け付けかた（インターフェース）
-	\begin{itemize}
-	 \item SMTP（TCP 25番ポートなど）
-	 \item sendmail互換（/usr/sbin/sendmailコマンドを実行して標準入力に
-	       渡すなど）など
-%	 \item など
-	\end{itemize}
-
+ 受け付けかた（インターフェース）については、
  メッセージをマシン上にある（ローカル）MTAに
 	       渡すだけなら、わざわざメールサーバ（SMTPサーバ）を立ち上
- げてそれ経由で渡す必要はない\\
- -- /usr/sbin/sendmailコマンドを起動して、
- そのコマンド自体が転送してくれれば充分
+ げてそれ経由で渡す必要はありません。
+ /usr/sbin/sendmailコマンドを起動して、
+ そのコマンド自体が転送してくれれば充分です。
 
 
-転送のしかた
-	\begin{itemize}
-	 \item 自力でDNSを引いて送付先サーバに転送
-	 \item 他のサーバに渡して転送してもらう（リレー）
-	\end{itemize}
-
- 
- 自力で転送してしまうと
+次に転送のしかたですが、
+ 自力で転送してしまうと次のような様々な問題が起こります。
  
  \begin{itemize}
   \item そのメールサーバをインターネット公開にしていない場合は自分宛てのメー
@@ -594,6 +582,7 @@ $ caff 一人目の公開鍵ID 二人目の公開鍵ID...
   \item 自分のメールアドレスのドメインがそのサーバ管理でない場合はなりす
 	まし（フィッシング）になってしまう
 
+参考: このようなメールが届いたときにGoogleメールが表示することがある警告メッセージ
 	\begin{quote}
 This message may not have been sent by: xxx@example.com
 	\end{quote}
@@ -612,24 +601,24 @@ Why is this message in Spam? It's similar to messages that were detected by our 
 \begin{itemize}
  \item Debianポリシーで定められた仮想パッケージのうちの1つ
 
- \scriptsize
+% \scriptsize
  \verb|/usr/share/doc/debian-policy/virtual-package-names-list.txt.gz|
- \footnotesize
+% \footnotesize
  \url{https://www.debian.org/doc/packaging-manuals/virtual-package-names-list.txt}
- \normalsize
+% \normalsize
  で見られる
 
-\begin{quote}
-mail-transport-agent{ }{ }{ }{ }a mail transport agent (e.g. Smail, Sendmail, \&c)
-\end{quote}
+\begin{verbatim}
+ mail-transport-agent    a mail transport agent (e.g. Smail, Sendmail, &c)
+\end{verbatim}
 
  \item 
  mail-transport-agent を提供しているパッケージは
  \verb|apt-cache showpkg mail-transport-agent|
  や
- \footnotesize
+% \footnotesize
  \url{https://packages.debian.org/stable/mail-transport-agent}
- \normalsize
+% \normalsize
  で見られる
 \end{itemize}
 
@@ -640,7 +629,7 @@ mail-transport-agent{ }{ }{ }{ }a mail transport agent (e.g. Smail, Sendmail, \&
 	-- 仮想パッケージ default-mta も提供(Provides)
  \item どのパッケージも Conflicts: mail-transport-agent, Replaces:
        mail-transport-agent, Provides: mail-transport-agent と書いてある\\
-       ⇒ 2つ以上インストールできない
+       ⇒ 2つ以上インストールできないようになっている
  \end{itemize}
 
 \begin{commandline}
@@ -691,7 +680,7 @@ Description-en: light SMTP client with support for server profiles
 
 \end{commandline}
 
-どのMTAがSMTPサーバも提供するかはパッケージのプログラム次第
+MTAがSMTPサーバも提供するかどうかはそのパッケージのプログラム次第です。
 
  \begin{itemize}
   \item SMTPサーバも提供する -- exim4-daemon-light, postfix, nullmailer
@@ -701,34 +690,33 @@ Description-en: light SMTP client with support for server profiles
 
 
 \subsection{caff と mail-transport-agent}
-caff は署名済みの公開鍵をその人にメールで送信 
+caff は署名済みの公開鍵をその人にメールで送信します。しかし 
 
  \begin{itemize}
   \item 実行されたマシン上にある（ローカル）MTA を使ってメール送信している
   \item デフォルトの MTA だとローカル配送のみ
- \footnotesize
+ \end{itemize}
+なのでそのままだと次のようなエラーメールになってしまいます。
 \begin{verbatim}
 Subject: Mail delivery failed: returning message to sender
 （略）
 	 Mailing to remote domains not supported
 \end{verbatim}
- \normalsize
-	インターネットに出ていかない！ MTAの設定が必要
- \end{itemize}
+
+	これは、メールがインターネットに出ていかない状態になっているためで、MTA
+	の設定が必要です。
 
         もし自分の（uidに使っている）メールアドレスが自分の管理するメー
-       ルサーバのドメインでないのなら
+       ルサーバのドメインでないのなら（例えば \verb|@gmail.com| などの場合）、
 
  \begin{itemize}
   \item メールサーバ（SMTPサーバ）なし
   \item リレー専用
  \end{itemize}
 
-       なMTAを選べば設定がかんたん\\
-       -- 例: msmtp-mta パッケージ
-
-
- \url{https://wiki.debian.org/msmtp}
+       なMTAを選べば設定がかんたんです。
+       例として msmtp-mta パッケージがあります。
+設定については \url{https://wiki.debian.org/msmtp} をご覧ください。
 
  \begin{itemize}
   \item  個人の設定ファイル \textasciitilde/.msmtprc にGmailアカウントとSMTPサーバの情報を書いてリレー
@@ -1253,11 +1241,13 @@ DM200をハックしてみました。
 qemu-debootstrapは便利なコマンドですので覚えておくとよいと思います。
 
 %Debian / Ubuntu ユーザーミートアップ in 札幌 2017.07
-\dancersection{Debian 9 Stretchのネットワークインターフェース名について}{吉野 与志仁}
+\dancersection{Debian 9 Stretchのネットワークインターフェース名について}{yy\_y\_ja\_jp}
 %debianmeetingresume201707-meetup-sapporo-presentation-yyoshino.tex
 
-\subsection{Debian 9 Stretchからのデフォルトのネットワークインターフェース名}
+\subsection{ネットワークインターフェース名}
  
+Debian 9 Stretchでネットワークインターフェースのデフォルトの名前が変わりました。
+
  \begin{itemize}
   \item Debian 8 Jessieまで
 	\begin{itemize}
@@ -1280,14 +1270,18 @@ qemu-debootstrapは便利なコマンドですので覚えておくとよいと思います。
   \item 今後新たに使うインターフェースは新しい名前の形式になります -- 新
 	しいUSB NICを差したときなど
  \end{itemize}
- {\small\texttt{/usr/share/doc/udev/README.Debian.gz}}によると
+ \texttt{/usr/share/doc/udev/README.Debian.gz}によると
  Debian 10 Busterでは昔の方式はサポートされないと言ってるので、新しい名前に移行したほうが
- よいかもしれません
+ よいかもしれません。
 
-今までの名前付けではうまくいかないことがあったため、変わりました。
+\subsection{なぜデフォルトの名前が変わったのか}
+今までの名前の変え方だとうまくいかないことがあったため、今回改定すること
+になりました。
 
-% \vspace{2em}
-% \texttt{eth0: renamed from eth1}
+今までdmesgなどで、\texttt{eth0: renamed from eth1} などといったメッセー
+ジを見たことがある方もいると思います。
+もともと、ネットワークインターフェースの名前はOSの起動中に変えている（こ
+とがある）ものなのです。
 
 \subsection{なぜ名前を変えているのか}
  \begin{itemize}
@@ -1303,59 +1297,61 @@ qemu-debootstrapは便利なコマンドですので覚えておくとよいと思います。
 \subsection{名前の変え方 -- Jessieまで}
  udevパッケージの
 
- {\small{\texttt{/lib/udev/rules.d/75-persistent-net-generator.rules}}} と
- {\small{\texttt{/lib/udev/write\_net\_rules}}}\\
- （Stretch にはもう存在しない！）
+ \texttt{/lib/udev/rules.d/75-persistent-net-generator.rules} と
+ \texttt{/lib/udev/write\_net\_rules}\\
+ （Stretch にはもう存在しません！）が名前を変えていました。
 
- 知らないインターフェースが現れたら
+ 知らないインターフェースが現れたら次のように動作します。
  \begin{enumerate}
   \item 空いている次の番号の名前を探す: eth1 など
   \item 「そのインターフェースが現れたらその名前に変える」というudevルールを\\
-	{\small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}}} に
+	\texttt{/etc/udev/rules.d/70-persistent-net.rules} という設定ファ
+	イルに
 	書き込む
   \item その名前に変える
  \end{enumerate}
- Stretchでは無くなったため、
- \small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}} が今後自動で書き換
- わることはありません
+
+ Stretchではこれらのプログラムは無くなったため、
+\texttt{/etc/udev/rules.d/70-persistent-net.rules} ファイルが今後自動で書き換
+ わることはありません。
 
 
 \subsection{名前の変え方 -- Stretchから}
  udevパッケージの
- {\footnotesize{\texttt{/lib/udev/rules.d/75-net-description.rules}}}、
- udevの{\footnotesize{\texttt{net\_id}}}ビルトイン、
- {\footnotesize{\texttt{/lib/udev/rules.d/80-net-setup-link.rules}}}、
- {\footnotesize{\texttt{net\_setup\_link}}}ビルトイン、
- {\footnotesize{\texttt{/lib/systemd/network/99-default.link}}} など
+ \texttt{/lib/udev/rules.d/75-net-description.rules}、
+ udevの\texttt{net\_id}ビルトイン、
+ \texttt{/lib/udev/rules.d/80-net-setup-link.rules}、
+ \texttt{net\_setup\_link}ビルトイン、\\
+ \texttt{/lib/systemd/network/99-default.link} などが名前を変えています。
 
- 知らないインターフェースが現れたら
-
+ 知らないインターフェースが現れたら次のように動作します。
  \begin{enumerate}
   \item そのインターフェースを特定する情報（ハードウェア配置、MACアド
 	レス、ユーザー設定ファイルなど）を取得する
   \item その情報に基づいて名前を決める: PCIバス0のスロット1に差さって
 	いるとき enp0s1 など\\
-	USB NICの場合は、USBの差す位置で名前が変わって
-	ほしくないのでMACアドレスベースの名前にする設定になっている({\footnotesize{\texttt{/lib/udev/rules.d/73-usb-net-by-mac.rules}}}): enxaabbccxxyyzz など
+	ただしUSB NICの場合は、USBの差す位置で名前が変わって
+	ほしくないのでMACアドレスベースの名前にする設定になっている(\texttt{/lib/udev/rules.d/73-usb-net-by-mac.rules}): enxaabbccxxyyzz など
  \end{enumerate}
 
 
 \subsection{名前の変え方 -- （参考）一時期のUbuntu}
- Debianにはないが、Ubuntuはbiosdevnameパッケージで名前を決めている時期があった
+ Debianにはないですが、Ubuntuはbiosdevnameパッケージで名前を決めている時期が
+ ありました。なお、現在のインターフェース名とは互換性がありません。
 
  \begin{itemize}
   \item インターフェース名: em0, p1p0 など
-  \item 後発のudev net\_idはさらに別の名前形式にした
+  \item 後発のudev net\_idはさらに別の名前形式にした。そのため互換性がな
+	い
  \end{itemize}
 
 
 \subsection[containsverbatim]{移行するには}
 
  \begin{enumerate}%
-  \item どんな名前になるか調べる eth0なら\\
-	{\small{\texttt{udevadm test-builtin net\_id /sys/class/net/eth0}}}
-       {\scriptsize
-       \begin{verbatim}
+  \item どんな名前になるか調べる。eth0なら\\
+	\texttt{udevadm test-builtin net\_id /sys/class/net/eth0}
+\begin{commandline}
 # udevadm test-builtin net_id /sys/class/net/eth0
 calling: test-builtin
 （略）
@@ -1366,73 +1362,74 @@ ID_OUI_FROM_DATABASE=BUFFALO.INC
 ID_NET_NAME_PATH=enp0s20u2
 Unload module index
 Unloaded link configuration context.
-\end{verbatim}}
-	{\footnotesize\texttt{ID\_NET\_NAME\_*}}のうち、順に
-	{\footnotesize\texttt{ONBOARD}}、{\footnotesize\texttt{SLOT}}、
-	{\footnotesize\texttt{PATH}}がもしあればそれが使われる({\footnotesize\texttt{/lib/systemd/network/99-default.link}})、ただしUSB NICは{\footnotesize\texttt{MAC}}が使われる
+\end{commandline}
+	\texttt{ID\_NET\_NAME\_*}のうち、順に
+	\texttt{ONBOARD}、\texttt{SLOT}、
+	\texttt{PATH}がもしあればそれが使われる\\
+(\texttt{/lib/systemd/network/99-default.link})、ただしUSB NICは\texttt{MAC}が使われる
   \item 今までの名前を使っている設定ファイルを置き換える
-  \item \small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}} を消
+  \item \texttt{/etc/udev/rules.d/70-persistent-net.rules} を消
 	すかどこかに移動する
   \item 再起動
  \end{enumerate}
 
 
 \subsection[containsverbatim]{移行せず、名前を変えさせないには}
- もともとeth0, wlan0しかなかったのに変えてほしくないときなど
-
- いくつかの方法
+ もともとインターフェースが1つしかない、eth0, wlan0しかなかったのに変え
+ てほしくないときなどは、
+ いくつか方法があります。
 \begin{itemize}
  \item 空っぽの設定ファイルを\texttt{/etc}に置いて上書きする\\
-       {\small{\verb|ln -s /dev/null /etc/systemd/network/99-default.link|}}
+       \verb|ln -s /dev/null /etc/systemd/network/99-default.link|
  \item カーネルコマンドライン引数に\texttt{net.ifnames=0}を追加\\
        /etc/default/grub に書いて update-grub を実行
 \end{itemize}
 
- もちろんカーネルが決めた名前そのままになるので、インターフェースが複数
- あったらうまくいかないことが起きるでしょう
+ もちろんこうするとカーネルが決めた名前そのままになるので、インターフェースが複数
+ あったらうまくいかないことが起きるでしょう。
 
 
 \subsection[containsverbatim]{名前を自分で設定するには}
 \begin{itemize}
- \item \texttt{net\_setup\_link}のユーザー設定ファイル {\small{\texttt{/etc/systemd/network/*.link}}}
+ \item \texttt{net\_setup\_link}のユーザー設定ファイル \texttt{/etc/systemd/network/*.link}
        を作る(systemd.link(5))\\
        例えばMACアドレス aa:bb:cc:xx:yy:zz のインターフェースを ethernet1 という名前にしたいなら
-       {\footnotesize
-       \begin{verbatim}
+\begin{commandline}
 [Match]
 MACAddress=aa:bb:cc:xx:yy:zz
 [Link]
 Name=ethernet1
-\end{verbatim}} ただし、USB NICの名前を設定するには\\
-       {\footnotesize{\verb|ln -s /dev/null /etc/udev/rules.d/73-usb-net-by-mac.rules|}}\\
+\end{commandline}
+ただし、USB NICの名前を設定するには\\
+       \verb|ln -s /dev/null /etc/udev/rules.d/73-usb-net-by-mac.rules|\\
        が必要
- \item udevルールファイル {\small{\texttt{/etc/udev/rules.d/*.rules}}} を作
+ \item udevルールファイル \texttt{/etc/udev/rules.d/*.rules} を作
        る(udev(7))\\
        Jessieまで自動で書き込まれてきた 
-       {\small{\texttt{/etc/udev/rules.d/70-persistent-net.rules}}} に同
-       じように追加するなど
+       \texttt{/etc/udev/rules.d/70-persistent-net.rules} ファイルに同
+       じように追加する、など
 \end{itemize}
 
 
 \subsection[containsverbatim]{うまくいかないときは}
- udev をデバッグするしかない
+ udev をデバッグするしかないです。
 \begin{itemize}
- \item 書いた\texttt{*.link}が期待通りに動くか見るには {\small{\texttt{net\_setup\_link}}}ビルトインを試す:\\
-       {\footnotesize{\verb|udevadm test-builtin net_setup_link /sys/class/net/eth0|}}
+ \item 書いた\texttt{*.link}が期待通りに動くか見るには \texttt{net\_setup\_link}ビルトインを試す:\\
+       \verb|udevadm test-builtin net_setup_link /sys/class/net/eth0|
  \item udevをdebugモードで起動する
-       {\footnotesize
-       \begin{verbatim}
+\begin{commandline}
 # invoke-rc.d udev stop
 # /lib/systemd/systemd-udevd --debug
-\end{verbatim}}
+\end{commandline}
  \item マシン起動時のudevをdebugモードにする\\
-       /etc/udev/udev.conf を {\small{\verb|udev_log="debug"|}} にして
-       {\small{\verb|dpkg-reconfigure linux-image-`uname -r`|}}
+       /etc/udev/udev.conf を \verb|udev_log="debug"| にして
+       \verb|dpkg-reconfigure linux-image-`uname -r`|
        して再起動
 \end{itemize}
 
- 名前変更に失敗してカーネルが決めた名前のままになっていることがある...
- 見つけたらバグレポートしたほうがよいかもしれません
+ 名前変更に失敗してカーネルが決めた名前のままになっていることがあったり
+ します...
+ 見つけたらバグレポートしたほうがよいかもしれません。
 
 
 \subsection{まとめ}
@@ -1443,14 +1440,14 @@ Name=ethernet1
  \item Jessie からアップグレードした場合は直ちに影響はないが、変えたほう
        がいいらしい
  \item 移行前に新しい名前を見るには\\
- {\footnotesize{\texttt{udevadm test-builtin net\_id /sys/class/net/<今の名前>}}}\\
+ \texttt{udevadm test-builtin net\_id /sys/class/net/<今の名前>}\\
  などが使える
  \item 名前付け替えを一切したくないときは \texttt{/etc} で
        \texttt{99-default.link}を上書き設定するとよい
  \item 自分で名前を付けたいときは
-       {\small{\texttt{/etc/systemd/network/*.link}}} を作る、
+       \texttt{/etc/systemd/network/*.link} を作る、
        または昔ながらの udev ルール
-       {\small{\texttt{/etc/udev/rules.d/*.rules}}} を作る
+       \texttt{/etc/udev/rules.d/*.rules} を作る
  \item うまく行かないときは udev をデバッグする。
        名前変更に失敗して元の名前のままになっていることがある
 \end{itemize}
@@ -1459,8 +1456,8 @@ Name=ethernet1
 
 \subsection{参考文献}
 \begin{itemize}
- \item PredictableNetworkInterfaceNames
-      {\scriptsize\verb|http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/|}
+ \item PredictableNetworkInterfaceNames\\
+      \url{http://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/}
  \item systemd ソースパッケージ \verb|src/udev/udev-builtin-net_id.c|
  \item udev パッケージ \verb|/usr/share/doc/udev/README.Debian.gz|, man
        ページ \verb|systemd.link(5)|, \verb|udev(7)|
