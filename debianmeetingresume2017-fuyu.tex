@@ -1033,6 +1033,259 @@ Subject: Mail delivery failed: returning message to sender
   \item 「LXCLibVirtDefaultNetwork」 \url{https://wiki.debian.org/LXC/LibVirtDefaultNetwork}
   \end{itemize}
 
+%201711 kansai
+%-------------------------------------------------------------------------------
+\dancersection{Debian Strech で LXC を使う}{Yosuke OTSUKI}
+%-------------------------------------------------------------------------------
+
+lxc の非特権でコンテナを debian wiki に記載されている通りに作ろうとしたら、色々ハマりました。
+1 ヶ月ぐらいかかって起動に成功しました。
+
+\subsection{動機}
+仕事でも Debian の pbuilder みたいに環境に依存しないビルドができないものかと考え、コンテナを使おうと考えました。 
+やっぱり Docker が流行っているので、最初は Docker を第一候補としていました。
+仕事では、CentOS を使用せざる得ないので、Docker 用の Cent OS のレポジトリを確認したところ、
+repomd.xml で参照されている package の db の鍵が異なりました。 これは、Docker 用に改造されているのでは？と考え LXC を使用することにしました。\footnote{最も repo の参照先を変えると言う方法もあるかもしれません。}
+
+
+\begin{itemize}
+	\item Docker : \url{https://yum.dockerproject.org/repo/main/centos/7/repodata/repomd.xml} 
+	\item CentOS : \url{http://ftp.jaist.ac.jp/pub/Linux/CentOS/7/os/x86_64/repodata/repomd.xml}
+\end{itemize}
+
+Database や Web アプリなど、middle ware 上で動く場合は、Docker でも問題ないかもしれません。
+しかし、native 系のアプリの Linux 上でのテストに使用したいので、できるだけ実機に近い環境が必要でした。
+
+また、個人でも sid の開発環境が欲しかったため、作成できないかと試してみました。
+今回は、こちらのご紹介をいたします。
+
+なお、東京エリア Debian 勉強会で杉本さんが lxc を取り上げています。
+2016 年 7 月, 2013 年 4 月の東京 Debian 勉強会の資料をご覧ください。
+
+現在利用できる、Linux Container のバージョンとサポート終了日時を確認しておきましょう。
+
+Linux Container
+\begin{itemize}
+	\item 1.0 2019 年 6 月 1 日に サポート終了予定
+	\item 1.1 2016 年 9 月 1 日に サポート終了
+	\item 2.0 2021 年 6 月 1 日にサポート終了予定 (Stretch のはこれ)
+\end{itemize}
+
+1.0 系でも非特権コンテナ機能はあります。使用には Linux Kernel 3.12 以上が必要です。
+
+Debian ならば jessie でも 3.16 なので問題なさそうです。ただし、私は、jessie では試していません。
+なお、Redhat 系では kernel が 3.10 なので非特権コンテナはそのままでは、利用できません。
+
+\subsection{必要なものをインストール}
+
+\begin{commandline}
+# apt-get lxc libvirt0 libpam-cgroup libpam-cgroup libpam-cgfs bridge-utils
+\end{commandline}
+
+\subsection{ブリッジを作ります}
+
+私の環境の場合、192.168.100.0/24 が host マシンで定義されているネットワークです。
+ここでは、作成するコンテナに 192.168.100.50/24 を与えることにしましょう。
+
+\begin{commandline}
+iface eth0 inet manual
+
+# auto wlp2s0
+iface lxcbr0 inet static
+bridge_ports eth0
+address 192.168.100.50/24
+\end{commandline}
+
+個人的に debian は bridge device を簡単に作成できるので好きです。
+%Redhat 系の場合、一度 bonding デバイスを作成しなければならないので、めんどくさいです。
+
+\subsection{カーネルが対応済み、かつ必要なツールが全部あるか確認}
+default の stretch ならば問題はないはず。
+
+\begin{commandline}
+$ lxc-checkconfig
+\end{commandline}
+
+画面出力は、紙面節約のため省略します。
+すべて "enabled" と表示されていれば問題ないです。
+
+\subsection{カーネルの設定を変更}
+
+カーネルのパラメタを変えて、コンテナ作成の許可をユーザーに与えましょう。
+
+\begin{commandline}
+sudo sh -c 'echo "kernel.unprivileged_userns_clone=1" > /etc/sysctl.d/80-lxc-userns.conf'
+\end{commandline}
+
+このパラメタの意味を man 7 user\_namespace と kernel.org で調べましたが記載がありませんでした。
+kernel.org の sysctl のパラメタに関するドキュメントは 2009 年から更新がないようです。
+%https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
+
+\subsection{subid を設定}
+
+\begin{commandline}
+# usermod --add-subuids 100000-165536 yosuke
+# usermod --add-subgids 100000-165536 yosuke
+\end{commandline}
+
+/etc/subgid と /etc/subuid に自分のユーザー名で、先程のコマンドで指定した値が
+反映されているか確認してください。
+
+\subsection{特定のユーザーが作成できる network interface の上限数を指定する}
+
+\begin{commandline}
+echo "$USER veth lxcbr0 10"| sudo tee -i /etc/lxc/lxc-usernet
+\end{commandline}
+
+こちらも、/etc/lxc/lxc-usernet に値が反映されているか確認しましょう。
+
+\subsection{非特権ユーザー用の設定ファイルを .config 以下に作成する}
+
+以下の場所にファイルを作成してください。
+/home/yosuke/.config/lxc/default.conf
+
+ファイルに作成するコンテナの設定を記載します。
+\begin{commandline}
+lxc.include = /etc/lxc/default.conf
+lxc.network.type = veth
+lxc.network.link = lxcbr0
+lxc.network.flags = up
+lxc.network.hwaddr = 00:16:3e:fe:3d:13
+
+lxc.id_map = u 0 100000 65536
+lxc.id_map = g 0 100000 65536
+
+lxc.mount.auto = proc:mixed sys:ro cgroup:mixed
+
+lxc.network.type = veth
+lxc.network.link = lxcbr0
+lxc.network.flags = up
+lxc.network.hwaddr = f1:53:7f:00:00:01
+lxc.network.ipv4 = 192.168.100.50/24
+\end{commandline}
+
+ちなみに、hwaddr にもグローバルアドレスとローカルアドレスがあるそうです。
+最初に、指定したアドレスが偶然マルチキャストアドレスだったため、NIC の作成ができませんでした。
+先頭のオクテットの下から 2 ビット目が立っていた場合、ローカルアドレス。立っていない場合はグローバルアドレスだそうです。
+また、オクテットの最も下位ビットが立っていた場合、ユニキャストアドレス、そうでなければマルチキャストアドレスです。
+詳しくは、wikipedia に記載されています。
+\url{https://en.wikipedia.org/wiki/MAC_address#Address_details}
+
+\subsection{LXC コンテナを作成}
+
+さて、ここまで非特権 LXC コンテナを作成するため、特権コンテナの場合よりも多くの設定を行っていました。
+いよいよ、コンテナ本体を作成します。
+
+lxc-create コマンドは、コンテナの作成先のディレクトリを指定しない場合、
+/var/lib/lxc 以下に OS イメージを作成します。
+
+では、このディレクトリの書き込み権限を見てみましょう。
+
+\begin{commandline}
+yosuke@asusx200c:~/work/lxc$ ls -la /var/lib/lxc
+total 8
+drwxr-xr-x  2 root root 4096 Aug 28 07:31 .
+drwxr-xr-x 49 root root 4096 Sep 24 07:54 ..
+
+\end{commandline}
+
+一般ユーザーに書き込み権限はありません。
+lxc-create コマンドには、コンテナの作成先を指定する - - lxcpath (-P) オプションがあります
+このオプションを使用し、一般ユーザーが書き込める場所に OS image を作成すれば良いのです。
+
+私は、はじめに下記のコマンドでコンテナを作成しました。
+\begin{commandline}
+lxc-create -n stretch -t download -P ./
+\end{commandline}
+
+\begin{commandline}
+man lxc-create より:
+
+   -P, --lxcpath=PATH
+          Use an alternate container path. The default is /var/lib/lxc.
+\end{commandline}
+
+いざ、コンテナを立ち上げてみようとすると 「rootfs が見つからない」とエラーが出ます。
+原因は、lxc-create の --path オプションが絶対パスで指定する必要があるためでした。
+これに、気がつくまで結構かかってしまいました。
+
+作成したコンテナの config ファイルを確認すると、lxc.rootfs が入力を絶対パスに変換しないで保持していました。
+今の所そのような仕様のようです。
+
+lxc-create の man も確認しましたが、絶対パスで指定しろとは記述されていません。
+調べたところ、bug 登録されていました。orz。 \url{https://github.com/lxc/lxc/issues/78}
+
+個人的には、絶対パスにしないと意図したコンテナでないコンテナが立ち上がることがあると思います。
+そのため、bug とは言えないのでは？ 安全面でも、絶対パスのほうが良いでしょう。 
+man もしくは help は改善したほうが良いと思います。
+
+\begin{commandline}
+$ lxc-create -n stretch -P /home/yosuke/work/lxc
+\end{commandline}
+
+とすれば問題ないはずです。
+
+\subsection{コンテナを起動します。}
+
+\begin{commandline}
+lxc-start -d -n stretch -P /home/yosuke/work/xc
+\end{commandline}
+
+エラーメッセジが何も表示されなければ起動成功です。
+lxc-ls --fancy でコンテナの動作状況が確認できます。
+
+\begin{commandline}
+yosuke@asusx200c:~/work/lxc$ lxc-ls --fancy -P /home/yosuke/work/lxc/
+NAME    STATE   AUTOSTART GROUPS IPV4                       IPV6 
+stretch RUNNING 0         -      10.0.3.169, 192.168.100.51 -    
+\end{commandline}
+
+上記が 2 つの ipv4 アドレスを持っているのは、ゲスト OS がデフォルトのままなので、
+nic を dhcp で立ち上げているためです。
+
+\subsection{起動したら、コンテナにつなぎます}
+
+\begin{commandline}
+lxc-attach -n stretch
+\end{commandline}
+
+root でログインできるはずです。新しくユーザーを作り、パスワードを設定しましょう。
+ついでに、/etc/network/interfaces も修正して、2 つ ipv4 アドレスが与えられることがないようにしましょう。
+
+\subsection{最後に ssh でコンテナに接続します}
+
+\begin{commandline}
+ssh 192.168.100.50 
+\end{commandline}
+
+ログインできましたら、あとはご自由にお使いいただけます。
+\begin{commandline}
+yosuke@asusx200c:~/work/lxc$ lxc-attach -n stretch -P /home/yosuke/work/lxc/
+\end{commandline}
+
+早速パッケージを追加してみようとしました。
+
+\begin{commandline}
+root@stretch:/# apt-get update
+Reading package lists... Done
+W: chown to _apt:root of directory /var/lib/apt/lists/partial failed - SetupAPTPartialDirectory (1: Operation not permitted)
+W: chmod 0700 of directory /var/lib/apt/lists/partial failed - SetupAPTPartialDirectory (1: Operation not permitted)
+E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denied)
+E: Unable to lock directory /var/lib/apt/lists/
+\end{commandline}
+
+失敗しました。一般ユーザ権限で実行していることになっているみたいですね。
+Ubuntu ですが似たような問題が報告されています \url{https://github.com/lxc/lxd/issues/3310}
+現在、回避策を模索中です。
+
+\subsection{References}
+\begin{itemize}
+\item \url{https://stgraber.org/2016/04/06/lxc-2-0-has-been-released/} 2017/11/23 accessed 
+\item \url{https://wiki.debian.org/LXC} 2017/11/23 accessed 
+\item \url{https://wiki.debian.org/LXC/SimpleBridge} 2017/11/23 accessed 
+\item \url{http://tokyodebian.alioth.debian.org/pdf/debianmeetingresume201607.pdf} 2017/11/23 accessed 
+\end{itemize}
+
 %201709
 %-------------------------------------------------------------------------------
 \dancersection{Debian on Pomera DM200 どのようにDebianマシンとして動くようにしたか}{@ichinomoto}
