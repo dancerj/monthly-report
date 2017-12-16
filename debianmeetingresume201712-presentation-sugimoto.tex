@@ -1,0 +1,267 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{第158回東京エリアDebian勉強会 \\　\\gccのpieオプションとdebianにおける状況について}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2017-12-16}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item はじめに
+  \item PIEについて
+  \item PIEの採用状況
+  \item DebianにおけるPIEの状況
+  \item まとめ
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
+  \end{itemize}
+\end{frame}
+
+
+%\emtext{}
+
+\begin{frame}[containsverbatim]{はじめに}
+  \begin{itemize}
+  \item Debian 9のリリースノート
+    \begin{itemize}
+    \item 実行ファイルはデフォルトで PIE が有効でコンパイルされています
+    \item \url{https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.ja.html\#pie-is-now-default}
+    \end{itemize}
+  \item fileコマンドの結果が「ELF 64-bit LSB shared object」
+  \item よく知らないため、調べてみよう！
+  \end{itemize}
+\end{frame}
+
+
+\emtext{PIEについて}
+
+\begin{frame}[containsverbatim]{PIEとは(1)}
+  \begin{itemize}
+  \item PIC（Position Independent Code）、位置独立コード
+    \begin{itemize}
+    \item 共有ライブラリ（.so）に含むソースコードは通常"-fPICで"コンパイルする
+    \item オブジェクトファイルに含まれる機械語は相対アドレスで記述
+    \item 仮想アドレスのどの番地に配置されても実行可能
+    \end{itemize}
+  \item PIE（Position Independent Executable）、位置独立実行形式
+  \item PIE = PICのみのオブジェクトファイルで構成した実行ファイル
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{PIEとは(2)}
+  \begin{itemize}
+  \item （非PIEな）今までの実行ファイル
+    \begin{itemize}
+    \item 機械語を仮想アドレスのどの位置に配置するかはリンク時に決定
+    \item 実行時の仮想アドレスは毎回同じ位置に同じデータが配置
+    \end{itemize}
+  \item PIEな実行ファイル
+    \begin{itemize}
+    \item 実行時にダイナミックリンカーが相対アドレスで記述した機械語を絶対アドレスに変換し、仮想アドレスに配置する
+    \item 実行ファイル内の機械語と共有ライブラリの機械語の両方が変換対象
+    \item 上記処理が完了後、プログラムを実行する
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{PIEとは(3)}
+  非PIEな実行ファイルを実行（Debian 8 jessie）
+  \begin{commandline}
+    $ gcc test.c
+    $ ./a.out
+    IN foo()
+    0x400546
+    $ ./a.out
+    IN foo()
+    0x400546
+  \end{commandline}
+
+  PIEな実行ファイルを実行（Debian 9 stretch）
+  \begin{commandline}
+    $ gcc test.c
+    $ ./a.out
+    IN foo()
+    0xae27f6f0
+    $ ./a.out
+    IN foo()
+    0xbb1466f0
+  \end{commandline}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{PIEの長所と短所}
+  \begin{itemize}
+  \item 長所
+    \begin{itemize}
+    \item アドレス変換処理を行うため、実行プログラムの仮想アドレスの位置が変わる
+    \item 脆弱性があるプログラムは特定コードを実行されにくくなる
+    \item セキュリティが向上する
+    \end{itemize}
+  \item 短所
+    \begin{itemize}
+    \item アドレス変換処理そのもののオーバーヘッドがあり、非PIEに比べて実行速度が遅い
+    \end{itemize}
+  \item 短所の克服
+    \begin{itemize}
+    \item gcc-5.0においてPICなコードの実行性能が改善したというレポート\footnote{\url{https://software.intel.com/en-us/blogs/2014/12/26/new-optimizations-for-x86-in-upcoming-gcc-50-32bit-pic-mode}}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{PIEの実行ファイルを生成する}
+  \begin{itemize}
+  \item gccと実行環境
+    \begin{itemize}
+    \item gccのコンパイルオプション"-fPIE"を付与
+    \item gccのリンクオプション"-pie"を付与
+    \item PIEな実行ファイルを実行には、対応しているダイナミックローダーが必要
+    \end{itemize}
+  \item PIEな実行ファイルを扱うために必要なソフトウェア
+    \begin{itemize}
+    \item gcc-3.4以降
+    \item binutils-2.15以降（ldコマンド）
+    \item ダイナミックリンカー（ld.so、ld-linux.so）
+    \item gdb-7.1以降
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\emtext{PIEの採用状況}
+
+\begin{frame}[containsverbatim]{PIEの採用状況}
+  \begin{itemize}
+  \item OpenBSD 5.3 (2013-05-01)
+  \item Fedora 23 (2015-11-03)
+  \item Ubuntu 16.10 (2016-10-13)
+  \item Debian 9 (2017-06-16)
+  \item HardenedBSD
+  \item Android 5.0 (2014-10-17)
+  \end{itemize}
+\end{frame}
+
+
+\emtext{DebianにおけるPIEの状況}
+
+\begin{frame}[containsverbatim]{PIEに関する情報提供}
+  \begin{itemize}
+  \item Debian Wiki "Hardening"
+    \begin{itemize}
+    \item \url{https://wiki.debian.org/Hardening}
+    \item \url{https://wiki.debian.org/Hardening/PIEByDefaultTransition}
+    \end{itemize}
+  \item 「Porter roll call for Debian Stretch」
+    \begin{itemize}
+    \item stretchの実行ファイルはPIEをデフォルトにするかの意見募集メール
+    \item \url{https://lists.debian.org/debian-devel/2016/08/msg00324.html}
+    \end{itemize}
+  \item Lintian
+    \begin{itemize}
+    \item hardening-no-pie
+    \item \url{https://lintian.debian.org/tags/hardening-no-pie.html}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{gccパッケージ}
+  \begin{itemize}
+  \item stretchのgccは、gcc-6.3.0
+  \item gccのconfigureオプションに"--enable-default-pie"を指定している
+  \item gccのマニュアルには「Turn on -fPIE and -pie by default. 」とある
+  \item stretchの提供するgccでアプリケーションをビルドすると、デフォルトでPIEな実行ファイルが生成される
+  \item PIEな実行ファイルが動かないCPUアーキテクチャがあり、その場合は無効になっている（hppa、m68k）
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{PIE形式にしたくない場合}
+  \begin{itemize}
+  \item gccのリンクオプション"-no-pie"を指定して実行ファイルを生成する
+  \item 「./a.out: ELF 64-bit LSB executable」
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{まとめ}
+  \begin{itemize}
+  \item PIEとは、PICのみの機械語を含む実行ファイル
+  \item gccが生成する機械語の改善があり、実行性能問題が解決した
+  \item セキュリティを高めるためにPIEな実行ファイルをデフォルトで提供を始めた
+  \item gcc自体のビルドオプションを変更して有効にしており、アプリケーション開発者としてはうまく付き合う必要がある
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考文献}
+  \begin{itemize}
+  \item Debian Wiki "Hardening" \footnote{\url{https://wiki.debian.org/Hardening}}
+  \item ももいろテクノロジー ELF実行ファイルのメモリ配置はどのように決まるのか \footnote{\url{http://inaz2.hatenablog.com/entry/2014/07/27/205913}}
+  \item Red Hat Security Blog Position Independent Executables (PIE) \footnote{\url{https://access.redhat.com/blogs/766093/posts/1975793}}
+  \item OpenBSD's Position Independent Executable (PIE) Implementation \footnote{\url{http://www.openbsd.org/papers/nycbsdcon08-pie/mgp00001.html}}
+  \item New optimizations for X86 in upcoming GCC 5.0: PIC in 32 bit mode. \footnote{\url{https://software.intel.com/en-us/blogs/2014/12/26/new-optimizations-for-x86-in-upcoming-gcc-50-32bit-pic-mode}}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
