@@ -87,6 +87,18 @@
 2017年11月18日(土)に第157回東京エリアDebian勉強会を開催しました。会場は横浜にある株式会社ジェイエスピーさんをお借りして行いました。参加者は14名とゲストでお呼びしたDebian Project LeaderであるChris Lambさんでした。
 
 
+海外の方が参加しているため、勉強会は英語で行われました。自己紹介、自分がやっていること、DPLとの会話を英語ですべて行うのは筆者にとってなかなか大変でした。
+
+
+Chris Lambさんからは、Debian JPとDebian JPのメンバーがDebianの普及活動を行っていることに理解を示しました。しかし、活動報告やブログなどの情報発信が英語で提供されていないため海外から見ると活動がまったくわからないことを指摘しました。\footnote{イベント後、knokさんが英語で勉強会の報告ブログを書いています。 \url{http://blog.daionet.gr.jp/knok-e/2017/11/20/debian-seminar-in-yokohama-20171118/}}
+
+
+セミナーでは、やまねひできさんによる「Rethinking Debian release」を発表しました。"Debianは古い"という言われるゆえんを分析し、Early Majority向けに適したバージョンをリリースすることで利用ユーザが増えるのではないかと考えました。具体案としてリリースサイクルが短い"Fresh"というバージョンをつくった場合の良い点、悪い点を検討しました。この提案は本発表が初めて公開の場であり、今後Debian Developerやリリースチームへの展開が進み、議論されることを望みます。
+
+
+また、前日にはChris Lambさんの歓迎会を行い、日本とイギリスの料理や文化について語り合いました。
+
+
 \dancersection{事前課題}{杉本 典充}
 
 今回の事前課題は以下です:
@@ -97,11 +109,11 @@
 この課題に対して提出いただいた内容は以下です。
 \begin{multicols}{2}
 {\small
-%\input{image201712/prework.tex}
+\input{image201712/prework.tex}
 }
 \end{multicols}
 
-%\dancersection{Debian Trivia Quiz}{杉本 典充}
+%\dancersection{Debian Trivia Quiz}{username}
 %
 %Debianの昨今の話題についてのQuizです。
 %
@@ -120,6 +132,294 @@
 %-------------------------------------------------------------------------------
 
 \subsection{はじめに}
+
+Debian 9のリリースノートに「5.1.5. 実行ファイルはデフォルトで PIE (position independent executables) が有効でコンパイルされています」という記述があります。\footnote{\url{https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.ja.html\#pie-is-now-default}}
+
+Debian 9 stretchで提供している実行ファイルをfileコマンドで確認すると共有オブジェクトと認識しています。\footnote{Debian 8 jessieでは「ELF 64-bit LSB executable」という表示になります。}
+
+\begin{commandline}
+# cat /etc/debian_version
+9.1
+
+# file /bin/ls
+/bin/ls: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked,
+interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32,
+BuildID[sha1]=3c233e12c466a83aa9b2094b07dbfaa5bd10eccd, stripped
+\end{commandline}
+
+このPIEという機能は何なのか気になったため、調べてみました。
+
+
+\subsection{PIEについて}
+
+\subsubsection{PIEとは}
+
+PIE（Position Independent Executable、"位置独立実行形式"）とは、PIC（Position Independent Code、"位置独立コード"）のみのオブジェクトファイルで構成した実行ファイルのことをいいます。
+
+
+PICであるオブジェクトファイルは、機械語を相対アドレスで記述します。主に共有ライブラリに含んだオブジェクトファイルは"-fPIC"オプションを適用してコンパイルすることでPICにするのが一般的です\footnote{非PICでも共有ライブラリとして動きますが、メモリ効率、実行速度が劣ります。}。PIEな実行ファイルは、実行ファイルが保持するオブジェクトファイルの機械語部分（＝ELF形式の.text領域）をPICにしたものです。実行ファイル、ライブラリのコードをすべてPICにすることで、機械語は仮想アドレスのどの番地に配置されても実行できるようになります。
+
+
+（非PIEな）今までの実行ファイルの場合、実行ファイルや共有ライブラリの機械語を仮想アドレスのどの位置に配置するかはリンク時に決定します。そのため、実行時の仮想アドレスは毎回同じ位置に同じデータが配置されます。
+
+
+PIEな実行ファイルを実行したとき、ダイナミックリンカー（ld.soやld-linux.so）は相対アドレスで記述された機械語を絶対アドレスに変換して仮想アドレス空間に配置する前処理を実行し、そのあとプログラムを実行します。このアドレス変換処理は、実行ファイル内の機械語と共有ライブラリ内の機械語の両方が処理対象になります。
+
+
+\subsubsection{PIEと非PIEのアドレス配置の差異の確認}
+
+以下のコードで確認します。単に、foo()の関数アドレスをprintするだけのものです。
+
+\begin{commandline}
+  $ cat test.c
+  #include <stdio.h>
+
+  void foo()
+  {
+    printf(``IN foo()\n'');
+    return;
+  }
+
+  int main()
+  {
+    void (*f)() = foo;
+    f();
+
+    printf(``0x%x\n'', f);
+    return 0;
+  }
+\end{commandline}
+
+非PIEでコンパイルして実行します。（Debian 8 jessieのgcc-4.9.2を利用）
+実行時のfoo()のアドレスが毎回同じであることがわかります。
+
+\begin{commandline}
+  $ gcc test.c
+  $ ./a.out
+  IN foo()
+  0x400546
+  $ ./a.out
+  IN foo()
+  0x400546  
+  $ ./a.out
+  IN foo()
+  0x400546  
+\end{commandline}
+
+PIEでコンパイルして実行します。（Debian 9 stretchのgcc-6.3.0を利用）
+実行時のfoo()のアドレスが毎回異なることがわかります。
+
+\begin{commandline}
+  $ gcc test.c
+  $ ./a.out
+  IN foo()
+  0xae27f6f0
+  $ ./a.out
+  IN foo()
+  0xbb1466f0
+  $ ./a.out
+  IN foo()
+  0xbe86b6f0
+  $ ./a.out
+  IN foo()
+  0x37f456f0
+\end{commandline}
+
+
+\subsubsection{PIEの長所と短所}
+
+PIEの長所として、アドレス変換処理を行うことで実行プログラムを仮想アドレスに配置した結果が実行する度にランダムになるため、脆弱性があるプログラムは特定のコードを実行されにくくなります。そのため、セキュリティが向上します。
+
+
+PIEの短所として、PIEな実行ファイルの実行にはアドレス変換処理そのもののオーバーヘッドがあり、実行速度は非PIEな実行ファイルに比べて遅くなります。
+
+
+しかし、実行速度が遅い短所はgcc-5.0においてIntelによる開発の成果が取り込まれ、改善されてきた経緯があります\footnote{\url{https://software.intel.com/en-us/blogs/2014/12/26/new-optimizations-for-x86-in-upcoming-gcc-50-32bit-pic-mode}}。
+
+
+\subsubsection{PIEの実行ファイルを生成する}
+
+PIEの実行ファイルを生成するには以下の手順でコンパイル、リンクする必要があります。
+
+\begin{itemize}
+\item gccでソースコードをコンパイルする → "-fPIE"オプションを付与する
+\item gccでオブジェクトファイルをリンクする → "-pie"オプションを付与する
+\item PIEな実行ファイルを実行する → 対応しているダイナミックローダーが必要
+\end{itemize}
+
+
+そのため、PIEの実行ファイルを生成し実行するには、コンパイラ（gcc-3.4以降）、リンカー（ldコマンド。binutils-2.15以降）、ダイナミックリンカー（glibcに含まれるld.so、ld-linux.soなど）の対応が必要です。
+
+
+また、gdbはgdb-7.1からPIEの実行ファイルのデバッグが可能になっています。\footnote{\url{https://lwn.net/Articles/379511/}}
+
+
+\subsection{PIEの採用状況}
+
+PIEはセキュリティを高める機能のため、セキュリティに力を入れているディストリビューションで採用が始まりました。
+
+\begin{itemize}
+\item OpenBSD
+  \begin{itemize}
+  \item 「OpenBSD's Position Independent Executable (PIE) Implementation」 \url{http://www.openbsd.org/papers/nycbsdcon08-pie/mgp00001.html}
+  \item 「Converting OpenBSD to PIE」 \url{https://www.openbsd.org/papers/asiabsdcon2015-pie-slides.pdf}
+  \item OpenBSD 5.3（2013-05-01にリリース）でPIEをデフォルトの実行ファイルになった。
+  \end{itemize}
+\item Fedora
+  \begin{itemize}
+  \item 「Changes/Harden All Packages」 \url{https://fedoraproject.org/wiki/Changes/Harden_All_Packages}
+  \item Fedora 23（2015-11-03にリリース）でPIEをデフォルトの実行ファイルになった。
+  \end{itemize}
+\item Ubuntu
+  \begin{itemize}
+  \item 「GCC hardening for 16.10」 \url{https://wiki.ubuntu.com/SecurityTeam/PIE}
+  \item Ubuntu 16.10（2016-10-13にリリース）でPIEをデフォルトの実行ファイルになった。
+  \end{itemize}
+\item Debian
+  \begin{itemize}
+  \item リリースノート \url{https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.ja.html\#pie-is-now-default}
+  \item Debian 9（2017-06-16）でPIEをデフォルトの実行ファイルになった。
+  \end{itemize}
+\item HardenedBSD 
+  \begin{itemize}
+  \item FreeBSDのfork。\url{https://hardenedbsd.org/}
+  \item 11-STABLEをベースにしたバージョンをリリースしている。
+  \end{itemize} 
+\item Android
+  \begin{itemize}
+  \item Android 5.0からは、PIEな実行ファイルのみが実行可能。 2014-10-17にリリース。
+  \end{itemize} 
+\end{itemize}
+
+
+\subsection{DebianにおけるPIEの状況}
+
+\subsubsection{PIEに関する情報提供}
+
+Debianにおける、セキュリティの強化は以下の"Hardening"のページに記載があります。PIEについての記述もこのページにあります。
+
+
+\url{https://wiki.debian.org/Hardening}
+
+
+過去のdebianでは、debianパッケージのビルド時の環境変数"DEB\_BUILD\_HARDENING=1"を指定すると"-fPIE -pie"オプションが指定されるようになり、PIEな実行ファイルを生成することができます。
+
+
+Debian 9で提供する実行ファイルのデフォルト形式をPIEで提供することに対する議論は、以下のページとメーリングリストで見ることができます。
+
+\begin{itemize}
+  \item \url{https://wiki.debian.org/Hardening/PIEByDefaultTransition}
+  \item 「Porter roll call for Debian Stretch」\url{https://lists.debian.org/debian-devel/2016/08/msg00324.html}
+\end{itemize}
+
+
+また、Lintianには「hardening-no-pie」というwarningがあり、パッケージのビルドログに出力されます{https://lintian.debian.org/tags/hardening-no-pie.html}。
+
+
+\subsubsection{gccパッケージ}
+
+\subsubsubsection{gccビルド時のPIE関連オプション}
+
+Debian 9のgccパッケージはgcc-6.3.0を採用されており、"gcc -V"を実行してconfigureオプションを確認すると、"--enable-default-pie"を指定しています。
+
+\begin{commandline}
+$ gcc -v 2>&1 | grep pie
+  Configured with: ../src/configure -v --with-pkgversion='Debian 6.3.0-18'
+  --with-bugurl=file:///usr/share/doc/gcc-6/README.Bugs
+  --enable-languages=c,ada,c++,java,go,d,fortran,objc,obj-c++ --prefix=/usr
+  --program-suffix=-6 --program-prefix=x86_64-linux-gnu- --enable-shared
+  --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext
+  --enable-threads=posix --libdir=/usr/lib --enable-nls --with-sysroot=/
+  --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes
+  --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify
+  --enable-libmpx --enable-plugin
+  --enable-default-pie
+  --with-system-zlib --disable-browser-plugin  --enable-java-awt=gtk --enable-gtk-cairo
+  --with-java-home=/usr/lib/jvm/java-1.5.0-gcj-6-amd64/jre --enable-java-home
+  --with-jvm-root-dir=/usr/lib/jvm/java-1.5.0-gcj-6-amd64
+  --with-jvm-jar-dir=/usr/lib/jvm-exports/java-1.5.0-gcj-6-amd64
+  --with-arch-directory=amd64 --with-ecj-jar=/usr/share/java/eclipse-ecj.jar
+  --with-target-system-zlib --enable-objc-gc=auto --enable-multiarch
+  --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32
+  --enable-multilib --with-tune=generic --enable-checking=release
+  --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+\end{commandline}
+
+
+gccのマニュアルを確認すると、「Turn on -fPIE and -pie by default. 」と記述があります\url{https://gcc.gnu.org/install/configure.html}。そのため、debian 9以降のgccを使ってアプリケーションをコンパイルすると、デフォルトでPIEな実行ファイルが生成されます。
+
+
+なお、PIEをデフォルトで有効にするCPUアーキテクチャはホワイトリストでgcc-6ソースパッケージに書かれています。\footnote{hppaとm68kではPIEの実行ファイルは動作しないようです。\url{https://wiki.debian.org/Hardening}}
+
+
+\begin{commandline}
+  $ apt-get source gcc-6
+  $ cd gcc-6-6.3.0/debian
+  $ less rules.defs
+  (snip)
+  # pie by default --------------------
+  with_pie :=
+  ifeq ($(distribution),Debian)
+    ifeq (,$(filter $(distrelease),wheezy squeeze jessie))
+      pie_archs = amd64 arm64 armel armhf i386 mips mipsel mips64el \
+                  ppc64el s390x sparc sparc64 kfreebsd-amd64 kfreebsd-i386
+    endif
+  else ifeq ($(distribution),Ubuntu)
+    ifeq (,$(filter $(distrelease),lucid precise trusty utopic vivid wily))
+      pie_archs = s390x
+    endif
+    ifeq (,$(filter $(distrelease),lucid precise trusty utopic vivid wily xenial))
+      pie_archs += amd64 ppc64el
+    endif
+  endif
+  ifneq (,$(filter $(DEB_TARGET_ARCH),$(pie_archs)))
+    with_pie := yes
+  endif
+  (snip)
+\end{commandline}
+
+
+\subsubsection{PIE形式にしたくない場合}
+
+gccのリンクオプション"-no-pie"を指定すると、非PIEの実行ファイルを生成できます。
+
+\begin{commandline}
+  $ vi test.c
+  int main()
+  {
+    return 0;
+  }
+
+  $ gcc -no-pie test.c
+  $ file ./a.out
+  ./a.out: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked,
+  interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32,
+  BuildID[sha1]=032331c152d5bab1c160a884967d9cd9507a73e6, not stripped  
+\end{commandline}
+
+
+\subsection{終わりに}
+
+PIEについて調べてみました。PIEはPICの概念の延長のため、PICも勉強になりました。
+
+
+今回のPIEに似た技術として、実行プログラムのスタック領域やヒープ領域もランダム化して実行するASLR（Address Space Layout Randomization）という機能もあるとのことです。
+
+
+プログラムがどのように実行されるのかを知っておくのは有意義だと思います。
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+\item Debian Wiki Hardening \url{https://wiki.debian.org/Hardening}
+\item Debian Wiki Hardening PIEByDefaultTransition \url{https://wiki.debian.org/Hardening/PIEByDefaultTransition}
+\item ももいろテクノロジー ELF実行ファイルのメモリ配置はどのように決まるのか \url{http://inaz2.hatenablog.com/entry/2014/07/27/205913}
+\item Red Hat Security Blog Position Independent Executables (PIE) \url{https://access.redhat.com/blogs/766093/posts/1975793}
+\item OpenBSD's Position Independent Executable (PIE) Implementation \url{http://www.openbsd.org/papers/nycbsdcon08-pie/mgp00001.html}
+\item New optimizations for X86 in upcoming GCC 5.0: PIC in 32 bit mode. \url{https://software.intel.com/en-us/blogs/2014/12/26/new-optimizations-for-x86-in-upcoming-gcc-50-32bit-pic-mode}
+\end{itemize}
+
 
 %
 % 冊子にするために、4の倍数にする必要がある。
