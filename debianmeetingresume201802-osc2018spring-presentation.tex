@@ -1,0 +1,482 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2016 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{apacheにdjangoのwebアプリを\\デプロイしてみよう}
+\subtitle{OSC 2018 Tokyo/Spring\\東京エリアDebian勉強会/Debian JP Project\\第160回出張勉強会}
+\author{杉本 典充\\ dictoss@live.jp}
+\date{2018年02月24日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\begin{frame}
+\titlepage{}
+\end{frame}
+
+\begin{frame}{Agenda}
+  \begin{itemize}
+  \item Debian と Debian JPについて
+  \item Debian と webサーバ
+  \item DebianでDjangoなwebアプリを動かす
+    \begin{itemize}
+    \item 実行環境
+    \item apacheとwsgiアプリ配備の設定
+    \end{itemize}
+  \item 今後のイベントと情報入手先
+  \end{itemize}
+\end{frame}
+
+%-------------------
+
+\section{Debian と Debian JPについて}
+
+\begin{frame}
+  \begin{center}\Huge{Debian とは？}\end{center}
+\end{frame}
+
+
+\begin{frame}{Debian とは？}
+  
+\begin{itemize}
+\item \url{https://www.debian.org/}
+\item Debianはフリー/オープンなオペレーティングシステム (OS)を作成しようとするボランティアベースのプロジェクト。
+\item 自分たちの考えるフリーという言葉に関する定義、開発目的、パッケージングポリシーを厳格に決めている。
+\item 世界中に1000人以上の開発者がおり、他のディストリビューションのベースとして採用されている。
+\item 約2年毎にリリースが行われ、多くのパッケージとアーキテクチャをサポートしている。
+\item 年に一度、Debconfという開発者が集うイベントがある。Debconf18は7/21-7/27に台湾で開催予定。
+\item 上記のような特徴から様々なところで利用されているLinuxディストリビューションである。
+\end{itemize}
+
+\end{frame}
+
+%------------------
+
+\begin{frame}{Debian JP Project と Debian勉強会}
+  \begin{itemize}
+  \item Debian JP Project
+    \begin{itemize}
+    \item \url{https://www.debian.or.jp/}
+    \item 日本でDebianを普及させることを目的とした任意団体
+    \item Debian の日本語による情報発信、ユーザとの情報交換、Debian 開発者、パッケージメンテナの育成など。
+    \end{itemize}
+  \item Debian勉強会
+    \begin{itemize}
+    \item 2005年1月開始
+    \item 東京と関西で月に一回コンスタントに開催しているDebian開発者、ユーザによる勉強会
+    \item \url{https://tokyodebian.alioth.debian.org/}
+    \item \url{https://wiki.debian.org/KansaiDebianMeeting}
+    \item 東京エリアは第3土曜日、関西エリアは第4日曜日に開催することが多い
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+%-----------------------
+
+\section{Debianとwebサーバ}
+
+\begin{frame}
+  \begin{center}\Huge{Debianとwebサーバ}\end{center}
+\end{frame}
+
+\begin{frame}{Debianのwebサーバで言われること}% [containsverbatim]
+  
+\begin{itemize}
+\item webサーバ用途でDebianはあまり使われていないのではないか
+\item webサーバがいろいろあってどのパッケージをインストールすればいいかわからない
+\item apacheやnginxのディレクトリ構造がRHELやtarballでインストールしたときと異なるためよくわからない
+\end{itemize}
+
+そんな疑問にお答えするため、今回はdebian 9 の apache2 及び pythonのWebアプリケーションサーバ"WSGI"の設定についてお話しします。
+
+\end{frame}
+
+
+\begin{frame}{webサーバになぜDebianを選択するのか}% [containsverbatim]
+\begin{itemize}
+  \item Linuxのwebサーバの稼働OSシェア\footnote{\url{https://w3techs.com/technologies/details/os-linux/all/all}}
+  \begin{itemize}
+    \item 1位 Ubuntu 39.1 \%
+    \item 2位 Debian 30.8 \%
+    \item 3位 CentOS 20.6 \%
+    \item 4位 Red Hat 2.9 \%
+  \end{itemize}
+
+  \item 月100万アクセス以上のwebサイトのwebサーバシェア\footnote{\url{https://news.netcraft.com/archives/2018/01/19/january-2018-web-server-survey.html}}
+  \begin{itemize}
+    \item 1位 Apache 37.03 \% %% 2012年くらいから下がり始めた
+    \item 2位 nginx 30.46 \% %% apacheの減少がnginxに移っている
+    \item 3位 Microsoft IIS Web Server 9.57 \%      
+  \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Debianで提供しているwebサーバ}% [containsverbatim]
+
+\begin{itemize}
+  \item apache2 (apache-2.4.25)
+  \item nginx (nginx-1.10.3、stretch-backportsはnginx-1.13.3)
+  \item lighttpd (lighttpd-1.4.45)
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Debainで提供しているWSGIサーバ}% [containsverbatim]
+  
+\begin{itemize}
+\item WSGI = Web Server Gateway Interface
+\item WSGIを実装したwebアプリケーションサーバ
+  \begin{itemize}
+  \item mod\_wsgi (libapache2-mod-wsgi、libapache2-mod-wsgi-py3パッケージ)
+    \begin{itemize}
+    \item apache2の拡張モジュール。apache2のみ利用可能。
+    \end{itemize}
+  \item uwsgi (uwsgiパッケージ)、gunicorn
+    \begin{itemize}
+    \item wsgiプロトコルで待ち受けするデーモン。nginx、apache2で利用可能。
+    \end{itemize}
+  \item gunicorn (python-gunicorn、python3-gunicornパッケージ)
+    \begin{itemize}
+    \item wsgiプロトコルで待ち受けするデーモン。nginx、apache2で利用可能。
+    \end{itemize}
+  \end{itemize}
+\item 性能ベンチマークの例（2016年5月）\footnote{\url{https://blog.appdynamics.com/engineering/a-performance-analysis-of-python-wsgi-servers-part-2/}}
+\end{itemize}
+
+\end{frame}
+
+\section{DebianでDjangoアプリを動かす}
+
+\begin{frame}
+  \begin{center}\Huge{DebianでDjangoアプリを動かす}\end{center}
+\end{frame}
+
+
+\begin{frame}{実行環境}% [containsverbatim]
+
+\begin{itemize}
+\item 今回作成するアプリケーションの実行環境
+  \begin{itemize}
+    \item Debian GNU/Linux 9 Stretch amd64
+    \item apache-2.4
+    \item mod\_wsgi-4.5
+    \item python-3.5
+    \item sqlite3
+    \item django-2.0 (debパッケージを利用せずpipでインストール)
+  \end{itemize}
+\item 今回の環境構築の前提
+  \begin{itemize}
+  \item virtualenv（pyenv）は使わず、システムワイドにpythonライブラリをインストールする
+  \end{itemize}
+\item 情報
+  \begin{itemize}
+  \item \url{https://docs.djangoproject.com/ja/2.0/howto/deployment/wsgi/modwsgi/}
+  \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{webアプリケーションの開発}
+
+\begin{itemize}
+\item Djangoのアプリケーション開発のチュートリアル
+  \begin{itemize}
+  \item \url{https://docs.djangoproject.com/ja/2.0/intro/}
+  \end{itemize}
+\item サンプルソースコード
+  \begin{itemize}
+  \item \url{https://github.com/dictoss/django-tutorial}
+  \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{webサーバ、WSGIサーバのインストール}
+ 
+\begin{commandlinesmall}
+# apt update
+# apt install python3.5 python3-pip
+# apt install apache2 libapache2-mod-wsgi-py3
+# apt install sqlite3
+\end{commandlinesmall}
+
+\begin{commandlinesmall}
+# pip3 install django==2.0.2
+\end{commandlinesmall}
+
+\begin{itemize}
+\item 注意点
+  \begin{itemize}
+  \item libapache2-mod-wsgi-py3とlibapache2-mod-wsgiはパッケージの制約で片方しかインストールできません
+  \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{webアプリケーションのコードを配置}
+
+\begin{commandlinesmall}
+# apt install git
+\end{commandlinesmall}
+
+\begin{commandlinesmall}
+$ git clone https://github.com/dictoss/django-tutorial.git
+$ cd django-tutorial/2.0
+$ su
+# mkdir -p /var/www/django-tutorial
+# cp -r mysite /var/www/django-tutorial/
+# chown -fR www-data:www-data /var/www/django-tutorial
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{mod\_wsgiの設定（1）}
+
+mod\_wsgi全体の動作設定
+
+\begin{commandline}
+# vi /etc/apache2/mods-available/wsgi.conf
+\end{commandline}
+
+特に変更しなくても動きます。
+詳しい設定はこちら。\footnote{\url{http://modwsgi.readthedocs.io/}}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{mod\_wsgiの設定（2）}
+
+mod\_wsgiにおけるアプリケーションの動作モードは2種類あります\footnote{\url{http://modwsgi.readthedocs.io/en/latest/user-guides/reloading-source-code.html}}
+  
+\begin{itemize}
+  \item Embedded Mode
+  \item Daemon Mode
+\end{itemize}
+
+\begin{table}[htb]
+  \caption{mod\_wsgiの動作モードの比較}
+  \begin{tabular}{|l|c|c|}
+    \hline
+    ― & Embedded Mode & Daemon Mode \\
+    \hline \hline
+    メモリ使用量 & 大 & 中 \\
+    \hline
+    CPU使用量 & 大 & 中 \\
+    \hline
+    性能 & 高 & 中 \\
+    \hline
+    アプリ再読み込み & restart apache2 & \shortstack{reload apache2 \\ or touch wsgi.py} \\
+    \hline
+    apache MPM & prefork & \shortstack{prefork \\ worker \\ event} \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{mod\_wsgiの設定（3）}
+
+アプリケーション固有の設定（daemon modeの設定）
+
+\begin{commandlinesmall}
+# vi /etc/apache2/conf-available/wsgi_mysite.conf
+
+WSGIScriptAlias /mysite /var/www/django-tutorial/mysite/mysite/wsgi.py
+
+WSGIDaemonProcess mysite user=www-data group=www-data \
+processes=2 threads=64 maximum-requests=256 \
+python-path=/var/www/django-tutorial/mysite \
+display-name=%{GROUP}
+
+WSGIProcessGroup  mysite
+\end{commandlinesmall}
+
+% 設定として紹介するか検討
+%
+% Alias /static/polls ``/var/www/django-tutorial/mysite/polls/static/''
+% <Directory ``/var/www/django-tutorial/mysite/polls/static/''>
+% Require all granted
+% </Directory>
+
+\begin{itemize}
+\item virtualenvを使う場合、WSGIDaemonProcess に "python-home" を指定する
+\item WSGIDaemonProcessのパラメータはURLを参照\footnote{\url{http://modwsgi.readthedocs.io/en/latest/configuration-directives/WSGIDaemonProcess.html}}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{apache2の設定}
+
+Debianの/etc/apache2にディレクトリ構成
+
+\begin{itemize}
+  \item apache2.conf, envvars, magic, ports.conf
+    \begin{itemize}
+    \item 設定や環境変数を定義するファイル
+    \end{itemize}
+  \item conf-available, conf-enabled ディレクトリ
+    \begin{itemize}
+    \item 設定ファイル と 有効/無効の切り替え設定 を保持
+    \item a2enconf と a2disconf で有効/無効を切り替え
+    \end{itemize}
+  \item mods-available, mods-enabled ディレクトリ
+    \begin{itemize}
+    \item 拡張モジュールの設定ファイル と 有効/無効の切り替え設定 を保持
+    \item a2enmod と a2dismod で有効/無効を切り替え
+    \end{itemize}
+  \item sites-available, sites-enabled ディレクトリ
+    \begin{itemize}
+    \item VirtualHostの設定ファイル と 有効/無効の切り替え設定 を保持
+    \item a2ensite と a2dissite で有効/無効を切り替え
+    \end{itemize}
+\end{itemize}
+  
+\end{frame}
+
+\begin{frame}[containsverbatim]{apache2の設定}
+  
+\begin{commandlinesmall}
+# cd /etc/apache2
+# a2enconf wsgi_mysite
+Enabling conf wsgi_mysite.
+To activate the new configuration, you need to run:
+systemctl reload apache2  
+\end{commandlinesmall}
+
+\begin{commandlinesmall}
+# ls -l /etc/apache2/conf-enabled/wsgi_mysite.conf
+lrwxrwxrwx 1 root root 34  2月 18 12:28 /etc/apache2/conf-enabled/wsgi_mysite.conf -> ../conf-available/wsgi_mysite.conf  
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{動作確認}
+
+\begin{commandlinesmall}
+# systemctl restart apache2
+\end{commandlinesmall}
+
+プロセス確認
+
+\begin{commandlinesmall}
+# ps -ef | grep www | grep -v grep
+www-data  6507  6506  0  3月18 ?      00:00:00 (wsgi:mysite)     -k start
+www-data  6508  6506  0  3月18 ?      00:00:00 (wsgi:mysite)     -k start
+www-data  6509  6506  0  3月18 ?      00:00:00 /usr/sbin/apache2 -k start
+www-data  6510  6506  0  3月18 ?      00:00:00 /usr/sbin/apache2 -k start  
+\end{commandlinesmall}
+
+アクセス確認
+
+\url{http://localhost/mysite/polls/}
+
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{まとめ}
+
+  \begin{itemize}
+  \item debian上にapache2、WSGIアプリケーションを配備する方法
+  \item apache2、libapache2-mod-wsgi-py3をパッケージでインストールする
+  \item wsgiアプリケーションの設定ファイルの書き方
+  \item debian流の設定ファイルを有効にする手順
+  \end{itemize}
+
+\end{frame}
+
+%----------------
+
+\section{今後のイベントと情報入手先}
+
+\begin{frame}{今後のイベントと情報入手先}
+
+  \begin{itemize}
+  \item 2/25 第132関西Debian勉強会
+    \begin{itemize}
+      \item 大阪　福島区民センター
+      \item \url{https://wiki.debian.org/KansaiDebianMeeting/20180225}
+    \end{itemize}
+    
+  \item 3/24(予定) 第161回東京エリアDebian勉強会
+    \begin{itemize}
+      \item \url{http://tokyodebian.alioth.debian.org/2018-03.html}
+    \end{itemize}
+
+  \item Debian Project
+    \begin{itemize}
+    \item Webサイト \url{https://www.debian.org/}
+    \item Debian Wiki \url{https://wiki.debian.org/ja}
+    \end{itemize}
+        
+  \item Debian JP Project
+    \begin{itemize}
+      \item Webサイト \url{https://www.debian.or.jp/}
+      \item Twitter @debianjp, @debian\_jp
+      \item 雑誌 Software Design 「Debian Hot Topics」
+    \end{itemize}
+  \end{itemize}
+
+\end{frame}
+
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
