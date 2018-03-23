@@ -1,0 +1,503 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011, 2015 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2018}
+\newcommand{\debmtgmonth}{1}
+\newcommand{\debmtgdate}{20}
+% started from zero:
+% (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{159}
+
+% Needed to import pandoc-generated LaTeX documents.
+% See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% tikz picture の為のマクロ設定
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt　 }}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関連のミーティング報告}{杉本 典充}
+
+\subsection{第158回東京エリアDebian勉強会}
+
+
+
+\dancersection{事前課題}{yy\_y\_ja\_jp}
+
+今回の事前課題は以下です:
+\begin{enumerate}
+\item Hack Timeは何をしますか
+\end{enumerate}
+この課題に対して提出いただいた内容は以下です。
+\begin{multicols}{2}
+{\small
+\input{image201801/prework.tex}
+}
+\end{multicols}
+
+%\dancersection{Debian Trivia Quiz}{username}
+%
+%Debianの昨今の話題についてのQuizです。
+%
+%今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}などに投稿された内容からです。
+%
+%\begin{multicols}{2}
+%\input{image201801/quiz.tex}
+%\end{multicols}
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[    ]\+" "")
+
+%-------------------------------------------------------------------------------
+%\dancersection{go / debian での機械学習環境構築について}{ysaito}
+%-------------------------------------------------------------------------------
+%
+%\subsection{はじめに}
+機械学習という分野では, python, あるいは, R が人気を二分する.
+しかし, 第三の選択肢として, Go による機械学習環境がある.
+Go で機械学習を行うメリットは, 静的型安全や, goroutine, channel, などの並行処理のメリットがあるが, 最も注目すべき点は, インフラ, システムプログラミングに対する親和性であると考える.
+
+今回は, 機械学習そのものの解説には踏み込まず, Go/Debian による機械学習環境の構築に触れたい.
+
+環境は debian 9.4 (stretch) を利用する.
+
+%\subsection{書籍の紹介}
+Machine Learning With Go (Packt publishing)
+https://www.packtpub.com/big-data-and-business-intelligence/machine-learning-go
+
+%\subsection{kuberetes, docker の準備}
+VMサポートは, 有効にせずローカルでの実行を前提として minikube を導入する.
+
+docker リポジトリの導入
+\begin{commandline}
+apt install curl apt-transport-https ca-certificates software-properties-common
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+\end{commandline}
+
+fingerprint の確認
+\begin{commandline}
+apt-key fingerprint 0EBFCD88
+
+pub   rsa4096 2017-02-22 [SCEA]
+      9DC8 5822 9FC7 DD38 854A  E2D8 8D81 803C 0EBF CD88
+uid           [ unknown] Docker Release (CE deb) <docker@docker.com>
+sub   4096R/F273FCD8 2017-02-22 [S]
+\end{commandline}
+
+docker の導入
+\begin{commandline}
+apt install docker-ce
+docker version
+Docker version 18.03.0-ce, build 0520e24
+
+# 入力データを処理するアルゴリズムがのった docker image を導入する
+docker pull dwhitena/goregtrain:single
+\end{commandline}
+
+
+minikube, kubectl の導入
+\begin{commandline}
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-relesase/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && mv kubectl /usr/local/bin/
+
+minikube version
+minikube version v0.25.2
+
+kubectl version
+Client Version: version.Info{Major:"1", Minor:"9", GitVersion:"v1.9.6", GitCommit:"9f8ebd171479bec0ada837d7ee641dec2f8c6dd1", GitTreeState:"clean", BuildDate:"2018-03-21T15:21:50Z", GoVersion:"go1.9.3", Compiler:"gc", Platform:"linux/amd64"}
+\end{commandline}
+
+minikube 用の設定と minikube の開始
+\begin{commandline}
+export MINIKUBE_WANTUPDATENOTIFICATION=false
+export MINIKUBE_WANTREPORTERRORPROMPT=false
+export MINIKUBE_HOME=$HOME
+export CHANGE_MINIKUBE_NONE_USER=true
+mkdir $HOME/.kube || true
+touch $HOME/.kube/config
+
+export KUBECONFIG=$HOME/.kube/config
+
+minikube start --vm-driver=none
+
+\end{commandline}
+
+pachyderm の導入
+\begin{commandline}
+curl -o /tmp/pachctl.deb -L https://github.com/pachyderm/pachyderm/releases/download/v1.7.0rc4/pachctl_1.7.0rc4_amd64.deb && sudo dpkg -i /tmp/pachctl.deb
+
+pachctl deploy local
+\end{commandline}
+
+%\subsection{pachyderm とは}
+pachydermとは, データのバージョン管理や, 機械学習の処理をパイプラインでつなぐことができる go 製のソフトウェアである.
+詳しくは, https://pachyderm.io にて情報がある.
+
+%\subsection{構成する概要}
+
+diabetes.csv から, go による機械学習アルゴリズムにより、モデル（csvから得られた関数のパラメータ）を生成し, model.json
+新規に得られた入力, 1.json から予測, 1.json を出力する
+
+     +-------------------------------------------------------------+
+     |                                                             |
+     |                                                             |
+     |  +----------+    +----------+    +------------+             |
+     |  |          |    |          |    |            |             |
+     |  |  学   習 |   　| モ デ ル  |    |  モ  デ  ル |             |
+     |  |          |    |          |    |            |             |
++-----> |          +--> |          |--> |            |             |
+     |  diabetes.csv    | ./goregtrain  | model.json |             |
+     |  |          |    |          |    |            |             |
+     |  +----------+    +----------+    +-----+------+             |
+     |                                        |                    |
+     |                  +----------+    +-----v------+  +--------+ |
+     |                  |          |    |            |  |        | |
+     |                  | attributes    | 予  測      |  | 予  測 | |
+ +--------------------> |          +--> |            +> |        | |
+     |                  |          |    |            |  |        | |
+     |                  | 1.json   |    | ./goregpredict| 1.json | |
+     |                  +----------+    +------------+  +--------+ |
+     |                                                             |
+     +-------------------------------------------------------------+
+
+%\subsection{入力に使用するデータ}
+https://github.com/PacktPublishing/Machine-Learning-With-Go/tree/master/Chapter09/building_a_scalable_pipeline/example2
+
+%\subsection{go によって pachyderm へ接続しリポジトリを作る}
+\begin{commandline}
+// localhost 上の Kubernetes クラスタの pachyderm へ接続する
+// デフォルトの pachyderm のポート 30650
+c, err := client.NewFromAddress("0.0.0.0:30650")
+if err != nil {
+log.Fatal(err)
+}
+defer c.Close()
+// 学習用のリポジトリを作成 "training."
+if err := c.CreateRepo("training"); err != nil {
+log.Fatal(err)
+}
+// 予測の入力用のリポジトリを作成する "attributes."
+if err := c.CreateRepo("attributes"); err != nil {
+log.Fatal(err)
+}
+// ２つのリポジトリに sanity check をおこなう
+repos, err := c.ListRepo(nil)
+if err != nil {
+log.Fatal(err)
+}
+// リポジトリの数を確認する
+if len(repos) != 2 {
+log.Fatal("Unexpected number of data repositories")
+}
+\end{commandline}
+
+コンパイルと実行
+\begin{commandline}
+go build
+./create
+pachctl list-repo
+NAME CREATED SIZE
+attributes 3 seconds ago 0B
+training 3 seconds ago 0B
+\end{commandline}
+
+%\subsection{attribute リポジトリ, training リポジトリへデータをセットする}
+
+\start{commandline}
+// Pachyderm へ接続する
+c, err := client.NewFromAddress("0.0.0.0:30650")
+if err != nil {
+log.Fatal(err)
+}
+defer c.Close()
+// "attributes" データリポジトリにデータを "master" ブランチにコミットする処理を始める
+commit, err := c.StartCommit("attributes", "master")
+if err != nil {
+log.Fatal(err)
+}
+// attributes に入れる JSON を開く
+f, err := os.Open("1.json")
+if err != nil {
+log.Fatal(err)
+}
+// attributes へファイルをプットする
+if _, err := c.PutFile("attributes", commit.ID, "1.json", f); err != nil {
+log.Fatal(err)
+}
+// コミットを完了させる.
+if err := c.FinishCommit("attributes", commit.ID); err != nil {
+log.Fatal(err)
+}
+// "training" データリポジトリの "master" ブランチへデータをコミットする処理を始める.
+commit, err = c.StartCommit("training", "master")
+if err != nil {
+log.Fatal(err)
+}
+// 学習用のデータセットファイルを開く
+f, err = os.Open("diabetes.csv")
+if err != nil {
+log.Fatal(err)
+}
+// training データセットを 学習用データリポジトリに展開する.
+if _, err := c.PutFile("training", commit.ID, "diabetes.csv", f); err !=
+nil {
+log.Fatal(err)
+}
+// コミットを完了させる.
+if err := c.FinishCommit("training", commit.ID); err != nil {
+log.Fatal(err)
+}
+\end{commandline}
+
+コンパイルして実行する
+\start{commandline}
+# 上記のコードをコンパイルする
+go build
+# 実行
+./a
+
+# リポジトリを表示する
+pachctl list-repo
+NAME CREATED SIZE
+training 13 minutes ago 73.74KiB
+attributes 13 minutes ago 210B
+
+# training リポジトリの master ブランチのファイルを表示する
+pachctl list-file training master
+NAME TYPE SIZE
+diabetes.csv file 73.74KiB
+
+# attributes リポジトリの master ブランチのファイルを表示する
+pachctl list-file attributes master
+NAME TYPE SIZE
+1.json file 210B
+\end{commandline}
+
+%\subsection{model ステージのJSON を準備する}
+
+\start{commandline}
+{
+  "pipeline": {
+    "name": "model"
+  },
+  "transform": {
+    "image": "dwhitena/goregtrain:single",
+    "cmd": [
+      "/goregtrain",
+      "-inDir=/pfs/training",
+      "-outDir=/pfs/out"
+    ]
+  },
+  "parallelism_spec": {
+    "constant": "1"
+  },
+  "input": {
+    "atom": {
+      "repo": "training",
+      "glob": "/"
+    }
+  }
+}
+\end{commandline}
+
+%\subsection{model ステージのJSON を準備する}
+
+1.Pachyderm データパイプラインが model という名前であることを教える
+2.Pachyderm へ, モデル作成に使うアルゴリズムを教える, docker イメージになっている線形回帰モデルを使用する( dwhitena/goregtrain:single ), 
+3. そして, 学習用データファイルとのパイプラインを教える
+
+\start{commandline}
+# パイプラインの作成
+pachctl create-pipeline -f model.json
+
+# pods の状態確認
+kubectl get pods
+NAME READY STATUS RESTARTS AGE
+etcd-2142892294-38ptw 1/1 Running 0 2h
+pachd-776177201-04l6w 1/1 Running 0 2h
+pipeline-model-v1-p0lnf 2/2 Running 0 1m
+
+# pachyderm 上の job 確認
+pachctl list-job
+ID OUTPUT COMMIT STARTED DURATION RESTART PROGRESS DL UL STATE
+14f052ae-878d-44c9-a1f9-ab0cf6d45227 model/a2c7b7dfb44a40e79318c2de30c7a0c8
+3 minutes ago Less than a second 0 1 + 0 / 1 73.74KiB 160B success
+
+# データリポジトリを確認
+pachctl list-repo
+NAME CREATED SIZE
+model 3 minutes ago 160B
+training About an hour ago 73.74KiB
+attributes About an hour ago 210B
+
+# model master ブランチにあるファイルを確認
+pachctl list-file model master
+NAME TYPE SIZE k8s
+model.json file 160B
+
+# model.json の中身を確認する
+pachctl get-file model master model.json
+{
+  "intercept": 152.13348416289818,
+  "coefficients": [
+    {
+      "name": "bmi",
+      "coefficient": 949.4352603839862
+    }
+  ]
+}
+\end{commandline}
+
+
+%\subsection{予測用のパイプラインを設定し結果を得る}
+
+\start{commandline}
+{
+  "pipeline": {
+    "name": "prediction"
+  },
+  "transform": {
+    "image": "dwhitena/goregpredict",
+    "cmd": [
+      "/goregpredict",
+      "-inModelDir=/pfs/model",
+      "-inVarDir=/pfs/attributes",
+      "-outDir=/pfs/out"
+    ]
+  },
+  "parallelism_spec": {
+    "constant": "1"
+  },
+  "input": {
+    "cross": [
+    {
+      "atom": {
+        "repo": "attributes",
+        "glob": "/*"
+      }
+    },
+      {
+        "atom": {
+          "repo": "model",
+          "glob": "/"
+        }
+      }
+    ]
+  }
+}
+\end{commandline}
+
+\start{commandline}
+# prediction.json へのデータパイプラインを作成する
+pachctl create-pipeline -f prediction.json
+
+# pachyderm 上の job のリストを確認する
+pachctl list-job
+ID OUTPUT COMMIT STARTED DURATION RESTART PROGRESS DL UL STATE
+03f36398-89db-4de4-ad3d-7346d56883c0
+prediction/5ce47c9e788d4893ae00c7ee6b1e8431 About a minute ago Less than a
+second 0 1 + 0 / 1 370B 266B success
+14f052ae-878d-44c9-a1f9-ab0cf6d45227 model/a2c7b7dfb44a40e79318c2de30c7a0c8
+19 minutes ago Less than a second 0 1 + 0 / 1 73.74KiB 160B success
+
+# リポジトリの確認をする
+pachctl list-repo
+NAME CREATED SIZE
+prediction About a minute ago 266B
+model 19 minutes ago 160B
+training About an hour ago 73.74KiB
+attributes About an hour ago 210B
+
+# prediction リポジトリの master ブランチの中身を確認する
+pachctl list-file prediction master
+NAME TYPE SIZE
+1.json file 266B
+
+# 1.json ファイルの中身を確認する
+pachctl get-file prediction master 1.json
+\end{commandline}
+
+%
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+\mbox{}\newpage
+
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
