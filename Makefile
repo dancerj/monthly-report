@@ -20,12 +20,13 @@ publish: $(RELEASEFILES)
 	#
 	# this gives error when I am not the owner of the
 	# file, but fixes all files that I am the owner
-	-ssh ${ALIOTH_FILEHOSTING} chmod 664 /home/groups/tokyodebian/htdocs/pdf/*.pdf
+	cd ../pdf && git push
 
 %.release-stamp: %.pdf
 	# copy PDF file to a temporal location, and fixup permissions, and move to final destination.
-	scp $< ${ALIOTH_FILEHOSTING}:/home/groups/tokyodebian/htdocs/pdf/$<.$(TMPEXT)
-	ssh ${ALIOTH_FILEHOSTING} "chmod 664 /home/groups/tokyodebian/htdocs/pdf/$<.$(TMPEXT) && mv /home/groups/tokyodebian/htdocs/pdf/$<.$(TMPEXT) /home/groups/tokyodebian/htdocs/pdf/$<"
+	cp -f $< ../pdf/
+	cd ../pdf && git add "$<"
+	cd ../pdf && git commit -m "publish pdf $<" "$<"
 	touch $@
 
 %.pdf: %.dvi
