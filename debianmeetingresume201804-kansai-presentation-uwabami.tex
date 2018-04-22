@@ -1,0 +1,167 @@
+\documentclass[cjk,dvipdfmx,14pt,compress,%
+hyperref={bookmarks=true,bookmarksnumbered=true,bookmarksopen=false,%
+colorlinks=false,%
+pdftitle={第 134 回 関西 Debian 勉強会},%
+pdfauthor={佐々木洋平},%
+%pdfinstitute={関西 Debian 勉強会},%
+pdfsubject={資料},%
+}]{beamer}
+
+\title{最近のDebianパッケージ作成環境}
+\subtitle{$\sim$第 134 回 関西 Debian 勉強会$\sim$}
+\author[佐々木洋平]{{\large\textbf{佐々木洋平}}\newline\texttt{uwabami@debian.or.jp}}
+%\email{uwabami@gfd-dennou.org}
+\institute[Debian JP]{{\normalsize\texttt{関西 Debian 勉強会}}}
+\date{{\small{2018 年 4 月 22 日}}}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{moreverb}
+\usepackage{ulem}
+\renewcommand{\familydefault}{\gtdefault}
+\renewcommand{\kanjifamilydefault}{\gtdefault}
+
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+\usetheme{KansaiDebian}
+\begin{document}
+\begin{frame}{事前準備}
+  以下をインストールしておいて下さい。
+  \begin{enumerate}
+  \item \texttt{git-buildpackage}
+  \item \texttt{sbuild}
+  \item \texttt{lintian}, \texttt{piuparts}
+  \item \texttt{autopkgtest}, \texttt{debci}
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{おことわり}
+  \begin{itemize}
+  \item 疑問、質問、ツッコミ、茶々、\alert{大歓迎}
+  \item その場でインタラクティブにどうぞ
+  \item ハッシュタグ \texttt{\#kansaidebian}
+  \end{itemize}
+\end{frame}
+
+\takahashi[50]{今日のお題}
+
+\begin{frame}[fragile]
+  \frametitle{今日のお題}
+  \begin{itemize}
+  \item モダンなパッケージ作成環境構築について
+    \begin{enumerate}
+    \item \texttt{git-buildpackage}
+    \item \texttt{sbuild}, \texttt{cowbuilder}
+    \item \texttt{lintian}, \texttt{piuparts}
+    \item \texttt{autopkgtest}, \texttt{debci}
+    \end{enumerate}
+  \item \sout{この間自分で仕込んでしまった}バグをその場で修正しアップロード。
+  \item その際の作業をライブで見せつつ、皆からツッコミを受ける(受けたい)。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{\texttt{git-buildpackage}}
+  \begin{itemize}
+  \item %
+    Debian パッケージを Git で管理する/
+    管理されてるリポジトリを良い具合に扱うツール
+  \item %
+    インストールしていない人はインストールしましょう。
+  \item %
+    Debian パッケージ概観
+    \begin{itemize}
+    \item gbp の時のブランチ構成
+    \item patch 管理: quilt, gbp pq
+    \item \texttt{packaging-tutorial}: \\チュートリアルドキュメント(PDF)が入手できます。
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{\texttt{git-buildpackage}: おすすめ}
+  わたしはこんな alias, zsh function を仕込んでいます:
+  \footnotesize
+\begin{verbatim}
+git-b:
+gbp buildpackage \
+ --git-ignore-new \
+ --git-builder='debuild -rfakeroot -i.git -I.git -sa -k$GPG_KEY_ID'
+
+git-bs () {
+  [ -z $ARCH ] && ARCH=amd64
+  [ -z $DIST ] && DIST=unstable
+  [ x"$DIST" = x"stretch" ] && DIST=stable
+  [ x"$DIST" = x"buster" ] && DIST=testing
+  [ x"$DIST" = x"sid" ] && DIST=unstable
+  gbp buildpackage \
+     --git-ignore-new \
+     --git-builder="sbuild --arch=${ARCH} -d ${DIST}"
+}
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+  \frametitle{\texttt{sbuild}}
+  \begin{itemize}
+  \item パッケージのクリーンルームビルド環境
+    \begin{itemize}
+    \item %
+      最近 \texttt{sbuild-debian-developer-setup} という
+      お手軽セットアップパッケージもある。
+    \end{itemize}
+  \item 同様のソフトウェア:\\
+    \texttt{pbuilder, cowbuilder, qemubuilder}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{\texttt{sbuild}の設定: \texttt{\$HOME/.sbuildrc}}
+  長いので、以下をご覧下さい。
+  \begin{center}
+    {\small{\texttt{https://uwabami.github.io/cc-env/DebianPackaging.html}}}
+  \end{center}
+  \begin{itemize}
+  \item \texttt{lintian}
+    \begin{itemize}
+    \item %
+      パッケージ情報の lint
+    \end{itemize}
+  \item \texttt{piuparts}
+    \begin{itemize}
+    \item %
+      パッケージのインストール、削除のチェッカー
+    \item %
+      コマンドラインオプションが色々アレなので、注意
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{rdepends の autopkgtest: CI}
+  \begin{itemize}
+  \item \texttt{debci}: Debian CI
+    \begin{itemize}
+    \item 詳細は \texttt{ci.debian.net} 参照
+    \item 個人で使うには、ちょっと大仰. \\
+      ⇒ \texttt{sbuild} の post-hook で呼び出すようにしてみた\\
+      {\footnotesize{\texttt{https://uwabami.github.io/cc-env/DebianPackaging.html}}}
+    \item \texttt{salsa.debian.org} の CI で呼び出すようにしても良いかも。
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\takahashi[50]{何かご質問などありますか?}
+
+\takahashi[50]{ありがとう\\ございました!}
+
+\end{document}
+%%% Local Variables:
+%%% mode: japanese-latex
+%%% TeX-master: t
+%%% End:
