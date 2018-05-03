@@ -2,7 +2,7 @@
 PATH=/bin:/usr/bin
 CDPATH=
 umask 0022
-fqdn="tokyodebian.alioth.debian.org"
+fqdn="tokyodebian-team.pages.debian.net"
 workdestdir="html/"
 if [ $# -lt 1 ]; then
 	echo "Usage: $0 pdf-file ... ";
@@ -14,6 +14,7 @@ fi
 for pdffile in $*
 do
 	base=`basename $pdffile .pdf`
+	htmldir=html`echo "$base" | sed 's/^debianmeetingresume//' | env LANG=C sed 's/^\(....\).*$/\1/'`
 	html="${base}.html"
 	thumnail="${base}-01.png"
 	needupload="no"
@@ -23,8 +24,8 @@ do
 		sed -i -e '/meta http-equiv/a\
 \<meta property="og:title" content="'$base'" \/\>\
 \<meta property="og:type" content="html" \/\>\
-\<meta property="og:url" content="http:\/\/'$fqdn'\/html\/'$html'" \/\>\
-\<meta property="og:image" content="http:\/\/'$fqdn'\/html\/'$thumnail'" \/\>' $html
+\<meta property="og:url" content="https:\/\/'$fqdn'\/'$htmldir'\/'$html'" \/\>\
+\<meta property="og:image" content="https:\/\/'$fqdn'\/'$htmldir'\/'$thumnail'" \/\>' $html
 		mv $html $workdestdir
 		needupload="yes"
 	fi
