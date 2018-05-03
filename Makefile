@@ -3,30 +3,18 @@ DVIFILES:=$(SOURCE:%.tex=%.dvi)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
 RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 
-# extention for temporary filename when used for transferring to server.
-TMPEXT:=tmp.$(USERNAME)
-
-# server which hosts files for alioth.
-ALIOTH_FILEHOSTING:=alioth.debian.org
 all: $(PDFFILES)
 
 check: all
 
 publish: $(RELEASEFILES)
-	# ファイルのリリースをするコマンド。clean すると一度全部のファ
+	# ファイルをリリースする。clean すると一度全部のファ
 	# イルをpublishしたものとみなす。古いファイルを全部アップロード
 	# するのを回避します。アップロードしたいファイルは該当する
 	# .pdf ファイルをtouchすればリリースします。
-	#
-	# this gives error when I am not the owner of the
-	# file, but fixes all files that I am the owner
-	cd ../pdf && git push
 
 %.release-stamp: %.pdf
-	# copy PDF file to a temporal location, and fixup permissions, and move to final destination.
-	cp -f $< ../pdf/
-	cd ../pdf && git add "$<"
-	cd ../pdf && git commit -m "publish pdf $<" "$<"
+	./publish-file.sh $<
 	touch $@
 
 %.pdf: %.dvi

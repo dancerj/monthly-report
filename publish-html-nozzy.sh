@@ -3,9 +3,6 @@ PATH=/bin:/usr/bin
 CDPATH=
 umask 0022
 fqdn="tokyodebian.alioth.debian.org"
-alioth="alioth.debian.org"
-tmp_ext=".tmp.${USERNAME}"
-aliothdir="/home/groups/tokyodebian/htdocs/html/"
 workdestdir="html/"
 if [ $# -lt 1 ]; then
 	echo "Usage: $0 pdf-file ... ";
@@ -37,10 +34,8 @@ do
 		needupload="yes"
 	fi
 	if [ $needupload = "yes" ]; then
-	    scp $workdestdir$html ${alioth}:${aliothdir}${html}${tmp_ext}
-    	scp $workdestdir$thumnail ${alioth}:${aliothdir}${thumnail}${tmp_ext}
-        ssh ${alioth} "chmod 664 ${aliothdir}${html}${tmp_ext} && mv ${aliothdir}${html}${tmp_ext} ${aliothdir}${html}"
-    	ssh ${alioth} "chmod 664 ${aliothdir}${thumnail}${tmp_ext} && mv ${aliothdir}${thumnail}${tmp_ext} ${aliothdir}${thumnail}"
+		./publish-file.sh $workdestdir$html
+		./publish-file.sh $workdestdir$thumnail
 	fi
 done
 exit 0

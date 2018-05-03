@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# copy the results to alioth
-# scp -p html/* alioth.debian.org:/var/lib/gforge/chroot/home/groups/tokyodebian/htdocs/html
+# copy the results to file repo
+# ./publish-file.sh html/*
 
 sudo apt-get install -y tex4ht dvi2ps-fontdata-a2n dvi2dvi dvipng jtex-base
 for A in *.tex; do
