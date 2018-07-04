@@ -1,0 +1,219 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Debian / Ubuntu ユーザーミートアップ in 札幌 2018.07 \\　\\Debianで自宅にリモート接続 / OpenVPN編}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2018-07-06}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item VPNについて
+  \item OpenVPNの紹介
+  \item OpenVPNの設定（サーバ、クライアント）
+  \item おわりに
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item 大学生のときからDebianを使っています
+  \item 仕事はソフトウェア開発者をやってます
+  \end{itemize}
+\end{frame}
+
+
+\emtext{VPNについて}
+
+\begin{frame}[containsverbatim]{VPNの種類}
+  \begin{itemize}
+  \item IPsec系
+    \begin{itemize}
+    \item L2TP/IPsec
+    \end{itemize}
+  \item SSL-VPN系
+    \begin{itemize}
+    \item SSTP
+    \item SoftEther
+    \item OpenVPN
+    \end{itemize}
+  \item 利用を推奨しない過去の技術
+    \begin{itemize}
+    \item PPTP（セキュリティ強度が低く、突破済み）
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\emtext{OpenVPNの紹介}
+
+\begin{frame}[containsverbatim]{OpenVPNの紹介}
+  \begin{itemize}
+  \item SSL-VPNを使ったVPN接続を行うソフトウェア
+  \item https://openvpn.net/
+  \item ライセンスはGPLv2
+  \item TLS 1.0〜TLS 1.2による暗号通信をサポート
+  \item サーバ側の機能とクライアント側の機能の両方をもつ
+  \item デフォルトのポート番号は1194/UDPで、TCPも利用可能
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{DebianにおけるOpenVPN}
+  \begin{itemize}
+  \item Debian 8
+    \begin{itemize}
+    \item openvpn-2.3.4、openvpn-2.4.0（jessie-backports）
+    \end{itemize}
+  \item Debian 9 
+    \begin{itemize}
+    \item openvpn-2.4.0、openvpn-2.4.4（stretch-backports）
+    \end{itemize}
+  \item openvpnの2.3系と2.4系の違い
+    \begin{itemize}
+    \item 2.3.3からTLS 1.2が利用可能。ただし使える暗号はTLS 1.0由来のものに限られる（AES-CBC、RSA、DHE）
+    \item 2.4からAES-GCMや、ECDHE、ECDSAなどTLS-1.2で利用可能な高度な暗号をサポート
+    \item サーバとクライアントで2.3系と2.4系が混在する場合、古いバージョンがサポートする設定に合わせる必要がある
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\emtext{OpenVPNの設定の解説}
+
+\begin{frame}[containsverbatim]{OpenVPNの設定（サーバ）}
+  \begin{itemize}
+  \item "apt-get install openvpn" でインストール
+  \item 証明書や鍵の生成（easy-rsa 2）
+  \begin{itemize}
+  \item \url{https://openvpn.net/index.php/open-source/documentation/miscellaneous/77-rsa-key-management.html}
+  \end{itemize}
+  \item サーバ側の設定のサンプル
+    \begin{itemize}
+    \item \url{https://github.com/OpenVPN/openvpn/blob/master/sample/sample-config-files/server.conf}
+  \end{itemize}
+  \item 設定ファイルは"/etc/openvpn/*.conf"を利用。複数のVPN設定を同時実行するマルチインスタンスが可能。例）443/TCPと1194/UDPの両方をlistenする
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{OpenVPNの設定（サーバ側を一部抜粋）}
+\begin{commandline}
+tls-server
+tls-version-min 1.2
+port 443
+proto tcp
+dev tun0
+persist-key
+persist-tun
+push "dhcp-option DNS 192.168.2.1"
+push "route 192.168.2.0 255.255.255.0"
+client-to-client
+client-config-dir /etc/openvpn/ccd
+tls-auth /etc/openvpn/easy-rsa/2.0/keys/ta.key 0
+  (snip)
+\end{commandline}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{OpenVPNの設定（クライアント）}
+  \begin{itemize}
+  \item "apt-get install openvpn" でインストール
+  \item クライアント側の設定のサンプル
+  \begin{itemize}
+  \item \url{https://github.com/OpenVPN/openvpn/blob/master/sample/sample-config-files/client.conf}
+  \end{itemize}
+  \item 設定ファイルは、"/etc/openvpn/client.conf"とすること
+  \item systemctl start openvpn で起動
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{OpenVPNの設定（クライアント側を一部抜粋）}
+\begin{commandline}
+client
+tls-client
+tls-version-min 1.2
+dev tun
+proto tcp
+remote yourserver-fqdn 443
+nobind
+ca /etc/openvpn/ca.crt
+cert /etc/openvpn/myclient1.crt
+key /etc/openvpn/myclient1.key
+tls-auth /etc/openvpn/ta.key 1
+log /var/log/openvpn.log
+log-append /var/log/openvpn.log
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+  \item Debianパッケージで提供しているOpenVPNを説明しました
+  \item サーバ側とクライアント側の設定を説明しました
+  \item 速度重視の場合は、UDPを使ってください
+  \item つながらない、切れやすい場合は、openvpnの設定ファイルのMTU値を少し小さくしてみてください
+  \item 北海道の広大な地でも、VPN接続できればノートPCからどこでも自宅のネットワークへ接続できます
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item \url{https://wiki.debian.org/OpenVPN}
+  \item \url{https://openvpn.net/index.php/open-source/documentation.html}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
