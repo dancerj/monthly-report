@@ -1,0 +1,253 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{Debian で Atom、\\Debian で Visual Studio Code}
+\subtitle{Debian / Ubuntu ユーザーミートアップ in 札幌 2018.07}
+\author{吉野 与志仁}
+\date{2018年7月6日}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+%\section{}
+
+\begin{frame}{自己紹介}
+
+\begin{itemize}
+ \item 吉野 与志仁（よしの よしひと）
+ \item 東京のほうから来ました
+ \item @yy\_y\_ja\_jp
+ \item Debian 公式開発者ではないです
+ \item manpages-ja パッケージのメンテナ
+ \item Debian JP Project メンバー
+\end{itemize} 
+\end{frame}
+
+
+\begin{frame}{Atom}
+\url{https://atom.io/}
+\end{frame}
+
+\begin{frame}{Visual Studio Code}
+\url{https://code.visualstudio.com/}
+\end{frame}
+
+\begin{frame}{Snappy}
+Canonical が元々は Ubuntu 向けに開発したツール
+
+Debianでも
+\\
+{\texttt{
+sudo apt install snapd
+}}
+\\
+で使うことはできるようです
+\pause
+
+\begin{itemize}[<+->]
+ \item {\texttt{
+sudo snap install --classic atom
+}}
+\\
+{\scriptsize{\url{https://blog.ubuntu.com/2017/05/11/atom-is-now-available-as-a-snap-for-ubuntu}}}
+\\
+ただ、このSnapパッケージだと現状日本語入力できないようです
+{\scriptsize{\url{http://gihyo.jp/admin/serial/01/ubuntu-recipe/0515?page=2}}}
+ \item {\texttt{
+sudo snap install --classic vscode
+}}
+\\
+{\scriptsize{\url{https://blog.ubuntu.com/2017/05/19/visual-studio-code-is-now-available-as-a-snap-on-ubuntu}}}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}{APT}
+\begin{itemize}[<+->]
+ \item {\texttt{
+sudo apt install atom
+}}
+\\
+\pause
+今のところできません
+
+ \item {\texttt{
+sudo apt install vscode
+}}
+\\
+\pause
+今のところできません
+\end{itemize}
+\pause
+⇒ できるようになってほしい！
+\end{frame}
+
+\begin{frame}{APT}
+ Debianはすべてボランティア
+
+ \begin{itemize}
+  \item できるようにしたい(ITP)
+  \item できるようになってほしい(RFP)
+ \end{itemize}
+\pause 
+\begin{itemize}
+ \item \url{https://bugs.debian.org/747824} \\
+       \texttt{ITP: atom -- hackable editor}
+ \item \url{https://bugs.debian.org/898259} \\
+       \texttt{RFP: vscode -- Microsoft Visual Studio Code}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{APT line}
+\texttt{/etc/apt/sources.list} ファイル
+
+Debian 公式パッケージのレポジトリ
+\texttt{deb http://ftp.jp.debian.org/debian/ stretch main contrib non-free}
+
+\pause
+\begin{itemize}[<+->]
+ \item main -- Debian
+ \item contrib, non-free -- 正確には Debian ではない
+\end{itemize}
+
+\pause
+⇒ main に入ってほしい
+\end{frame}
+
+\begin{frame}{main}
+Debian フリーソフトウェアガイドライン (DFSG) に適合するパッケージのみが
+ 入っている
+
+\url{https://www.debian.org/social_contract.ja.html\#guidelines}
+
+\pause
+\begin{itemize}[<+->]
+ \item だれでも使える
+ \item パッケージの「すべての」ソースコードを見られる{\footnotesize{（改造もできる）}}
+       \begin{itemize}[<+->]
+	\item そのアプリ本体のソースコード
+	\item そのアプリが使っているライブラリのソースコード
+	\item そのアプリをビルドするためのツール（コンパイラ、ビルド
+	      支援ツール）のソースコード
+       \end{itemize}
+\end{itemize}
+
+\pause
+⇒ main に入れるには「すべての」ソースコードを手に入れて、それを使ってビ
+ ルドする必要がある。Debian公式レポジトリ以外からダウンロードしながらビルドしてはいけ
+ ない
+\end{frame}
+
+\begin{frame}{Atom}
+\begin{itemize}
+ \item GitHub - atom/atom: The hackable text editor \url{https://github.com/atom/atom} \\
+ ソースコード（MITライセンス） -- DFSGに適合
+ \item \url{https://atom.io/} \\
+       GitHub レポジトリの releases にある自動ビルド deb と同じものをダ
+       ウンロードできる模様
+\end{itemize}
+
+ \pause
+ 特にライブラリとしてNode.jsモジュールElectronを使っている
+ \url{https://electronjs.org/}
+
+ \pause
+ DebianにElectronパッケージがあるなら（Debian内にソースコードがあるとい
+ うことなので）それを使えばよい -- まだありません
+
+\pause
+ ⇒ Electronのソースコードも手に入れて、それを使ってビルドする必要がある
+\end{frame}
+
+\begin{frame}{Visual Studio Code}
+\begin{itemize}[<+->]
+ \item Visual Studio Code - Open Source
+       \url{https://github.com/microsoft/vscode}\\
+       ソースコード（MITライセンス） -- これ自体はDFSGに適合
+ \item Microsoft Visual Studio Code \url{https://code.visualstudio.com/}\\
+       ソースコードを Microsoft がカスタマイズしてビルドした deb ファ
+       イルをダウンロードできる。Microsoft がカスタマイズした部分のソー
+       スコードがない -- 「Microsoft による利用状況データ収集」機能など
+\end{itemize}
+
+ \pause
+ Atomと同様Electronを使っているので、Electronのソースコードも手に入れて、
+ それを使ってビルドする必要がある
+\end{frame}
+
+  \begin{frame}{パッケージ化}
+Debianには、Debianパッケージの形で入れることができる
+\begin{itemize}
+ \item    ふつうはライブラリごとに別パッケージにする。
+   例: electronパッケージを作ってからそれを使ってatomパッケージやvscode
+   パッケージを作る
+ \item Node.js関連のライブラリ・アプリのDebianパッケージ化をしたい人が集まっ
+   ている Debian JavaScript Maintainers というチームがある
+   \url{https://wiki.debian.org/Javascript}
+ \item    Electronなどのパッケージ化作業の状況なども見られる
+   \url{https://wiki.debian.org/Javascript/Nodejs/Tasks}
+\end{itemize}
+
+  \end{frame}
+
+
+\section{まとめ}
+\begin{frame}[containsverbatim]{まとめ}
+\begin{itemize}
+ \item Debian で Atom や Visual Studio Code をアプリのサイトからダウンロー
+       ドして動かすことはできる
+ \item Snappyでインストールする方法もあるが現時点ではうまく動かないとこ
+       ろがあるらしい
+ \item Debian 公式レポジトリに atom パッケージや vscode パッケージはまだない。作るに
+       は、ビルドツールや使っているライブラリすべてが Debian 公式パッケージになってい
+       る必要がある
+ \item Debian はボランティア
+ \item Debian main からAPTでインストールできる == そのアプリのすべてのソー
+       スコードを見られる
+ \item 必要なパッケージを少しずつ Debian に入れている人々がいる
+\end{itemize}
+\end{frame}
+
+
+\end{document}
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
