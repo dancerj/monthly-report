@@ -1,0 +1,638 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011, 2015 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2018}
+\newcommand{\debmtgmonth}{11}
+\newcommand{\debmtgdate}{17}
+% started from zero:
+% (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{168}
+
+% Needed to import pandoc-generated LaTeX documents.
+% See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% tikz picture の為のマクロ設定
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt　nginx設定特集}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関連のミーティング報告}{杉本　典充}
+
+\subsection{第166回東京エリアDebian勉強会}
+
+2018年9月15日(土)に第166回東京エリアDebian勉強会を開催しました。会場は東銀座にある朝日ネットさんをお借りして行いました。参加者は5名でした。
+
+セミナー発表は、「Rethinking of debian/watch rule」という表題で林さんが発表しました。DebConf18で発表した内容を日本語で再演しました。
+
+ハックタイムでは、持ち寄った課題をハックしました。
+
+\subsection{OSC 2018 Tokyo/Fall（第167回東京エリアDebian勉強会）}
+
+2018年10月27日(土)に第167回東京エリアDebian勉強会をOSC 2018 Tokyo/Fallのセミナーとして開催しました。OSCの会場は明星大学様でした。
+
+セミナーは「Debian Updates」という表題で杉本が発表しました。参加者は18名でした。
+
+ブース展示を行い、イベント参加者と交流しました。
+
+
+%\dancersection{事前課題}{dictoss}
+\dancersection{参加者の紹介}{dictoss}
+
+今回の事前課題は以下です。
+
+\begin{enumerate}
+\item Hack Timeは何をしますか
+\item 利用しているwebサーバを教えてください
+\end{enumerate}
+
+%この課題に対して提出いただいた内容は以下です。
+
+\begin{multicols}{2}
+{\small
+\input{image201811/prework.tex}
+}
+\end{multicols}
+
+%\dancersection{Debian Trivia Quiz}{username}
+%
+%Debianの昨今の話題についてのQuizです。
+%
+%今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}などに投稿された内容からです。
+%
+%\begin{multicols}{2}
+%\input{image201805/quiz.tex}
+%\end{multicols}
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[    ]\+" "")
+
+%-------------------------------------------------------------------------------
+\dancersection{debianにおけるnginxの設定例}{杉本　典充}
+%-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+近年、nginxをwebサーバとして採用する例が増えています。debianにおいてはnginxをdebパッケージとして提供しています。
+
+本発表では、debianにおけるnginxのインストール、使い方、設定例を紹介します。
+
+
+\subsection{debianにおけるwebサーバのパッケージ}
+
+UNIX/Linux環境で利用できるwebサーバは、2018年11月現在ではapache、nginxの順に人気が高いです\footnote{\url{https://w3techs.com/technologies/comparison/ws-apache,ws-microsoftiis,ws-nginx}}。
+
+debianではapache、nginxの両方をaptでインストールできるようパッケージを提供しています。Debian 9 (stretch)では以下のパッケージ名とバージョンを提供しています。
+
+\begin{table}[htb]
+  \begin{tabular}{|l|l|l|} \hline
+    webサーバ名 & パッケージ名 & Debian 9の提供バージョン \\ \hline
+    apache & apache2 & 2.4.25  \\ \hline
+    nginx & nginx & 1.10.3 \\ \hline
+  \end{tabular}
+\end{table}
+
+\subsection{nginx}
+
+\subsubsection{nginxとは}
+
+nginx（エンジンエックス）とは、2004年にリリースしたwebサーバです。nginxは大量のクライアントを同時に捌くことに主眼を置き、linux-2.5.44で導入したepollなどのいわゆるイベント駆動のシステムコールを利用したサーバアプリケーションです\footnote{いわゆるC10K問題の解決を図るために実装したと言われています。}。
+
+nginxはHTTP/HTTPSのリクエストを処理するだけでなく、HTTP/HTTPSのリバースプロキシサーバ、mailプロキシサーバ、TCP/UDP通信のプロキシサーバとして動作するように実装しています\footnote{\url{https://nginx.org/en/}}。
+
+webサイトは \url{https://nginx.org/} であり、\url{https://nginx.org/en/docs/} にドキュメントも豊富にあります。
+
+nginxのソースコードは 2-clause BSD-like licenseで提供しており、debianにおいてはmainセクションのパッケージとして配布しています。
+
+\subsubsection{debianにおけるnginxのインストール方法とディレクトリ構成}
+
+nginxはaptコマンドでインストールすることができます。
+
+\begin{commandline}
+# apt install nginx
+\end{commandline}
+
+Debianにおける"nginx"パッケージは拡張モジュールを含んでいるかで以下の3種類に分けています。通常のwebサーバ、リバースプロキシとしての利用であれば、"nginx"パッケージの指定で十分と思います。
+
+\begin{itemize}
+\item nginx (またはnginx-full)
+  \begin{itemize}
+  \item 通常の利用ではこれを利用する
+  \item upstreamが提供する基本的な拡張モジュールを含んでいる
+  \end{itemize}
+\item nginx-light
+  \begin{itemize}
+  \item HTTP/HTTPSのリクエストを受け付けるサーバとしてのみ動作すればよい場合に利用する
+  \item インストールする拡張モジュールを最低限に抑えている
+  \item SSL/TLS、FastCGI、uWSGIの拡張モジュールも含んでいる
+  \end{itemize}
+\item nginx-extras
+  \begin{itemize}
+  \item nginx-fullの拡張モジュールに加えて、多くのサードパーティ製の拡張モジュールを含んでいる
+  \end{itemize}
+\end{itemize}
+
+
+\subsection{nginxの設定例}
+
+\subsubsection{nginxパッケージのインストール直後の設定}
+
+aptコマンドでnginxをインストールした直後は、以下のディレクトリ構造で設定ファイルが配備されています。
+
+nginxの設定ファイルは、"/etc/nginx/nginx.conf" が基点となっており、nginx.confが様々なファイルをincludeすることで設定を構成しています。
+
+\begin{commandline}
+$ tree /etc/nginx
+  /etc/nginx
+  ├── conf.d
+  ├── fastcgi.conf
+  ├── fastcgi_params
+  ├── koi-utf
+  ├── koi-win
+  ├── mime.types
+  ├── modules-available
+  ├── modules-enabled
+  │ ├── 50-mod-http-auth-pam.conf -> /usr/share/nginx/modules-available/mod-http-auth-pam.conf
+  │ ├── 50-mod-http-dav-ext.conf -> /usr/share/nginx/modules-available/mod-http-dav-ext.conf
+  │ ├── 50-mod-http-echo.conf -> /usr/share/nginx/modules-available/mod-http-echo.conf
+  │ ├── 50-mod-http-geoip.conf -> /usr/share/nginx/modules-available/mod-http-geoip.conf
+  │ ├── 50-mod-http-image-filter.conf -> /usr/share/nginx/modules-available/mod-http-image-filter.conf
+  │ ├── 50-mod-http-subs-filter.conf -> /usr/share/nginx/modules-available/mod-http-subs-filter.conf
+  │ ├── 50-mod-http-upstream-fair.conf -> /usr/share/nginx/modules-available/mod-http-upstream-fair.conf
+  │ ├── 50-mod-http-xslt-filter.conf -> /usr/share/nginx/modules-available/mod-http-xslt-filter.conf
+  │ ├── 50-mod-mail.conf -> /usr/share/nginx/modules-available/mod-mail.conf
+  │ └── 50-mod-stream.conf -> /usr/share/nginx/modules-available/mod-stream.conf
+  ├── nginx.conf
+  ├── proxy_params
+  ├── scgi_params
+  ├── sites-available
+  │ └── default
+  ├── sites-enabled
+  │ └── default -> /etc/nginx/sites-available/default
+  ├── snippets
+  │ ├── fastcgi-php.conf
+  │ └── snakeoil.conf
+  ├── uwsgi_params
+  └── win-utf
+
+  6 directories, 24 files
+\end{commandline}
+
+コメントの部分を除いたnginx.confは以下となります。標準でgzipを使ったファイル圧縮転送の機能がonになっています。
+
+\begin{commandline}
+$ grep -v -e '^\s*#' -e '^\s*$' /etc/nginx/nginx.conf
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+events {
+  worker_connections 768;
+}
+http {
+  sendfile on;
+  tcp_nopush on;
+  tcp_nodelay on;
+  keepalive_timeout 65;
+  types_hash_max_size 2048;
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
+  ssl_prefer_server_ciphers on;
+  access_log /var/log/nginx/access.log;
+  error_log /var/log/nginx/error.log;
+  gzip on;
+  gzip_disable ``msie6'';
+  include /etc/nginx/conf.d/*.conf;
+  include /etc/nginx/sites-enabled/*;
+}  
+\end{commandline}
+
+debianではVirtualHostで運用しやすいようになっており、"default"というHTTPで待ち受けする設定ファイルが標準で入っています。この場合、公開する静的ファイルを"/var/www/html"配下に配置するとクライアントへHTTPでファイルを配布できます。
+
+\begin{commandline}
+$ grep -v -e '^\s*#' -e '^\s*$' /etc/nginx/sites-available/default
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+  root /var/www/html;
+  index index.html index.htm index.nginx-debian.html;
+  server_name _;
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}  
+\end{commandline}
+
+
+\subsubsection{SSL/TLS設定}
+
+nginxは、SSL証明書を用いたSSL/TLSのhttps通信の待ち受けを行うことができます。
+
+SSL/TLS設定として、"/etc/nginx/sites-available/ssl"ファイルを生成し、このファイルを"/etc/nginx/sites-enabled/ssl"のシンボリックリンクを作成することでVirtualHostを追加できます。
+
+mozillaがSSL/TLSとしてwebサーバを動かすときに設定例を公開しているため、参考にするとよいです。
+
+
+\url{https://mozilla.github.io/server-side-tls/ssl-config-generator/}
+
+
+SSL/TLSで通信する設定を行う時のポイントは以下です。
+
+\begin{itemize}
+\item SSL証明書で中間証明書を必要とする場合は、サーバ証明書と中間証明書を結合して１つの"crt"ファイルにする
+\item "ssl\_protocols TLSv1.2;"とだけ書くと、TLSv1.2のみで通信を受け付けるサーバにできる
+\item 過去に判明しているopenssl関連の脆弱性対応に考慮した設定とすること
+\item \url{https://www.ssllabs.com/ssltest/} などのスキャンを行い、サーバに脆弱性があるか確認する
+\item ssl\_dhparamは、DH 1024bitがデフォルトのため Logjam対策として2048bitで処理するよう指定するもの\footnote{古いクライアントプログラムはDH 1024bitまでしか対応していないことがあり、悩ましい。}
+%\item ssl\_ciphersは、mozillaのサイトで公開している暗号スイートを指定することも可能\footnote{設定値でどの暗号スイートを使えるは次のコマンドで確認可能。例）$ openssl ciphers HIGH:!aNULL:!MD5}
+\end{itemize}
+
+\begin{commandline}
+$ grep -v -e '^\s*#' -e '^\s*$' /etc/nginx/sites-available/ssl
+server {
+  listen 443 ssl http2;
+  listen [::]:443 ssl http2;
+  ssl on;  
+  ssl_certificate      /etc/ssl/private/server.crt;
+  ssl_certificate_key  /etc/ssl/private/server.key;
+  ssl_session_cache    shared:SSL:1m;
+  ssl_session_timeout  5m;
+  ssl_protocols TLSv1.2; # Dropping SSLv3, ref: POODLE
+  ssl_prefer_server_ciphers on; # ref: FREAK
+
+  # Diffie-Hellman parameter for DHE ciphersuites, recommended 2048 bits
+  #ssl_dhparam /path/to/dhparam.pem;
+
+  # see https://mozilla.github.io/server-side-tls/ssl-config-generator/
+  ssl_ciphers  HIGH:!aNULL:!MD5;
+
+  access_log /var/log/nginx/ssl_access.log;
+  error_log /var/log/nginx/ssl_error.log;
+  gzip off;  # unuse gzip, ref: BREACH
+  
+  root /var/www/html;
+  index index.html index.htm index.nginx-debian.html;
+  server_name www.example.com;
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}  
+\end{commandline}
+
+
+\subsubsection{リバースproxy設定}
+
+リバースproxyとは、クライアントと直接接続するのはnginxが担い、クライアントへ応答する実際のデータ生成はバックエンドのサーバが行うように通信を中継する機能です。
+
+特にSSL/TLS通信の場合、リバースproxyの設定を行うとSSL証明書を設定するサーバはnginxのみでよく、バックエンドのwebサーバはhttpのみで通信する設定にすることができます。
+
+
+リバースproxyの設定を行うには、まずupstreamの設定を行います。
+
+upstreamには、中継するバックエンドのwebサーバのホストとポート番号を指定します。複数のバックエンドを設定することが可能で、ロードバランサーのように振る舞うことが可能です\footnote{クライアントのcookieを参照してどのバックエンドに中継するか制御するstickyの拡張モジュールは、debパッケージには入っていません。サードパーティ製のモジュールで提供されるためnginxのコンパイルが必要です。}。
+
+ロードバランスするときのアルゴリズムの指定は、least\_connとip\_hashを指定でき、何も定義しない場合はserverの行に書いたweight値を用いた重み付きラウンドロビンで振り分けます\footnote{\url{http://nginx.org/en/docs/http/ngx_http_upstream_module.html にserver句に利用できるオプションが書いてあります}}。
+
+\begin{commandline}
+$ cat /etc/nginx/conf.d/upstream_proxy.conf
+
+upstream backend_app1 {
+  # least_conn;
+  # ip_hash;
+
+  server 192.168.1.100:80 weight=1;
+  server 192.168.1.101:80 weight=1;
+}
+\end{commandline}
+
+proxyするときのupstreamへの通信はデフォルトでHTTP/1.0になっています。この設定は「proxy\_http\_version 1.1;」と書くと、upstreamのサーバとの通信をHTTP/1.1にできます\footnote{\url{http://nginx.org/en/docs/http/ngx_http_proxy_module.html\#proxy_http_version}}。
+
+\begin{commandline}
+server {
+  # (snip)
+  location ~ ^/proxy/(.*)$ {
+    proxy_pass http://backend_proxy1;
+    #proxy_pass http://backend_proxy1/yourpath/;
+
+    # if require.
+    proxy_http_version 1.1;
+
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    #proxy_redirect http://backend_proxy1/  http://www.example.com/;
+  }
+  # (snip)
+}    
+\end{commandline}
+
+
+\subsubsection{FastCGI設定}
+
+FastCGIとは、常駐したCGIプロセスが外部プロセス（ここではnginx）とCGI処理を行うためのリクエストとレスポンスのやりとりを定義したインタフェースの1つです。
+
+nginxにはCGIを動かすapacheでいうところのmod\_cgi相当の機能はありません\footnote{apacheでCGIプログラムを利用する場合、mod\_cgiを利用してPerlプログラムを動作させることが過去には多かったと思います。}。そのため、nginxでは外部のプロセスへ通信を中継することでCGI処理に対応しており、FastCGIのインタフェースを持つ常駐プロセスと通信が可能です。
+
+今回はFastCGIサーバとしてPHP-FPMを使ってみます。PHPのバージョンは7.0系を利用するとし、以下コマンドでインストールします。
+
+\begin{commandline}
+$ sudo apt install php7.0 php7.0-fpm
+\end{commandline}
+
+php7.0-fpmは "/etc/php/7.0"配下に設定ファイルが配置されます。php-fpmの常駐プロセスの設定は、"/etc/php/7.0/fpm/pool.d/www.conf"です。
+
+ここでは、www.confをinet socketで待ち受けするように設定を変更します。
+
+\begin{commandline}
+$ sudo vi /etc/php/7.0/fpm/pool.d/www.conf
+;listen = /run/php/php7.0-fpm.sock
++listen = 9000
+\end{commandline}
+
+php-fpmを再起動すると、9000ポートでlistenしています。これで、/var/www/html配下の".php"のスクリプトはすべてphp-fpmとして動作するようになります。
+
+\begin{commandline}
+$ sudo systemctl restart php7.0-fpm
+$ ss -npta | grep 9000
+LISTEN     0      128         :::9000                    :::*
+\end{commandline}
+
+phpinfo()のみを行うPHPスクリプトを配置しておきます。
+
+\begin{commandline}
+$ sudo mkdir /var/www/html/myphpapp
+$ sudo vi /var/www/html/myphpapp/phpinfo.php
+<?php
+  phpinfo();  
+\end{commandline}
+
+
+nginxのfastcgiサーバのupstreamを設定します。
+
+\begin{commandline}
+$ sudo vi /etc/nginx/conf.d/upstream_fcgi.conf
+upstream backend_fcgi1 {
+  # least_conn;
+  # ip_hash;
+
+  server 127.0.0.1:9000;
+}  
+\end{commandline}
+
+次に、nginxのVirtualHost設定のdefaultファイル、必要であればsslファイルに".php"の拡張子を持つファイルへアクセスした場合はｍfastcgiサーバへproxyするように設定します。
+
+\begin{commandline}
+$ sudo vi /etc/nginx/sites-available/default
+  # (snip)
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass backend_fcgi1;
+  }
+  # (snip)
+
+$ sudo vi /etc/nginx/sites-available/ssl
+  # (snip)
+    location ~ \.php$ {
+      include snippets/fastcgi-php.conf;
+      fastcgi_pass backend_fcgi1;
+  }
+  # (snip)
+\end{commandline}
+
+nginxの設定を確認する"nginx -t"を実行し、設定ファイルに間違いないか確認します。設定に間違いがなければ、nginxをrestartします。
+
+\begin{commandline}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandline}
+
+nginxのサーバの"/myphpapp/phpinfo.php"へアクセスし、phpinfoの画面が表示されることを確認できれば、設定ができています。
+
+
+\subsubsection{WSGI設定}
+
+WSGI（Web Server Gateway Interface）とは、常駐したCGIプロセスが外部プロセス（ここではnginx）とCGI処理を行うためのリクエストとレスポンスのやりとりを定義したインタフェースの1つです。
+
+FastCGIと同様に、WSGIサーバへ通信を中継することでCGI処理を行うことができます。
+
+
+今回はWSGIサーバとしてuwsgiを利用します。pythonのバージョンはDebian 9 (stretch) にパッケージが存在するpython3.5、アプリケーションはdjangoのチュートリアルを実装したものを使ってみます\footnote{\url{https://github.com/dictoss/django-tutorial}}。
+
+python3、pip3、uwsgiをインストールします。gitはアプリケーションのソースコードをcloneするためにインストールします。
+
+\begin{commandline}
+$ sudo apt install python3 python3-pip uwsgi uwsgi-plugin-python3
+$ sudo apt install git
+\end{commandline}
+
+djangoのライブラリのインストールとdjangoを用いたアプリケーションを配置します。
+
+\begin{commandline}
+$ sudo pip3 install -U django==2.0.9
+
+$ cd
+$ git clone https://github.com/dictoss/django-tutorial.git
+$ sudo mkdir /var/www/wsgi_apps_uwsgi
+$ sudo cp -r django-tutorial/2.0/mysite /var/www/wsgi_apps_uwsgi/
+$ sudo chown -fR www-data:www-data /var/www/wsgi_apps_uwsgi/mysite  
+$ ls /var/www/wsgi_apps_uwsgi/mysite
+db.sqlite3  manage.py  mysite  polls
+\end{commandline}
+
+
+uwsgiは、"/etc/uwsgi" 配下に設定ファイルを配置します。nginxのVirtualHost設定のように"apps-available"、"apps-enabled" ディレクトリがあります。
+
+"apps-available" ディレクトリに"django-tutorial.ini"というWSGIアプリケーションの設定ファイルを配置し、"apps-enabled" ディレクトリにシンボリックリンクを生成します。
+
+\begin{commandline}
+$ sudo vi /etc/uwsgi/apps-available/django-tutorial.ini
+[uwsgi]
+uid = www-data
+gid = www-data
+plugin-dir = /usr/lib/uwsgi/plugins
+plugin = python3
+base = /var/www/wsgi_apps_uwsgi/mysite
+chdir = /var/www/wsgi_apps_uwsgi/mysite
+module = mysite.wsgi
+callable = application
+env =
+socket = 0.0.0.0:3031
+thunder-lock = true
+processes = 2
+threads = 32
+master = True
+vacuum = True
+harakiri = 60
+max-requests = 512
+max-requests-delta = 64
+post-buffering = 8192
+\end{commandline}
+  
+\begin{commandline}
+$ cd /etc/uwsgi/apps-enabled
+$ sudo ln -fs ../apps-available/django-tutorial.ini .
+$ tree /etc/uwsgi
+/etc/uwsgi
+├── apps-available
+│ ├── README
+│ ├── django-tutorial.ini
+└── apps-enabled
+├── README
+└── django-tutorial.ini -> ../apps-available/django-tutorial.ini
+
+2 directories, 4 files
+\end{commandline}
+
+
+uwsgiを再起動すると "/etc/uwsgi/apps-enabled" 配下に設定したWSGIアプリケーションが起動します。django-tutorial.iniの設定では3031ポートでlistenしています。
+
+\begin{commandline}
+$ sudo systemctl restart uwsgi
+$ ss -npta | grep 3031
+LISTEN     0      100          *:3031                     *:*
+\end{commandline}
+
+
+nginxのwsgiサーバのupstreamを設定します。
+
+\begin{commandline}
+$ sudo vi /etc/nginx/conf.d/upstream_uwsgi.conf
+upstream backend_uwsgi1 {
+  # least_conn;
+  # ip_hash;
+
+  server 127.0.0.1:3031;
+}  
+\end{commandline}
+
+VirtualHost設定のdefaultファイル、必要であればsslファイルにproxyするディレクトリ名を決めてwsgiへproxyする設定をします。
+
+\begin{commandline}
+$ sudo vi /etc/nginx/sites-available/default
+  # (snip)
+  location ~ ^/mysite/(.*)$ {
+    include uwsgi_params;
+
+    uwsgi_param SCRIPT_NAME /mysite;
+    uwsgi_param PATH_INFO /$1;
+
+    uwsgi_pass backend_uwsgi1;
+  }
+  # (snip)
+
+$ sudo vi /etc/nginx/sites-available/ssl
+  # (snip)
+  location ~ ^/mysite/(.*)$ {
+    include uwsgi_params;
+
+    uwsgi_param SCRIPT_NAME /mysite;
+    uwsgi_param PATH_INFO /$1;
+
+    uwsgi_pass backend_uwsgi1;
+  } 
+  # (snip)
+\end{commandline}
+
+nginxの設定を確認する"nginx -t"を実行し、設定ファイルに間違いないか確認します。設定に間違いがなければ、nginxをrestartします。
+
+\begin{commandline}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandline}
+
+nginxのサーバの"/mysite/polls/"へアクセスし、"What's up?"の画面が表示されることを確認できれば、設定ができています。
+
+\subsection{まとめ}
+
+nginxのよく使う設定をまとめてみました。webサーバにnginxを使おうを考えている場合は参考にしてみてください。
+
+%
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+\mbox{}\newpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
