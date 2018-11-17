@@ -1,0 +1,557 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{第168回東京エリアDebian勉強会 \\　\\debianにおけるnginxの設定例}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2018-11-17}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\section{表紙}
+
+\begin{frame}
+  \titlepage{}
+\end{frame}
+
+
+\section{自己紹介}
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って15年以上。sargeがtestingの頃から使っている
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
+  \end{itemize}
+\end{frame}
+
+
+\section{目次}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item はじめに
+  \item debianにおけるwebサーバのパッケージ
+  \item nginx
+  \item nginxの設定例
+  \item まとめ・参考文献
+  \end{itemize}
+\end{frame}
+
+
+\section{debianにおけるwebサーバのパッケージ}
+\emtext{debianにおけるwebサーバのパッケージ}
+
+\begin{frame}[containsverbatim]{debianにおけるwebサーバのパッケージ}
+  \begin{itemize}
+  \item webサーバの利用調査
+    \begin{itemize}
+    \item \url{https://w3techs.com/technologies/comparison/ws-apache,ws-microsoftiis,ws-nginx}
+    \end{itemize}
+  \item debianではapache、nginxのパッケージを用意されており、aptコマンドでインストール可能
+  \end{itemize}
+\end{frame}
+
+
+\section{nginx}
+\emtext{nginx}
+
+\begin{frame}[containsverbatim]{nginxとは}
+  \begin{itemize}
+  \item webサイト \url{https://nginx.org/}
+  \item エンジンエックスと読みます
+  \item ソースコードは、2-clause BSD-like licenseで公開
+  \item 最初のリリースは2004年
+  \item イベント駆動のシステムコールを利用（linuxではepollを利用）し、大量のクライアント（C10K）を捌く
+  \item HTTP/HTTPSのファイル配信のみならず、HTTP/HTTPSリバースプロキシ、mailプロキシ、TCP/UDPプロキシとして動作
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{debianにおけるnginxのインストール方法とディレクトリ構成}
+aptでインストール可能
+\begin{commandline}
+# apt install nginx
+\end{commandline}
+
+拡張モジュールの数でdebパッケージを3つに分かれている
+\begin{itemize}
+  \item nginx-full (=nginx)
+  \item nginx-light
+  \item nginx-extras
+\end{itemize}
+
+\end{frame}
+
+
+\section{nginxの設定例}
+\emtext{nginxの設定例}
+
+\subsection{nginxパッケージのインストール直後の設定}
+\begin{frame}[containsverbatim]{nginxパッケージのインストール直後の設定}
+
+一部省略して抜粋 
+\begin{commandline}
+$ tree /etc/nginx
+  |--  conf.d/
+  |--  fastcgi_params
+  |--  modules-available/
+  |--  modules-enable/
+  |--  nginx.conf
+  |--  proxy_params
+  |--  site-available/
+  |--  site-enabled/
+  |--  snippets/
+  |--  wsgi_params
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{nginxパッケージのインストール直後の設定}
+
+一部省略して抜粋
+\begin{commandline}
+  $ cat /etc/nginx/nginx.conf
+  user www-data;
+  worker_processes auto;
+  include /etc/nginx/modules-enabled/*.conf;
+  events {
+    worker_connections 768;
+  }
+  http {
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+    gzip on;
+    gzip_disable ``msie6'';
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+  }
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{VirtualHost設定"default"}
+  \begin{commandline}
+$ cat /etc/nginx/sites-available/default
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+  root /var/www/html;
+  index index.html index.htm index.nginx-debian.html;
+  server_name _;
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}
+\end{commandline}
+\end{frame}
+
+
+\subsection{SSL/TLS設定}
+\emtext{SSL/TLS設定}
+
+\begin{frame}[containsverbatim]{SSL/TLS設定}
+  \begin{itemize}
+  \item /etc/nginx/sites-available/ssl にSSL/TLS待ち受け設定を書く
+  \item /etc/nginx/sites-enabled/ssl にシンボリックリンクを生成し、VirtualHostを追加
+  \item 【参考情報】Mozillaが公開している設定の生成ツール
+    \begin{itemize}
+      \item \url{https://mozilla.github.io/server-side-tls/ssl-config-generator/}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{SSL/TLS設定}
+設定のポイント
+\begin{itemize}
+\item 中間証明書を必要とする場合は１つのcrtファイルに結合する
+\item ssl\_protocols TLSv1.2; とだけ書くと、TLSv1.2のみで接続を受け付ける
+\item \url{https://www.ssllabs.com/ssltest/} などでスキャンして診断
+\item ssl\_dhparamは DH 1024bitより上げるか悩みどころ
+\end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{SSL/TLS設定}
+
+一部抜粋
+\begin{commandlinesmall}
+$ cat /etc/nginx/sites-available/ssl
+  server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    ssl on;
+    ssl_certificate /etc/ssl/private/server.crt;
+    ssl_certificate_key  /etc/ssl/private/server.key;
+    ssl_protocols TLSv1.2; # Dropping SSLv3, ref: POODLE
+    ssl_prefer_server_ciphers on; # ref: FREAK
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    gzip off;  # unuse gzip, ref: BREACH
+    root /var/www/html;
+    server_name www.example.com;
+    location / {
+      try_files $uri $uri/ =404;
+    }
+  }
+\end{commandlinesmall}
+\end{frame}
+
+\begin{frame}[containsverbatim]{SSL/TLS設定：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"https://hostname/" へアクセスする
+\end{frame}
+
+
+\subsection{リバースproxy設定}
+\emtext{リバースproxy設定}
+
+\begin{frame}[containsverbatim]{リバースproxy}
+  \begin{itemize}
+  \item リバースproxy
+    \begin{itemize}
+    \item クライアントと直接接続するのはnginxが担う
+    \item クライアントへ応答する実際のデータ生成はバックエンドのサーバが行うように通信を中継する機能
+    \end{itemize}
+  \item SSL/TLS設定をするとき、リバースproxyのnginxのみにSSL証明書を配置すればよい。バックエンドのサーバはHTTP設定のみでよい。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{リバースproxy：upstreamの設定}
+  \begin{itemize}
+  \item upstream句にバックエンドのserverの通信先を設定する
+  \item 複数行のserver設定をすると、振り分けできる
+  \item 重み付きラウンドロビン、leas\_conn、ip\_hashが利用可能
+  \end{itemize}
+
+\begin{commandline}
+$ cat /etc/nginx/conf.d/upstream_proxy.conf
+  upstream backend_app1 {
+    # least_conn;
+    # ip_hash;
+
+    server 192.168.1.100:80 weight=1;
+    server 192.168.1.101:80 weight=1;
+  }    
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{リバースproxy：VirtualHost設定}
+  \begin{itemize}
+  \item proxy先への通信はデフォルトでHTTP/1.0であり、"proxy\_http\_version"で変更可能
+  \end{itemize}
+
+\begin{commandlinesmall}
+$ cat /etc/nginx/sites-available/default
+server {
+  # (snip)
+  location ~ ^/proxy/(.*)$ {
+    proxy_pass http://backend_proxy1;
+    
+    # proxy_http_version 1.1;
+
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    #proxy_redirect http://backend_proxy1/ http://www.example.com/;
+  }
+  # (snip)
+\end{commandlinesmall}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{リバースproxy：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"/proxy/" へアクセスする
+\end{frame}
+
+
+\subsection{FastCGI設定}
+\emtext{FastCGI設定}
+
+\begin{frame}[containsverbatim]{FastCGI：PHP-FPMのインストール}
+
+PHP-7.0とPHP-7.0用PHP-FPMをインストール
+\begin{commandline}
+$ sudo apt install php7.0 php7.0-fpm
+\end{commandline}
+
+待ち受けをinet socketに変更
+\begin{commandline}
+$ sudo vi /etc/php/7.0/fpm/pool.d/www.conf
+;listen = /run/php/php7.0-fpm.sock
+listen = 9000
+\end{commandline}
+
+PHP-FPMを再起動
+\begin{commandline}
+$ sudo systemctl restart php7.0-fpm
+$ ss -npta | grep 9000
+LISTEN     0  128  :::9000   :::*
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：PHPスクリプト配置}
+phpinfo()を実行するスクリプトを動作確認用に配置
+\begin{commandline}
+$ sudo mkdir /var/www/html/myphpapp
+$ sudo vi /var/www/html/myphpapp/phpinfo.php
+<?php
+    phpinfo();
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：upstream設定}
+\begin{commandline}
+$ sudo vi /etc/nginx/conf.d/upstream_fcgi.conf
+upstream backend_fcgi1 {
+  # least_conn;
+  # ip_hash;
+
+  server 127.0.0.1:9000;
+}
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：VirtualHost設定}
+
+".php"へのアクセスをすべて、FastCGIサーバへ中継する
+\begin{commandline}
+$ sudo vi /etc/nginx/sites-available/default
+  # (snip)
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+
+    fastcgi_pass backend_fcgi1;
+  }
+  # (snip)
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"/myphpapp/phpinfo.php" へアクセスする
+\end{frame}
+
+
+\subsection{WSGI設定}
+\emtext{WSGI設定}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgiのインストール}
+
+python3.5、pip3、uwsgiをインストール
+\begin{commandline}
+$ sudo apt install python3 python3-pip \
+ uwsgi uwsgi-plugin-python3
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：アプリケーション配備}
+
+\url{https://github.com/dictoss/django-tutorial} を実験用に配置
+
+\begin{commandlinesmall}
+$ sudo apt install git
+$ sudo pip3 install -U django==2.0.9
+
+$ cd
+$ git clone https://github.com/dictoss/django-tutorial.git
+$ sudo mkdir /var/www/wsgi_apps_uwsgi
+$ sudo cp -r django-tutorial/2.0/mysite /var/www/wsgi_apps_uwsgi/
+$ sudo chown -fR www-data:www-data /var/www/wsgi_apps_uwsgi/mysite
+$ ls /var/www/wsgi_apps_uwsgi/mysite
+db.sqlite3  manage.py  mysite  polls
+\end{commandlinesmall}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgi設定}
+
+設定を一部抜粋
+\begin{commandline}
+$ sudo vi /etc/uwsgi/apps-available/django-tutorial.ini
+[uwsgi]
+uid = www-data
+gid = www-data
+plugin-dir = /usr/lib/uwsgi/plugins
+plugin = python3
+base = /var/www/wsgi_apps_uwsgi/mysite
+chdir = /var/www/wsgi_apps_uwsgi/mysite
+module = mysite.wsgi
+callable = application
+env =
+socket = 0.0.0.0:3031
+processes = 2
+threads = 32
+master = True
+vacuum = True
+harakiri = 60
+max-requests = 512
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgi設定}
+
+apps-availableのiniファイルをapps-enabledへシンボリックリンクを生成する
+\begin{commandline}
+$ cd /etc/uwsgi/apps-enabled
+$ sudo ln -fs ../apps-available/django-tutorial.ini .
+$ tree /etc/uwsgi
+  /etc/uwsgi
+  ├──  apps-available
+  │ ├──  README
+  │ ├──  django-tutorial.ini
+  └──  apps-enabled
+  ├──  README
+  └──  django-tutorial.ini ->
+              ../apps-available/django-tutorial.ini
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgi設定}
+
+uwsgiを再起動して設定反映
+\begin{commandline}
+$ sudo systemctl restart uwsgi
+$ ss -npta | grep 3031
+LISTEN     0  100  *:3031  *:*
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：upstream設定}
+\begin{commandline}
+$ sudo vi /etc/nginx/conf.d/upstream_uwsgi.conf
+upstream backend_uwsgi1 {
+  # least_conn;
+  # ip_hash;
+
+  server 127.0.0.1:3031;
+}
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：VirtualHost設定}
+
+"/mysite/"配下へのアクセスをすべて、WSGIサーバへ中継する
+\begin{commandline}
+$ sudo vi /etc/nginx/sites-available/default
+  # (snip)
+  location ~ ^/mysite/(.*)$ {
+    include uwsgi_params;
+
+    uwsgi_param SCRIPT_NAME /mysite;
+    uwsgi_param PATH_INFO /$1;
+
+    uwsgi_pass backend_uwsgi1;
+  }
+  # (snip)
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"/mysite/polls/" へアクセスする
+\end{frame}
+
+
+\section{まとめ・参考文献}
+\emtext{まとめ・参考文献}
+
+\begin{frame}[containsverbatim]{まとめ・参考文献}
+
+まとめ
+\begin{itemize}
+  \item nginxのよく使う設定をまとめてみました
+  \item 大規模向けに性能向上するパラメータについてはチューニングしてみてください
+  \end{itemize}
+
+  参考文献
+  \begin{itemize}
+  \item nginx documentation \url{https://nginx.org/en/docs/}
+  \item nginx - DebianWiki \url{https://wiki.debian.org/Nginx}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
