@@ -175,6 +175,172 @@
 %debianmeetingresume201807-osc2018do-presentation.tex    Debian Updates \& Random Topics 佐々木
 %debianmeetingresume201810-osc2018fall-presentation.tex Debian Updates & debconf 杉本
 
+
+%-------------------------------------------------------------------------------
+%debianmeetingresume201807-meetup-sapporo-presentation-sugimoto.tex    \title{Debian / Ubuntu ユーザーミートアップ in 札幌 2018.07 \\　\\Debianで自宅にリモート接続 / OpenVPN編} 杉本 典充
+\dancersection{Debianで自宅にリモート接続 / OpenVPN編}{杉本　典充}
+%-------------------------------------------------------------------------------
+
+\subsection{アジェンダ}
+
+\begin{itemize}
+\item 自己紹介
+\item VPNについて
+\item OpenVPNの紹介
+\item OpenVPNの設定（サーバ、クライアント）
+\item おわりに
+\item 参考資料
+\end{itemize}
+
+
+\subsection{自己紹介}
+
+\begin{itemize}
+\item Norimitsu Sugimoto (杉本 典充)
+\item dictoss@live.jp
+\item Twitter: @dictoss
+\item 大学生のときからDebianを使っています
+\item 仕事はソフトウェア開発者をやってます
+\end{itemize}
+
+
+\subsection{VPNについて}
+
+\begin{itemize}
+\item IPsec系
+  \begin{itemize}
+  \item L2TP/IPsec
+  \end{itemize}
+\item SSL-VPN系
+  \begin{itemize}
+  \item SSTP
+  \item SoftEther
+  \item OpenVPN
+  \end{itemize}
+\item 利用を推奨しない過去の技術
+  \begin{itemize}
+  \item PPTP（セキュリティ強度が低く、突破済み）
+  \end{itemize}
+\end{itemize}
+
+\newpage
+
+\subsection{OpenVPNの紹介}
+
+\begin{itemize}
+\item SSL-VPNを使ったVPN接続を行うソフトウェア
+\item \url{https://openvpn.net/}
+\item ライセンスはGPLv2
+\item TLS 1.0〜TLS 1.2による暗号通信をサポート
+\item サーバ側の機能とクライアント側の機能の両方をもつ
+\item デフォルトのポート番号は1194/UDPで、TCPも利用可能
+\end{itemize}
+
+\subsection{DebianにおけるOpenVPN}
+
+\begin{itemize}
+\item Debian 8
+  \begin{itemize}
+  \item openvpn-2.3.4、openvpn-2.4.0（jessie-backports）
+  \end{itemize} 
+\item Debian 9
+  \begin{itemize}
+  \item openvpn-2.4.0、openvpn-2.4.4（stretch-backports）
+  \end{itemize}
+\item openvpnの2.3系と2.4系の違い
+  \begin{itemize}
+  \item 2.3.3からTLS 1.2が利用可能。ただし使える暗号はTLS 1.0由来のものに限られる（AES-CBC、RSA、DHE）
+  \item 2.4からAES-GCMや、ECDHE、ECDSAなどTLS-1.2で利用可能な高度な暗号をサポート
+  \item サーバとクライアントで2.3系と2.4系が混在する場合、古いバージョンがサポートする設定に合わせる必要がある
+  \end{itemize}
+\end{itemize}
+
+
+\subsection{OpenVPNの設定の解説}
+
+\subsubsection{OpenVPNの設定（サーバ）}
+
+\begin{itemize}
+\item "apt-get install openvpn" でインストール
+\item 証明書や鍵の生成（easy-rsa 2）\footnote{\url{https://openvpn.net/index.php/open-source/documentation/miscellaneous/77-rsa-key-management.html}}
+\item サーバ側の設定のサンプル\footnote{\url{https://github.com/OpenVPN/openvpn/blob/master/sample/sample-config-files/server.conf}}
+\item 設定ファイルは''/etc/openvpn/*.conf''を使用し、複数のVPN設定を同時実行するマルチインスタンスが可能
+  \begin{itemize}
+  \item 例）443/TCPと1194/UDPの両方をlistenする
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{OpenVPNの設定（サーバ側を一部抜粋）}
+
+\begin{commandline}
+tls-server
+tls-version-min 1.2
+port 443
+proto tcp
+dev tun0
+persist-key
+persist-tun
+push ``dhcp-option DNS 192.168.2.1''
+push ``route 192.168.2.0 255.255.255.0''
+client-to-client
+client-config-dir /etc/openvpn/ccd
+tls-auth /etc/openvpn/easy-rsa/2.0/keys/ta.key 0
+  (snip)  
+\end{commandline}
+
+\newpage
+
+\subsubsection{OpenVPNの設定（クライアント）}
+
+\begin{itemize}
+\item "apt-get install openvpn" でインストール
+\item クライアント側の設定のサンプル\footnote{\url{https://github.com/OpenVPN/openvpn/blob/master/sample/sample-config-files/client.conf}}
+\item 設定ファイルは、"/etc/openvpn/client.conf"とすること
+\item systemctl start openvpn で起動
+\end{itemize}
+
+
+\subsubsection{OpenVPNの設定（クライアント側を一部抜粋）}
+
+\begin{commandline}
+client
+tls-client
+tls-version-min 1.2
+dev tun
+proto tcp
+remote yourserver-fqdn 443
+nobind
+ca /etc/openvpn/ca.crt
+cert /etc/openvpn/myclient1.crt
+key /etc/openvpn/myclient1.key
+tls-auth /etc/openvpn/ta.key 1
+log /var/log/openvpn.log
+log-append /var/log/openvpn.log
+\end{commandline}
+
+
+\subsubsection{おわりに}
+
+\begin{itemize}
+\item Debianパッケージで提供しているOpenVPNを説明しました
+\item サーバ側とクライアント側の設定を説明しました
+\item 速度重視の場合は、UDPを使ってください
+\item つながらない、切れやすい場合は、openvpnの設定ファイルのMTU値を少し小さくしてみてください
+\item 北海道の広大な地でも、VPN接続できればノートPCからどこでも自宅のネットワークへ接続できます
+\end{itemize}
+
+
+\subsubsection{参考情報}
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/OpenVPN}
+\item \url{https://openvpn.net/index.php/open-source/documentation.html}
+\end{itemize}
+
+\newpage
+\thispagestyle{empty}\mbox{}
+\newpage
+
 %-------------------------------------------------------------------------------
 \dancersection{Debian Trivia Quiz}{}
 %-------------------------------------------------------------------------------
