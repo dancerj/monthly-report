@@ -1,0 +1,495 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011, 2015 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2019}
+\newcommand{\debmtgmonth}{3}
+\newcommand{\debmtgdate}{16}
+% started from zero:
+% (let ((year 2013) (month 7)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{171}
+
+% Needed to import pandoc-generated LaTeX documents.
+% See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% tikz picture の為のマクロ設定
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt　デーモンdebパッケージ解説}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関連のミーティング報告}{杉本　典充}
+
+\subsection{Debian Bug Squash Party Tokyo 2019-01（第170回東京エリアDebian勉強会）}
+
+2019年1月19日(土)に第170回東京エリアDebian勉強会として「Debian Bug Squash Party Tokyo 2019-01」を開催しました。会場は南麻布にあるサイオスさんをお借りして行いました。参加者は4名でした。
+
+Debian 10 BusterのTransition Freeze\footnote{\url{https://lists.debian.org/debian-devel-announce/2019/01/msg00008.html}}の直後ということでもあり、Debian Busterのリリースまでに修正が必要なバグの改修に取り組みました。
+
+特に日本語入力環境や無線LANデーモン（wpasupplicant）など利用環境によっては影響が大きい問題が残っており、解決に向けて議論しました。
+
+\subsection{OSC 2019 Tokyo/spring（第171回東京エリアDebian勉強会）}
+
+2019年2月23日(土)にDebian JP Project／東京エリアDebian勉強会は、OSC 2019 Tokyo/Spring\footnote{\url{https://www.ospn.jp/osc2019-spring/}}に参加しました。OSCの会場は明星大学様でした。
+
+セミナーでは第171回東京エリアDebian勉強会として「Debian Updates」という表題で杉本が発表しました。参加者は12名でした。
+
+ブース展示を行い、約58名のイベント参加者と交流しました。
+
+
+\dancersection{事前課題}{dictoss}
+
+今回の事前課題は以下です。
+
+\begin{enumerate}
+\item あなたはDebianパッケージを作成したことがありますか（非公式で個人的でdebパッケージングを作った、も含む）
+\item Hack Timeは何をしますか
+\end{enumerate}
+
+%この課題に対して提出いただいた内容は以下です。
+
+\begin{multicols}{2}
+{\small
+\input{image201903/prework.tex}
+}
+\end{multicols}
+
+%\dancersection{Debian Trivia Quiz}{username}
+%
+%Debianの昨今の話題についてのQuizです。
+%
+%今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}などに投稿された内容からです。
+%
+%\begin{multicols}{2}
+%\input{image201903/quiz.tex}
+%\end{multicols}
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[    ]\+" "")
+
+%-------------------------------------------------------------------------------
+\dancersection{systemdとsysvinitのデーモンで動作するDebianパッケージの作り方を調べてみる}{杉本　典充}
+%-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+デーモンプログラムをdebianパッケージ化するにはどのようにパッケージを作成すればよいのか理解していないため、調べてみました。
+
+
+\subsection{Debianにおけるinitの仕組み}
+
+一般的にUNIX/Linux系のOSにおいてカーネルが最初に呼び出す「init」というユーザランドプログラム\footnote{一般的にプロセス番号 「1」の場合が多いです。}があり、このinitが常駐プログラム（＝デーモン）の起動や停止を管理します。
+
+
+Debianにおけるinitシステムの解説は、Debian リファレンスの「第3章 システムの初期化」に記述があります\footnote{\url{https://www.debian.org/doc/manuals/debian-reference/ch03.ja.html}}。
+
+Debianで採用しているinitシステムは、昔から存在する「sysvinit」、新世代の「systemd」があり\footnote{他にもOpenRCというinitもあります。}、Debian 8からはsystemdを標準のinitシステムとして採用しています\footnote{systemdが標準なのはDebian GNU/Linuxの場合です。systemdはlinuxカーネル専用のプログラムのため、kFreeBSDやHurdでは動きません。}。
+
+
+Debianではsystemdとsysvinitを切り替えることができます\footnote{\url{https://wiki.debian.org/Init}}。そのためデーモンプログラムのdebianパッケージを作るときは、systemdとsysvinitのどちらの環境でもデーモンを起動できるようパッケージを作る必要があります。
+
+
+\subsection{Debianにおけるinitが呼び出す起動・停止の設定ファイル}
+
+\subsubsection{systemd: /lib/systemd/system/[package].service}
+
+Debianのsystemdが管理するデーモンの起動・終了は、"systemctl" コマンドで行います。
+
+
+systemctlコマンドで管理するデーモンの設定ファイルは、"/lib/systemd/system/[package].service" に置いています。この "[package].service" ファイルにプログラムのファイルパスや環境設定ファイル、実行するコマンドを記述します\footnote{serviceファイルの記述方法は、\url{https://www.freedesktop.org/software/systemd/man/systemd.service.html} を参照。}。
+
+
+例として、nginx-fullパッケージを見てみましょう。
+
+
+nginxを起動する場合は以下のコマンドを実行します。
+
+\begin{commandline}
+# systemctl start nginx
+\end{commandline}
+
+nginxを停止する場合は以下のコマンドを実行します。
+
+\begin{commandline}
+# systemctl stop nginx
+\end{commandline}
+
+
+上記のsystemctlコマンドを実行したとき、以下の"nginx.service"に従ってnginxの起動・終了をsystemdが行っています。
+
+
+\begin{commandline}
+$ cat /lib/systemd/system/nginx.service | grep -v "\#"
+
+[Unit]
+Description=A high performance web server and a reverse proxy server
+Documentation=man:nginx(8)
+After=network.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+ExecStartPre=/usr/sbin/nginx -t -q -g 'daemon on; master_process on;'
+ExecStart=/usr/sbin/nginx -g 'daemon on; master_process on;'
+ExecReload=/usr/sbin/nginx -g 'daemon on; master_process on;' -s reload
+ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/nginx.pid
+TimeoutStopSec=5
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target  
+\end{commandline}
+
+
+\subsubsection{sysvinit: /etc/init.d/[package]}
+
+Debianのsysvinitが管理するデーモンの起動・終了は、"service"コマンドで行います\footnote{Debian GNU/Linux 8 以降ではsystemdがデフォルトのため \url{https://wiki.debian.org/Init} の手順を行うとsysvinitに変更できます。}。
+
+
+serviceコマンドで管理するデーモンの設定ファイルは、"/etc/init.d/[package]"に置いています。この"[package]"ファイルはシェルスクリプトであり、プログラムのファイルパスや環境設定ファイル、実行するコマンドを記述します。
+
+
+serviceコマンドから呼び出すスクリプトを作成するにあたり、以下のヘルパースクリプトがあります。
+
+\begin{itemize}
+  \item /lib/init/vars.sh
+  \item /lib/lsb/init-functions
+  \item /sbin/start-stop-daemon
+\end{itemize}
+
+
+例として、nginx-fullパッケージを見てみましょう。
+
+
+nginxを起動する場合は以下のコマンドを実行します（systemctlの場合とコマンドの順番が違います）。
+
+\begin{commandline}
+# service nginx start
+\end{commandline}
+
+nginxを停止する場合は以下のコマンドを実行します。
+
+\begin{commandline}
+# service nginx stop
+\end{commandline}
+
+
+上記のserviceコマンドを実行したとき、nginxの起動・終了を "/etc/init.d/nginx" が行っています。
+
+※長いため一部省略しています。
+
+\begin{commandline}
+$ cat /etc/init.d/nginx
+
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:       nginx
+# Required-Start:    $local_fs $remote_fs $network $syslog $named
+# Required-Stop:     $local_fs $remote_fs $network $syslog $named
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: starts the nginx web server
+# Description:       starts nginx using start-stop-daemon
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/nginx
+NAME=nginx
+DESC=nginx
+
+# Include nginx defaults if available
+if [ -r /etc/default/nginx ]; then
+        . /etc/default/nginx
+fi
+
+STOP_SCHEDULE=''${STOP_SCHEDULE:-QUIT/5/TERM/5/KILL/5}''
+
+test -x $DAEMON || exit 0
+
+. /lib/init/vars.sh
+. /lib/lsb/init-functions
+
+# Try to extract nginx pidfile
+PID=$(cat /etc/nginx/nginx.conf | grep -Ev '^\s*#' | awk 'BEGIN { RS=''[;{}]'' } { if ($1 == ``pid'') print $2 }' | head -n1)
+if [ -z ``$PID'' ]; then
+    PID=/run/nginx.pid
+fi
+
+if [ -n ``$ULIMIT'' ]; then
+    # Set ulimit if it is set in /etc/default/nginx
+    ulimit $ULIMIT
+fi
+
+start_nginx() {
+    # Start the daemon/service
+    #
+    # Returns:
+    #   0 if daemon has been started
+    #   1 if daemon was already running
+    #   2 if daemon could not be started
+    start-stop-daemon --start --quiet --pidfile $PID --exec $DAEMON --test > /dev/null \
+        || return 1
+    start-stop-daemon --start --quiet --pidfile $PID --exec $DAEMON -- \
+        $DAEMON_OPTS 2>/dev/null \
+        || return 2
+}
+
+  (snip)
+
+stop_nginx() {
+    # Stops the daemon/service
+    #
+    # Return
+    #   0 if daemon has been stopped
+    #   1 if daemon was already stopped
+    #   2 if daemon could not be stopped
+    #   other if a failure occurred
+    start-stop-daemon --stop --quiet --retry=$STOP_SCHEDULE --pidfile $PID --name $NAME
+    RETVAL=''$?''
+    sleep 1
+    return ``$RETVAL''
+}
+
+(snip)
+
+case ``$1'' in
+    start)
+        log_daemon_msg ``Starting $DESC'' ``$NAME''
+        start_nginx
+        case ``$?'' in
+            0|1) log_end_msg 0 ;;
+            2)   log_end_msg 1 ;;
+        esac
+        ;;
+    stop)
+        log_daemon_msg ``Stopping $DESC'' ``$NAME''
+        stop_nginx
+        case ``$?'' in
+            0|1) log_end_msg 0 ;;
+            2)   log_end_msg 1 ;;
+        esac
+        ;;
+
+(snip)
+
+    *)
+        echo ``Usage: $NAME {start|stop|restart|reload|force-reload|status|configtest|rotate|upgrade}'' >&2
+        exit 3
+        ;;
+esac
+\end{commandline}
+
+
+\subsection{init設定を行うdebianパッケージ作成方法}
+
+\subsubsection{前提}
+
+Debian GNU/Linux 9 (stretch) の環境を前提とします。
+
+
+debianパッケージを作成するツールは、ほとんどのパッケージでdebhelperが使われています\footnote{\url{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf} の2019年3月4日の資料において　debhelperの採用率は98\%との数字があります。} 。今回は、debhelperを使ってパッケージ作成を行うことを前提として説明します。
+
+
+debianパッケージを作成するにあたり、基本的な事項を知るドキュメントは以下になりますので読んでみてください。
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/ja/Packaging}
+\item packaging-tutorialパッケージのPDFファイル \\/usr/share/doc/packaging-tutorial/packaging-tutorial.ja.pdf\footnote{web版はこちら。 \url{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}}
+\item Debian 新メンテナーガイド \\\url{https://www.debian.org/doc/manuals/maint-guide/index.ja.html}
+\item Debian Policy Manual \\\url{https://www.debian.org/doc/debian-policy/}
+\end{itemize}  
+
+
+debhelperでdebianパッケージの作成を行う場合は以下のパッケージをインストールしておくとよいでしょう\footnote{昔はsystemdに対応する場合にはdh-systemdパッケージが必要でしたが、stretchではdebhelperに統合されているためインストール不要です。}。
+
+
+\begin{commandline}
+# apt-get update
+# apt-get install build-essential dpkg-dev devscripts debhelper dh-make quilt
+\end{commandline}
+
+
+\subsubsection{systemdに対応する設定}
+
+以下のwebページに解説ドキュメントがありますので、これを解説していきます。
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/Teams/pkg-systemd/Packaging}
+\end{itemize}
+
+
+systemdの設定を行うには通常のパッケージ作成作業のほか、以下を追加で作業する必要があります。
+
+\begin{itemize}
+\item debian/rulesの修正
+\item debian/controlの修正
+\item \bf{"debian/package.service"} の作成
+\end{itemize}
+
+
+\subsubsubsection{debian/rulesの修正}
+
+debian/rulesファイルは、dh\_makeコマンドを実行したときにひな形ファイルが作成されます。
+
+
+systemdで管理するデーモンの場合は、以下のように "--with systemd" の定義を追加します。この "--with" オプションは debhelper の addon の処理を実行するように指定するものです\footnote{man dh(1) を参照。}。
+
+\begin{commandline}
+%:
+    dh $@ --with systemd
+\end{commandline}
+
+
+この "--with systemd" の addon 指定がある場合は debian パッケージのビルド処理で "dh\_systemd\_enable"、 "dh\_systemd\_start" を実行するようになります。
+
+
+"dh\_systemd\_enable" は、"\# systemctl \{enable/disable\} package" を実行するよう指定するもので、次回のOS起動時に自動で package のデーモンを起動するか指定できます。
+
+
+"dh\_systemd\_start" は、"\# systemctl \{start/stop/restart\} package" を実行するよう指定するコマンドで、パッケージのインストール処理でデーモンを起動するか、再起動するかなどを指定できます。
+
+
+\subsubsubsection{debian/controlの修正}
+
+"debian/control"ファイルは、dh\_makeコマンドを実行したときにひな形ファイルが作成されます。
+
+
+"debian/control" ファイルを書く上で、debhelperの互換性レベルを記述する"debian/compat" ファイルがあります。この"debian/compat"ファイルの中身が"10"以上であれば "debian/control" ファイルを次のように書きます。
+
+\begin{commandline}
+Build-Depends: debhelper (>= 9.20160709)
+\end{commandline}
+
+もし、"debian/compat" の中身が "10" 未満であれば systemd 向けの処理は別途 dh-systemd パッケージが必要なため\footnote{Debian 8 jessie 向けのパッケージを作成する場合が該当します。}、次のように書きます。
+
+\begin{commandline}
+Build-Depends: debhelper (>= 9.20150101), dh-systemd (>= 1.5)
+\end{commandline}
+
+
+\subsubsubsection{debian/package.service の作成}
+
+
+"package.service" ファイルは、dh\_makeコマンドを実行したときにひな形ファイルが作成されません。
+
+そのため、他のパッケージの "package.service" ファイルを参考にしつつ、serviceファイルのマニュアルをみて作成してください\footnote{\url{https://www.freedesktop.org/software/systemd/man/systemd.service.html}}
+
+"package.service" ファイルを作成しておくと、debian パッケージのビルド処理中の "dh\_installinit" の処理で "package.service" ファイルを "/lib/systemd/system" 配下へインストールするよう処理します。
+
+
+\subsubsection{sysvinitに対応する設定}
+
+
+sysvinitの設定を行うには、通常のパッケージ作成作業のほか、以下を追加で作業する必要があります。
+
+\begin{itemize}
+\item \bf{"debian/package.init"} の作成
+\end{itemize}
+
+
+\subsubsubsection{debian/package.init の作成}
+
+
+"packages.init" ファイルは、dh\_makeコマンドを実行したときにひな形ファイルが作成されません\footnote{過去にはdh\_makeコマンドで"debian/init.d.ex" というひな形ファイルが作成されたのですが、Debian 8におけるsystemdへの移行の過程で作成されなくなりました。}。
+
+
+他のパッケージのinitファイルを参考にするか、古いバージョンのdebhelperに含まれる"init.d.ex" ファイルを取得して作成してください\footnote{\url{https://www.apt-browse.com/browse/debian/jessie/main/all/dh-make/1.20140617/file/usr/share/debhelper/dh_make/debian/init.d.ex}}。
+
+
+"package.init" ファイルを作成しておくと、debianパッケージのビルド処理中の "dh\_installinit"の処理で "package.init" ファイルを "/etc/init.d" 配下へインストールするよう処理します。
+
+
+\subsection{まとめ}
+
+Debianにおけるinit処理の説明とデーモンの起動・終了を行うdebianパッケージをdebhelperでどう作るか説明しました。１つのソースパッケージから複数のバイナリパッケージを作る場合にファイル名の命名規則が異なるなど違いも出てきます。それらについては他のパッケージを参考にして覚えていくとよいと思います。
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+\item 「Teams pkg-systemd Packaging」 \url{https://wiki.debian.org/Teams/pkg-systemd/Packaging}
+\item mkouhei (2014) 「How to create a Debian package of support to sysvinit, upstart, systemd」 \url{https://d.palmtb.net/2014/01/30/how_to_create_a_debian_package_of_support_to_sysvinit__upstart__systemd.html}
+\item @henrich (2016) 「dh-systemdはdebhelper 9.20160709で統合された」 \url{https://qiita.com/henrich/items/e1651e3284c6b3d0d39e}
+\end{itemize}
+
+
+%
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+\dancersection{メモ}{}
+\mbox{}\newpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+
+\end{document}
