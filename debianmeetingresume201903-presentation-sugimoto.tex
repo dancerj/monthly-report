@@ -1,0 +1,366 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{第172回東京エリアDebian勉強会 \\　\\systemdとsysvinitのデーモンで動作するDebianパッケージの作り方を調べてみる}
+\subtitle{}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2019-03-16}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\section{表紙}
+
+\begin{frame}
+  \titlepage{}
+\end{frame}
+
+
+\section{自己紹介}
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って15年以上。その頃はsargeの時期。
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
+  \end{itemize}
+\end{frame}
+
+
+\section{目次}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item はじめに
+  \item Debianにおけるinitの仕組み
+  \item Debianにおけるinitが呼び出す起動・停止の設定ファイル
+    \begin{itemize}
+    \item systemd、sysvinit
+    \end{itemize}
+  \item init設定を行うdebianパッケージ作成方法 
+    \begin{itemize}
+    \item systemd、sysvinit
+    \end{itemize}
+  \item まとめ
+  \item 参考文献
+  \end{itemize}
+\end{frame}
+
+
+\section{debianにおけるinitの仕組み}
+\emtext{debianにおけるinitの仕組み}
+
+\begin{frame}[containsverbatim]{initの仕組み}
+  \begin{itemize}
+  \item UNIX/Linux系のOSでは、カーネルが最初に呼び出すユーザランドプログラム「init」
+  \item Debianでのinitの説明 \\Debianリファレンスの「第3章 システムの初期化」\footnote{\url{https://www.debian.org/doc/manuals/debian-reference/ch03.ja.html}}
+  \item Debianにおけるinit
+    \begin{itemize}
+    \item 昔から存在する「sysvinit」
+    \item 新世代の「systemd」（Debian GNU/Linux 8 からデフォルト） 
+    \end{itemize}
+  \item Debianでは initを切り替えることが可能\footnote{\url{https://wiki.debian.org/Init}}
+    \begin{itemize}
+    \item systemdとsysvinitの両方を考慮してパッケージを作る必要あり
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\section{debianにおけるinitが呼び出す起動・停止の設定ファイル}
+\emtext{debianにおけるinitが呼び出す起動・停止の設定ファイル}
+
+\subsection{systemd: serviceファイル}
+
+\begin{frame}
+  \begin{center}\Huge{systemd: serviceファイル}\end{center}
+\end{frame} 
+
+\begin{frame}[containsverbatim]{systemd: serviceファイル}
+  \begin{itemize}
+  \item systemd環境では、systemctlコマンドでデーモンの起動・終了を行う
+  \item 設定ファイルの場所
+    \begin{itemize}
+      \item /lib/systemd/system/[package].service
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{systemd: systemctlコマンド}
+
+systemctlコマンドの使い方（nginxの例）
+
+起動
+\begin{commandline}
+# systemctl start nginx
+\end{commandline}
+
+終了
+\begin{commandline}
+# systemctl stop nginx
+\end{commandline}
+
+設定ファイル
+\begin{itemize}
+\item /lib/systemd/system/nginx.service
+\end{itemize}
+    
+\end{frame}
+
+
+\subsection{sysvinit: initスクリプト}
+
+\begin{frame}
+  \begin{center}\Huge{sysvinit: initスクリプト}\end{center}
+\end{frame} 
+
+\begin{frame}[containsverbatim]{sysvinit: initスクリプト}
+  \begin{itemize}
+  \item sysvinit環境では、serviceコマンドでデーモンの起動・終了を行う
+  \item 設定ファイルの場所
+    \begin{itemize}
+    \item /etc/init.d/[package]
+    \end{itemize}
+  \item 設定ファイルの中で使われるヘルパースクリプト
+    \begin{itemize}
+    \item /lib/init/vars.sh
+    \item /lib/lsb/init-functions
+    \item /sbin/start-stop-daemon
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{sysvinit: serviceコマンド}
+
+serviceコマンドの使い方（nginxの例）
+
+起動
+\begin{commandline}
+# service nginx start
+\end{commandline}
+
+終了
+\begin{commandline}
+# service nginx stop
+\end{commandline}
+
+設定ファイル
+\begin{itemize}
+\item /etc/init.d/nginx
+\end{itemize}
+    
+\end{frame}
+
+
+\section{init設定を行うdebianパッケージ作成方法}
+
+\begin{frame}
+  \begin{center}\Huge{init設定を行うdebianパッケージ作成方法}\end{center}
+\end{frame} 
+
+\begin{frame}[containsverbatim]{前提}
+  \begin{itemize}
+  \item Debian GNU/Linux 9 (stretch)
+  \item debhlperを利用してdebianパッケージを作成\footnote{debianの98\%のパッケージにおいて採用}\footnote{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}
+  \item \url{https://wiki.debian.org/ja/Packaging}
+  \item packaging-tutorial \\ \url{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}
+  \item Debian新メンテナーガイド \\ \url{https://www.debian.org/doc/manuals/maint-guide/index.ja.html}
+  \item Debian Policy Manual \\ \url{https://www.debian.org/doc/debian-policy/}
+  \end{itemize}
+\end{frame}
+
+
+\subsection{systemdに対応する設定}
+
+\begin{frame}
+  \begin{center}\Huge{systemdに対応する設定}\end{center}
+\end{frame} 
+
+\begin{frame}[containsverbatim]{systemd対応：基礎情報}
+  \begin{itemize}
+  \item Teams pkg-systemd Packaging
+    \begin{itemize}
+    \item \url{https://wiki.debian.org/Teams/pkg-systemd/Packaging}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{systemd対応：package作業}
+  \begin{itemize}
+  \item debian/rulesの修正
+  \item debian/controlの修正
+  \item debian/package.service の作成
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{systemd対応：debian/rulesの修正}
+
+\begin{itemize}
+\item dh\_makeコマンドでひな形ファイルが作成される
+\item debian/rulesにaddonを追加（withオプションの後ろに追記）
+\end{itemize}
+\begin{commandline}
+%:
+    dh $@ --with systemd  
+\end{commandline}
+
+\begin{itemize}
+\item "--with systemd"を指定するとパッケージのビルド処理で以下を追加で実行
+  \begin{itemize}
+  \item dh\_systemd\_enable
+  \item dh\_systemd\_start
+  \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{systemd対応：debian/controlの修正}
+
+dh\_makeコマンドでひな形ファイルが作成される
+
+debian/compat の中身が "10以上"
+
+\begin{commandline}
+Build-Depends: debhelper (>= 9.20160709)
+\end{commandline}
+
+debian/compat の中身が "10未満"
+\begin{commandline}
+Build-Depends: debhelper (>= 9.20150101),
+               dh-systemd (>= 1.5)
+\end{commandline}
+  
+\end{frame}
+
+\begin{frame}[containsverbatim]{systemd対応：package.serviceの作成}
+
+  \begin{itemize}
+  \item dh\_makeコマンドでひな形ファイルが作成されない
+  \item 他のパッケージのファイルやマニュアルを参考に作成してください\footnote{\url{https://www.freedesktop.org/software/systemd/man/systemd.service.html}}
+  \item package.serviceが存在する場合、パッケージのビルドの dh\_installinitで /lib/systemd/system へインストールするよう処理する
+  \end{itemize}
+
+\end{frame}
+
+
+\subsection{sysvinitに対応する設定}
+
+\begin{frame}
+  \begin{center}\Huge{sysvinitに対応する設定}\end{center}
+\end{frame} 
+
+\begin{frame}[containsverbatim]{sysvinit対応：package作業}
+  \begin{itemize}
+  \item debian/package.init の作成
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{sysvinit対応：package.initの作成}
+
+  \begin{itemize}
+  \item dh\_makeコマンドでひな形ファイルが作成されない\footnote{Debian 8以前のdh\_makeではinit.d.exというひな形ファイルが作成されました}
+  \item 他のパッケージのファイルや過去のひな形ファイルを参考に作成してください\footnote{\url{https://www.apt-browse.com/browse/debian/jessie/main/all/dh-make/1.20140617/file/usr/share/debhelper/dh_make/debian/init.d.ex}}
+  \item package.init が存在する場合、パッケージのビルドの dh\_installinit で /etc/init.d へインストールするよう処理する
+  \end{itemize}
+
+\end{frame}
+
+
+\section{まとめ}
+\emtext{まとめ}
+
+\begin{frame}[containsverbatim]{まとめ}
+
+\begin{itemize}
+\item systemdとsysvinitは切り替えることができるため、両方のことを意識しましょう
+\item systemd
+  \begin{itemize}
+  \item systemctlコマンド、設定は /lib/systemd/system
+  \end{itemize}
+  \item sysvinit
+  \begin{itemize}
+  \item serviceコマンド、設定は /etc/init.d配下
+  \end{itemize}
+\item パッケージの作成、ビルドはdebhelper便利
+\item dh\_installinit で serviceファイル、initスクリプトをdebianパッケージに含めている
+\item １つのソースパッケージから複数のバイナリパッケージを作る場合にファイル名の命名規則が異なるためドキュメントを見ましょう
+\end{itemize}
+
+\end{frame}
+
+
+\section{参考文献}
+\emtext{参考文献}
+
+\begin{frame}[containsverbatim]{参考文献}
+
+\begin{itemize}
+\item 「Teams pkg-systemd Packaging」\\ \url{https://wiki.debian.org/Teams/pkg-systemd/Packaging}
+\item mkouhei (2014) 「How to create a Debian package of support to sysvinit,  upstart,  systemd」\\ \url{https://d.palmtb.net/2014/01/30/how_to_create_a_debian_package_of_support_to_sysvinit__upstart__systemd.html}
+\item @henrich (2016) 「dh-systemdはdebhelper 9.20160709で統合された」 \\ \url{https://qiita.com/henrich/items/e1651e3284c6b3d0d39e}
+\end{itemize}
+
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
