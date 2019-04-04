@@ -1,0 +1,625 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{第173回東京エリアDebian勉強会 \\　\\grml-debootstrapを用いたUSB起動メモリの作成}
+\subtitle{}
+\author{NOKUBI Takatsugu (野首 貴嗣) \\knok@debian.org}
+\date{2019-04-20}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\section{表紙}
+
+\begin{frame}
+  \titlepage{}
+\end{frame}
+
+
+\section{自己紹介}
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item NOKUBI Takatsugu (野首 貴嗣)
+  \item knok@debian.org / knok@daionet.gr.jp
+  \item Twitter: @knok
+  \item Debian developer since 2002
+  \item bo 時代からのマシンを運用し続けている
+  \end{itemize}
+\end{frame}
+
+
+\section{目次}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item USBメモリを使う動機
+  \item grml-debootstrap概要
+  \item セットアップ準備
+  \item 設定
+  \item ブートローダーの設定
+  \end{itemize}
+\end{frame}
+
+
+\section{USBメモリを使う動機}
+\emtext{USBメモリを使う動機}
+
+\begin{frame}[containsverbatim]{クリーンな環境}
+  \begin{itemize}
+  \item USBメモリ以外の手法
+    \begin{itemize}
+    \item chroot環境(debootstrap)
+      \begin{itemize}
+      \item daemon類の扱いが面倒
+      \end{itemize}
+    \item コンテナ(LXC/LXD/Docker等)
+    \item 完全仮想環境(VirtualBox, KVM等)
+      \begin{itemize}
+      \item 手段の一つではある
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{ポータブルな環境}
+  \begin{itemize}
+  \item 物理マシンの環境を汚さない
+    \begin{itemize}
+    \item 大抵はライセンスされたproprietary OSが入っている
+    \end{itemize}
+  \item 複数のデバイスを用意すれば異なる環境を用意できる
+  \item 物理デバイスすべてを扱える
+    \begin{itemize}
+    \item 仮想環境と比較して
+    \end{itemize}
+  \item NASの起動デバイスとして(Microserver)
+  \end{itemize}
+\end{frame}
+
+\section{grml-debootstrap}
+\emtext{grml-debootstrap}
+
+\begin{frame}[containsverbatim]{grml-debootstrap}
+
+GRML Live Linuxの一部
+\begin{itemize}
+  \item \url{http://grml.org/}
+    \begin{itemize}
+    \item システム管理者向けLive Linux環境
+    \item FAIに対応
+    \end{itemize}
+  \item パッケージメンテナンス: Grml Team
+  \item 関連ツール: grml-rescueboot, grml2usb
+  \item ソースコード: \url{https://github.com/grml/grml-debootstrap}
+\end{itemize}
+
+\end{frame}
+
+
+\section{セットアップ準備}
+\emtext{セットアップ準備}
+
+\subsection{USBメモリの選定}
+\begin{frame}[containsverbatim]{選定基準}
+  \begin{itemize}
+  \item 用途と容量
+    \begin{itemize}
+    \item デスクトップ用途なら32GBもあれば十分
+    \item ストレージを使わないサーバー用途なら16GB程度で十分
+    \end{itemize}
+  \item 速度
+  \item 書き込み頻度
+    \begin{itemize}
+    \item 選択例: Transcend TS64GJF780 (MLC)
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{パーティショニング}
+  \begin{itemize}
+  \item EFIに対応する
+    \begin{itemize}
+    \item /boot を分ける必要あり
+    \item GPTを使う
+    \item オプション: MBRにも対応するなら2048セクタ目からパーティションを開始する
+    \end{itemize}
+  \item 方針: スワップパーティションは作らない
+  \item rootファイルシステムの選択
+    \begin{itemize}
+    \item ext4
+    \item f2fs - 最新のgrubでしか対応していない点に注意
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{実行例}
+  \begin{commandlinesmall}
+$ sudo gdisk /dev/sda
+GPT fdisk (gdisk) version 1.0.1
+Command (? for help): n
+Partition number (1-128, default 1): 
+First sector (34-31358942, default = 2048) or {+-}size{KMGTP}: 
+Last sector (2048-31358942, default = 31358942) or {+-}size{KMGTP}: +256M
+Current type is 'Linux filesystem'
+Hex code or GUID (L to show codes, Enter = 8300): ef00
+Changed type of partition to 'EFI System'
+
+Command (? for help): n
+Partition number (2-128, default 2): 
+First sector (34-31358942, default = 526336) or {+-}size{KMGTP}: 
+Last sector (526336-31358942, default = 31358942) or {+-}size{KMGTP}: 
+Current type is 'Linux filesystem'
+Hex code or GUID (L to show codes, Enter = 8300): 
+Changed type of partition to 'Linux filesystem'
+
+Command (? for help): w
+
+Final checks complete. About to write GPT data. THIS WILL OVERWRITE EXISTING
+PARTITIONS!!
+
+Do you want to proceed? (Y/N): y
+OK; writing new GUID partition table (GPT) to /dev/sda.
+The operation has completed successfully.
+\end{commandlinesmall}
+\end{frame}
+
+
+\subsection{インストール}
+\emtext{インストール}
+
+\begin{frame}[containsverbatim]{ファイルシステム作成}
+  \begin{commandlinesmall}
+$ sudo mkfs.vfat -F32 /dev/sda1         
+mkfs.fat 4.1 (2017-01-24)
+sudo mkfs -t f2fs /dev/sda2
+
+        F2FS-tools: mkfs.f2fs Ver: 1.7.0 (2016-07-28)
+
+Info: Debug level = 0
+Info: Label = 
+Info: Trim is enabled
+Info: Segments per section = 1
+Info: Sections per zone = 1
+Info: sector size = 512
+Info: total sectors = 30832607 (15054 MB)
+Info: zone aligned segment0 blkaddr: 256
+Info: format version with
+  "Linux version 4.18.0-0.bpo.1-amd64 (debian-kernel@lists.debian.org) (gcc version 6.3.0 20170516 (Debian 6.3.0-18+deb9u1)) #1 SMP Debian 4.18.6-1~bpo9+1 (2018-09-13)"
+Info: Discarding device
+Info: This device doesn't support BLKSECDISCARD
+Info: This device doesn't support BLKDISCARD
+Info: Overprovision ratio = 1.640%
+Info: Overprovision segments = 249 (GC reserved = 129)
+Info: format successful
+  \end{commandlinesmall}
+\end{frame}
+
+\begin{frame}[containsverbatim]{マウントとセットアップ}
+--efiオプションはEFI環境で起動していないと動作しない点に注意
+  \begin{commandlinesmall}
+$ sudo grml-debootstrap -m http://deb.debian.org/debian -r stretch -t /dev/sda2 --efi /dev/sda1 --grub /dev/sda --arch amd64 --filesystem f2fs --password toor
+ * EFI support detected.
+ * grml-debootstrap [0.78] - Please recheck configuration before execution:
+
+   Target:          /dev/sda2
+   Install grub:    /dev/sda
+   Install efi:     /dev/sda1
+   Using release:   stretch
+   Using hostname:  xps13
+   Using mirror:    http://deb.debian.org/debian
+   Using arch:      amd64
+   Config files:    /etc/debootstrap
+
+   Important! Continuing will delete all data from /dev/sda2!
+
+ * Is this ok for you? [y/N] y
+ * EFI partition /dev/sda1 seems to have a FAT filesystem, not modifying.
+ * Running mkfs.f2fs  on /dev/sda2
+
+        F2FS-tools: mkfs.f2fs Ver: 1.7.0 (2016-07-28)
+
+Info: Debug level = 0
+Info: Label =
+Info: Trim is enabled
+Info: Segments per section = 1
+Info: Sections per zone = 1
+Info: sector size = 512
+Info: total sectors = 30832607 (15054 MB)
+Info: zone aligned segment0 blkaddr: 256
+Info: format version with
+  "Linux version 4.18.0-0.bpo.1-amd64 (debian-kernel@lists.debian.org) (gcc version 6.3.0 20170516 (Debian 6.3.0-18+deb9u1)) #1 SMP Debian 4.18.6-1~bpo9+1 (2018-09-13)"
+Info: Discarding device
+Info: This device doesn't support BLKSECDISCARD
+Info: This device doesn't support BLKDISCARD
+Info: Overprovision ratio = 1.640%
+Info: Overprovision segments = 249 (GC reserved = 129)
+Info: format successful
+blockdev: ioctl error on BLKRRPART: Device or resource busy
+/usr/sbin/grml-debootstrap: line 1119: filesystem: command not found
+ * Mounting /dev/sda2 to /mnt/debootstrap.4583
+ * Running debootstrap  for release stretch (amd64) using http://deb.debian.org/debian
+ * Executing: debootstrap --arch amd64   stretch /mnt/debootstrap.4583 http://deb.debian.org/debian
+I: Retrieving InRelease
+I: Retrieving Release
+I: Retrieving Release.gpg
+I: Checking Release signature
+I: Valid Release signature (key id 067E3C456BAE240ACEE88F6FEF0F382A1A7B6500)
+I: Retrieving Packages
+I: Validating Packages
+I: Resolving dependencies of required packages...
+I: Resolving dependencies of base packages...
+
+
+Finished chroot installation, exiting.
+ * Removing chroot-script again
+ * Unmount /mnt/debootstrap.4583
+ * Removing /var/cache/grml-debootstrap/variables_sda2
+ * Removing /var/cache/grml-debootstrap/stages_sda2
+ * Finished execution of grml-debootstrap. Enjoy your Debian system.
+  \end{commandlinesmall}
+\end{frame}
+
+\begin{frame}[containsverbatim]{手作業}
+
+EFIパーティションの/EFI/BOOT以下にBOOTX64.EFIという名称でファイルを配置
+\begin{commandline}
+# mount /dev/sda1 /mnt
+# cd /mnt/EFI
+# mkdir BOOT
+# cp /boot/efi/EFI/debian/grubx64.efi BOOT/BOOTX64.EFI
+# umount /mnt
+\end{commandline}
+\end{frame}
+
+% 今後
+% bootを試す - virtualbox?
+% 32bit UEFI, MBR
+
+\subsection{リバースproxy設定}
+\emtext{リバースproxy設定}
+
+\begin{frame}[containsverbatim]{リバースproxy}
+  \begin{itemize}
+  \item リバースproxy
+    \begin{itemize}
+    \item クライアントと直接接続するのはnginxが担う
+    \item クライアントへ応答する実際のデータ生成はバックエンドのサーバが行うように通信を中継する機能
+    \end{itemize}
+  \item SSL/TLS設定をするとき、リバースproxyのnginxのみにSSL証明書を配置すればよい。バックエンドのサーバはHTTP設定のみでよい。
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[containsverbatim]{リバースproxy：upstreamの設定}
+  \begin{itemize}
+  \item upstream句にバックエンドのserverの通信先を設定する
+  \item 複数行のserver設定をすると、振り分けできる
+  \item 重み付きラウンドロビン、leas\_conn、ip\_hashが利用可能
+  \end{itemize}
+
+\begin{commandline}
+$ cat /etc/nginx/conf.d/upstream_proxy.conf
+  upstream backend_app1 {
+    # least_conn;
+    # ip_hash;
+
+    server 192.168.1.100:80 weight=1;
+    server 192.168.1.101:80 weight=1;
+  }    
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{リバースproxy：VirtualHost設定}
+  \begin{itemize}
+  \item proxy先への通信はデフォルトでHTTP/1.0であり、"proxy\_http\_version"で変更可能
+  \end{itemize}
+
+\begin{commandlinesmall}
+$ cat /etc/nginx/sites-available/default
+server {
+  # (snip)
+  location ~ ^/proxy/(.*)$ {
+    proxy_pass http://backend_proxy1;
+    
+    # proxy_http_version 1.1;
+
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $http_host;
+    #proxy_redirect http://backend_proxy1/ http://www.example.com/;
+  }
+  # (snip)
+\end{commandlinesmall}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{リバースproxy：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"/proxy/" へアクセスする
+\end{frame}
+
+
+\subsection{FastCGI設定}
+\emtext{FastCGI設定}
+
+\begin{frame}[containsverbatim]{FastCGI：PHP-FPMのインストール}
+
+PHP-7.0とPHP-7.0用PHP-FPMをインストール
+\begin{commandline}
+$ sudo apt install php7.0 php7.0-fpm
+\end{commandline}
+
+待ち受けをinet socketに変更
+\begin{commandline}
+$ sudo vi /etc/php/7.0/fpm/pool.d/www.conf
+;listen = /run/php/php7.0-fpm.sock
+listen = 9000
+\end{commandline}
+
+PHP-FPMを再起動
+\begin{commandline}
+$ sudo systemctl restart php7.0-fpm
+$ ss -npta | grep 9000
+LISTEN     0  128  :::9000   :::*
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：PHPスクリプト配置}
+phpinfo()を実行するスクリプトを動作確認用に配置
+\begin{commandline}
+$ sudo mkdir /var/www/html/myphpapp
+$ sudo vi /var/www/html/myphpapp/phpinfo.php
+<?php
+    phpinfo();
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：upstream設定}
+\begin{commandline}
+$ sudo vi /etc/nginx/conf.d/upstream_fcgi.conf
+upstream backend_fcgi1 {
+  # least_conn;
+  # ip_hash;
+
+  server 127.0.0.1:9000;
+}
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：VirtualHost設定}
+
+".php"へのアクセスをすべて、FastCGIサーバへ中継する
+\begin{commandline}
+$ sudo vi /etc/nginx/sites-available/default
+  # (snip)
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+
+    fastcgi_pass backend_fcgi1;
+  }
+  # (snip)
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{FastCGI：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"/myphpapp/phpinfo.php" へアクセスする
+\end{frame}
+
+
+\subsection{WSGI設定}
+\emtext{WSGI設定}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgiのインストール}
+
+python3.5、pip3、uwsgiをインストール
+\begin{commandline}
+$ sudo apt install python3 python3-pip \
+ uwsgi uwsgi-plugin-python3
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：アプリケーション配備}
+
+\url{https://github.com/dictoss/django-tutorial} を実験用に配置
+
+\begin{commandlinesmall}
+$ sudo apt install git
+$ sudo pip3 install -U django==2.0.9
+
+$ cd
+$ git clone https://github.com/dictoss/django-tutorial.git
+$ sudo mkdir /var/www/wsgi_apps_uwsgi
+$ sudo cp -r django-tutorial/2.0/mysite /var/www/wsgi_apps_uwsgi/
+$ sudo chown -fR www-data:www-data /var/www/wsgi_apps_uwsgi/mysite
+$ ls /var/www/wsgi_apps_uwsgi/mysite
+db.sqlite3  manage.py  mysite  polls
+\end{commandlinesmall}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgi設定}
+
+設定を一部抜粋
+\begin{commandline}
+$ sudo vi /etc/uwsgi/apps-available/django-tutorial.ini
+[uwsgi]
+uid = www-data
+gid = www-data
+plugin-dir = /usr/lib/uwsgi/plugins
+plugin = python3
+base = /var/www/wsgi_apps_uwsgi/mysite
+chdir = /var/www/wsgi_apps_uwsgi/mysite
+module = mysite.wsgi
+callable = application
+env =
+socket = 0.0.0.0:3031
+processes = 2
+threads = 32
+master = True
+vacuum = True
+harakiri = 60
+max-requests = 512
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgi設定}
+
+apps-availableのiniファイルをapps-enabledへシンボリックリンクを生成する
+\begin{commandline}
+$ cd /etc/uwsgi/apps-enabled
+$ sudo ln -fs ../apps-available/django-tutorial.ini .
+$ tree /etc/uwsgi
+  /etc/uwsgi
+  ├──  apps-available
+  │ ├──  README
+  │ ├──  django-tutorial.ini
+  └──  apps-enabled
+  ├──  README
+  └──  django-tutorial.ini ->
+              ../apps-available/django-tutorial.ini
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：uwsgi設定}
+
+uwsgiを再起動して設定反映
+\begin{commandline}
+$ sudo systemctl restart uwsgi
+$ ss -npta | grep 3031
+LISTEN     0  100  *:3031  *:*
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：upstream設定}
+\begin{commandline}
+$ sudo vi /etc/nginx/conf.d/upstream_uwsgi.conf
+upstream backend_uwsgi1 {
+  # least_conn;
+  # ip_hash;
+
+  server 127.0.0.1:3031;
+}
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：VirtualHost設定}
+
+"/mysite/"配下へのアクセスをすべて、WSGIサーバへ中継する
+\begin{commandline}
+$ sudo vi /etc/nginx/sites-available/default
+  # (snip)
+  location ~ ^/mysite/(.*)$ {
+    include uwsgi_params;
+
+    uwsgi_param SCRIPT_NAME /mysite;
+    uwsgi_param PATH_INFO /$1;
+
+    uwsgi_pass backend_uwsgi1;
+  }
+  # (snip)
+\end{commandline}
+\end{frame}
+
+\begin{frame}[containsverbatim]{WSGI：適用}
+\begin{commandlinesmall}
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ sudo systemctl restart nginx
+\end{commandlinesmall}
+
+設定したサーバの"/mysite/polls/" へアクセスする
+\end{frame}
+
+
+\section{まとめ・参考文献}
+\emtext{まとめ・参考文献}
+
+\begin{frame}[containsverbatim]{まとめ・参考文献}
+
+まとめ
+\begin{itemize}
+  \item nginxのよく使う設定をまとめてみました
+  \item 大規模向けに性能向上するパラメータについてはチューニングしてみてください
+  \end{itemize}
+
+  参考文献
+  \begin{itemize}
+  \item nginx documentation \url{https://nginx.org/en/docs/}
+  \item nginx - DebianWiki \url{https://wiki.debian.org/Nginx}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
