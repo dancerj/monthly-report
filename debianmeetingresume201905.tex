@@ -126,7 +126,158 @@
 \dancersection{/usr Mergeについて}{yy\_y\_ja\_jp}
 %-------------------------------------------------------------------------------
 
-%\subsection{はじめに}
+Debian では Buster から ``/usr Merge'' がデフォルトになりそうです。概要と状況を整理します。
+
+\subsection{概要}
+
+``/usr Merge'' とは、\verb|/bin/|, \verb|/sbin/|, \verb|/lib/| などの中にあるもの（バイナリ等）を \verb|/usr/| 内に移す、つまり \verb|/usr/| 内にバイナリ等をすべて統合することです。
+例えば \verb|/bin/ls| を \verb|/usr/bin/ls| に移します。また、今まで通り \verb|/bin/ls| でも使えるように互換性のため \verb|/bin| は \verb|/usr/bin| へのシンボリックリンクにします。\verb|/sbin| なども同様です。
+%Debian wikiにまとめがあります\footnote{\url{https://wiki.debian.org/UsrMerge}}。
+
+なお、このような構成にしたい理由はsystemdのwiki\footnote{\url{https://www.freedesktop.org/wiki/Software/systemd/TheCaseForTheUsrMerge/}}などにまとめられているようです。
+
+Debianを新規インストールするときには、Debianインストーラが内部で実行するdebootstrapがこの構成を行います。既存のDebian環境にはusrmergeパッケージをインストールすればこの構成にしてくれます\footnote{Busterの次のバージョンBullseyeではインストール推奨となるかもしれません。\url{https://bugs.debian.org/841666}}。なお、以前の構成へ元に戻すことは困難です。
+
+Stretch インストーラで作った Debian 環境の \verb|/| 直下は次のようなディレクトリ構成でした。
+\begin{commandline}
+$ ls -l /
+合計 76
+drwxr-xr-x  2 root root  4096  5月 14 00:42 bin
+drwxr-xr-x  3 root root  4096  5月 14 00:43 boot
+drwxr-xr-x 17 root root  2980  5月 14 00:56 dev
+drwxr-xr-x 76 root root  4096  5月 14 00:56 etc
+drwxr-xr-x  3 root root  4096  5月 14 00:43 home
+lrwxrwxrwx  1 root root    29  5月 14 00:38 initrd.img -> boot/initrd.img-4.9.0-9-amd64
+lrwxrwxrwx  1 root root    29  5月 14 00:38 initrd.img.old -> boot/initrd.img-4.9.0-9-amd64
+drwxr-xr-x 15 root root  4096  5月 14 00:42 lib
+drwxr-xr-x  2 root root  4096  5月 14 00:36 lib64
+drwx------  2 root root 16384  5月 14 00:35 lost+found
+drwxr-xr-x  3 root root  4096  5月 14 00:35 media
+drwxr-xr-x  2 root root  4096  5月 14 00:35 mnt
+drwxr-xr-x  2 root root  4096  5月 14 00:35 opt
+dr-xr-xr-x 80 root root     0  5月 14  2019 proc
+drwx------  2 root root  4096  5月 14 00:35 root
+drwxr-xr-x 14 root root   460  5月 14 00:57 run
+drwxr-xr-x  2 root root  4096  5月 14 00:56 sbin
+drwxr-xr-x  2 root root  4096  5月 14 00:35 srv
+dr-xr-xr-x 13 root root     0  5月 14 00:57 sys
+drwxrwxrwt  8 root root  4096  5月 14 00:56 tmp
+drwxr-xr-x 10 root root  4096  5月 14 00:35 usr
+drwxr-xr-x 11 root root  4096  5月 14 00:35 var
+lrwxrwxrwx  1 root root    26  5月 14 00:38 vmlinuz -> boot/vmlinuz-4.9.0-9-amd64
+lrwxrwxrwx  1 root root    26  5月 14 00:38 vmlinuz.old -> boot/vmlinuz-4.9.0-9-amd64
+$ 
+\end{commandline}
+
+一方、Buster インストーラで作った Debian 環境では次のようになります。なお、現時点ではインストーラに ``/usr Merge'' しないようにする設定はなさそうです。
+\begin{commandline}
+$ ls -l /
+合計 60
+lrwxrwxrwx  1 root root     7  5月 14 00:36 bin -> usr/bin
+drwxr-xr-x  3 root root  4096  5月 14 00:43 boot
+drwxr-xr-x 17 root root  3160  5月 14 00:56 dev
+drwxr-xr-x 67 root root  4096  5月 14 00:56 etc
+drwxr-xr-x  3 root root  4096  5月 14 00:43 home
+lrwxrwxrwx  1 root root    30  5月 14 00:38 initrd.img -> boot/initrd.img-4.19.0-4-amd64
+lrwxrwxrwx  1 root root    30  5月 14 00:38 initrd.img.old -> boot/initrd.img-4.19.0-4-amd64
+lrwxrwxrwx  1 root root     7  5月 14 00:36 lib -> usr/lib
+lrwxrwxrwx  1 root root     9  5月 14 00:36 lib32 -> usr/lib32
+lrwxrwxrwx  1 root root     9  5月 14 00:36 lib64 -> usr/lib64
+lrwxrwxrwx  1 root root    10  5月 14 00:36 libx32 -> usr/libx32
+drwx------  2 root root 16384  5月 14 00:36 lost+found
+drwxr-xr-x  3 root root  4096  5月 14 00:36 media
+drwxr-xr-x  2 root root  4096  5月 14 00:36 mnt
+drwxr-xr-x  2 root root  4096  5月 14 00:36 opt
+dr-xr-xr-x 79 root root     0  5月 14  2019 proc
+drwx------  2 root root  4096  5月 14 00:36 root
+drwxr-xr-x 15 root root   460  5月 14 00:58 run
+lrwxrwxrwx  1 root root     8  5月 14 00:36 sbin -> usr/sbin
+drwxr-xr-x  2 root root  4096  5月 14 00:36 srv
+dr-xr-xr-x 13 root root     0  5月 14 00:56 sys
+drwxrwxrwt  8 root root  4096  5月 14 00:56 tmp
+drwxr-xr-x 13 root root  4096  5月 14 00:36 usr
+drwxr-xr-x 11 root root  4096  5月 14 00:36 var
+lrwxrwxrwx  1 root root    27  5月 14 00:38 vmlinuz -> boot/vmlinuz-4.19.0-4-amd64
+lrwxrwxrwx  1 root root    27  5月 14 00:38 vmlinuz.old -> boot/vmlinuz-4.19.0-4-amd64
+$ 
+\end{commandline}
+
+\subsection{経緯}
+
+``/usr Merge'' は以前Fedoraで特に行われていたようです\footnote{\url{https://fedoraproject.org/wiki/Features/UsrMove}}。
+
+Debianでは当初Stretchでデフォルトにする予定でしたが、問題の解決が間に合いそうになく延期されました\footnote{\url{https://lists.debian.org/debian-devel-announce/2017/01/msg00004.html}}。
+
+その後Busterに向けてdebootstrap 1.0.102で再度デフォルトにすることにしました\footnote{\url{https://bugs.debian.org/839046}}が、問題があるためデフォルトでなくすべきではという議論があり、Debian技術委員会(tech-ctte)にも持ち込まれました\footnote{\url{https://bugs.debian.org/914897}}。
+
+%
+Debian技術委員会は、debootstrapのメンテナーが決めたことは覆さない、
+%つまり強権発動はしない
+と決定しました\footnote{\url{https://lists.debian.org/debian-devel-announce/2019/03/msg00001.html}}。
+同時に、Debianにおける``/usr Merge''の現状と今後の望ましい姿を示しました。
+
+\subsection{現状}
+Debian技術委員会の決定により、debootstrapメンテナー次第で``/usr Merge''がデフォルトになるかどうかは決まります。現時点で testing (Buster) 以降のバージョン向けにdebootstrapを実行すると次のようになっており、メンテナーが変更しなければこのままBusterリリースとなります。
+
+\begin{itemize}
+ \item 通常の環境では``/usr Merge''がデフォルト有効（無効にするには \verb|--no-merged-usr|オプションを付ける）
+ \item パッケージビルド用の環境（\verb|--variant=buildd| オプション）ではデフォルト無効
+\end{itemize}
+
+なお、現状では``/usr Merge''された環境でビルドされたバイナリパッケージを``/usr Merge''されていない環境に持っていくと動作しないものがあり、それらのパッケージに随時バグ報告してくれている方がいるようです\footnote{\url{https://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=usrmerge;users=md@linux.it}}
+。よくある理由としては、ビルド中にバイナリの場所を\verb|/bin/|の中よりも先に\verb|/usr/bin/|を探しに行き、``/usr Merge''された環境では\verb|/usr/bin/|のパスをコンパイル結果に埋め込むからです。%XXX
+問題を回避するため、少なくともDebian公式のパッケージビルドには当面``/usr Merge''されていない環境を使うこととなりました。また、Debian公式レポジトリにアップロードされたパッケージは、``/usr Merge''されていない環境でビルドした結果と``/usr Merge''された環境でビルドした結果を比較してこのような差分が発生していないかReproducible BuildsのCI環境で検証も行われており\footnote{\url{https://tests.reproducible-builds.org/debian/issues/unstable/paths_vary_due_to_usrmerge_issue.html}}、これも元にバグ報告・修正が行われています。
+
+手元で動くpbuilder, cowbuilderやsbuildなどクリーンルームでのパッケージビルドツールも同様に``/usr Merge''されていない環境が作られてその中でビルドしてくれます。新たにcowbuilderでビルド環境を作ると次のように構成されます。
+
+\begin{commandline}
+# cowbuilder --create
+I: Invoking pbuilder
+I: forking: pbuilder create --buildplace /var/cache/pbuilder/base.cow --mirror http://ftp.jp.debian.org/debian --distribution sid --no-targz --extrapackages cowdancer
+W: /root/.pbuilderrc does not exist
+I: Running in no-targz mode
+（略）
+Processing triggers for libc-bin (2.28-10) ...
+I: Copying back the cached apt archive contents
+I: unmounting dev/ptmx filesystem
+I: unmounting dev/pts filesystem
+I: unmounting dev/shm filesystem
+I: unmounting proc filesystem
+I: unmounting sys filesystem
+# ls -l /var/cache/pbuilder/base.cow/
+合計 80
+drwxr-xr-x  2 root root 4096  5月 14 23:50 bin
+drwxr-xr-x  2 root root 4096  5月 14 05:25 boot
+drwxr-xr-x  2 root root 4096  5月 14 23:50 build
+drwxr-xr-x  4 root root 4096  5月 14 23:50 dev
+drwxr-xr-x 30 root root 4096  5月 14 23:50 etc
+drwxr-xr-x  2 root root 4096  5月 14 05:25 home
+drwxr-xr-x  7 root root 4096  5月 14 23:50 lib
+drwxr-xr-x  2 root root 4096  5月 14 23:50 lib64
+drwxr-xr-x  2 root root 4096  5月 14 23:50 media
+drwxr-xr-x  2 root root 4096  5月 14 23:50 mnt
+drwxr-xr-x  2 root root 4096  5月 14 23:50 opt
+drwxr-xr-x  2 root root 4096  5月 14 05:25 proc
+drwx------  2 root root 4096  5月 14 23:50 root
+drwxr-xr-x  4 root root 4096  5月 14 23:50 run
+drwxr-xr-x  2 root root 4096  5月 14 23:50 sbin
+drwxr-xr-x  2 root root 4096  5月 14 23:50 srv
+drwxr-xr-x  2 root root 4096  5月 14 05:25 sys
+drwxrwxrwt  2 root root 4096  5月 14 23:50 tmp
+drwxr-xr-x 10 root root 4096  5月 14 23:50 usr
+drwxr-xr-x 11 root root 4096  5月 14 23:50 var
+#
+\end{commandline}
+パッケージを作るときは安全のためこれらのツールでビルドするようにしましょう。
+
+%XXX /usr/local/bin/grep
+
+\subsection{今後}
+
+Debian技術委員会は今後Debianの望ましい姿として、Busterの次のバージョン(Bullseye)では``/usr Merge''されていない環境とされている環境の両方が使えるべきで、またどちらの環境でビルドされたパッケージも両方の環境で動作すべきと示しました。
+
+さて、現時点でこれをどう実現するのかは不明です。少なくともDebian公式レポジトリにアップロードされた後に検出するCIは既にありますが、新しいアプリをパッケージングするときに事前に対応できるようにならないと実現したことにならないでしょう。そのためには、debhelper等のパッケージング時のビルド補助ツールが頑張るか、lintian等のパッケージング後の検査ツールを強化していく感じでしょうか... ともかく現状できておらず将来できるようにすべきと示されているので、現時点でこの問題の自衛方法としてはReproducible Buildsの取り組みで使われているツールを手元で動かすくらいでしょう。diffoscopeで2つのファイルをバイナリの中身まで再帰的に差分表示してくれるようです。ただ2つの環境作って両方でビルドするのも、差分を見極めるのも正直面倒なので、%XXX
+まずはクリーンルームでビルドして上げておいて、後でCIなどに指摘されたら直すくらいが現実的ではないかと思います。
 
 %
 % 冊子にするために、4の倍数にする必要がある。
