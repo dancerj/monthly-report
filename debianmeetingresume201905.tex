@@ -325,7 +325,19 @@ drwxr-xr-x 11 root root 4096  5月 14 23:50 var
 \end{commandline}
 パッケージを作るときは安全のためこれらのツールでビルドするようにしましょう。
 
-なお、多くの場合 \verb|PATH| 環境変数に従ってバイナリの場所を探しているので \verb|/bin/| よりも \verb|/usr/bin/| が優先されています。なのでもともと``/usr Merge''されていない環境であってもクリーンルームでビルドしていないと次のようなことも起こります。\verb|/usr/local/bin/bash| が存在する環境で \verb|dpkg-buildpackage| コマンドを実行すると、\verb|PATH| 環境変数では \verb|/bin/|（や \verb|/usr/bin/|）よりも \verb|/usr/local/bin/| が優先されるので \verb|/bin/bash| ではなく \verb|/usr/local/bin/bash| が使われてしまいます。なおこのように \verb|/usr/local/bin/| を使うのは明らかにポリシー違反なので一部ツールでは対策されており、\verb|dpkg-buildpackage| コマンドの代わりにdevscriptsパッケージにある \verb|debuild| コマンドを使えば回避できます。これは \verb|PATH| 環境変数に \verb|/usr/local/bin| を除いたものを設定した上でビルドしてくれます。ですがまずは先ほどのクリーンルームなビルドツールを使うのが良いでしょう。
+なお、多くの場合 \verb|PATH| 環境変数に従ってバイナリの場所を探しているので \verb|/bin/| よりも \verb|/usr/bin/| が優先されています。なのでもともと``/usr Merge''されていない環境であってもクリーンルームでビルドしていないと次のようなことも起こります。\verb|/usr/local/bin/bash| が存在する環境で \verb|dpkg-buildpackage| コマンドを実行すると、\verb|PATH| 環境変数では \verb|/bin|（や \verb|/usr/bin|）よりも \verb|/usr/local/bin| が優先されるので \verb|/bin/bash| ではなく \verb|/usr/local/bin/bash| が使われてしまいます。なおこのように \verb|/usr/local/bin/| の中のものを使うのは明らかにポリシー違反なので一部ツールでは対策されており、\verb|dpkg-buildpackage| コマンドの代わりにdevscriptsパッケージにある \verb|debuild| コマンドを使えば回避できます。これは \verb|PATH| 環境変数に \verb|/usr/local/bin| を除いたものを設定した上でビルドしてくれます。ですがまずは先ほどのクリーンルームなビルドツールを使うのが良いでしょう。
+
+また、``/usr Merge''された環境（に限らないですが）の既知の注意点として、\verb|dpkg --search| (\verb|dpkg -S|) が指定したファイルのパッケージを見つけてくれないことがあります\footnote{\url{https://bugs.debian.org/858331}}。
+\begin{commandline}
+$ which ls
+/usr/bin/ls
+$ dpkg -S /usr/bin/ls
+dpkg-query: パターン /usr/bin/ls に一致するパスが見つかりません
+$ dpkg -S /bin/ls
+coreutils: /bin/ls
+$ 
+\end{commandline}
+なお、おそらくこの挙動が変更されることはなさそうです。debhelperをはじめ様々なツールも現在の挙動に依存しています。ディレクトリの対応付けなどを認識しながらファイルを検索するオプションは別に用意されるかもしれません。
 
 \subsection{今後}
 
