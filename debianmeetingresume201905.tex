@@ -225,8 +225,60 @@ Debian技術委員会の決定により、debootstrapメンテナー次第で``/usr Merg
 \end{itemize}
 
 なお、現状では``/usr Merge''された環境でビルドされたバイナリパッケージを``/usr Merge''されていない環境に持っていくと動作しないものがあり、それらのパッケージに随時バグ報告してくれている方がいるようです\footnote{\url{https://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=usrmerge;users=md@linux.it}}
-。よくある理由としては、ビルド中にバイナリの場所を\verb|/bin/|の中よりも先に\verb|/usr/bin/|を探しに行き、``/usr Merge''された環境では\verb|/usr/bin/|のパスをコンパイル結果に埋め込むからです。%XXX
-問題を回避するため、少なくともDebian公式のパッケージビルドには当面``/usr Merge''されていない環境を使うこととなりました。また、Debian公式レポジトリにアップロードされたパッケージは、``/usr Merge''されていない環境でビルドした結果と``/usr Merge''された環境でビルドした結果を比較してこのような差分が発生していないかReproducible BuildsのCI環境で検証も行われており\footnote{\url{https://tests.reproducible-builds.org/debian/issues/unstable/paths_vary_due_to_usrmerge_issue.html}}、これも元にバグ報告・修正が行われています。
+。よくある理由としては、ビルド中にバイナリの場所を \verb|/bin/| の中よりも先に \verb|/usr/bin/| を探しに行き、``/usr Merge''された環境では \verb|/usr/bin/| のパスをコンパイル結果に埋め込むからです。%XXX
+例えば quilt パッケージの少し古い修正\footnote{\url{https://bugs.debian.org/913226}}以前のバージョン 0.65-2 を``/usr Merge''された環境でビルドしてみます。\verb|dh_auto_configure| 経由で実行された \verb|./configure| が \verb|/bin/bash| ではなく \verb|/usr/bin/bash|、\verb|/bin/cp| ではなく \verb|/usr/bin/cp|、などを検出してビルドしています。
+この場合はビルドされたパッケージ内のシェルスクリプトの先頭が \verb|#! /usr/bin/bash| となったため lintian がたまたま別件のポリシー違反として検出してくれています。
+\begin{commandline}
+$ dget http://snapshot.debian.org/archive/debian/20180809T030926Z/pool/main/q/quilt/quilt_0.65-2.dsc
+dget: retrieving http://snapshot.debian.org/archive/debian/20180809T030926Z/pool/main/q/quilt/quilt_0.65-2.dsc
+(snip)
+quilt_0.65-2.dsc:
+      Good signature found
+   validating quilt_0.65.orig.tar.gz
+   validating quilt_0.65-2.debian.tar.xz
+All files validated successfully.
+dpkg-source: info: extracting quilt in quilt-0.65
+(snip)
+dpkg-source: info: applying fix-mail-threading
+$ cd quilt-0.65/
+$ debuild -us -uc
+ dpkg-buildpackage -us -uc -ui
+dpkg-buildpackage: info: source package quilt
+dpkg-buildpackage: info: source version 0.65-2
+(snip)
+dh_auto_configure -- --with-docdir=/usr/share/doc/quilt --with-sendmail=/usr/sbin/sendmail --with-awk=/usr/bin/awk
+	./configure --build=x86_64-linux-gnu --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var --disable-silent-rules --libdir=\${prefix}/lib/x86_64-linux-gnu --libexecdir=\${prefix}/lib/x86_64-linux-gnu --runstatedir=/run --disable-maintainer-mode --disable-dependency-tracking --with-docdir=/usr/share/doc/quilt --with-sendmail=/usr/sbin/sendmail --with-awk=/usr/bin/awk
+configure: WARNING: unrecognized options: --disable-silent-rules, --disable-maintainer-mode, --disable-dependency-tracking, --with-docdir
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether #! works in shell scripts... yes
+checking for bash... /usr/bin/bash
+checking whether /usr/bin/bash quoting works... yes
+checking for gcp... no
+checking for cp... /usr/bin/cp
+checking for gdate... no
+checking for date... /usr/bin/date
+(snip)
+dpkg-deb: building package 'quilt' in '../quilt_0.65-2_all.deb'.
+dpkg-deb: building package 'quilt-el' in '../quilt-el_0.65-2_all.deb'.
+ dpkg-genbuildinfo
+ dpkg-genchanges  >../quilt_0.65-2_amd64.changes
+dpkg-genchanges: info: not including original source code in upload
+ dpkg-source --after-build .
+dpkg-source: warning: Testsuite field contains value autopkgtest, but no tests control file debian/tests/control
+dpkg-buildpackage: info: binary and diff upload (original source NOT included)
+Now running lintian quilt_0.65-2_amd64.changes ...
+W: quilt source: orig-tarball-missing-upstream-signature quilt_0.65.orig.tar.gz
+E: quilt: missing-depends-on-sensible-utils usr/share/quilt/edit
+E: quilt: missing-depends-on-sensible-utils usr/share/quilt/header
+E: quilt: missing-depends-on-sensible-utils usr/share/quilt/mail
+E: quilt: wrong-path-for-interpreter usr/bin/quilt (#!/usr/bin/bash != /bin/bash)
+E: quilt: wrong-path-for-interpreter usr/share/quilt/add (#!/usr/bin/bash != /bin/bash)
+(snip)
+Finished running lintian.
+$ 
+\end{commandline}
+
+問題を回避するため、少なくともDebian公式のパッケージビルドには当面``/usr Merge''されていない環境を使うこととなりました。また、Debian公式レポジトリにアップロードされたパッケージは、``/usr Merge''されていない環境でビルドした結果と``/usr Merge''された環境でビルドした結果を比較してこのような差分が発生していないかReproducible BuildsプロジェクトのCI\footnote{Continuous Integration、継続的インテグレーション}環境で検証も行われており\footnote{\url{https://tests.reproducible-builds.org/debian/issues/unstable/paths_vary_due_to_usrmerge_issue.html}}、これも元にバグ報告・修正が行われています。
 
 手元で動くpbuilder, cowbuilderやsbuildなどクリーンルームでのパッケージビルドツールも同様に``/usr Merge''されていない環境が作られてその中でビルドしてくれます。新たにcowbuilderでビルド環境を作ると次のように構成されます。
 
@@ -244,6 +296,9 @@ I: unmounting dev/pts filesystem
 I: unmounting dev/shm filesystem
 I: unmounting proc filesystem
 I: unmounting sys filesystem
+# 
+\end{commandline}
+\begin{commandline}
 # ls -l /var/cache/pbuilder/base.cow/
 合計 80
 drwxr-xr-x  2 root root 4096  5月 14 23:50 bin
@@ -270,13 +325,18 @@ drwxr-xr-x 11 root root 4096  5月 14 23:50 var
 \end{commandline}
 パッケージを作るときは安全のためこれらのツールでビルドするようにしましょう。
 
-%XXX /usr/local/bin/grep
+なお、多くの場合 \verb|PATH| 環境変数に従ってバイナリの場所を探しているので \verb|/bin/| よりも \verb|/usr/bin/| が優先されています。なのでもともと``/usr Merge''されていない環境であってもクリーンルームでビルドしていないと次のようなことも起こります。\verb|/usr/local/bin/bash| が存在する環境で \verb|dpkg-buildpackage| コマンドを実行すると、\verb|PATH| 環境変数では \verb|/bin/|（や \verb|/usr/bin/|）よりも \verb|/usr/local/bin/| が優先されるので \verb|/bin/bash| ではなく \verb|/usr/local/bin/bash| が使われてしまいます。なおこのように \verb|/usr/local/bin/| を使うのは明らかにポリシー違反なので一部ツールでは対策されており、\verb|dpkg-buildpackage| コマンドの代わりにdevscriptsパッケージにある \verb|debuild| コマンドを使えば回避できます。これは \verb|PATH| 環境変数に \verb|/usr/local/bin| を除いたものを設定した上でビルドしてくれます。ですがまずは先ほどのクリーンルームなビルドツールを使うのが良いでしょう。
+%XXX lintian
+
+%XXX --with-bash BASH=/bin/bash
 
 \subsection{今後}
 
 Debian技術委員会は今後Debianの望ましい姿として、Busterの次のバージョン(Bullseye)では``/usr Merge''されていない環境とされている環境の両方が使えるべきで、またどちらの環境でビルドされたパッケージも両方の環境で動作すべきと示しました。
 
-さて、現時点でこれをどう実現するのかは不明です。少なくともDebian公式レポジトリにアップロードされた後に検出するCIは既にありますが、新しいアプリをパッケージングするときに事前に対応できるようにならないと実現したことにならないでしょう。そのためには、debhelper等のパッケージング時のビルド補助ツールが頑張るか、lintian等のパッケージング後の検査ツールを強化していく感じでしょうか... ともかく現状できておらず将来できるようにすべきと示されているので、現時点でこの問題の自衛方法としてはReproducible Buildsの取り組みで使われているツールを手元で動かすくらいでしょう。diffoscopeで2つのファイルをバイナリの中身まで再帰的に差分表示してくれるようです。ただ2つの環境作って両方でビルドするのも、差分を見極めるのも正直面倒なので、%XXX
+先ほどの quilt は、その次のバージョン 0.65-3 で``/usr Merge''された環境でビルドされたパッケージが``/usr Merge''されていない環境に持っていっても動作するよう次のように修正されました。debian/rules ファイルの \verb|dh_auto_configure| コマンド（結果的には \verb|./configure|）呼び出しの引数最後に \verb|--with-bash=/bin/bash| を追加し、\verb|PATH| 環境変数に関係なく決め打ちで \verb|/bin/bash| を見に行くようにしました。なお \verb|./configure| は \verb|--with-bash=| を \verb|BASH=| と書くこともできます。現在このように差分が見つかった各パッケージを修正中のようです。新しくパッケージングしたいアプリケーションも少なくとも差分が見つかったらこのような対処が必要になります。
+
+さて、現時点でこれをどうシームレスに実現するのかは不明です。少なくともDebian公式レポジトリにアップロードされた後に検出するCI環境は既にありますが、新しいアプリをパッケージングするときに事前に対応できるようにならないと真に実現したことにならないでしょう。そのためには、debhelper等のパッケージング時のビルド補助ツールが頑張るか、lintian等のパッケージング後の検査ツールを強化していく感じでしょうか... ともかく現状できておらず将来できるようにすべきと示されているので、現時点でこの問題の自衛方法としてはReproducible Buildsの取り組みで使われているツールを手元で動かすくらいでしょう。diffoscopeで2つのファイルをバイナリの中身まで再帰的に差分表示してくれるようです。ただ2つの環境作って両方でビルドするのも、差分を見極めるのも正直面倒なので、%XXX
 まずはクリーンルームでビルドして上げておいて、後でCIなどに指摘されたら直すくらいが現実的ではないかと思います。
 
 %
