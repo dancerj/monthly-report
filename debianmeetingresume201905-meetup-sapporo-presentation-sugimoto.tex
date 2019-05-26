@@ -1,0 +1,331 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\title{golangの''net/http/fcgi''を使ってREST APIアプリを作る}
+\subtitle{Debian / Ubuntu ユーザーミートアップ in 札幌 2019.05}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2019-05-31}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\frame{\titlepage{}}
+
+
+\section{アジェンダ}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item golangについて
+  \item Debianとgolang
+  \item goのアプリケーションを動かす
+  \item おわりに
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\section{自己紹介}
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item 大学生のときからDebianを使っています
+  \item 仕事はソフトウェア開発者をやってます
+  \end{itemize}
+\end{frame}
+
+
+\section{golangについて}
+\emtext{golangについて}
+
+\begin{frame}[containsverbatim]{golangについて}
+  \begin{itemize}
+  \item 2009/11/10にgoogleが発表したオープンソースのプログラミング言語
+  \item 最新の安定版「go1.12」のリリースは 2019/2/25
+  \item プログラミングの特徴
+    \begin{itemize}
+    \item 変数は静的な型付けを行う
+    \item ネットワークやマルチスレッド処理を行う豊富な標準ライブラリを持つ
+    \item structでデータ構造を定義でき、classはない（interfaceはある）
+    \end{itemize}
+  \item 特徴
+    \begin{itemize}
+    \item "go build" コマンドでOSネイティブな実行ファイルをビルドする
+      \begin{itemize}
+      \item Linux、macOS、Windows、FreeBSD 向けの実行ファイルをビルド可能
+      \end{itemize}
+    \end{itemize}
+  \item golangで実装しているアプリケーション例
+    \begin{itemize}
+    \item \url{https://github.com/golang/go/wiki/GoUsers}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\section{Debianとgolang}
+
+\begin{frame}[containsverbatim]{Debianとgolang}
+  \begin{itemize}
+  \item Debian 9 Stretch
+    \begin{itemize}
+    \item golang-1.7.4
+    \item golang-1.11.5（stretch-backports）
+    \end{itemize}
+  \item Debian 10 Buster
+    \begin{itemize}
+    \item golang-1.11.6
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\section{goのアプリケーションを動かす}
+\emtext{goのアプリケーションを動かす}
+
+\subsection{動作環境とデモアプリケーション}
+
+\begin{frame}[containsverbatim]{動作環境とデモアプリケーション}
+  \begin{itemize}
+  \item Debian GNU/Linux 10 Buster amd64
+  \item golang パッケージ（golang-1.11）のgoコマンドを利用する
+  \item デモアプリケーション
+    \begin{itemize}
+    \item \url{https://github.com/dictoss/golang-practice/tree/master/src/github.com/dictoss/fcgi_server}
+    \item FastCGIとして動作するREST APIサーバ
+    \item このアプリケーションをデーモンとして実行
+    \end{itemize}
+  \item nginx
+    \begin{itemize}
+    \item http のリクエストを待ち受ける
+    \item リクエストを FastCGI のバックエンドへ proxy する
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\subsection{パッケージのインストール}
+
+\begin{frame}[containsverbatim]{パッケージのインストール}
+
+aptコマンドで必要なパッケージをインストール
+
+\begin{commandline}
+# apt update
+# apt install golang nginx curl git
+\end{commandline}
+
+goコマンドのバージョンを確認
+
+\begin{commandline}
+$ go version
+go version go1.11.6 linux/amd64
+\end{commandline}
+
+\end{frame}
+
+
+\subsection{ビルドと実行}
+
+\begin{frame}[containsverbatim]{ビルドと実行}
+
+ソースコードを取得
+
+\begin{commandline}
+$ git clone https://github.com/dictoss/golang-practice.git
+\end{commandline}
+
+ビルドして実行ファイルを生成
+
+\begin{commandline}
+$ cd golang-practice/src/github.com/dictoss/fcgi_server/
+$ go build fcgi_server.go
+$ file fcgi_server
+fcgi_server: ELF 64-bit LSB executable, x86-64,
+version 1 (SYSV), dynamically linked,
+interpreter /lib64/ld-linux-x86-64.so.2,
+Go BuildID=NgM3NZ0-K_rN-eMIo4T1/8VObv2x-PXhaCtETqR2t
+/4HbNDkw2hyrGBQ03TFnI/OhB_Jj--KNJF6NYEIL6z,
+not stripped
+\end{commandline}
+
+実行できるか確認
+
+\begin{commandline}
+$ ./fcgi_server
+\end{commandline}
+
+\end{frame}
+
+
+\subsection{nginxのfastcgi設定}
+
+\begin{frame}[containsverbatim]{nginxのfastcgi設定}
+
+webサーバの /gofcgi のパスへアクセスされたときにFast CGIでproxyする
+
+\begin{commandline}
+# vi /etc/nginx/sites-available/default
+server {
+    location ~ ^/gofcgi/(.*)$ {
+        include /etc/nginx/fastcgi_params;
+        fastcgi_pass 127.0.0.1:9000;
+    }
+}
+\end{commandline}
+
+\begin{commandline}
+# nginx -c /etc/nginx/nginx.conf
+# systemctl restart nginx
+\end{commandline}
+
+\end{frame}
+
+
+\subsection{動作確認}
+
+\begin{frame}[containsverbatim]{動作確認}
+
+動作確認
+
+\begin{commandline}
+  $ cat hello2_request.json | \
+  curl -v http://localhost/gofcgi/json/hello2/ \
+  -H 'Content-Type:application/json' --data @-
+
+  {``req_msg'':''Nice to meet you.'',
+   ''res_msg'':''Me too !!''}
+  \end{commandline}
+\end{frame}
+
+
+\subsection{デーモン設定}
+
+\begin{frame}[containsverbatim]{デーモン設定（1）}
+
+systemdのserviceファイル
+
+\begin{commandline}
+$ cat gofcgi-apid.service
+[Unit]
+Description=REST API server for golang
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/gofcgi-apid/fcgi_server
+  -logpath ``/usr/local/gofcgi-apid/log.txt''
+  -fcgi_listen_addr ``127.0.0.1:9000''
+  -fcgi_url_prefix ``/gofcgi''
+ExecStop=/bin/kill -HUP $MAINPID
+TimeoutStopSec=5
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+\end{commandline}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{デーモン設定（2）}
+
+実行ファイルをディレクトリに配置
+
+\begin{commandline}
+# mkdir /usr/local/gofcgi-apid
+# cp fcgi_server /usr/local/gofcgi-apid/
+# chmod 755 /usr/local/gofcgi-apid/fcgi_server
+\end{commandline}
+
+serviceファイルをsystemdに登録し、繁栄
+
+\begin{commandline}
+# cp gofcgi-apid.service /lib/systemd/system/
+# systemctl daemon-reload
+\end{commandline}
+
+APIサーバをsystemctlコマンドで起動/停止
+
+\begin{commandline}
+# systemctl start gofcgi-apid
+# systemctl stop gofcgi-apid
+\end{commandline}
+
+\end{frame}
+
+
+\section{おわりに}
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+  \item Debian パッケージで提供している golang を紹介しました
+  \item golang でサーバアプリを作ってみました
+  \item Debian で golang ライフをお楽しみください
+  \end{itemize}
+\end{frame}
+
+
+\section{参考情報}
+
+\begin{frame}{参考情報}
+  \begin{itemize}
+  \item The Go Programming Language
+    \begin{itemize}
+    \item \url{https://golang.org/}
+    \end{itemize}
+  \item Debian Go Packaging
+    \begin{itemize}
+    \item \url{https://go-team.pages.debian.net/packaging.html}
+    \end{itemize}
+  \item debianにおけるnginxの設定例
+    \begin{itemize}
+    \item \url{https://tokyodebian-team.pages.debian.net/pdf2018/debianmeetingresume201811-presentation-sugimoto.pdf}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
