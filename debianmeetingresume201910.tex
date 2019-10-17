@@ -86,7 +86,7 @@
 
 2019年9月21日(土)に東京エリアDebian勉強会を開催しました。会場は荒川区立町屋文化センターの会議室を借りて行いました。参加者は3名でした。
 
-xxx
+セミナーは行わず、各自で Hack タイムを行いました。Hack する中で日本語入力や日本語の処理に必要な辞書、最近の機械学習業界の状況などの話題が出て意見を交わしました。
 
 勉強会の後は参加者で懇親を深めました。
 
@@ -123,17 +123,557 @@ xxx
 % % (query-replace-regexp "^[    ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{Debian GNU/kFreeBSD セットアップガイド 2019年版}{dictoss}
+\dancersection{Debian GNU/kFreeBSD セットアップガイド 2019年版}{杉本　典充}
 %-------------------------------------------------------------------------------
 
-%\subsection{はじめに}
+\subsection{はじめに}
+
+Debian Project では Debian GNU/Linux という Linux ディストリビューションを開発しており多くの開発者及び利用者がいます。Debian Project では ユニバーサルなオペレーティングシステムを提供する考え方をもっており、その理念に則り FreeBSD カーネルで動作する Debian GNU/kFreeBSD という別の OS\footnote{Linux カーネルでなく FreeBSD カーネルでもない Debian GNU/Hurd というものもあります。} があります。
+
+Debian GNU/kFreeBSD はその特異さゆえに Debian GNU/Linux と異なる点が多くあります。今記事では Debian GNU/kFreeBSD を触れるにあたり、どのようにセットアップを行うとよいか説明します。
+
+
+\subsection{Debian Ports と Debian GNU/kFreeBSD}
+
+\subsubsection{Debian Ports とは}
+
+Debian Ports\footnote{\url{https://www.ports.debian.org/}}とは、さまざまなCPUやカーネルで動作するように移植を行うプロジェクトです。
+
+FreeBSD カーネルで動作する Debian を作るプロジェクトがあり、その Debian のことを「Debian GNU/kFreeBSD」と呼んでいます ("k" は kernel のこと)。現在ではIntel CPUのアーキテクチャのみあります (kfreebsd-amd64、kfreebsd-i386)。
+
+\subsubsection{Debian GNU/kFreeBSD のリリースの歴史}
+
+Debian GNU/kFreeBSD のリリースの歴史は以下となっています。
+
+\begin{itemize}
+\item 2011年2月6日、Debian 6 (squeeze) おいてテクノロジープレビューとして stable 版をリリース。ftp.debian.org にてパッケージの配布を開始。
+\item 2013年5月4日、Debian 7 (wheezy) において stable 版をリリース。
+\item 2014年9月、Debian 8 (jessie) でリリースするアーキテクチャを選定する過程で、kFreeBSD は開発や保守に関わる人が少なく stable の維持と新規開発の両立ができていない状況が見られることを指摘される\footnote{\url{https://lists.debian.org/debian-devel-announce/2014/09/msg00002.html}}。その指摘を改善できなかったため、Debian 8 (jessie)では stable 版のリリースは見送られる\footnote{過去バージョンの利用者が困るであろうということで jessie-kfreebsd 版という裏バージョンが存在していた。}。
+\item Debian 9 (stretch) においても stable 版のリリースはされない状況が続く\footnote{stretch-kfreebsd 版はリリースされませんでした。}。
+\item 2018年5月31日、Debian 7 (wheezy) の LTS が終了。これにて Debian GNU/kFreeBSD の stable 版はサポートを終了。
+\item Debian 10 (buster) のリリースに向けて ftp.debian.org の整理を実施。
+\item 2019年5月25日、Debian GNU/kFreeBSD は Debian Ports（\url{https://www.ports.debian.org/}） へ移転。これにより ftp.debian.org におけるパッケージの配布を終了。
+\end{itemize}
+
+\subsubsection{Porterbox}
+
+Debian Project では多くのアーキテクチャを開発しているため、移植作業用にサーバを借りる「porterbox」という仕組みがあります\footnote{\url{https://wiki.debian.org/PorterBoxHowToUse}}。
+
+bugreportにはあるアーキテクチャのみで発生する不具合も報告されますが、パッケージをメンテナンスしている人がそのアーキテクチャの環境を持っていない場合があります。その場合は環境を自分で構築するか、porterboxを利用してバグの修正作業を行います。
+
+なお、Debian GNU/kFreeBSD では kfreebsd-amd64 の porterbox "lemon.debian.net" を運用しています\footnote{\url{https://db.debian.org/machines.cgi?host=lemon}}\footnote{"New GNU/kFreeBSD Porterbox" \url{https://lists.debian.org/debian-devel/2019/02/msg00313.html}}。
+
+
+\subsubsection{Debian GNU/kFreeBSD 固有の Debian パッケージ}
+
+Debian GNU/kFreeBSD固有のパッケージの例を紹介します。
+
+\subsubsubsection{kfreebsd-imageパッケージ}
+
+Debian GNU/kFreeBSD の kernelイメージを収録したパッケージです。Debian Ports の kFreeBSD では kfreebsd-image-10.3 が利用できます。experimental には kfreebsd-image-11 があります\footnote{FreeBSD の最新版は 2018年12月11日にリリースした FreeBSD-12.0です。}。
+
+\subsubsubsection{zfsutilsパッケージ}
+
+zfsutils パッケージは ZFS を操作するコマンドを含んだパッケージです。インストール時のファイルシステムに ZFS を選択した場合はデフォルトでインストールされます。
+
+%kfreebsd-image-10.3 で利用できるZFSのバージョンは ver NN となっています。
+%
+%\begin{commandline}
+%  $ zpool upgrade -v
+%  (snip)
+%  NN  Multiple vdev replacements
+%\end{commandline}
+
+\subsubsubsection{freebsd-utilsパッケージ}
+
+freebsd-utilsパッケージは、FreeBSD固有のコマンドを含んだパッケージです。/sbin/mount\_*、/usr/sbin/jailなどが入っています。
+
+\subsubsubsection{freebsd-net-toolsパッケージ}
+
+freebsd-net-toolsパッケージは、FreeBSD向けのネットワーク操作のコマンドを含んだパッケージです。arp、ifconfig、netstat、routeコマンドなどが入っています。
+
+\subsubsubsection{freebsd-smbfsパッケージ}
+
+freebsd-smbfs パッケージは、Windows ファイル共有（SMB共有）へアクセスするためのパッケージです。
+インストールすると、"/usr/sbin/mount\_smbfs" コマンドが使えるようになります。
+
+Windows ファイル共有先を mount するには以下のコマンドを実行します。
+
+\begin{commandline}
+# mount_smbfs -E UTF-8:CP932 -I {ファイルサーバのIPアドレス} -U {smbユーザ名} //{ファイルサーバのIPアドレス}/{dir} {mount先dir}
+\end{commandline}
+
+\subsubsubsection{freebsd-pppパッケージ}
+
+freebsd-pppパッケージは、ダイアルアップする "/usr/sbin/ppp" コマンドを含んでいます。3G や LTE に対応した USB モデムを使う場合に必要となります。
+
+Debian GNU/Linux では ppp パッケージや wvdial パッケージでダイアルアップしますが、kfreebsd ではそれらは使えないため注意が必要です。
+
+\subsubsection{pfパッケージ}
+
+FreeBSD kernelがもつ Packet Filter と呼ばれるいわゆるファイアウォール機能を制御するコマンド "/sbin/pfctl" を含んだパッケージです。
+
+/sbin/pfctl の設定ファイルは "/etc/pf.conf" であり、Linuxのiptables用設定ファイルと中身が全く異なります。
+
+
+\subsection{Debian GNU/kFreeBSDのインストール}
+
+\subsubsection{インストールするPC}
+
+今回は ThinkPad X220 という Intel の Sandy Bridge 世代のノートPCにインストールをしてみます。このノートPCの有線LANと無線LANのチップは Intel 製であり FreeBSD カーネルの標準でドライバが提供されているため認識させやすいです。
+
+
+\subsubsection{インストールイメージの入手}
+
+開発者向けの Debian Installer は通常 \url{https://www.debian.org/devel/debian-installer/} で配布しています。しかし、Debian GNU/kFreeBSD は Debian Ports へ移行したため、\url{https://www.debian.org/devel/debian-installer/} にある kFreeBSD 用インストーラは動作しなくなっています。
+
+代わりに非公式版の Debian Installer の ISO イメージが用意されており、以下の ISO ファイルを利用してインストールします。
+
+\begin{itemize}
+\item \url{http://jenkins.kfreebsd.eu/jenkins/view/cd/job/debian-cd_sid_kfreebsd-amd64/ws/build/debian-unofficial-kfreebsd-amd64-NETINST-1.iso}
+\item \url{http://jenkins.kfreebsd.eu/jenkins/view/cd/job/debian-cd_sid_kfreebsd-i386/ws/build/debian-unofficial-kfreebsd-i386-NETINST-1.iso}
+\end{itemize}
+
+通常は kfreebsd-amd64 版を使うとよいでしょう\footnote{kfreebsd-i386 版を利用しても構わないのですが、ファイルシステムに ZFS を使う場合はメモリ不足になりがちなため注意してください。}
+
+ISO ファイルをCD/DVD メディアへ焼いてインストールディスクを作成し、インストールディスクから PC を起動すると Debian Installer が起動します。
+
+
+\subsubsection{インストーラの表示言語}
+
+kfreebsd 版 Debian Installerは、日本語の表示ができません（インストーラでフレームバッファが有効になっていないと思われる）。そのため、LANG=Cでインストールを進めます。
+
+
+\subsubsection{パーティション構成とファイルシステム}
+
+Debian GNU/kFreeBSD を MBR 方式でブートする環境へインストールする場合は root パーティションを MBR の基本パーティションにする必要があります\footnote{もし Debian GNU/Linux や Windows とデュアルブートしたい場合は、MBR方式では基本パーティションの作成は4つまでという制約を考慮したパーティション構成にする必要があります。}（拡張パーティションにインストールすると grub のインストールに失敗します）。kFreeBSDを占有する環境の場合は以下のパーティション構成でよいでしょう（以下では "/dev/ada0p1" のファイルシステムに UFS を選択しています）。
+
+\begin{commandline}
+# fdisk -l /dev/ada0
+
+Disk /dev/ada0: 238.5 GiB, 256060514304 bytes, 500118192 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x88f37f78
+
+Device      Boot     Start       End   Sectors   Size Id Type
+/dev/ada0p1           2048 273436671 273434624 130.4G a5 FreeBSD
+/dev/ada0p2      273436672 281249791   7813120   3.7G 82 Linux swap / Solari
+\end{commandline}
+
+ファイルシステムは通常の利用する分には UFS を選択することが多いです。他には ZFS というスナップショット機能をもち多数のストレージを扱えるファイルシステムを選択することができます。
+
+
+\subsubsection{パッケージをダウンロードするミラーサーバの指定}
+
+Debian Installer が利用するミラーサーバは \url{http://deb.debian.org/debian/} がデフォルトになっています。しかし、kfreebsd-amd64 のパッケージは ftp.ports.debian.org にて配布しているためデフォルト値は利用できません。ひとまずミラーは利用しない選択をして処理を進めて "Standard system utilities" のみをインストールします\footnote{\url{http://ftp.ports.debian.org/debian-ports/} を指定すればよさそうなものなのですが、入力してもパッケージが見つからないエラーが起こり、先に進めませんでした。}。
+
+
+\subsection{Debian GNU/kFreeBSDのセットアップ}
+
+\subsubsection{有線LAN}
+
+有線LANは利用するドライバによってデバイス名が変化します（IntelのPC向けの場合は"em0"、realtekの場合は"re0"）。
+
+設定ファイルは Debian GNU/Linux と同じ "/etc/network/interfaces" を参照しますが、allow-hotplug 句はlinuxで使われるudevが提供している機能であることから kfreebsd では利用できず注意が必要です。
+
+そのため、有線LAN接続環境がない状況でOSを起動すると有線LANによるDHCPのIPアドレス取得がタイムアウトするまでloginプロンプトが出てこなくなります（起動に時間がかかる）。私はノートPC に Debian GNU/kFreeBSD をインストールする場合は以下コマンドを手動で実行してネットワークへ接続するようにしています。
+
+\begin{commandline}
+# vi /etc/network/interfaces
+
+#auto em0  <-コメントにします
+iface lan_home inet dhcp
+\end{commandline}
+
+\begin{commandline}
+# ifup em0=lan_home
+\end{commandline}
+
+なお、ネットワークインタフェースの状態確認は昔ながらの"ifconfig"コマンドを利用してください（最近の linux と違い ip コマンドはありません）。
+
+\subsubsection{aptの設定}
+
+インストール時にミラーを指定しなかったため、/etc/apt/sources.list ファイルは中身がない状態になっています。
+
+/etc/apt/sources.list は以下を設定します\footnote{\url{https://lists.debian.org/debian-bsd/2019/08/msg00005.html}}。
+
+\begin{commandline}
+# vi /etc/apt/sources.list
+  
+deb-src http://ftp.se.debian.org/debian/ sid main contrib non-free
+deb http://ftp.ports.debian.org/debian-ports sid main
+deb http://ftp.ports.debian.org/debian-ports unreleased main
+deb-src http://ftp.ports.debian.org/debian-ports unreleased main
+deb http://ftp.ports.debian.org/debian-ports experimental main
+\end{commandline}
+
+上記の apt の設定を行い apt-get コマンドを実行すると、 GPG キーエラーが発生して先に進めません。手動で keyring をインストールします。
+
+\begin{commandline}
+# wget http://ftp.jp.debian.org/debian/pool/main/d/debian-ports-archive-keyring/debian-ports-archive-keyring_2018.12.27_all.deb
+# dpkg -i debian-ports-archive-keyring_2018.12.27_all.deb
+\end{commandline}
+
+これで apt-get が動作するようになります。他の keyring も更新しておきましょう。
+
+\begin{commandline}
+# apt-get update  
+# apt-get install debian-keyring debian-archive-keyring
+\end{commandline}
+
+
+\subsubsection{localeの設定}
+
+Debian Installerでは LANG=C を選択してインストールしているため、出力メッセージが英語になっています。そのためlocaleを日本語に変更します（ただし、コンソール環境では日本語メッセージが化けるため C.UTF-8 の方がデバッグしやすいかもしれません）。
+
+\begin{commandline}
+# dpkg-reconfigure locales
+
+  -> ja_JP.UTF-8を選択する
+\end{commandline}
+
+
+\subsubsection{sshdのインストール}
+
+openssh-serverパッケージを利用できます。以下コマンドでインストールできます。
+
+\begin{commandline}
+# apt-get install openssh-server
+\end{commandline}
+
+
+\subsubsection{無線LAN}
+
+\subsubsubsection{無線LANのハードウェアの設定}
+
+ThinkPad X220に搭載している無線LANチップは「Intel Centrino advanced-N 6205」です。
+
+無線LANを利用するためにまずはメーカーが配布する無線LAN用firmwareをインストールします。
+ただ、/etc/apt/sources.list に non-free のバイナリパッケージのダウンロード先を指定をしていないため、パッケージを直接ダウンロードしてインストールします。reboot して firmware を認識すると、dmesg に出力されていたファームウェアがロードできないというエラーがなくなります。
+
+\begin{commandline}
+# wget http://ftp.se.debian.org/debian/pool/non-free/f/firmware-nonfree/firmware-iwlwifi_20190717-2_all.deb
+# dpkg -i firmware-iwlwifi_20190717-2_all.deb
+# reboot
+\end{commandline}
+
+無線LANの通信を制御するデーモンである wpasupplicant パッケージ をインストールします。
+
+\begin{commandline}
+# apt-get install wpasupplicant
+# wpa_supplicant -v
+wpa_supplicant v2.4
+Copyright (c) 2003-2015, Jouni Malinen <j@w1.fi> and contributors
+\end{commandline}
+
+
+\subsubsubsection{無線LANのネットワーク設定}
+
+FreeBSD は物理無線LANインタフェースと論理無線LANインタフェースに分かれています。
+
+ThinkPad X220に搭載しているIntel製無線LANチップの場合は "iwn0" という物理無線LANインタフェースがあります。
+
+\begin{commandline}
+# ifconfig iwn0
+
+iwn0: flags=8802<BROADCAST,SIMPLEX,MULTICAST> metric 0 mtu 2290
+        ether yy:yy:yy:yy:yy:yy
+        media: IEEE 802.11 Wireless Ethernet autoselect (autoselect)
+        status: no carrier
+        nd6 options=23<PERFORMNUD,ACCEPT_RTADV,AUTO_LINKLOCAL>
+\end{commandline}
+
+以下のコマンドで論理無線LANインタフェースを生成します。"wlan0"というインタフェースが生成されました。
+
+\begin{commandline}
+# ifconfig wlan create wlandev iwn0
+wlan: Ethernet address: yy:yy:yy:yy:yy:yy
+wlan0
+
+# ifconfig wlan0
+wlan0: flags=8802<BROADCAST,SIMPLEX,MULTICAST> metric 0 mtu 1500
+        ether yy:yy:yy:yy:yy:yy
+        ssid " channel 1 (2412 MHz 11b)
+        country US authmode OPEN privacy OFF txpower 14 bmiss 10 scanvalid 60
+        bgscan bgscanintvl 300 bgscanidle 250 roam:rssi 7 roam:rate 1 wme
+        bintval 0
+        media: IEEE 802.11 Wireless Ethernet autoselect (autoselect)
+        status: no carrier
+        nd6 options=23<PERFORMNUD,ACCEPT_RTADV,AUTO_LINKLOCAL>
+\end{commandline}
+
+接続する無線LANアクセスポイントの認証情報設定ファイルを作成します。
+
+\begin{commandline}
+$ wpa_passphrase apname1 appassword > wpa_apname1.conf
+$ cat wpa_apname1.conf
+network={
+        ssid=''apname1''
+        #psk=''appassword''
+        psk=e9fdcb43eba09b6342df30f14275625c8494e534799a82d6639b6124434ea627
+}
+\end{commandline}
+
+無線LANアクセスポイントへ接続し、DHCPでIPアドレスを取得します。IPアドレスは論理インタフェースに付与されます。
+
+\begin{commandline}
+# wpa_supplicant -i wlan0 -c ./wpa_apname1.conf
+Successfully initialized wpa_supplicant
+ioctl[SIOCS80211, op=20, val=0, arg_len=7]: Invalid argument
+ioctl[SIOCS80211, op=20, val=0, arg_len=7]: Invalid argument
+wlan0: Trying to associate with zz:zz:zz:zz:zz:zz (SSID='apname1' freq=2427 MHz)
+wlan0: Associated with zz:zz:zz:zz:zz:zz
+wlan0: WPA: Key negotiation completed with zz:zz:zz:zz:zz:zz [PTK=CCMP GTK=CCMP]
+wlan0: CTRL-EVENT-CONNECTED - Connection to zz:zz:zz:zz:zz:zz completed [id=0 id_str=]
+wlan0: WPA: Group rekeying completed with zz:zz:zz:zz:zz:zz [GTK=CCMP]
+\end{commandline}
+
+\begin{commandline}
+# dhclient wlan0
+
+# /sbin/ifconfig wlan0
+wlan0: flags=8843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST> metric 0 mtu 1500
+        ether yy:yy:yy:yy:yy:yy
+        inet6 fe80::a288:b4ff:fe18:b514%wlan0 prefixlen 64 scopeid 0x6
+        inet 192.168.1.5 netmask 0xffffff00 broadcast 192.168.1.255
+        ssid apname1 channel 4 (2427 MHz 11g) bssid zz:zz:zz:zz:zz:zz
+        country US authmode WPA2/802.11i privacy ON deftxkey UNDEF
+        AES-CCM 3:128-bit txpower 15 bmiss 10 scanvalid 60 bgscan
+        bgscanintvl 300 bgscanidle 250 roam:rssi 7 roam:rate 5 protmode CTS
+        wme roaming MANUAL
+        media: IEEE 802.11 Wireless Ethernet OFDM/54Mbps mode 11g
+        status: associated
+        nd6 options=23<PERFORMNUD,ACCEPT_RTADV,AUTO_LINKLOCAL>
+\end{commandline}
+
+
+\subsubsubsection{無線LAN接続のトラブル}
+
+wpa\_supplicantコマンドで無線LANアクセスポイントへ接続を試みたがエラーが発生し接続できない場合があります。その場合は以下を試すと接続できる場合があります。
+
+\begin{itemize}
+  \item 接続先SSIDを2.4GHz帯のものに変更する。
+  \item "\# ifconfig wlan0 -ht40"を実行する。\footnote{デュアルチャネル接続を無効にして、20MHz幅の電波で通信するように指示するコマンドです。筆者の自宅で利用しているNEC製Wifiルータ Aterm に接続するにはこれを指定しないとうまくつながりませんでした。}
+\end{itemize}
+
+
+\subsubsection{音の再生}
+
+FreeBSD は OSS （Open Sound System） という仕組みで音声出力をします（ALSA は Linux 専用のサウンドシステムです）。最近のPCには High Definition Audio 規格のチップが搭載されることが多いため、snd\_hda.ko ドライバでサウンドを出力することができます（snd\_hda.ko は FreeBSD kernel に static link されています)。
+
+以下のコマンドを実行すると、コンソール上でMP3形式の音声ファイルを再生できます。
+
+\begin{commandline}
+# apt-get install mpg123
+# mpg123 ${mp3ファイルのパス}
+\end{commandline}
+    
+
+\subsubsection{電源関係}
+
+CPUクロックの制御は powerd パッケージの powerd が行っています。現在動作中の CPU クロック数は sysctl コマンドで取得できます。
+
+電源に接続時は 2501 MHz で動作しています。
+
+\begin{commandline}
+# sysctl dev.cpu.0.freq
+dev.cpu.0.freq: 2501
+\end{commandline}
+
+電源に接続しておらずバッテリー動作時は 800 MHz で動作しています。
+
+\begin{commandline}
+# sysctl dev.cpu.0.freq
+dev.cpu.0.freq: 800
+\end{commandline}
+
+バッテリー残量を取得するには acpiconf コマンドを実行します。
+
+\begin{commandline}
+# /usr/sbin/acpiconf -i 0
+
+Design capacity:        57240 mWh
+Last full capacity:     51530 mWh
+Technology:             secondary (rechargeable)
+Design voltage:         10800 mV
+Capacity (warn):        2576 mWh
+Capacity (low):         200 mWh
+Low/warn granularity:   1 mWh
+Warn/full granularity:  1 mWh
+Model number:           45N1172
+Serial number:            641
+Type:                   LION
+OEM info:               SANYO
+State:                  high
+Remaining capacity:     99%
+Remaining time:         unknown
+Present rate:           0 mW
+Present voltage:        12154 mV
+\end{commandline}
+
+サスペンドとハイバーネートについては未確認です。
+
+
+\subsubsection{KMSの有効化}
+
+KMS（kernel mode settings）を有効にするとコンソール画面の解像度が上がります。i915.ko がKMS非対応で、i915kms.ko がKMS対応のカーネルモジュールです。これらのカーネルモジュールを利用するときはどちらかひとつのみロードします。
+
+以下コマンドで KMS を有効にできます。
+
+\begin{commandline}
+# kldunload i915
+# kldload i915kms
+\end{commandline}
+
+再起動後も自動でkernel moduleをロードするには以下のように設定します。
+
+\begin{commandline}
+# vi /etc/modules
+i915kms
+\end{commandline}
+
+
+\subsubsection{X Window System}
+
+\subsubsubsection{X Window System用ビデオドライバ}
+
+ThinkPad X220はIntelのオンボードGPUを搭載しています。そのため、ビデオドライバは xserver-xorg-video-intel を利用します。インストーするには以下のコマンドを実行します。
+
+\begin{commandline}
+# apt-get install xserver-xorg-video-intel
+\end{commandline}
+
+今の kFreeBSD で安定動作させるには Intel のドライバの動作モードを古いUXAモードに変更するとよいようです。
+
+\begin{commandline}
+# vi /etc/X11/xorg.conf.d/50-intel.conf
+Section ``Device''
+Identifier  ``Card0''
+Driver      ``intel''
+Option      ``AccelMethod''  ``uxa''
+EndSection
+  (snip)
+\end{commandline}
+
+
+\subsubsubsection{ウィンドウマネージャ}
+
+twmをインストールすることが可能です。それ以外のicewm、xfce4、lxdeなどはパッケージの依存関係が解決できない状態のためインストールできません。グラフィカルログインマネージャのxdm、lightdmもパッケージの依存関係が解決できない状態のためインストールできません。
+
+ターミナルエミュレーターも必要になるため、xterm、etermをインストールしておきます。
+
+\begin{commandline}
+# apt-get install twm xterm eterm
+\end{commandline}
+
+
+\subsubsubsection{startx}
+
+コンソール環境において root ユーザで startx コマンドを実行すると twm を起動できます。
+
+\begin{commandline}
+# startx
+\end{commandline}
+
+twmの画面上で左クリックをするとメニューが表示されますので、eterm を起動すればCLIの操作ができます\footnote{xterm は "open ttydev: No such file or directory" というエラーが出て起動できませんでした。}。
+
+
+\subsection{Debianの開発ツールのセットアップ}
+
+\subsubsection{インストールできるパッケージ}
+
+以下のパッケージは、/etc/apt/sources.list に設定したリポジトリからバイナリパッケージをインストールできます。
+
+\begin{itemize}
+\item make
+\item bmake
+\item clang-7
+\item dpkg-dev
+\item devscripts
+\item debootstrap
+\end{itemize}
+
+\subsubsection{インストールができない状態になっているパッケージ}
+
+以下のパッケージは ftp.ports.debian.org のあるパッケージ群で依存関係が壊れているためインストールできないパッケージです。
+
+\begin{itemize}
+\item gcc
+\item gcc-7
+\item gcc-8
+\item gcc-9
+\item clang
+\item clang-8
+\item build-essential
+\item debhelper
+\end{itemize}
+
+
+\subsection{その他の機能の紹介}
+
+\subsubsection{コンテナ環境：Jail}
+
+FreeBSDにはFreeBSD Jailというコンテナ型仮想化環境を実行する機能があります。freebsd-utilsパッケージをインストールすることでコンテナを操作するコマンド群をインストールすることができます。コンテナ環境の作成は debootstrap、コンテナ環境の操作は jail、jls、jexec などが利用できます。
+
+\begin{commandline}
+# debootstrap --no-check-gpg sid ./jail_demo_1 http://ftp.ports.debian.org/debian-ports/
+\end{commandline}
+
+以下コマンドでchrootコマンドのようにjail環境に入れます\footnote{hostnameを指定するオプション、ipv4アドレスを指定するオプションは省略しています。}。
+
+\begin{commandline}
+# jail -c path=./jail_demo_1 command=/bin/bash
+\end{commandline}
+
+jail環境を起動した後は、jlsコマンドでjidを取得し、jexecでjail環境の中で任意のコマンドを実行できます。
+
+\begin{commandline}
+# jls
+JID  IP Address      Hostname                      Path
+  1  -                                             /root/jail/jail_1
+
+# jexec 1 cat /etc/debian_version
+\end{commandline}
+
+
+\subsubsection{Linuxエミュレーション}
+
+debootstrap で Debian 6 squeeze の linux-i386 の コンテナ環境を作成しようとしたところエラーが発生しました\footnote{kfreebsd-image-10.3 の linux.ko は linux-2.6.32 の 32bit ABI のエミュレーションだったと記憶しています。}。
+
+現在は動かないのかもしれません。
+
+\begin{commandline}
+# debootstrap --no-check-gpg --arch=i386 squeeze ./linux_demo_1 http://archive.debian.org/debian/
+ELF binary type "0" not known.
+E: Unable to execute target architecture
+\end{commandline}
+
+
+\subsubsection{完全仮想化環境}
+
+FreeBSD には OS を完全仮想化して動作させる virtualbox、bhyveがありますが、Debian GNU/kFreeBSDにはまだ移植されていません。
+
+
+\subsection{おわりに}
+
+Debian GNU/kFreeBSD のインストール方法とセットアップ方法について説明しました。bugreport で kfreebsd 環境で動かないと報告がある場合や kfreebsd を開発してみたい方は参考にしてみてください。
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+  \item 「Debian\_GNU/kFreeBSD - Debian Wiki」 \url{https://wiki.debian.org/Debian\_GNU/kFreeBSD}
+  \item "How to get a debian kfreebsd sid" (2019-08-25) \url{https://lists.debian.org/debian-bsd/2019/08/msg00004.html}
+  \item 杉本典充 (2015). 「Debian GNU/kFreeBSDセットアップガイド2015年版」 \url{https://tokyodebian-team.pages.debian.net/pdf2015/debianmeetingresume201511-presentation-sugimoto.pdf}
+\end{itemize}
 
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
 \dancersection{メモ}{}
-\mbox{}\newpage
-\mbox{}\newpage
 \mbox{}\newpage
 
 \vspace*{15cm}
