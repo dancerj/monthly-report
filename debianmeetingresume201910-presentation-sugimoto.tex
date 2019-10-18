@@ -1,0 +1,601 @@
+%; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
+%; whizzy-paragraph "^\\\\begin{frame}"
+% latex beamer presentation.
+% platex, latex-beamer でコンパイルすることを想定。 
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2009 Junichi Uekawa
+%     Copyright (C) 2009 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warreanty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\documentclass[cjk,dvipdfmx,12pt]{beamer}
+\usetheme{Tokyo}
+\usepackage{monthlypresentation}
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string
+%  "tex$" "pdf"(buffer-file-name)) "&")) 
+%  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+%  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%http://www.naney.org/diki/dk/hyperref.html
+%日本語EUC系環境の時
+\AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
+%シフトJIS系環境の時
+%\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+
+\newenvironment{commandlinesmall}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{8}{8} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{dancerdarkblue}{dancerlightblue}{\TheSbox}
+
+\vspace{6pt}% skip after
+}
+%end of commandlinesmall
+
+\title{Debian GNU/kFreeBSD \\ セットアップガイド \\ 2019年版}
+\subtitle{第179回東京エリアDebian勉強会}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
+\date{2019-10-19}
+\logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
+
+\begin{document}
+
+\section{表紙}
+
+\begin{frame}
+  \titlepage{}
+\end{frame}
+
+
+\section{目次}
+
+\begin{frame}{アジェンダ}
+  \begin{itemize}
+  \item 自己紹介
+  \item Debian Ports と Debian GNU/kFreeBSD
+  \item Debian GNU/kFreeBSD のインストール
+  \item Debian GNU/kFreeBSD のセットアップ
+  \item Debian の開発ツールのセットアップ
+  \item その他の機能の紹介
+  \item まとめ
+  \item 参考資料
+  \end{itemize}
+\end{frame}
+
+
+\section{自己紹介}
+
+\begin{frame}{自己紹介}
+  \begin{itemize}
+  \item Norimitsu Sugimoto (杉本 典充)
+  \item dictoss@live.jp
+  \item Twitter: @dictoss
+  \item Debian使って15年以上。使い始めはsargeの頃。
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
+  \end{itemize}
+\end{frame}
+
+
+\section{Debian Ports と Debian GNU/kFreeBSD}
+\emtext{Debian Ports と Debian GNU/kFreeBSD}
+
+\subsection{Debian Ports と Debian GNU/kFreeBSD}
+\begin{frame}{Debian PortsとDebian GNU/kFreeBSD}
+  \begin{itemize}
+  \item Debian Ports
+    \begin{itemize}
+    \item \url{https://www.debian.org/ports/}
+    \item 様々なCPUアーキテクチャやカーネルを移植して動作させるプロジェクト
+    \item 公式リリースと非公式リリースのものがある
+    \end{itemize}
+  \item Debian GNU/kFreeBSD
+    \begin{itemize}
+    \item \url{https://wiki.debian.org/Debian_GNU/kFreeBSD}
+    \item FreeBSD カーネル をもつ Debian
+    \item Debian Ports の1つで非公式版
+    \item Debianにおけるアーキテクチャ名は kfreebsd-i386 と kfreebsd-amd64
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\subsection{Debian GNU/kFreeBSD のリリースの歴史}
+\begin{frame}{Debian GNU/kFreeBSD のリリースの歴史}
+  \begin{itemize}
+  \item 2011年2月6日、Debian 6 (squeeze) で stable 版をリリース（テクノロジープレビュー扱い）
+  \item 2013年5月4日、Debian 7 (wheezy) で stable 版をリリース
+  \item 2014年9月、Debian 8 (jessie) でリリースするアーキテクチャの選定においてリリース対象外に決定\footnote{\url{https://lists.debian.org/debian-devel-announce/2014/09/msg00002.html}}
+    \begin{itemize}
+    \item jessie-kfreebsd 版という裏バージョンあり
+    \end{itemize}
+  \item 2018年5月31日、Debian 7 (wheezy)のLTSが終了
+    \begin{itemize}
+    \item Debian GNU/kFreeBSD の stable 版はサポート終了
+    \end{itemize}
+  \item Debian 10 (buster) のリリースに向けて ftp.debian.org の整理を実施
+  \item 2019年5月25日、Debian GNU/kFreeBSDは Debian Ports（\url{https://www.ports.debian.org/}） へ移転
+  \end{itemize}
+\end{frame}
+
+\subsection{Porterbox}
+\begin{frame}{Porterbox}
+  \begin{itemize}
+  \item Debian Projectでは多くのアーキテクチャを開発しているため、移植作業用のサーバがある
+    \begin{itemize}
+    \item porterbox といい、一時的に借りることができる\footnote{\url{https://wiki.debian.org/PorterBoxHowToUse}}\footnote{借りる手順をまとめた記事はこちら。\url{https://tokyodebian-team.pages.debian.net/pdf2016/debianmeetingresume201603.pdf}}
+    \end{itemize}
+  \item lemon.debian.net
+    \begin{itemize}
+    \item kfreebsd-amd64 版の porterbox
+    \item \url{https://db.debian.org/machines.cgi?host=lemon}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\subsection{Debian GNU/kFreeBSD 固有の Debian パッケージ}
+\begin{frame}{Debian GNU/kFreeBSD固有の\\Debian パッケージ}
+  \begin{itemize}
+  \item kfreebsd-image パッケージ
+  \item zfsutils パッケージ    
+  \item freebsd-utils パッケージ
+  \item freebsd-net-tools パッケージ
+  \item freebsd-smbfs パッケージ
+  \item freebsd-ppp パッケージ
+  \item pf パッケージ
+  \end{itemize}
+\end{frame}
+
+
+\section{Debian GNU/kFreeBSD のインストール}
+\emtext{Debian GNU/kFreeBSD のインストール}
+
+\subsection{インストールイメージの入手}
+\begin{frame}{インストールイメージの入手}
+  \begin{itemize}
+  \item \url{https://www.debian.org/devel/debian-installer/} に置いてあるインストーラは動かない
+  \item 非公式版のインストーラがあり、そちらを使うこと\footnote{\url{http://jenkins.kfreebsd.eu/jenkins/view/cd/job/debian-cd_sid_kfreebsd-amd64/ws/build/debian-unofficial-kfreebsd-amd64-NETINST-1.iso}}
+  \item 通常は kfreebsd-amd64 版を選択すること
+  \item ISOイメージから CD/DVDメディアを作成する
+  \item PC を CD/DVDメディアから起動してインストールを進める
+  \item インストーラは日本語の表示ができないため LANG=C で進める
+  \end{itemize}
+\end{frame}
+
+\subsection{パーティション構成とファイルシステム}
+\begin{frame}{パーティション構成とファイルシステム}
+  \begin{itemize}
+  \item MBR形式の場合
+    \begin{itemize}
+    \item root パーティションは基本パーティションにする必要あり
+      \begin{itemize}
+      \item Debian GNU/Linux や windows と デュアルブートする場合は基本パーティション数4つまでの制限あり
+      \end{itemize}
+    \item ファイルシステムは UFS を選択するのが無難
+    \item ZFS を利用する場合は kfreebsd-amd64 版を選択すること
+    \end{itemize}
+  \item GPT形式の場合
+    \begin{itemize}
+    \item 試していないため不明
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\subsection{ミラーサーバの指定}
+\begin{frame}{ミラーサーバの指定}
+  \begin{itemize}
+  \item Debian Installer デフォルトの \url{http://deb.debian.org/debian/} にパッケージは置いていない
+  \item Debian GNU/kFreeBSD のパッケージは Debian Ports のサーバにありますがすべてそろっているわけではない
+  \item インストールでは、ミラーを利用しない設定でインストールを進める
+  \item ``Standard system utilities'' のみをインストールしてインストールを終える
+  \end{itemize}
+\end{frame}
+
+
+\section{Debian GNU/kFreeBSD のセットアップ}
+\emtext{Debian GNU/kFreeBSD のセットアップ}
+
+\subsection{有線LAN}
+\begin{frame}{有線LAN}
+  \begin{itemize}
+  \item インタフェース名は NIC のベンダーによって変わる (例：em0, re0)
+  \item 設定ファイルは Debian GNU/Linux と同じ /etc/network/interfaces
+    \begin{itemize}
+    \item allow-hotplug は Linux の udev の機能のため利用できない
+    \item auto em0 としておくと外出先でも PC起動時に DHCP でアドレスを取得するため不便
+    \end{itemize}
+  \item \# ifup em0={network-name} は利用可能
+  \item ip コマンドはないため、ifconfig コマンドを利用すること
+  \end{itemize}
+\end{frame}
+
+\subsection{aptの設定}
+\begin{frame}[containsverbatim]{aptの設定}
+
+\begin{itemize}
+\item インストール時にミラーサーバを指定しなかったため /etc/apt/sources.list に中身がない状態
+\item /etc/apt/sources.list を以下に設定\footnote{\url{https://lists.debian.org/debian-bsd/2019/08/msg00005.html}}
+\end{itemize}
+
+\begin{commandlinesmall}
+deb-src http://ftp.se.debian.org/debian/ \
+    sid main contrib non-free
+deb http://ftp.ports.debian.org/debian-ports \
+    sid main
+deb http://ftp.ports.debian.org/debian-ports \
+    unreleased main
+deb-src http://ftp.ports.debian.org/debian-ports \
+    unreleased main
+deb http://ftp.ports.debian.org/debian-ports \
+    experimental main
+\end{commandlinesmall}
+\end{frame}
+
+\begin{frame}[containsverbatim]{aptの設定}
+
+\begin{itemize}
+\item apt-get を実行すると GPGキーエラーが発生する
+\item keyring をインストールすると解消
+\end{itemize}
+  
+\begin{commandlinesmall}
+# wget http://ftp.jp.debian.org/debian/pool/main/d/
+debian-ports-archive-keyring/
+debian-ports-archive-keyring_2018.12.27_all.deb
+
+# dpkg -i debian-ports-archive-keyring_2018.12.27_all.deb
+\end{commandlinesmall}
+
+\begin{itemize}
+\item 他のkeyringも更新します
+\end{itemize}
+
+\begin{commandlinesmall}
+# apt-get update
+# apt-get install debian-keyring debian-archive-keyring  
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\subsection{locale の設定}
+\begin{frame}[containsverbatim]{locale の設定}
+
+C.UTF-8 のままがよい場合はスキップ
+  
+\begin{commandlinesmall}
+# dpkg-reconfigure locales
+
+　-> 日本語の場合は ja_JP.UTF-8 を選択する
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\subsection{sshd のインストール}
+\begin{frame}[containsverbatim]{sshd のインストール}
+
+\begin{commandlinesmall}
+# apt-get install openssh-server
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\subsection{無線LAN}
+\begin{frame}[containsverbatim]{無線 LAN}
+
+無線LANデバイスに応じたファームウェアをインストール（以下はIntelの場合）
+  
+\begin{commandlinesmall}
+# wget http://ftp.se.debian.org/debian/pool/non-free/f/firmware-nonfree/
+firmware-iwlwifi_20190717-2_all.deb
+# dpkg -i firmware-iwlwifi_20190717-2_all.deb
+# reboot
+\end{commandlinesmall}
+
+無線LANデーモンのwpasupplicantをインストール
+
+\begin{commandlinesmall}
+# apt-get install wpasupplicant
+\end{commandlinesmall}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{無線 LAN}
+  \begin{itemize}
+  \item 2つのインタフェース
+    \begin{itemize}
+    \item iwn0  : 物理インタフェース (Intelの場合)
+    \item wlan0 : 論理インタフェース
+    \end{itemize}
+  \item wlan0 の生成
+  \end{itemize}
+\begin{commandlinesmall}      
+# ifconfig wlan create wlandev iwn0      
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item 無線LANのSSIDとパスワードを設定
+  \end{itemize}
+
+\begin{commandlinesmall}      
+# wpa_passphrase apname1 appassword > wpa_apname1.conf
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item 無線LANアクセスポイントへ接続し、IPアドレスを取得
+  \end{itemize}
+
+\begin{commandlinesmall}      
+# wpa_supplicant -i wlan0 -c ./wpa_apname1.conf
+# dhclient wlan0
+\end{commandlinesmall}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{無線 LAN}
+\begin{itemize}
+  \item つながらないときのポイント
+    \begin{itemize}
+    \item 2.4GHz帯のアクセスポイントを利用する
+    \item デュアルチャネル接続を無効にする\footnote{ThinkPad X220とNEC製Atermの組み合わせだと無効にしないとアクセスポイント接続後、すぐに切れてしまう事象が発生しました。}
+    \end{itemize}
+  \end{itemize}
+
+\begin{commandlinesmall}
+# ifconfig wlan0 -ht40
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\subsection{音の再生}
+\begin{frame}[containsverbatim]{音の再生}
+  \begin{itemize}
+  \item FreeBSDは OSS (Open Sound System) を利用
+  \item 最近のPCの多くは snd\_hda.ko ドライバを利用するためおおよそ音が出る
+  \item MP3ファイルの再生
+  \end{itemize}
+
+\begin{commandlinesmall}
+# apt-get install mpg123
+# mpg123 ${mp3ファイルのパス}
+\end{commandlinesmall}
+
+\end{frame}
+
+\subsection{電源関連}
+\begin{frame}[containsverbatim]{電源関係}
+  \begin{itemize}
+  \item CPUクロック制御は powerd で処理する
+  \item CPUクロックの確認はsysctl を使う
+  \end{itemize}
+
+\begin{commandlinesmall}
+$ sysctl dev.cpu.0.freq
+dev.cpu.0.freq: 800
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item バッテリー残量取得は acpiconf を使う
+  \end{itemize}
+
+\begin{commandlinesmall}
+# /usr/sbin/acpiconf -i 0
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item サスペンド、ハイバーネートは未確認
+  \end{itemize}
+\end{frame}
+
+
+\subsection{KMSの有効化}
+\begin{frame}[containsverbatim]{KMSの有効化}
+  \begin{itemize}
+  \item KMS = kernel mode settings
+  \item KMS を有効にするとコンソール画面の解像度が上がる
+  \item X Window System を使う場合は KMS を有効にすると性能がよくなる
+  \item KMS は kernel module をロードすると有効になる
+  \end{itemize}
+
+\begin{commandlinesmall}
+# kldunload i915
+# kldload i915kms
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item PC起動時に自動ロードする設定
+  \end{itemize}
+
+\begin{commandlinesmall}
+# vi /etc/modules
+i915kms
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\subsection{X Window System}
+\subsubsection{X Window System用ドライバ}
+\begin{frame}[containsverbatim]{X Window System用ドライバ}
+  \begin{itemize}
+  \item ThinkPad X220 の Intel内蔵グラフィックの場合は以下のドライバをインストール
+  \end{itemize}
+  
+\begin{commandlinesmall}
+# apt-get install xserver-xorg-video-intel
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item ThinkPad X220 で安定動作させるには UXAモードを指定
+  \end{itemize}
+  
+\begin{commandlinesmall}
+# vi /etc/X11/xorg.conf.d/50-intel.conf
+Section ``Device''
+  Identifier  ``Card0''
+  Driver``intel''
+  Option``AccelMethod''  ``uxa''
+EndSection
+\end{commandlinesmall}
+
+\end{frame}
+
+
+\subsubsection{ウィンドウマネージャ}
+\begin{frame}[containsverbatim]{ウィンドウマネージャ}
+  \begin{itemize}
+  \item twm が利用可能
+  \item icewm、xfce4、lxde などはパッケージの依存関係が解決できないため現状インストールできない
+  \item グラフィカルログインマネージャの xdm、lightdm もパッケージの依存関係が解決できないため現状インストールできない
+  \end{itemize}
+  
+\begin{commandlinesmall}
+# apt-get install twm xterm eterm
+\end{commandlinesmall}
+
+  \begin{itemize}
+  \item root ユーザで startx を実行すると twm が起動する
+  \end{itemize}
+
+\begin{commandlinesmall}
+# startx
+\end{commandlinesmall}
+  
+\end{frame}
+
+
+\section{Debianの開発ツールのセットアップ}
+\emtext{Debianの開発ツールのセットアップ}
+
+\subsection{インストールできるパッケージ}
+\begin{frame}[containsverbatim]{インストールできるパッケージ}
+
+\begin{itemize}
+\item make / bmake
+\item gcc-9 / g++-9
+\item clang-7
+\item dpkg-dev
+\item devscripts
+\item build-essential
+\item debhelper
+\item debootstrap
+\item subversion
+\item vim
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{インストールできないパッケージ}
+
+現状、ftp.ports.debian.org にあるバイナリパッケージ群では依存関係が壊れているため以下のパッケージはインストールできない
+
+\begin{itemize}
+\item clang-8
+\item git
+\item emacs / emacs-nox
+\end{itemize}
+
+\end{frame}
+
+
+\section{その他の機能の紹介}
+\emtext{その他の機能の紹介}
+
+\subsection{コンテナ環境：Jail}
+\begin{frame}[containsverbatim]{コンテナ環境：Jail}
+
+\begin{itemize}
+\item FreeBSD の コンテナ型仮想化環境を実行する機能
+\item freebsd-utils パッケージにコマンドが入っている
+\item コンテナ環境の作成は debootstrap を使う
+\item コンテナ環境の操作は jail、jls、jexec を使う
+\end{itemize}
+
+\begin{commandlinesmall}
+# debootstrap --no-check-gpg sid ./jail_demo_1 \
+http://ftp.ports.debian.org/debian-ports/
+\end{commandlinesmall}
+
+\begin{commandlinesmall}
+# jail -c path=./jail_demo_1 command=/bin/bash
+\end{commandlinesmall}
+
+\begin{commandlinesmall}
+# jls
+JID  IP Address    Hostname  Path
+  1  -                       /root/jail/jail_1
+# jexec 1 cat /etc/debian_version
+\end{commandlinesmall}
+
+\end{frame}
+  
+\subsection{Linux エミュレーション}
+\begin{frame}[containsverbatim]{Linux エミュレーション}
+  \begin{itemize}
+  \item FreeBSDのLinuxバイナリ互換機能が使える
+  \item linux-i386のバイナリが実行可能
+  \item エミュレートできるLinux-kernel APIの都合のため、squeezeならそこそこ動く
+  \item debootstrapでコンテナを作る
+  \end{itemize}
+\end{frame}
+
+\subsection{完全仮想化環境}
+\begin{frame}[containsverbatim]{完全仮想化環境}
+  \begin{itemize}
+  \item 本家FreeBSDでは動作しているが、kFreeBSD ではパッケージが存在しない
+    \begin{itemize}
+    \item VirtualBox
+    \item bhyve
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[containsverbatim]{おわりに}
+  \begin{itemize}
+  \item Debian GNU/kFreeBSD のインストール方法とセットアップ方法を説明しました
+  \item 使ってみて疑問や動かないところがありましたら、相談に乗ります
+  \end{itemize}
+\end{frame}
+
+
+\section{参考文献}
+\emtext{参考文献}
+
+\begin{frame}{参考文献}
+
+\begin{itemize}
+\item 「Debian\_GNU/kFreeBSD - Debian Wiki」\\ \url{https://wiki.debian.org/Debian_GNU/kFreeBSD}
+\item ``How to get a debian kfreebsd sid'' (2019-08-25)\\ \url{https://lists.debian.org/debian-bsd/2019/08/msg00004.html}
+\item 杉本典充(2015).「Debian GNU/kFreeBSDセットアップガイド2015年版」\\ \url{https://tokyodebian-team.pages.debian.net/pdf2015/debianmeetingresume201511-presentation-sugimoto.pdf}
+\end{itemize}
+
+\end{frame}
+
+\end{document}
+
+
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ 	]*\\\\\\(documentstyle\\|documentclass\\|emtext\\|section\\|begin{frame}\\)\\*?[ 	]*[[{]\\|[]+\\)" ***
+;;; End: ***
