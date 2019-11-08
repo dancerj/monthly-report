@@ -1,5 +1,4 @@
 SOURCE:=$(wildcard debianmeeting*.tex)
-DVIFILES:=$(SOURCE:%.tex=%.dvi)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
 RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 PLATEX_FLAGS:= -shell-escape -halt-on-error -interaction=batchmode
