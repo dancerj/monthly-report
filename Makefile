@@ -46,17 +46,12 @@ clean:
 	# 一度全部のファイルをpublishしたものとみなす。古いファイルを全部アップロードするのを回避します
 	-touch $(RELEASEFILES)
 
-deb:
-	-rm ../*.deb
-	debian/rules local-make-orig
-	debuild -us -uc -i'.*pdf$$|.git'
-
 listtopic:
 	# for generating undocumenteddebian.muse
 	lgrep dancersection *-natsu.tex *-fuyu.tex | \
 		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
-.PHONY: deb clean all publish listtopic check
+.PHONY: clean all publish listtopic check
 
 check-syntax:
 	$(CC) -c -O2 -Wall $(CHK_SOURCES) -o/dev/null $(shell pkg-config --cflags gtk+-2.0)
