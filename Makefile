@@ -2,6 +2,7 @@ SOURCE:=$(wildcard debianmeeting*.tex)
 DVIFILES:=$(SOURCE:%.tex=%.dvi)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
 RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
+PLATEX_FLAGS:= -shell-escape -halt-on-error -interaction=batchmode
 
 all: $(PDFFILES)
 
@@ -18,27 +19,33 @@ publish: $(RELEASEFILES)
 	touch $@
 
 %.pdf: %.dvi
-	umask 002 ; dvipdfmx -o $@.tmp $< 
+	set -e; \
+	  umask 002 ; \
+	  export TMPDIR="$(shell mktemp -d)"; \
+	  dvipdfmx -o $@.tmp $< ; \
+	  rmdir $$TMPDIR
 	mv $@.tmp $@
 
-%.dvi: %.tex
-	## start of linting stuff
-	# check kanji-code of the tex file.
-	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
-	# check some obvious spelling mistakes Debian勉強会標準以外の表記を使った場合ここがエラーになります。修正してからコミットしてください。
-	./utils/spelllint.sh $<
+lint-config:
 	# check that pre-commit hook is installed.
 	# if this fails, please do:
 	# cp git-pre-commit.sh .git/hooks/pre-commit
 	# コミットフックをインストールしていないとここでエラーになります。ここがエラーになったらエラーを放置しないで修正すること!
 	diff -u .git/hooks/pre-commit git-pre-commit.sh
 	[ -x .git/hooks/pre-commit ]
+
+%.dvi: %.tex | lint-config
+	## start of linting stuff
+	# check kanji-code of the tex file.
+	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
+	# check some obvious spelling mistakes Debian勉強会標準以外の表記を使った場合ここがエラーになります。修正してからコミットしてください。
+	./utils/spelllint.sh $<
 	## end of linting stuff
-	platex -shell-escape -halt-on-error $< # create draft input
-	-mendex -l euc -J $(<:%.tex=%)
-	platex -shell-escape -halt-on-error $< # create draft content with correct spacing for index and toc
-	-mendex -l euc -J $(<:%.tex=%) # recreate index with correct page number
-	platex -shell-escape -halt-on-error $< # recreate toc with correct page number
+	platex $(PLATEX_FLAGS) $< # create draft input
+	-if [ -s  $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi
+	platex $(PLATEX_FLAGS) $< # create draft content with correct spacing for index and toc
+	-if [ -s  $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi # recreate index with correct page number
+	platex $(PLATEX_FLAGS) $< # recreate toc with correct page number
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
@@ -56,7 +63,7 @@ listtopic:
 	lgrep dancersection *-natsu.tex *-fuyu.tex | \
 		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
-.PHONY: deb clean all publish listtopic check
+.PHONY: deb clean all publish listtopic check lint-config
 
 check-syntax:
 	$(CC) -c -O2 -Wall $(CHK_SOURCES) -o/dev/null $(shell pkg-config --cflags gtk+-2.0)
