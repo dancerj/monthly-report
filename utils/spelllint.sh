@@ -11,7 +11,6 @@ if ! which lgrep > /dev/null; then
     echo 'ERROR: Please install lgrep from lv package'
 fi
 
-# Debain -> Debian
 # 東京Debian勉強会 -> 東京エリアDebian勉強会
 # 句読点は「。、」を使い、「．，」は使わない。
 
