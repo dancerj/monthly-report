@@ -594,6 +594,647 @@ Bits from the DPL
 % % (query-replace-regexp "<.*?>" "")
 % % (query-replace-regexp "^[    ]\+" "")
 
+\dancersection{\mbox{自作キーボード温泉に}\mbox{日帰り入浴してみた話}}{小林 克希}
+
+\subsection{はじめに}
+
+みなさん、キーボードは何をお使いでしょうか?
+この記事では、最近巷で流行っているという「自作キーボード」について、
+私が実際に作ってみたり、その後色々と調べたりした内容について話そうかと思います。
+そもそも何故私がキーボードを自作してみようかと思ったか、ですが、
+要は肩凝りと腰痛がひどかったから……だったりします。
+とくにここ2年間くらい、仕事中に腰が悲鳴をあげ、
+じっと席に座っていられないという状況に陥っており、
+フィットネスクラブにも通い、整骨院にも通い……としましたが、全然改善せず大変に悩んでおりました。
+
+そんな中思い至ったのがキーボードでした。
+私は、5年ほど前に初めてThinkpadを購入したのですが、トラックポイントがいたく気にいり、
+デスクトップ用のキーボードについてもThinkpadキーボードに乗り換えました。
+ご存知の方も多いとは思うのですが、このThinkpadキーボード、
+常にホームポジションから手をはなさずにいられるという点は大変にすばらしいのですが、
+トラックポイントって、結構操作に力が入るのですよね……。
+細かいカーソル操作をしている場合なんか特に。
+
+ということで、一度他のキーボードを試してみるか……と思い至り、
+最初は市販の分割キーボードのUltimate Hacking Keyboard%
+\footnote{\url{https://ultimatehackingkeyboard.com/}}
+がトラックポイントも付けられるみたいだしよさそう、と思ったのですが、
+金額的にも、納期的にも、触ってもないのに手を出すのはどうかなぁ……と尻込みし、
+\textbf{結局自作することにしました}。
+なにを言ってるんだこいつはと思うかもしれませんが、
+関西Debian勉強会メンバーのKさんの親指Ctrlの布教が功を奏したとでも思ってください。
+
+ところで、自作キーボードといっても、作成具合にレベルがあるようなのですが、
+一番基本的な自作方法は、キーボードキットを購入し、
+別途キースイッチやキーキャップも好みのものを購入していく形になるかと思います。
+わたしも、今のところはキットを購入して作成したので、
+今回はそのあたりの流れをご紹介できればと思います。
+\textbf{「Debian関係あるのか?」}、ですって?
+{\scriptsize ……………………ほとんどありません……} のちほど、
+気持ちだけ出てきます……。
+
+なお、この文章は関西Debian勉強会の2019年11月に発表した内容であるため、
+\footnote{\url{https://speakerdeck.com/rarewin/self-made-keyboard}}{スライド}
+の方もご参照いただければと思います。
+
+\subsection{キーの数と配列}
+
+さて、実際にキーボードの自作をするという気になったはいいものの、
+はたしてどういったものがよいのか困るかと思います。
+そんな中でも、一番気になるのは配列ではないでしょうか。
+ということで、まずはどんな配列があるのかについて簡単に説明をしていこうかと思います。
+ところで、自分の追い求めた理想のキーボードのことを、この業界の人達は \textbf{Endgame} と呼ぶそうです。
+アベンジャーズ?
+
+\subsubsection*{XX\%キーボード}
+
+まず、キーの個数が重要な気がします。
+キーの個数については、フルキーの104キーに対して、そのキーボードのキーの数をパーセンテージであらわすのが
+一般的なようです。
+主流のものとしては、テンキー・ファンクションキーあたりを省いたものが
+60\%(HappyHackingKeyboardあたりがこのサイズになります。)、
+そこからさらにフルキーから数字の段を除いたものが40\%となるようです。
+
+なお、逆に、100\%を越えるようなキーボードもあり、
+たとえば左側にもテンキーがあったりするものがあるようです。
+どちらかというと、ゲーム用な感じでしょうか。
+あと、全てのemojiが打てるキーボード%
+\footnote{\url{https://thenextweb.com/insider/2015/09/22/say-goodbye-to-words-the-emoji-keyboard-is-real/}}
+だとか
+10\%切ってるようなイカれたキーボード%
+\footnote{\url{https://www.reddit.com/r/MechanicalKeyboards/comments/dnrvz8/science_isnt_about_why_its_about_why_not/}}。
+もあるようです
+
+\subsubsection*{キーの物理配列}
+
+キーの個数と同時に考えないといけないのが配列です。
+配列……というとQWERTYとかDvorakとかの論理配列かが思いおこされるかと思いますが、
+自作キーボードでは、論理配列はファームウェアをいじれば自由自在であるため、
+この界隈で配列といったら物理的な配列のことを指すような気がします。
+
+ところで、物理的な配列で思い起こされるのは、市販されてるキーボードとしては、Microsoftなどが出してる、
+いわゆる「エルゴノミクスキーボード」と呼ばれるような
+「G」と「H」の間あたりに隙間が空き、「G」や「H」よりも「A」や「;」が奥の方に配置されているものではないでしょうか。
+自作キーボード界ではもっと極端に、完全に分割している分割キーボードが流行っています(特に日本で、のようです)。
+なお、分割はしてますが、基本的には両者の間にシリアル通信用のケーブルを這わすので、
+ちゃんと両者は連携できます。
+
+また、分割しているだけではなく、キーのズレ方にもいくつか種類があります。
+まず、普段みかける、いわゆる「普通の」キーボードのように、
+行ごとに左右に少しずつずれている配置については「row-staggered」、
+もしくは「normal-staggered」と呼ばれます。
+対して、列ごと、すなわち「QAZ」は綺麗に縦に揃っているが、
+各列はずれている配列の事を「column-staggered」と呼びます。
+ぱっと見ると、「この配列は使えるんだろうか……」とか思うのですが、
+コンセプトとしては、指の長さに合わせて各列の位置を調整できるのが嬉しいようです。
+さらには、ひたすらコンパクトさを求め、完全に格子状に並べた
+直交配列とかOrtholinearとか呼ばれるものもあります。
+また、逆にキーボードのサイズが大きくなるのはお構いなしに、
+指の形状による配列を追い求めまくったTRONキーボードとかもあります(が、こちらのキットはみかけないかな……)。
+
+\subsection{各パーツ}
+
+つぎに、自作キーボードにおいて必要となる各種パーツについて簡単に解説していきます。
+なお、2019年12月現在では、実店舗のある自作キーボード専門のお店は、
+秋葉原にある遊舎工房さん\footnote{\url{https://yushakobo.jp/}}のみのようです。
+なお、関西はどうなっているかというと、
+日本橋のシリコンハウス\footnote{\url{http://silicon.kyohritsu.com/}}にて、
+最近になってキットや、CherryとGateronのキースイッチの販売が開始されたり、
+自作キーボード組み立てのワークショップが行なわれたりと、確実に風は吹いてきている!!……ようです。
+あ、日本橋の千石電商\footnote{\url{https://www.sengoku.co.jp/shop_osaka.html}}でも、
+KailhとCherryのキースイッチがあるようでした。
+
+\subsubsection*{キースイッチ}
+
+キースイッチには色々と方式があったりするようですが、
+実際にキーボードを自作しようとすると、
+流通や、各基板(PCB)の対応といった観点から
+
+\begin{itemize}
+ \item Cherry MX
+ \item Kailh Choc (通称、Kailhロープロファイル)
+\end{itemize}
+
+の二種類のメカニカルキースイッチを使う事になると思います。
+前者は、ドイツ企業のCHERRY社が出しているキースイッチで、
+特許が切れているため他のメーカーが互換品を出しており、
+たぶん一番種類が豊富なキースイッチかと思います。
+そのため、世間一般で販売されているような自作キーボードキットの
+ほとんどの基板はこちらのスイッチに対応しているかと思います。
+手元にあるこのタイプのスイッチの写真を図\ref{fig:cherry-compat}に置いてみます。
+互換品なので当然ですが、ぱっと見た感じではみんな同じ形をしています。
+打鍵具合や値段もかなりピンキリなので、色々と見てると楽しいかと思います。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,height=2cm]{./image201911-kansai-02/cherry-compat.jpg}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{左から順に、Cherry MX(Red)、Kailh Speed(Copper)、Gateron MX(Red), Gateron MX Silent(Red)}
+ \label{fig:cherry-compat}
+\end{figure}
+
+また、最近流行ってきているのが後者のKailhロープロファイルと呼ばれる、かなり薄い感じのキースイッチです。
+図\ref{fig:helix-katsu}にあるのが、私が今使用しているHelixというキーボードの左手側の部分なのですが、
+ずいぶんと薄くてコンパクトな感じになるキーになります。
+ただし、注意点として、CherryMXとKailhロープロファイルについては、基板に互換性がないため、
+基板が対応していない場合は使うことができません。
+それでも、両方のスイッチに対応した設計になっている基板も存在するので、
+基板選定の際には、どのスイッチに対応しているのか確認が重要です。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/helix.jpg}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{Helixキーボード(左手)}
+ \label{fig:helix-katsu}
+\end{figure}
+
+で、打鍵感的なものについては、いわゆる「軸」というやつが関係していて、
+CherryMXについては
+色によって表\ref{tab:cherry-jiku}のような特徴があります。
+余談ですが、2019年12月現在、梅田ヨドバシのキーボード売り場には
+Cherryのキースイッチのテスターが置いてありますので、興味あれば直接さわってみてはいかがでしょうか。
+この間行ったときは、ずいぶんとわかりづらいところに引っこんでしまっていましたが。
+
+また、互換スイッチでも、だいたいCherryの同色の軸と同じような性能になってますが、
+たまに性能的に全然違うものや、Cherryには無い色(Gateronの黄色いのとか、Kailhの紫色だとか)とかもあったりするので、
+購入前には、実物を触るのが一番良いですかね。
+それができなくても、スペックシートを見たり、どっかのブログを見たりするのが良いと思います。
+Kailhのロープロファイルについても、流通しているもので赤軸・白軸・茶軸と3種類あります。
+メーカーのサイト\footnote{\url{http://www.kailh.com/en/Products/Ks/CS/}}を見てると
+他の軸もあるようなので、そのうち選択肢が広がるかもしれません。
+
+\begin{table}[htbp]
+ \begin{center}
+  \caption{Cherry MXの軸ごとの特徴}
+  \label{tab:cherry-jiku}
+  \footnotesize
+  \begin{tabular}[tb]{c|cccc}
+   \hline
+   軸       & クリック感 & 音       & 重さ   & 深さ \\ \hline \hline
+   ピンク軸 & なし       & しずか   & かるめ\\
+   赤軸     & なし       & ふつう   & かるめ\\
+   茶軸     & あり       & ふつう   & ふつう\\
+   黒軸     & なし       & ふつう   & おもめ \\
+   青軸     & あり       & カチカチ & おもめ \\
+   銀軸     &            &          &        & 浅め \\ \hline
+  \end{tabular}
+ \end{center}
+ \begin{flushright}
+  {\footnotesize 参考: \url{https://www.diatec.co.jp/products/CHERRY/}}
+ \end{flushright}
+\end{table}
+
+他にメジャーどころとして、ALPSというキーもあるみたいなのですが、
+現在は純正品は生産が停止されているそうです。
+根強い人気のようで、キットだけ販売されてたりするようですが……。
+また、ロープロファイルについてはCherryのロープロファイルもあったり、
+KailhもChocよりもさらに薄いX Switchと呼ばれるものがあったりするようですが、
+遊舎工房さんとかでもまだ扱ってないので、
+いまのところ、イベントでその手の方のを触らせてもらうか、
+それらのキーを使用している市販キーボード(高級)を買うかしかなさそうです。
+なお、キースイッチについてですが、
+ピンソケットを付けて、後から付け換えできるようにすることもできます。
+基板が対応していたら、キースイッチ専用のものを、
+していなくても、汎用のピンソケットをつかって対応している人もいるようです。
+
+\subsubsection*{キーキャップ}
+
+次に重要なパーツとして、キーキャップがあります。
+まず、形(プロファイル)について、DCSとかDSAとか色々あって、
+平たい部分の面積が違ったり、角度が違ったりと色々とあるようです。
+が、私はまだこのあたり、くわしくないのであまりちゃんと説明できません……。
+キーキャップセットだけでも結構なお値段ですので!!
+
+ただ、注意点としては、キーのサイズとしては普通のアルファベットのキーを1Uとして、
+0.25刻みで1.25U、1.5U……といったぐあいのキーサイズが存在しています。
+少々ややこしいのが、キットによってキーのサイズが異なることです。
+たとえば、図\ref{fig:helix-katsu}のHelixの場合、シフトキーやコントロールキー、
+全てが1Uになってるようなものもあれば、
+シフトキーやスペースキーは2U以上のサイズのキーであるようなものもあります。
+これの何がややこしいかというと、キーキャップとキーボードでキーのサイズが一致しないと、
+刻印が異なるキーを付けざるを得ない状況が発生するのです。
+たとえば、この後紹介しますが、私の利用しているMint60というキーボードについては、
+スペースキーが2つに分割されたような配列なのですが、
+一緒に販売されていたキーキャップセットでは
+そのサイズのスペースキーがなく、代わりにシフトキーを被せています。
+そして、シフトキーの位置には、テンキーの0が挿さっていたりします。
+
+\subsubsection*{マイコン(ProMicro)}
+
+元々はSparcFun社が出しているマイコンボードで、Arduinoの開発環境が使えるボードです。
+サイズが小さく、ピンもそこそこあり、かなり使い勝手の良いボードなんですが、
+定価だと2,500円くらいとちょっとお高いです。
+が、今では色々なクローンができて、それらが大変おやすく(500円とか)手に入るため、
+キーボード用ファームウェアの環境も整備されたことも手伝い、
+こちらのボードがこの界隈では標準になっているようです。
+
+ただ、このマイコンボード、いくつか問題もありまして、
+一番大きいのはUSBのソケットがMicro-Bで、そのソケットももげやすいというおまけ付きです。
+そのため、エポキシ接着剤で補強したり、ソケット強化版とかType-C版のProMicroも販売されていたりします。
+また、そもそも無線キーボードじゃないと嫌だという人向けに
+BLEを積んだProMicroも販売されています。
+が、それらは結構な値段で販売されているため、微妙と言えば微妙……。
+それを嫌って、他のマイコンボードを使うキーボードもいくつかあります。
+
+\subsubsection*{OLED/LED}
+
+また、キーボードと直接関係あるような無いようなですが、
+自作キーボードキットにはOLEDのディスプレイやLEDが付属するものが多いです。
+前者は、キーのレイヤー表示に使われたり、キットのロゴを表示させる等色々に使われています。
+LEDに関しては完全に趣味ですね……。
+キーボードはカッコよく光るべきものらしいです。
+LEDには、表面側を照らすBacklight型と、底面側を照らすUnderflow型の二種類があります。
+
+で、気をつけたいのが、LEDがチップタイプのものを用いるキットです。
+このチップタイプのもの、小さい上に熱に弱いので、
+これがあるキットというだけではんだ付け難易度が跳ね上がります。
+特にHelix系のキーボードは、本来LEDチップが想定している方法とは異なる方法で実装するため、
+ある程度はんだ付けに慣れてる人でないと難しいかもしれません。
+とは言え、光らすと図\ref{fig:helix-katsu-lightning}のように、
+なかなかに爽快な感じになるので、格好よさを求めるのであれば、是非挑戦していただきたいところです。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/helix-lightning.jpg}
+  \hspace*{2zw}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/helix-lightning2.jpg}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{Helixキーボード(左手)を光らせたところ(カラーでないのが残念!!)}
+ \label{fig:helix-katsu-lightning}
+\end{figure}
+
+\subsection{キットの選定・購入}
+
+ということで、ここまでの話を考慮した上でキットを選んでいくのですが、
+国内でキットを購入しようとした場合、おそらく遊舎工房さん、
+もしくはBOOTH\footnote{\url{https://booth.pm/ja}}で購入する流れになるかと思います。
+他の手段ですと、キットを取り扱っている電子工作パーツ店をみつけたり、
+キーボード関連のミートアップ等の即売会に参加することになると思います。
+
+キットによっては、ダイオードとしてSMDタイプとよばれるすごく小さいものが
+付いてきたりします。私が組んだHelixなんかはそうでした。
+こちらは、足が小さいためはんだ付け難易度は高いかと思います。
+ただ、実はHelixやその派生キーボードは、SMDタイプよりもはんだ付け難易度の低い
+足の付いた素子のタイプのダイオードも使えるようになっていますので、
+別途購入が必要ですが、たいした金額ではない(数百円程度)ので、
+欲しいキットがあってもはんだ付けに自信がなければ、
+そのような事ができないかを確認されても良いかもしれません。
+
+また、やはり一番気になるのはキーの物理的な配列かと思います。
+キーの個数だとか、物理配列だとか、「そんな普通と違うようなキーボード打てる気がしない」
+とおっしゃる方もおられるかもしれません。
+\textbf{実際、その通りでございまして、}
+私のまわりで、キーが少な目で、column-staggeredなキーボードを作成した二人は、
+「打つのにストレスが溜まる」と言い出して、そのキーボードをつかうのを諦めてしまったようです。
+ということで、各位におかれましては、
+いきなり奇抜なものとかEndgameを狙わずに、\textbf{初めは}普段使っているキーボードに近い形の
+自作キーボードに手を出す事を強くお勧めします。
+
+%ここでは、私が使っている「Mint60」と「Helix」について紹介していきます。
+%
+%\subsubsection*{Mint60}
+%
+%私が一番最初に組んだキーボードです。
+%\subsubsection*{Helix}
+
+\subsection{キットの組み立て}
+
+キットを購入したら、当然組み立てが必要です。
+必須なものとしては
+「はんだ」「はんだごて」「はんだごて台」と「ドライバー」あたりでしょうか。
+「はんだ」は、無理して鉛フリーとかは止めといた方がよいと思います。
+また、「はんだごて」は温度の調整が可能なもの(比較的安めのものもあります)、
+「はんだごて台」の汚れ落としは、水を使うのではなく、金色の金たわしみたいなやつ%
+\footnote{会社の人は「ゴールデンアフロ」と呼んでいました。}
+の方が温度が下がらなくてオススメです。
+キーボードを作るのに必要なはんだ付けは、大抵そんなに難易度の高いものはないので、
+無理して高い物を買う必要はありませんが、
+この辺りの装備は、あまり安い物を買うと後で後悔するかもしれません。
+
+また、実際には「ラジオペンチ」「ニッパー」「ピンセット」もあった方が良いですし
+(素子タイプのダイオードならニッパーは必須)、
+「テスター」や「はんだ吸いとり器」もしくは「はんだ吸い取り線」は準備した方が良いと思います。
+特にテスターについては、キーボードを作るとダイオードとキースイッチのはんだ付けでも100箇所以上となるので、
+大体どこかが接触不良だったりしますし、
+方向間違えたり、チップを壊したりとかもありますので、安めのものでもあった方が良いかと思います。
+
+なお、キットですが、基本的には「基板」「ケース」「マイコンボード」に加えて
+スイッチやケーブルのコネクタなどの小物あたりがセットになって販売されており、
+「キースイッチ」「キーキャップ」およびケーブル類は別売りになっている事が多いです。
+そこは、自分で好きに選んでくれという話なのかと思います。
+また、キットによってはケースとPCBが別売りになっていることがあります。
+これは、ケースがアクリル以外にもステンレス製のものがあるキットもありますし、
+遊舎工房さんが、メジャーなキットについては
+ケースの色を選んで作ってくれるサービスをはじめたから、というのもありそうです。
+LEDとかOLEDが別売りであるキットもありますので、
+キット購入の際は、付けたいものが揃っているか確認するのをおすすめします。
+
+\subsubsection*{Mint60の場合}
+
+私が最初に作ったMint60の場合、キーキャップやキースイッチもセットで販売してくれていますので、
+私の場合は素直にそれらコミコミのセットで注文しました。
+届いて開封したときの写真を図\ref{fig:mint60-katsu-unpack}に掲載してみました。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60-unpack-01.jpg}
+  \hspace*{2zw}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60-unpack-02.jpg}
+  \hspace*{2zw}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60-unpack-03.jpg}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{Mint60開封の儀}
+ \label{fig:mint60-katsu-unpack}
+\end{figure}
+
+これを、図\ref{fig:mint60-katsu-build}のように、リセットスイッチや
+通信用のケーブルのジャックや、ProMicro、ダイオード、キースイッチをはんだ付けしていくだけです。
+なお、一番右の図でPCBにキースイッチだけ生えてますが、
+\textbf{実はこれは失敗例で、間にアクリルのカバーを挟んで実装するのが正解です。気をつけましょう。}
+間違えると、泣きながらはんだ吸い取り器をAmazonでポチり、
+キースイッチ全てとProMicroを嗚咽しながら剥ぎ取るという不毛な作業が必要になります……。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60-build-01.jpg}
+  \hspace*{2zw}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60-build-02.jpg}
+  \hspace*{2zw}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60-build-03.jpg}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{Mint60 組み立て}
+ \label{fig:mint60-katsu-build}
+\end{figure}
+
+完成した(左半分)が図\ref{fig:mint60-katsu}になります。
+キーキャップの項でも書きましたが、
+キーキャップの刻印と齟齬の生じるキーが出てきています。
+本来スペースのところのシフトキーとか、本来シフトキーのところにテンキーの0キーだとか。
+また、ESCキーは、デフォルトのキーマップだと左下で刻印通りなのですが、
+セットで販売されていたキーキャップは、ESCキーは手前側に傾斜のあるタイプだったので、
+よく見ると隣りのCtrlキーと盛り上がり方が異なっていたりします。
+このあたりは、割り切るなり、なにか他の良い感じのキーキャップを持ってくるなど工夫が必要そうです。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,width=5cm]{./image201911-kansai-02/mint60.jpg}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{Mint60 完成品(左半分)}
+ \label{fig:mint60-katsu}
+\end{figure}
+
+\subsection{ファームウェアのカスタマイズ}
+
+物理的にキーボードを作ったとしても、その後キーの配列を
+自分の好みに合わていくという終わりの無い旅がはじまっていきます。
+配列をいじるにはマイコンのファームを変更していくことになります。
+キーボードのファームウェアについて、大体のキットが、qmk\_firmware%
+\footnote{\url{https://github.com/qmk/qmk_firmware}}
+という、ファームを焼くところまでmakeコマンド一発でできてしまう環境を使っています。
+
+さて、ここでようやくDebianの影が見えますが、
+このqmk\_firmwareを使用するためには、Debianの場合は以下のパッケージの
+インストールが必要です。
+
+\begin{commandline}
+% sudo apt-get install gcc unzip wget zip gcc-avr binutils-avr avr-libc dfu-programmer dfu-util \
+> gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
+\end{commandline}
+
+この状態で、まずはキーボードのキー配列を換えてみます。
+といっても、実に簡単でして、
+環境の \verb|keyboards/(キーボード名)/keymaps/(キーマップ名)/keymap.c|
+を覗いてみると、以下のようなコードが記述されています。
+
+\begin{commandline}
+[0] = LAYOUT( \
+KC_GRV,  KC_1,  KC_2,  KC_3,  KC_4,  KC_5,     KC_6,  KC_7,  KC_8,  KC_9,  KC_0,  KC_MINS, KC_EQL,   KC_BSPC,  \
+KC_TAB,   KC_Q,  KC_W,  KC_E,  KC_R,  KC_T,     KC_Y,  KC_U,  KC_I,  KC_O,  KC_P,  KC_LBRC, KC_RBRC, KC_BSLS,  \
+KC_CAPS,   KC_A,  KC_S,  KC_D,  KC_F,  KC_G,     KC_H,  KC_J,  KC_K,  KC_L,  KC_SCLN,KC_QUOT,        KC_ENT,   \
+KC_LSFT,    KC_Z,  KC_X,  KC_C,  KC_V,  KC_B,     KC_N,  KC_M,  KC_COMM,KC_DOT,KC_SLSH,KC_RSFT,KC_UP,  MO(1),  \
+KC_ESC,  KC_LCTL,KC_LGUI,KC_LALT,  MO(1),    KC_SPC, KC_ENT,  LALT(KC_GRV),           KC_LEFT,KC_DOWN,KC_RGHT  \
+),
+\end{commandline}
+
+ええ、もうおわかりですね、上記の配列%
+\footnote{\texttt{LAYOUT}がマクロ関数になってるので、配列に見えないかもしれませんが。}
+を良い感じに書き換えるだけです。
+Debianさわってるような人であれば、テキストファイルをさわるなんてなんの抵抗もないのではないでしょうか。
+
+さて、よく見ると上記の配列にはファンクションキーの定義がありません。
+もちろんそれらはキーの組み合わせで打つことになります。
+上記の配列の場合、 \verb|MO(1)| となっているキーがありますが、
+これを押しながら他のキーを押すと、上記の配列以外のキー入力としてPC側に送信できます。
+なお、それらのコードも以下のような配列を変更するだけです。
+
+\begin{commandline}
+[1] = LAYOUT( \
+KC_ESC, KC_F1, KC_F2,  KC_F3,  KC_F4,  KC_F5,    KC_F6,  KC_F7,  KC_F8,  KC_F9,  KC_F10, KC_F11, KC_F12,  KC_DEL, \
+RGB_TOG, RGBRST,RGB_HUI,RGB_SAI,RGB_VAI,XXXXXXX,  XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,\
+XXXXXXX,  RGB_MOD,RGB_HUD,RGB_SAD,RGB_VAD,XXXXXXX, XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,      XXXXXXX, \
+_______,   XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX, XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,XXXXXXX,_______,KC_PGUP,_______,\
+XXXXXXX, _______,_______,_______,XXXXXXX,    XXXXXXX, XXXXXXX,XXXXXXX,                     KC_HOME, KC_PGDN, KC_END \
+)
+\end{commandline}
+
+この後、以下のコマンドを叩き、キーボードのリセットスイッチを押せば
+ファームウェアの更新が実行されます。
+
+\begin{commandline}
+% make (キーボード名):(キーマップ名):avrdude
+\end{commandline}
+
+また、このレイヤーの切り替えも、キーを押しながらだけでなく、
+カナキーよろしくトグル動作といった具合にもできます。
+その場合、現在のモードは、qmk\_firmwareに用意された仕組みでOLEDに表示させること等ができます。
+これによって、QWERTYとDovrokを切り替えてつかったりもできるわけです。
+
+もちろん、単純なキーではなく、ショートカットやら文字列入力を1キーに割り合てることもできます。
+たとえば、Twitter廃人らしく、
+``\verb|#debian #kansaidebian|'' を1キーで入力できるようにしてみます。
+先程のキー配列のあったファイルに以下のようなenum値やマクロを追加し、
+
+\begin{commandline}
+enum macro_keycodes {
+  KC_SAMPLEMACRO,
+  KC_HASH_DEBIAN,  /* 追加 */
+};
+
+//Macros
+#define M_SAMPLE M(KC_SAMPLEMACRO)
+#define M_HASH_DEB M(KC_HASH_DEBIAN)  /* 追加 */
+\end{commandline}
+
+さらに配列を書き換え……、
+
+\begin{commandline}
+const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+
+      /* 中略 */
+      KC_HASH_DEBIAN,  KC_LCTL,KC_LGUI,KC_LALT,  MO(1),    KC_SPC, KC_ENT,  LALT(KC_GRV),     KC_LEFT,KC_DOWN,KC_RGHT  \
+      /* 後略 */
+\end{commandline}
+
+最後に、キー入力の関数にcase文を追加すると……
+
+\begin{commandline}
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  switch (keycode) {
+
+    /* 中略 */
+
+    case KC_HASH_DEBIAN:
+      if (record->event.pressed)
+        SEND_STRING("#debian #kansaidebian");
+      break;
+
+   /* 後略 */
+\end{commandline}
+
+1ボタンでdebian向けハッシュタグを打ててしまいます。
+この機能を使うと、他にも例えばキーを短押ししたときは普通のキーとして、
+長押ししたらレイヤー切り替えのキーとして動作する、といったような事もできます。
+他にも、LEDはOLEDの制御等も色々と触れますが、
+ProMicroだとファームサイズはそこまで大きくできませんので、ご注意ください。
+
+\subsection{それでも満足できないアナタへ}
+
+ここまで読んでいただいてわかるように、本当に自分のEndgameを目指すのであれば、
+結局それに合ったキットがなければどうしようもありません。
+ところで、最近はプリント基板ことPCBは気軽に作れるようになってきている……らしいです。
+実際、10cmx10cmであれば、送料を考えなければ(ぉ) 5\$とかで作れてしまうようです。
+ということで、Endgameのために基板から自作しましょう(錯乱)。
+私もまだ志半ばですので、是非みなさんもご一緒に!!
+
+基板設計ってどうやるの、と不安になるかもしれません。
+しかしそこはご安心ください、PCBの設計用のツールはフリーのKiCadと呼ばれるソフトがあり、
+ちゃんとDebianパッケージもございます(申し訳程度のDebian要素その2)。
+
+\begin{commandline}
+% apt search '^kicad$'
+ソート中... 完了
+全文検索... 完了
+kicad/unstable,now 5.1.5+dfsg1-1 amd64 [インストール済み]
+  電子回路および PCB 設計ソフトウェア
+% apt install kicad
+\end{commandline}
+
+KiCadを入れたら、まずは回路図から作っています。
+その際、キーボード用のパーツ(キースイッチとかProMicro)のライブラリが必要になりますが、
+文献\cite{foostan01}にて、著者の方がKiCad用のライブラリを公開してくれています%
+\footnote{\url{https://github.com/foostan/kbd}}。
+この文献、この記事なんかよりも詳細なKiCadでの設計方法が書かれておりますので、
+興味があれば是非お買い求めください。
+ライブラリを適当な場所にcloneしたら、メニューの「シンボルライブラリーを管理」から登録できます。
+例として、図\ref{fig:kicad-schematic}に、私がテストでつくりかけている4x4のキーボードの回路図を掲載しておきます。
+左上にProMicroが、右上にキーマトリックス回路が見えてると思います。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,height=5cm]{./image201911-kansai-02/kicad-schematic.png}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{KiCadの画面(回路図エディタ)}
+ \label{fig:kicad-schematic}
+\end{figure}
+
+次に、フットプリント(基板上のはんだ付け部分)を回路と関連付けていくのですが、
+その際にもフットプリントのライブラリが必要となります。
+そちらのライブラリについても、\cite{foostan01}の著者の方が先程と同様の場所に公開してくれています。
+作業としては、図\ref{fig:kicad-footprint}のような感じで、
+回路図の各シンボルについて、どのフットプリントを適用するのかという事を
+関連付けていくことになります。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,height=5cm]{./image201911-kansai-02/kicad-footprint.png}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{KiCadの画面(フットプリントの関連付け)}
+ \label{fig:kicad-footprint}
+\end{figure}
+
+フットプリントの関連付けが終わると、次はレイアウトになります。
+パーツが干渉しないように注意して……やるのですが、
+私はこの作業の途中で力尽きております……。
+画面としては、図\ref{fig:kicad-footprint}のような感じになります。
+
+\begin{figure}[htbp]
+ \begin{center}
+  \includegraphics[keepaspectratio,height=5cm]{./image201911-kansai-02/kicad-layout.png}
+ \end{center}
+ \vspace*{-1zw}
+ \caption{KiCadの画面(レイアウト……の途中で力尽きているところ)}
+ \label{fig:kicad-footprint}
+\end{figure}
+
+その後の流れとしては、
+
+\begin{enumerate}
+ \item エッジカット線を引く
+ \item スペーサー用の穴をあける
+ \item 配線を実施する(一番大変らしい)
+ \item 必要に応じてケースを作成する
+       \begin{itemize}
+	\item アクリル板を加工するのが主流
+	\item 最近は3Dプリンタ勢が増えているみたい……
+       \end{itemize}
+\end{enumerate}
+
+といったような感じになるようです。
+PCB自体は、設計ができたらプリント基板の実装サービスをやっている場所に発注するようです。
+seeed\footnote{\url{https://www.seeedstudio.com/fusion_pcb.html}}や
+ELECROW\footnote{\url{https://www.elecrow.com/pcb-manufacturing.html}}
+といったところがメジャーなようです。
+海外なので送料はそこそこかかってしまいますが、
+10cmx10cmのサイズであれば、相当安く作ってくれるようです。
+
+なお、今回私は試しにと基板をまっサラなところから作成していますが、
+実は回路図データを公開しているキットは結構あります。
+先程紹介したHelixがその一つで、回路図がGitHub上に公開されています%
+\footnote{\url{https://github.com/MakotoKurauchi/helix}}。
+そのため、このHelixのPCBをベースにして作成されたキットも数多くあります。
+なお、KiCadについては、文献\cite{foostan01}, \cite{kicad}あたりが参考になるかと思います。
+
+\subsection{まとめ}
+
+ということで、最後の基板からの自作については少々尻すぼみな感じになってしまいましたが、
+キットから作るという選択肢を取れば、結構簡単に自作できてしまうのでした。
+私は、分割式のキーボードを使うようになって、はや2ヶ月とか経ちますが、
+腰痛に関しては冗談抜きで本当に改善しました。
+以前は、一時間も座っていたら座っていられないくらい辛くなっていた腰痛が、
+もちろんまったく痛くならないわけではないですが、座っていられないような事はなくなりました。
+逆に、Fitbitに課される「1時間250歩」が全然クリアできなくなって困っております。
+
+Debian勉強会で、この内容についてしゃべったところ、
+自己紹介でのキーボード遍歴で大変に盛り上がりました。
+おそらく、今回Debian本を読まれている方につきましても、
+キーボードに関しては色々と語ることもあるかと思います。
+\textbf{Debianをハックするには、まずは健康から!!どうでしょう、自作キーボード!!}
+自作キーボードについては、「Self-Made Keyboards in Japan」というDiscordのサーバー\cite{discord}
+に結構な情報が集まっています。
+また、Discordはちょっと……という方には、Youtubeなどで情報を集めるのも良いかと思います。
+「ほぼ週刊キーボードニュース」\cite{weekly}あたりはおすすめです。
+本記事が、みなさまの健康的なハックライフに繋がると幸いです。
+
+\subsection{参考文献}
+
+\renewcommand{\refname}{\vspace*{-1.5zw}}
+\begin{thebibliography}{9}
+ \bibitem{foostan01} foostan, ``自作キーボード設計入門 Endgameへの第一歩'', \url{https://booth.pm/ja/items/1044084}
+ \bibitem{kicad} 小坂貴美男, ``KiCad 5.0 / 5.1 入門実習テキスト『KiCad Basics for 5.x』``,
+	 \url{https://booth.pm/ja/items/941963}
+ \bibitem{discord} \texttt{@Biacco42}, ``Self-Made Keyboards in Japan'', \url{https://discordapp.com/invite/NM7XtDW}
+ \bibitem{weekly} \texttt{@Biacco42} and \texttt{@Pekaso},``ほぼ週刊キーボードニュース'', \url{https://www.youtube.com/channel/UCyU1PAGvw_suAyI4wljHmag}
+\end{thebibliography}
+
 %-------------------------------------------------------------------------------
 \dancersection{Debian GNU/kFreeBSD セットアップガイド 2019年版}{杉本典充}
 %-------------------------------------------------------------------------------
