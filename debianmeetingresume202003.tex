@@ -131,7 +131,7 @@
 
 \subsection{はじめに}
 
-Debianであるオープンソースツールだけで大人数にレクチャー形式で動画配信す
+Debian環境でオープンソースツールだけで大人数にレクチャー形式で動画配信す
 る仕組みについて検討してみました。目標はオンラインでDebian勉強会を開催す
 ることです。
 
@@ -140,22 +140,24 @@ Debianであるオープンソースツールだけで大人数にレクチャー形式で動画配信す
 いと仮定します。発言したい場合は電話するなりテキストチャットするなりして
 シグナルしてもらいましょう。
 
-\subsection{単一拠点での配信}
+\subsection{配信スタイル}
+\subsubsection{単一拠点での配信}
 
-YoutubeLiveで配信すればよいのであればFLV形式でRTMPでYoutubeLiveの指定さ
-れたURLに送信すればよいです。たとえばFFMPEGコマンド一発で送信すればよい。
-ソースはデスクトップのキャプチャーと、マイク入力とUSB UVC Camera でよい
-でしょう。
+Youtube　Liveで配信すればよいのであればFLV形式でRTMPでYoutubeLiveの指定
+されたURLに送信すればよいです。たとえばffmpegで画像をキャプチャーしてエ
+ンコードして送信すればよい。ソースはデスクトップのキャプチャーと、マイク
+入力とUSB UVC Camera でよいでしょう。
 
-他にもいろいろなサービスがあるのでそれを使えばよいし、別に視聴者の数が多く期待されないのであればRTMPサーバを立ち上げればよいだけでしょう。
+他にもいろいろなサービスがあるのでそれを使えばよいし、別に視聴者の数が多
+く期待されないのであればRTMPサーバを立ち上げればよいだけでしょう。
 
-\subsection{複数拠点からの配信}
+\subsubsection{複数拠点からの配信}
 
 要素としては講師役が複数いるときに切り替えながらやるという場合です。テキ
 ストチャットなどを補助ツールとして使いながら拠点映像ソースの切り替えをす
 る感じになると思います。
 
-\subsection{かけあいがある通信}
+\subsubsection{かけあいがある通信}
 
 勉強会なので参加者が相互に意見を言い合いながら参加する形にしたい。
 通常室内ではクイズやってみたりその場で議論してみたりするわけです。
@@ -166,13 +168,65 @@ YoutubeLiveで配信すればよいのであればFLV形式でRTMPでYoutubeLiv
 映像は光が直行するので大丈夫なのですが音はエコーがありま
 す。基本はヘッドセットとマイクをつかうのがよいでしょう。
 
-Bluetooth　HSPの音質は聞いたら明らかに音質が悪いのでやめておきましょう。
+Bluetooth HSPの音質は8KHz 程度でフィルタリングされる聞いたら明らかに昔の
+電話みたいな音質になるのでやめておきましょう。
 
 発言しないときはミュートしておきましょう。発言するときには手をあげてタイ
 ミングをみはからいましょう。ビデオを通常時はきっておいて必要なときだけオ
 ンにするなどを検討してみましょう。
 
 システムの上限に近づいているようであればビデオを切りましょう。
+
+
+\subsection{ツール}
+
+\subsubsection{nginx rtmpモジュール}
+
+なんか人気みたいなので試してみました。
+
+\begin{commandline}
+$ sudo apt install nginx libnginx-mod-rtmp
+\end{commandline}
+%$ -- make emacs happy
+
+\texttt{/usr/share/doc/libnginx-mod-rtmp/README.md.gz}を眺めた感じだと
+
+\texttt{nginx.conf} に設定をいくつか書くと良いようです。
+普通はon\_publishとかで認証するみたい。
+
+\begin{commandline}
+rtmp {
+  server {
+    listen 1935;
+    chunk_size 4000;
+
+    # Many publishers, many subscribers
+    # no checks, no recording
+    application videochat {
+      live on;
+    }
+  }
+}
+\end{commandline}
+
+設定を反映させるために
+
+\begin{commandline}
+$ sudo /etc/init.d/nginx restart
+\end{commandline}
+%$ -- make emacs happy
+
+これで \url{rtmp://server/videochat/}で接続できるようになります。
+
+\subsubsection{crtmpserver}
+
+\subsubsection{OBS Studio}
+
+\begin{commandline}
+$ sudo apt install obs-studio
+\end{commandline}
+%$ -- make emacs happy
+
 
 %-------------------------------------------------------------------------------
 \dancersection{title}{username}
