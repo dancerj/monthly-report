@@ -1,16 +1,21 @@
+# TODO items
 
-* Android
+今後こういうことやってみようぜというメモです
+
+## Android
+
 - Android 開発をDebianで
 - Android ROM焼いてみた
 
-* 近年のウェブテクノロジー
+## 近年のウェブテクノロジー
+
 - css3
 - HTML5
 - jquery
 - angular.js
 - node, socket.io, websocket
 
-* その他
+## その他
 - checksum いろいろ
 - pristine-tar
 - dpkg-source v3 quilt vs git
@@ -40,13 +45,15 @@
 - virtualization, management on virtualization.
 - Packages ファイルをパースする。
 
-* 会場
+## 会場
 
-横浜
+### 横浜
+
 http://www.city.yokohama.jp/me/naka/renraku/kaikokinen/index.html
 横浜市開港記念会館
 ４００人とかいけるぜ。かっこいいたてもの。
 
-千葉
+### 千葉
+
 http://www.ovta.or.jp/div/facilities/index.html
 宿泊可能な海外職業訓練協会
