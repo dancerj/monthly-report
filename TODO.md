@@ -1,13 +1,13 @@
 # TODO items
 
-���夳���������Ȥ�äƤߤ褦���Ȥ������Ǥ�
+今後こういうことやってみようぜというメモです
 
 ## Android
 
-- Android ��ȯ��Debian��
-- Android ROM�Ƥ��Ƥߤ�
+- Android 開発をDebianで
+- Android ROM焼いてみた
 
-## ��ǯ�Υ����֥ƥ��Υ�����
+## 近年のウェブテクノロジー
 
 - css3
 - HTML5
@@ -15,45 +15,45 @@
 - angular.js
 - node, socket.io, websocket
 
-## ����¾
-- checksum ��������
+## その他
+- checksum いろいろ
 - pristine-tar
 - dpkg-source v3 quilt vs git
 - 3D graphics programming 
 - openCV + hogehoge
 - LADSPA framework
 - udev + HAL
-- PureData �����?
+- PureData 研究会?
 - RPC (XML-RPC, msgpack, hogehoge)
-- swig �Ȥ����ⷢ
-- MapReduce ��
+- swig という魔窟
+- MapReduce 系
 - MySQL, NoSQL -- KVS (BDB?) 
-- �ͥåȥ��
+- ネットワーク
 - VOIP on Debian. Asterisk ? opal, libiaxclient ?
-- �侾����:Debian Conference��Ĵ����Ľ
-- ��ƣ���󡧳��ο��ߤ� - CUPS�ΰ�̴
-- ��ƣ����DAK - Debian Archive Kit�Ǥ��ʤ����ܳ�ftpmasters��ʬ
-- ��ƣ����buildd�λ��Ȥ� - sbuild��pbuilder��̴�򸫤뤫?
-- ��ƣ���󡧸�������⤤������ʤ������ʹ֤���� - �����ܿ����󥹥ȡ�������backports.org��Ҳ�
-- ��ƣ����KISS! HCL - ��Ͽ�ΰפ����ϡ��ɥ������ߴ����ꥹ�Ȥκ���������
-- ��ƣ���󡧵��������Ȥ������� - �����ԤȤ��Ƥλ䡢��ӥ塼���Ȥ��Ƥ�
-   �䡢�桼���Ȥ��Ƥλ�
-- Debian package ��������뵻�Ѥȥ���ե����ˤĤ��Ƥ��ޤˤ��ä򤷤�
-   ���衣���롼�ץ����
-- social contract �������å�: �ߤ�����򤷤Ƥ��뤫�������������ǥ���
-- �ӥǥ����ȥ꡼�ߥ󥰲��
+- 岩松さん:Debian Conference　調査進捗
+- 武藤さん：鴨の水掻き - CUPSの悪夢
+- 武藤さん：DAK - Debian Archive Kitであなたも本格ftpmasters気分
+- 武藤さん：builddの仕組み - sbuildはpbuilderの夢を見るか?
+- 武藤さん：後ろ向きもいいじゃないか、人間だもの - 後方移植インストーラを例にbackports.orgを紹介
+- 武藤さん：KISS! HCL - 登録の易しいハードウェア互換性リストの作成と妄想
+- 武藤さん：技術翻訳ということ - 翻訳者としての私、レビューアとしての
+   私、ユーザとしての私
+- Debian package を作成する技術とワークフローについてたまには話をしよ
+   うよ。グループワーク？
+- social contract ワークショップ: みんな理解しているか、ケーススタディー
+- ビデオストリーミング会議
 - virtualization, management on virtualization.
-- Packages �ե������ѡ������롣
+- Packages ファイルをパースする。
 
-## ���
+## 会場
 
-### ����
+### 横浜
 
 http://www.city.yokohama.jp/me/naka/renraku/kaikokinen/index.html
-���ͻԳ�����ǰ���
-�������ͤȤ������뤼�����ä��������Ƥ�Ρ�
+横浜市開港記念会館
+４００人とかいけるぜ。かっこいいたてもの。
 
-### ����
+### 千葉
 
 http://www.ovta.or.jp/div/facilities/index.html
-�����ǽ�ʳ������ȷ�������
+宿泊可能な海外職業訓練協会
