@@ -15,6 +15,17 @@
 - angular.js
 - node, socket.io, websocket
 
+## プログラミング言語とエコシステム
+
+- emacs
+  - melpa
+- golang
+  - 最新のパッケージのインストール方法とDebian公式パッケージの作成方法。go get とどう整合性を取るか。
+- rust
+  - 最新のパッケージのインストール方法とDebian公式パッケージの作成方法。crateをどう使うか。
+- nodejs
+  - 最新のパッケージのインストール方法とDebian公式パッケージの作成方法。npmをどう使うか。
+
 ## その他
 - checksum いろいろ
 - pristine-tar
