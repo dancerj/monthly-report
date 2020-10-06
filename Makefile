@@ -63,6 +63,3 @@ listtopic:
 		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
 .PHONY: deb clean all publish listtopic check lint-config
-
-check-syntax:
-	$(CC) -c -O2 -Wall $(CHK_SOURCES) -o/dev/null $(shell pkg-config --cflags gtk+-2.0)
