@@ -4,10 +4,8 @@ RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 PLATEX_FLAGS:= -shell-escape -halt-on-error -interaction=batchmode
 
 all: $(PDFFILES)
-	make -C 2020 all
 
 check: all
-	make -C 2020 all
 
 publish: $(RELEASEFILES)
 	# ファイルをリリースする。clean すると一度全部のファ
@@ -16,7 +14,8 @@ publish: $(RELEASEFILES)
 	# .pdf ファイルをtouchすればリリースします。
 
 %.release-stamp: %.pdf
-	./publish-file.sh $<
+	# TODO check
+	../publish-file.sh $<
 	touch $@
 
 %.pdf: %.dvi
@@ -27,20 +26,12 @@ publish: $(RELEASEFILES)
 	  rmdir $$TMPDIR
 	mv $@.tmp $@
 
-lint-config:
-	# check that pre-commit hook is installed.
-	# if this fails, please do:
-	# cp git-pre-commit.sh .git/hooks/pre-commit
-	# コミットフックをインストールしていないとここでエラーになります。ここがエラーになったらエラーを放置しないで修正すること!
-	diff -u .git/hooks/pre-commit git-pre-commit.sh
-	[ -x .git/hooks/pre-commit ]
-
-%.dvi: %.tex | lint-config
+%.dvi: %.tex
 	## start of linting stuff
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
 	# check some obvious spelling mistakes Debian勉強会標準以外の表記を使った場合ここがエラーになります。修正してからコミットしてください。
-	./utils/spelllint.sh $<
+	../utils/spelllint.sh $<
 	## end of linting stuff
 	platex $(PLATEX_FLAGS) $< # create draft input
 	-if [ -s  $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi
@@ -50,18 +41,8 @@ lint-config:
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
-	-make -C 2020 clean
+
 	# 一度全部のファイルをpublishしたものとみなす。古いファイルを全部アップロードするのを回避します
 	-touch $(RELEASEFILES)
 
-deb:
-	-rm ../*.deb
-	debian/rules local-make-orig
-	debuild -us -uc -i'.*pdf$$|.git'
-
-listtopic:
-	# for generating undocumenteddebian.muse
-	lgrep dancersection *-natsu.tex *-fuyu.tex | \
-		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
-
-.PHONY: deb clean all publish listtopic check lint-config
+.PHONY: deb clean all publish check
