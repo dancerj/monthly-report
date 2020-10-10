@@ -1,13 +1,15 @@
-SOURCE:=$(wildcard debianmeeting*.tex)
+MAKE_SUBDIRS := $(dir $(wildcard */Makefile))
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
-RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 PLATEX_FLAGS:= -shell-escape -halt-on-error -interaction=batchmode
+RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
+SOURCE:=$(wildcard debianmeeting*.tex)
 
-all: $(PDFFILES)
-	make -C 2020 all
+all: $(PDFFILES) $(MAKE_SUBDIRS)
 
 check: all
-	make -C 2020 all
+
+$(MAKE_SUBDIRS):
+	$(MAKE) -C $@
 
 publish: $(RELEASEFILES)
 	# ファイルをリリースする。clean すると一度全部のファ
@@ -50,7 +52,7 @@ lint-config:
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
-	-make -C 2020 clean
+	-set -e; for D in $(MAKE_SUBDIRS); do (cd $$D && make clean && echo $$D); done
 	# 一度全部のファイルをpublishしたものとみなす。古いファイルを全部アップロードするのを回避します
 	-touch $(RELEASEFILES)
 
@@ -64,4 +66,4 @@ listtopic:
 	lgrep dancersection *-natsu.tex *-fuyu.tex | \
 		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
-.PHONY: deb clean all publish listtopic check lint-config
+.PHONY: deb clean all publish listtopic check lint-config $(MAKE_SUBDIRS)
