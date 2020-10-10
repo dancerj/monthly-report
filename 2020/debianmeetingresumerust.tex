@@ -118,8 +118,125 @@
 \dancersection{DebianでのRust}{上川純一}
 %-------------------------------------------------------------------------------
 
+Rust\cite{rustsite}というプログラミング言語をご存知ですか？私はC++よりメモリ管理
+などが便利になっていてコンパイルさえ通ると大体メモリの所有権についての問題が解決
+しているということで勉強してみることにしました。
+
+執筆時点ではVersion 1.47.0が公開されており、比較的安定しているようです。
+
+良い解説書\cite{rustbook}がオンラインにあり、日本語にも活発に翻訳\cite{rustjp}さ
+れているようです。
+
+しかしどうもDebianにはFirefoxのビルドに必要だからパッケージされているだけのよう
+な気がしなくもない。
+
 \subsection{DebianユーザとしてRustプログラムを書いてみる}
+
+まず入門書を読み始めるとおもむろにRustのサイトからバイナリパッケージをインストー
+ルするためにシェルスクリプトをウェブからダウンロードしてきて実行するように書いて
+あります。
+
+\begin{commandline}
+$ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+\end{commandline}
+%$ -- for emacs
+
+しかしインストールの副作用は何があるのかとかを確認したいし、アンインストールする
+ときに何をしたら良いのかなど考えるのが面倒ですよね。そこでDebianユーザとしてはパッ
+ケージを利用したい。Debianのパッケージを利用するにはどうしたらよいかを解説します。
+
+\begin{commandline}
+$ sudo apt install cargo rustc 
+\end{commandline}
+%$ -- for emacs
+
+まずBusterでは最初にリリースされたときは1.33だったと思うんですが９月にアップデートされました。
+
+\subsubsection{エディタの設定}
+
+Emacsを使っているのならelpa-rust-modeを入れておきましょう。
+
+\begin{commandline}
+$ sudo apt install elpa-rust-mode  # for local emacs.
+\end{commandline}
+%$ -- for emacs
+
+\subsubsection{シンプルなプログラムを書く}
+
+チュートリアルに従ってプログラムを書いてみます。
+
+\begin{commandline}
+fn main() {
+   println!("Hello, world!");
+}
+\end{commandline}
+
+コンパイルして実行してみます。
+
+\begin{commandline}
+$ rustc helloworld.rs 
+$ ./helloworld
+Hello, world! 
+\end{commandline}
+
+\subsubsection{Cargoを使う}
+
+Rustcを直接つかうよりはCargoというビルド管理ツールを使うことが多いようで
+す。テンプレートの生成からビルドやテストの実行までやってくれます。Crate
+とよばれるRustのパッケージシステムが利用できるようになります。
+
+Cargo関連のファイルはホームディレクトリ以下の\verb!~/.cargo/! に作成され
+ます。
+
+cargo newでプロジェクトのテンプレートが作成され、Hello world とだけ出力
+するsrc/main.rsが生成されます。cargo buildでビルド。cargo runで実行、
+cargo testでテストが実行されます。
+
+\begin{commandline}
+$ cargo new 名前
+$ cd 名前
+$ cargo build
+$ cargo run
+Hello, world!
+$ cargo clean
+\end{commandline}
+%$ -- for emacs
+
+Cargo.tomlというファイルに依存関係を記述することができます。このCrateパッ
+ケージインストールはDebianの管理下ではなくユーザのホームディレクトリ以下
+にインストールされます。
+
 \subsection{Debian Developer としてのRustパッケージ}
+
+Rustパッケージをメンテンスしているチーム\cite{rust:debianwiki}がいるので
+Wikiページなどに情報がまとまっています。Crateのパッケージングについての
+資料\cite{debcargo-conf}に解説があります。
+
+パッケージのためのツールとしてdebcargoというものを使うようです。
+
+\begin{commandline}
+$ apt update && apt install debcargo
+\end{commandline}
+%$ -- for emacs
+
+おそらく一番の困難は、RustのCrateは複数のバージョンが共存できるように作
+られているのですが、Debian側のポリシーとしては単一のバージョンのライブラ
+リをできるだけ使いたいです。そうすると古いバージョンを要求される場合はそ
+れをできるだけ新しいバージョンで置き換えることになるでしょう。大量にパッ
+チを書くことになりそうです。
+
+\begin{thebibliography}{1}
+ \bibitem{rust:debianwiki} \url{https://wiki.debian.org/Teams/RustPackaging}
+ \bibitem{rustbook} \url{https://doc.rust-lang.org/book/}
+ \bibitem{rustsite} \url{https://www.rust-lang.org/}
+ \bibitem{rustjp} ``Rustの日本語ドキュメント/Japanese Docs for Rust''
+	 \url{https://doc.rust-jp.rs/}
+ \bibitem{debcargo-conf} ``Packaging a crate for Debian''
+	\url{https://salsa.debian.org/rust-team/debcargo-conf/blob/master/README.rst}
+\end{thebibliography}
+
+
+
 
 %\dancersection{title}{username}
 
