@@ -1,8 +1,9 @@
-MAKE_SUBDIRS := $(dir $(wildcard */Makefile))
-PDFFILES:=$(SOURCE:%.tex=%.pdf)
+MAKE_SUBDIRS := $(dir $(wildcard ????/Makefile))
 PLATEX_FLAGS:= -shell-escape -halt-on-error -interaction=batchmode
-RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 SOURCE:=$(wildcard debianmeeting*.tex)
+
+PDFFILES:=$(SOURCE:%.tex=%.pdf)
+RELEASEFILES:=$(SOURCE:%.tex=%.release-stamp)
 
 all: $(PDFFILES) $(MAKE_SUBDIRS)
 
