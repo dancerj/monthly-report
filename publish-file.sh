@@ -31,11 +31,11 @@ for f in "$@"; do
     repo="${type}${yyyy}"
     repodir="${topdir}/${repo}"
     if [ -e "${repodir}/.git" ]; then
-        (cd "$repodir" && git pull)
+        (cd "${repodir}" && git pull)
     else
-        git clone "git@salsa.debian.org:tokyodebian-team/${repo}.git"
+        (cd "${topdir}" && git clone "git@salsa.debian.org:tokyodebian-team/${repo}.git")
     fi
     cp "$f" "${repodir}/public/"
     (cd "${repodir}/public/" && git add "`basename "$f"`")
-    (cd "$repodir" && git -c user.name="$gitusername" -c user.email="$gituseremail" commit -m "publish" && git push)
+    (cd "${repodir}" && git -c user.name="$gitusername" -c user.email="$gituseremail" commit -m "publish" && git push)
 done
