@@ -30,12 +30,16 @@ for f in "$@"; do
     esac
     repo="${type}${yyyy}"
     repodir="${topdir}/${repo}"
-    if [ -e "${repodir}/.git" ]; then
-        (cd "${repodir}" && git pull)
-    else
-        (cd "${topdir}" && git clone "git@salsa.debian.org:tokyodebian-team/${repo}.git")
-    fi
-    cp "$f" "${repodir}/public/"
-    (cd "${repodir}/public/" && git add "`basename "$f"`")
-    (cd "${repodir}" && git -c user.name="$gitusername" -c user.email="$gituseremail" commit -m "publish" && git push)
+    lockfile="${topdir}/${repo}.lock"
+    (
+	flock -w 1000 9 || exit 1
+	if [ -e "${repodir}/.git" ]; then
+            (cd "${repodir}" && git pull)
+	else
+            (cd "${topdir}" && git clone "git@salsa.debian.org:tokyodebian-team/${repo}.git")
+	fi
+	cp "$f" "${repodir}/public/"
+	(cd "${repodir}/public/" && git add "`basename "$f"`")
+	(cd "${repodir}" && git -c user.name="$gitusername" -c user.email="$gituseremail" commit -m "publish" && git push)
+    ) 9> "${lockfile}"
 done

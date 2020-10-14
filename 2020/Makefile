@@ -14,7 +14,6 @@ publish: $(RELEASEFILES)
 	# .pdf ファイルをtouchすればリリースします。
 
 %.release-stamp: %.pdf
-	# TODO check
 	../publish-file.sh $<
 	touch $@
 
