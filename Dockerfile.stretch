@@ -17,6 +17,4 @@ RUN apt-get clean && \
     locale-gen
 COPY . .
 RUN kanji-config-updmap-sys ipaex && \
-    mkdir -p .git/hooks/pre-commit && \
-    cp git-pre-commit.sh .git/hooks/pre-commit && \
     make clean && make -j16

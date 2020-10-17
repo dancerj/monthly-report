@@ -30,15 +30,7 @@ publish: $(RELEASEFILES)
 	  rmdir $$TMPDIR
 	mv $@.tmp $@
 
-lint-config:
-	# check that pre-commit hook is installed.
-	# if this fails, please do:
-	# cp git-pre-commit.sh .git/hooks/pre-commit
-	# コミットフックをインストールしていないとここでエラーになります。ここがエラーになったらエラーを放置しないで修正すること!
-	diff -u .git/hooks/pre-commit git-pre-commit.sh
-	[ -x .git/hooks/pre-commit ]
-
-%.dvi: %.tex | lint-config
+%.dvi: %.tex
 	## start of linting stuff
 	# check kanji-code of the tex file.
 	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
@@ -67,4 +59,4 @@ listtopic:
 	lgrep dancersection *-natsu.tex *-fuyu.tex | \
 		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
-.PHONY: deb clean all publish listtopic check lint-config $(MAKE_SUBDIRS)
+.PHONY: deb clean all publish listtopic check $(MAKE_SUBDIRS)
