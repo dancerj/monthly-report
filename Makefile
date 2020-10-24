@@ -56,7 +56,7 @@ deb:
 
 listtopic:
 	# for generating undocumenteddebian.muse
-	lgrep dancersection *-natsu.tex *-fuyu.tex | \
+	lgrep dancersection *-natsu.tex *-fuyu.tex ????/*-natsu.tex ????/*-fuyu.tex | \
 		sed -n 's/:\\dancersection{\([^}]*\)}.*/:\1/p'
 
 .PHONY: deb clean all publish listtopic check $(MAKE_SUBDIRS)
