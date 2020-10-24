@@ -45,7 +45,7 @@ publish: $(RELEASEFILES)
 	platex $(PLATEX_FLAGS) $< > $@.tmplog 2>&1 || (cat $@.tmplog; exit 1) # recreate toc with correct page number
 
 clean:
-	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
+	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css *.tmplog
 	-set -e; for D in $(MAKE_SUBDIRS); do (cd $$D && make clean && echo $$D); done
 	# 一度全部のファイルをpublishしたものとみなす。古いファイルを全部アップロードするのを回避します
 	-touch $(RELEASEFILES)
