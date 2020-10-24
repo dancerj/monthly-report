@@ -17,6 +17,7 @@ publish: $(RELEASEFILES)
 	# イルをpublishしたものとみなす。古いファイルを全部アップロード
 	# するのを回避します。アップロードしたいファイルは該当する
 	# .pdf ファイルをtouchすればリリースします。
+	set -e; for D in $(MAKE_SUBDIRS); do (cd $$D && echo $$D && make publish); done
 
 %.release-stamp: %.pdf
 	./publish-file.sh $<
