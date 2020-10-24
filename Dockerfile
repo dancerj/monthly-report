@@ -17,4 +17,4 @@ RUN apt-get clean && \
     locale-gen
 COPY . .
 RUN kanji-config-updmap-sys ipaex && \
-    make clean && make -j16
+    make clean && make -j$(($(nproc) * 2))
