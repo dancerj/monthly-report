@@ -21,7 +21,7 @@ publish: $(RELEASEFILES)
 	set -e; \
 	  umask 002 ; \
 	  export TMPDIR="$(shell mktemp -d)"; \
-	  dvipdfmx -o $@.tmp $< ; \
+	  dvipdfmx -o $@.tmp $< > $@.tmplog 2>&1 || (cat $@.tmplog; exit 1); \
 	  rmdir $$TMPDIR
 	mv $@.tmp $@
 
@@ -32,11 +32,11 @@ publish: $(RELEASEFILES)
 	# check some obvious spelling mistakes Debian勉強会標準以外の表記を使った場合ここがエラーになります。修正してからコミットしてください。
 	../utils/spelllint.sh $<
 	## end of linting stuff
-	platex $(PLATEX_FLAGS) $< # create draft input
-	-if [ -s  $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi
-	platex $(PLATEX_FLAGS) $< # create draft content with correct spacing for index and toc
-	-if [ -s  $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi # recreate index with correct page number
-	platex $(PLATEX_FLAGS) $< # recreate toc with correct page number
+	platex $(PLATEX_FLAGS) $< > $@.tmplog 2>&1 || (cat $@.tmplog; exit 1)  # create draft input
+	-if [ -s $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi
+	platex $(PLATEX_FLAGS) $< > $@.tmplog 2>&1 || (cat $@.tmplog; exit 1)  # create draft content with correct spacing for index and toc
+	-if [ -s $(<:%.tex=%.idx) ]; then mendex -U $(<:%.tex=%.idx); fi # recreate index with correct page number
+	platex $(PLATEX_FLAGS) $< > $@.tmplog 2>&1 || (cat $@.tmplog; exit 1) # recreate toc with correct page number
 
 clean:
 	-rm *.dvi *.aux *.toc *~ *.log *.waux *.out _whizzy_* *.snm *.nav *.jqz *.ind *.ilg *.idx *.idv *.lg *.xref *.4ct *.4tc *.css
