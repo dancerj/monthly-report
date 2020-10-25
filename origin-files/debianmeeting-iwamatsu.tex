@@ -1,6 +1,6 @@
 %; whizzy chapter
 % -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
-% $B0J>e(B whizzytex $B$r;HMQ$9$k>l9g$N@_Dj!#(B
+% 以上 whizzytex を使用する場合の設定。
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2011 Junichi Uekawa
@@ -21,118 +21,118 @@
 %     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 %  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
-% $B2hA|%U%!%$%k$r=hM}$9$k$?$a$K$O(Bebb$B$rMxMQ$7$F(Bboundingbox$B$r:n@.!#(B
+% 画像ファイルを処理するためにはebbを利用してboundingboxを作成。
 %(shell-command "cd image201201; ebb *.png")
 
-%%$B$3$3$+$i%X%C%@3+;O!#(B
+%%ここからヘッダ開始。
 
 \documentclass[mingoth,a4paper]{jsarticle}
 \usepackage{monthlyreport}
 
 \begin{document}
 
-\dancersection{debug.debian.net}{$B4d>>(B $B?.MN(B}
+\dancersection{debug.debian.net}{岩松 信洋}
 \label{sec:debug}
 
-\subsection{$B$O$8$a$K(B}
-$B8=:_!"(BDebian Project $B$GG[I[$5$l$F$$$k%Q%C%1!<%8$G$O!"(B
-$B%G%P%C%0>pJs$,:o=|$5$l$?>uBV$GG[I[$5$l$F$$$^$9!#(B
-$B$3$NM}M3$H$7$F!"%G%P%C%0>pJs$O$[$H$s$I$N%f!<%6$K$OI,MW$J$$$b$N$G$"$k$H$$$&E@$H!"(B
-$B%G%P%C%0>pJs$rJ];}$7$F$$$k<B9T%U%!%$%k$O%5%$%:$,Hs>o$KBg$-$$$?$a!"%G%#%9%/$r05Gw(B
-$B$9$k$H$$$&E@$,$"$j$^$9!#(B
-$B$7$+$7!"%G%P%C%0>pJs$,$"$k$H%G%P%C%0$r9T$&$H$-$K$H$F$bM-MQ$J>pJs$H$J$j$$$m$$$m$HJXMx$G$9!#(B
-$B:#2s!"(BDebian $B$GA4$F$N(BDebian$B%Q%C%1!<%8$K$*$$$F%G%P%C%0>pJs$rDs6!$9$kJ}K!9M$($F<BAu$7$F$_$^(B
-$B$7$?!#$=$N2]Dx$H:#8e$K$D$$$F@bL@$7$^$9!"(B
+\subsection{はじめに}
+現在、Debian Project で配布されているパッケージでは、
+デバッグ情報が削除された状態で配布されています。
+この理由として、デバッグ情報はほとんどのユーザには必要ないものであるという点と、
+デバッグ情報を保持している実行ファイルはサイズが非常に大きいため、ディスクを圧迫
+するという点があります。
+しかし、デバッグ情報があるとデバッグを行うときにとても有用な情報となりいろいろと便利です。
+今回、Debian で全てのDebianパッケージにおいてデバッグ情報を提供する方法考えて実装してみま
+した。その課程と今後について説明します、
 
-\subsection{Debug$B>pJs$H(BDebian$B%Q%C%1!<%8(B}
-Debian $B$O%P%$%J%j%Y!<%9%G%#%9%H%j%S%e!<%7%g%s$N0l$D$G$9!#(B
-$B4pK\E*$KG[I[$5$l$F$$$k%Q%C%1!<%8$G$O%G%P%C%0>pJs$,:o=|$5$l$?>uBV$GG[I[$5$l$F$$$^$9!#(B
-$B$3$N%G%P%C%0>pJs$O!"FbIt%7%s%\%k$d7?$N>pJs!"%=!<%9%3!<%I$N9THV9f$J$I$r;X$7$^$9!#(B
+\subsection{Debug情報とDebianパッケージ}
+Debian はバイナリベースディストリビューションの一つです。
+基本的に配布されているパッケージではデバッグ情報が削除された状態で配布されています。
+このデバッグ情報は、内部シンボルや型の情報、ソースコードの行番号などを指します。
 
-$B<B9T%U%!%$%k$N%G%P%C%0>pJs$,$"$k>l9g!"0J2<$N$h$&$J$h$$E@$,$"$j$^$9!#(B
+実行ファイルのデバッグ情報がある場合、以下のようなよい点があります。
 \begin{itemize}
-\item $B%G%P%C%,!J(Bgdb$B!K$r;H$C$?%G%P%C%0$G$h$j>\:Y$J%G%P%C%0>pJs$rF@$k$3$H(B
-$B$,$G$-$k!#(B
-\item $B%G%P%C%0>pJs$r4^$a$?%P%$%J%j$r:FEY%S%k%I$9$kI,MW$,$J$$!#(B
-\item $B%P%$%J%j%Y!<%9%G%#%9%H%j%S%e!<%7%g%s$N>l9g!"<B:]$N%P%$%J%j$H%G%P%C%0>pJs$,>o$K(B
-$BBP$K$J$k$N$G!"%P%0$N:F8=@-$,9b$/$J$k!#(B
+\item デバッガ（gdb）を使ったデバッグでより詳細なデバッグ情報を得ること
+ができる。
+\item デバッグ情報を含めたバイナリを再度ビルドする必要がない。
+\item バイナリベースディストリビューションの場合、実際のバイナリとデバッグ情報が常に
+対になるので、バグの再現性が高くなる。
 \end{itemize}
-%$B$3$l$i$OAH$_9~$_MQES$K$b$h$/MxMQ$5$l$F$$$k(BDebian$B$G$OFC$KM-8z$KF/$-$^$9!#(B
-%$B$^$?!"%G%P%C%0>pJs$r4^$a$k$?$a$N%Q%C%1!<%8:n@.J}K!!J(BDEB_BUILD_OPTIONS=nostrip $B$r$r4D6-(B
-%$BJQ?t$K%(%/%9%]!<%H$9$k!K$rD4$Y$kI,MW$b$"$j$^$;$s!#(B
+%これらは組み込み用途にもよく利用されているDebianでは特に有効に働きます。
+%また、デバッグ情報を含めるためのパッケージ作成方法（DEB_BUILD_OPTIONS=nostrip をを環境
+%変数にエクスポートする）を調べる必要もありません。
 
-$B5U$K0-$$E@$H$7$F0J2<$N$h$&$J$b$N$,$"$j$^$9!#(B
+逆に悪い点として以下のようなものがあります。
 
 \begin{itemize}
-\item $B<B9T%U%!%$%k$K%G%P%C%0>pJs$,4^$^$l$k$N$G<B9T%U%!%$%k$N%5%$%:$,Bg$-$/$J$k!#(B
-\item $B%G%P%C%0$7$J$$?M$K$H$C$F$OITMW$J$b$N$,4^$^$l$k$3$H$K$J$k!#(B
+\item 実行ファイルにデバッグ情報が含まれるので実行ファイルのサイズが大きくなる。
+\item デバッグしない人にとっては不要なものが含まれることになる。
 \end{itemize}
 
-$B$3$l$i$^$H$a$k$H!"$9$Y$F$N<B9T%U%!%$%k$N%G%P%C%0>pJs$,Ds6!$5$l$F$*$j(B
-$B%f!<%6$K$H$C$FI,MW$N$J$$>pJs$,%$%s%9%H!<%k$5$l$J$$;EAH$_$,$"$l$P(B
-$B%G%P%C%0>pJs$O$H$F$bM-1W$J$b$N$K$J$k$O$:$G$9!#(B
-Debian $B$G$O$$$/$D$+$N%=!<%9%Q%C%1!<%8$+$i%G%P%C%0>pJs$r4^$s$@%Q%C%1!<%8$,Ds6!$5$l$F$$$^$9!#(B
-$B$3$N%Q%C%1!<%8$K$O(B\texttt{-dbg} $B$H$$$&%5%U%#%C%/%9$,IU$$$F$^$9!#(B
-$BFC$K%G%P%C%0>pJsMQ$N%Q%C%1!<$K4X$9$k%]%j%7!<$O7h$^$C$F$*$i$:!"Ds6!$K4X$7$F$O%Q%C%1!<%8%a%s%F%J(B
-$B<!Bh$H$$$&>uBV$K$J$C$F$$$^$9!#:#$^$GDs6!Ds6!$5$l$J$+$C$?M}M3$H$7$F$O%G%#%9%/MFNL$NLdBj$d2s@~$N(B
-$BLdBjEy$,$"$C$?$h$&$G$9$,!"8D?ME*$K:#$OFC$KLdBj$O$J$$$H;W$C$F$$$^$9!#(B
+これらまとめると、すべての実行ファイルのデバッグ情報が提供されており
+ユーザにとって必要のない情報がインストールされない仕組みがあれば
+デバッグ情報はとても有益なものになるはずです。
+Debian ではいくつかのソースパッケージからデバッグ情報を含んだパッケージが提供されています。
+このパッケージには\texttt{-dbg} というサフィックスが付いてます。
+特にデバッグ情報用のパッケーに関するポリシーは決まっておらず、提供に関してはパッケージメンテナ
+次第という状態になっています。今まで提供提供されなかった理由としてはディスク容量の問題や回線の
+問題等があったようですが、個人的に今は特に問題はないと思っています。
 
-$B$A$J$_$K!"(BFedora$B$G$O(B \texttt{-debuginfo} $B$H$$$&%5%U%#%C%/%9$r;}$C$?%Q%C%1!<%8$,Ds6!$5$l$F$*$j!"(B
-Gentoo$B$G$O%G%U%)%k%H$G$3$l$i$N>pJs$r@8@.$74IM}$7$F$$$^$9!#$3$N$h$&$K%G%P%C%0>pJs$NDs6!$H$$$&E@$K(B
-$B4X$7$FB>$N%G%#%9%H%j%S%e!<%7%g%s$KCY$l$r<h$C$F$$$^$9!#(B
+ちなみに、Fedoraでは \texttt{-debuginfo} というサフィックスを持ったパッケージが提供されており、
+Gentooではデフォルトでこれらの情報を生成し管理しています。このようにデバッグ情報の提供という点に
+関して他のディストリビューションに遅れを取っています。
 
-\subsection{Debian$B$G$N%G%P%C%0>pJs%Q%C%1!<%8$K$D$$$F(B}
-$B$^$:!"<BAu$7$?FbMF$K$D$$$F@bL@$9$kA0$K:#$N%G%P%C%0>pJs%Q%C%1!<%8$NDs6!J}K!$K$D$$$F@bL@$7$^$9!#(B
-Debian$B$G$O%G%P%C%0>pJs%Q%C%1!<%8$O(B \texttt{-dbg} $B$H$$$&%5%U%#%C%/%9$,$D$$$?%Q%C%1!<%8L>$r;}$A$^$9!#(B
-$BNc$($P(B foo $B$H$$$&%"!<%-%F%/%A%c0MB8$N%Q%C%1!<%8$,$"$C$?>l9g!"(B\texttt{foo} $B$N%G%P%C%0>pJs$r;}$C$?%Q%C%1!<%8L>$O(B
-\texttt{foo-dbg} $B$K$J$j$^$9!#(B
-$B$=$7$F!"(BDebian $B$N(B \texttt{-dbg} $B%Q%C%1!<%8$GDs6!$5$l$F$$$k%P%$%J%j$OF0:n$9$k%P%$%J%j%G!<%?$G$O$J$/!"(B
-$B%G%P%C%0>pJs$N$_$r;}$C$?%G!<%?$K$J$C$F$$$^$9!#(B $B$3$N%U%!%$%k$O(B \texttt{objdump --only-keep-debug}
-$B$r<B9T$9$k$3$H$K$h$C$F@8@.$9$k$3$H$,$G$-$^$9!#$b$A$m$sBP>]$N<B9T%U%!%$%k$O%3%s%Q%$%k;~$K%G%P%C%0>pJs(B
-$B$,IU2C$5$l$F$$$kI,MW$,$"$j$^$9!#(B
-$B$=$N8e!"%G%P%C%0>pJs%U%!%$%k$X$N%j%s%/$r(B strip $B:Q$N<B9T2DG=7A<0$KIU2C$9$k$?$a$K(B 
-\texttt{objcopy --add-gnu-debuglink} $B$r<B9T$7$^$9!#(B
-$B$3$l$K$h$C$F!"<B9T%U%!%$%k$H%G%P%C%0>pJs%U%!%$%k$,BP$K$J$j$^$9!#(B
-gdb $B$r;H$C$F%G%P%C%0$9$k:]$K$O<B9T%U%!%$%k$H%G%P%C%0>pJs%U%!%$%k$O%j%s%/(B
-$B$7$F$$$k$N$G!"%G%P%C%0>pJs%U%!%$%k$,%$%s%9%H!<%k$5$l$F$$$k$H$-$O<+F0E*$K8F$P$l!"%G%P%C%0(B
-$B%7%s%\%k$J$I$rFI$_9~$s$G$/$l$^$9!#(B
+\subsection{Debianでのデバッグ情報パッケージについて}
+まず、実装した内容について説明する前に今のデバッグ情報パッケージの提供方法について説明します。
+Debianではデバッグ情報パッケージは \texttt{-dbg} というサフィックスがついたパッケージ名を持ちます。
+例えば foo というアーキテクチャ依存のパッケージがあった場合、\texttt{foo} のデバッグ情報を持ったパッケージ名は
+\texttt{foo-dbg} になります。
+そして、Debian の \texttt{-dbg} パッケージで提供されているバイナリは動作するバイナリデータではなく、
+デバッグ情報のみを持ったデータになっています。 このファイルは \texttt{objdump --only-keep-debug}
+を実行することによって生成することができます。もちろん対象の実行ファイルはコンパイル時にデバッグ情報
+が付加されている必要があります。
+その後、デバッグ情報ファイルへのリンクを strip 済の実行可能形式に付加するために 
+\texttt{objcopy --add-gnu-debuglink} を実行します。
+これによって、実行ファイルとデバッグ情報ファイルが対になります。
+gdb を使ってデバッグする際には実行ファイルとデバッグ情報ファイルはリンク
+しているので、デバッグ情報ファイルがインストールされているときは自動的に呼ばれ、デバッグ
+シンボルなどを読み込んでくれます。
 
-\subsection{$B<BAu$K$D$$$F(B}
+\subsection{実装について}
 
-$B@h$K@bL@$7$?$h$&$K$K!"$9$Y$F$N<B9T%U%!%$%k$N%G%P%C%0>pJs$,Ds6!$5$l$F$*$j(B
-$B%f!<%6$K$H$C$FI,MW$N$J$$>pJs$,%$%s%9%H!<%k$5$l$J$$;EAH$_$,$"$l$P$h$$$N$G!"(B
-$B$3$l$i$KBP1~$G$-$kJ}K!$r9M$($^$7$?!#0J2<$G@bL@$7$^$9!#(B
+先に説明したようにに、すべての実行ファイルのデバッグ情報が提供されており
+ユーザにとって必要のない情報がインストールされない仕組みがあればよいので、
+これらに対応できる方法を考えました。以下で説明します。
 
-\subsubsection{$B$9$Y$F$N<B9T%U%!%$%k$N%G%P%C%0>pJs$rDs6!$9$k(B}
-$B$9$Y$F$N<B9T%U%!%$%k$N%G%P%C%0>pJs$rDs6!$9$k$K$O!"A4$F$N%Q%C%1!<%8$G(B
-strip $B$5$l$?<B9T%U%!%$%k$H%G%P%C%0>pJs%U%!%$%k$r;}$C$?%Q%C%1!<%8$r9=C[$9$l$P(B
-$B$h$$$o$1$G$9!#(B
+\subsubsection{すべての実行ファイルのデバッグ情報を提供する}
+すべての実行ファイルのデバッグ情報を提供するには、全てのパッケージで
+strip された実行ファイルとデバッグ情報ファイルを持ったパッケージを構築すれば
+よいわけです。
 
 
-Debian $B$N>l9g!"%Q%C%1!<%8$O%G%P%C%0>pJs$,M-8z$J>uBV!J(Bgcc $B$@$H(B-g $B%*%W%7%g%sEy!K(B
-$B$G%S%k%I$5$l$^$9!#$=$7$F%Q%C%1!<%8$K$5$l$k;~$K(B strip $B!J(Bbinutils$B$K4^$^$l$k!K(B
-$B$,(B dh\_strip $B$+$i8F$P$l!"<B9T%U%!%$%k$d%i%$%V%i%j$J$i%G%P%C%0>pJs$,:o=|$5$l!"(B
-$B%Q%C%1!<%8MQ$N%G%#%l%/%H%j$K%3%T!<$5$l!"(Bdh\_builddeb $B%3%^%s%I$G%Q%C%1!<%82=$5$l$^$9!#(B
+Debian の場合、パッケージはデバッグ情報が有効な状態（gcc だと-g オプション等）
+でビルドされます。そしてパッケージにされる時に strip （binutilsに含まれる）
+が dh\_strip から呼ばれ、実行ファイルやライブラリならデバッグ情報が削除され、
+パッケージ用のディレクトリにコピーされ、dh\_builddeb コマンドでパッケージ化されます。
 
-$B$=$7$F!"G[I[$5$l$k(B -dbg $B%Q%C%1!<%8$O(B dh\_strip$B$r<B9T$9$k$H$-$K%G%P%C%0>pJs$rDs6!$9$k(B
-$B%Q%C%1!<%8$H$7$F!"(Bdh\_strip $B$N%*%W%7%g%s$H$7$F;XDj$5$l$k$+!"(Bdebian/control $B%U%!%$%k$KNs5s$5$l$F$$$k(B
-$B%Q%C%1!<%8L>$N%5%U%#%C%/$K(B -dbg $B$,IU$$$F$$$k>l9g!"BP>]%U%!%$%k$H$7$F=hM}$5$l$^$9!#(B
+そして、配布される -dbg パッケージは dh\_stripを実行するときにデバッグ情報を提供する
+パッケージとして、dh\_strip のオプションとして指定されるか、debian/control ファイルに列挙されている
+パッケージ名のサフィックに -dbg が付いている場合、対象ファイルとして処理されます。
 
-$B$3$3LdBj$J$N$,!"(B
+ここ問題なのが、
 \begin{enumerate}
-\item $B<+F0@8@.$7$?$$(B $B%G%P%C%0>pJs%Q%C%1!<%8>pJs$r$I$N$h$&$K@8@.$9$k$+(B
-\item dh\_strip $B$G%G%P%C%0>pJs%Q%C%1!<%8;XDj$5$l$F$$$k>l9g!"<+F0@8@.$7$?$$(B -dbg $B%Q%C%1!<%8MQ$N%U%!%$%k$r(B
-$B$I$N$h$&$K@8@.$9$k$+(B
-\item $B<+F0@8@.$7$?$$%G%P%C%0>pJs%Q%C%1!<%8$=$N$b$N$r$I$N$h$&$K@8@.$9$k$+(B
+\item 自動生成したい デバッグ情報パッケージ情報をどのように生成するか
+\item dh\_strip でデバッグ情報パッケージ指定されている場合、自動生成したい -dbg パッケージ用のファイルを
+どのように生成するか
+\item 自動生成したいデバッグ情報パッケージそのものをどのように生成するか
 \end{enumerate}
-$B$H$$$&E@$G$9!#(B
+という点です。
 
-$BLdBjE@#1$K$D$$$F$NBP=hJ}K!$G$9$,!"(Bdh\_strip $B$N=hM}$N@hF,$G(B debian/control $B%U%!%$%k$K(B
-$B%G%P%C%0>pJs%Q%C%1!<%8%U%!%$%k$K4X$9$k>pJs$rDI5-$9$k=hM}$rDI2C$7$^$7$?!#(B
-$B%G%P%C%0>pJs%Q%C%1!<%8$O$=$N%Q%C%1!<%8$,%"!<%-%F%/%A%c0MB8!J(BArchitechture: all $B$G$O$J$$!K(B
-$B;v$H%Q%C%1!<%8L>$5$($o$+$l$P!"%Q%C%1!<%8>pJs$O<+F0@8@.$G$-$^$9!#(B
-$BNc$($P!"(Bhoge $B$H$$$&%Q%C%1!<%8$,$"$C$F%G%P%C%0>pJs%Q%C%1!<%8$,Ds6!$5$l$F$$$J$$>l9g!"(B
-$B0J2<$N$h$&$JFbMF$rDI5-$7$^$9!#(B
+問題点１についての対処方法ですが、dh\_strip の処理の先頭で debian/control ファイルに
+デバッグ情報パッケージファイルに関する情報を追記する処理を追加しました。
+デバッグ情報パッケージはそのパッケージがアーキテクチャ依存（Architechture: all ではない）
+事とパッケージ名さえわかれば、パッケージ情報は自動生成できます。
+例えば、hoge というパッケージがあってデバッグ情報パッケージが提供されていない場合、
+以下のような内容を追記します。
 
 \begin{commandline}
 Package: hoge-dbg
@@ -144,53 +144,53 @@ Description: Development files for hoge
  This package contains the debugging symbols for hoge
 \end{commandline}
 
-$B<!$KLdBjE@#2$NBP=hJ}K!$G$9$,!"%"!<%-%F%/%A%c0MB8$N(BDebian$B%Q%C%1!<%8$O(B dh\_strip $B$,8F$P$l$k$?$a!"$3$3$G(B
-$B=hM}$r%U%C%/$7$F$7$^$($P!"%G%P%C%0>pJs$rDs6!$9$k%Q%C%1!<%8$HMQ$N%G!<%?$H(B strip $B$5$l$?(B
-$B%P%$%J%j%G!<%?$rJ,$1$k$3$H$,$G$-$^$9!#:#2s$O(B dh\_strip $B$NCf?H$r2~B$$7!"A4$F$N%"!<%-%F%/%A%c0MB8$N(B
-$B%Q%C%1!<%8MQ$N%G!<%?$r:n@.$9$k$3$H$K$7$^$7$?!#(Bdh\_strip$B$G%Q%C%1!<%8$,;XDj$5$l$F$$$F$b(B
-$B$=$l$rL5;k$9$k$h$&$K=hM}$rJQ99$9$k$@$1$G$9!#(B
+次に問題点２の対処方法ですが、アーキテクチャ依存のDebianパッケージは dh\_strip が呼ばれるため、ここで
+処理をフックしてしまえば、デバッグ情報を提供するパッケージと用のデータと strip された
+バイナリデータを分けることができます。今回は dh\_strip の中身を改造し、全てのアーキテクチャ依存の
+パッケージ用のデータを作成することにしました。dh\_stripでパッケージが指定されていても
+それを無視するように処理を変更するだけです。
 
-$BLdBjE@#3$NBP=hJ}K!$G$9$,!"%G%P%C%0>pJs%Q%C%1!<%8$O(B dh\_strip $BFb$G(B dh\_builddeb $B$r8F$S=P$9$3$H$G(B
-$BBP1~$7$^$7$?!#%Q%C%1!<%8L>$H%Q%C%1!<%8:n@.$KI,MW$J%G!<%?$OB7$C$F$$$k$N$G!"(B
-\texttt{dh\_buildddeb -p$B%G%P%C%0>pJs%Q%C%1!<%8L>(B} $B$r<B9T$9$k$3$H$G!"%Q%C%1!<%8$,:n@.$5$l$^$9!#(B
+問題点３の対処方法ですが、デバッグ情報パッケージは dh\_strip 内で dh\_builddeb を呼び出すことで
+対応しました。パッケージ名とパッケージ作成に必要なデータは揃っているので、
+\texttt{dh\_buildddeb -pデバッグ情報パッケージ名} を実行することで、パッケージが作成されます。
 
-$B$3$l$i$,9T$($kA0Ds>r7o$H$7$F!"(Bdebhelper $B$K0MB8$7$F$$$k%Q%C%1!<%8$,BP>]$K$J$j$^$9!#(B
-$B8=:_$[$H$s$I$N%Q%C%1!<%8$,(B debhelper $B$+(B CDBS $B$K0MB8$7$F$*$j!"(BCDBS $B$O(B debhelper $B$H(B
-$BF1;~$K;H$&;v$,B?$$$?$a!J<B:]!"(BCDBS$B$K0MB8$7$F$$$k%Q%C%1!<%8$OA4$F(Bdebhelper $B$K0MB8$7$F$$$^$9!#(Bdbs$B$bF1MM$G$9!#!K(B
-$BLdBj$G$O$"$j$^$;$s!#(B
+これらが行える前提条件として、debhelper に依存しているパッケージが対象になります。
+現在ほとんどのパッケージが debhelper か CDBS に依存しており、CDBS は debhelper と
+同時に使う事が多いため（実際、CDBSに依存しているパッケージは全てdebhelper に依存しています。dbsも同様です。）
+問題ではありません。
 \footnote{http://people.debian.org/~cjwatson/dhstats.png}
 
-\subsection{$B%Q%C%1!<%8%5%$%:$X$NBP1~(B}
+\subsection{パッケージサイズへの対応}
 
-$B<!$K%Q%C%1!<%8%5%$%:$NLdBj$G$9!#(B
-$B%G%P%C%0>pJs$OHs>o$KBg$-$/!"(Bstrip $B$5$l$?%P%$%J%j$N?tG\0J>e$N%5%$%:$K$J$k$3$H$O(B
-$B$a$:$i$7$/$"$j$^$;$s!#Nc$($P(B libjpeg8 $B$GDs6!$5$l$k(B libjpeg.so.8.4.0 $B$N%U%!%$%k(B
-$B%5%$%:$OI=(B\ref{tab:debuginfo-jpegsize}$B$H$J$j$^$7$?!#(B
+次にパッケージサイズの問題です。
+デバッグ情報は非常に大きく、strip されたバイナリの数倍以上のサイズになることは
+めずらしくありません。例えば libjpeg8 で提供される libjpeg.so.8.4.0 のファイル
+サイズは表\ref{tab:debuginfo-jpegsize}となりました。
 
 \begin{table}[ht]
- \caption{libjpeg.so.8.4.0 $B3F>uBV$N%U%!%$%k%5%$%:(B}
+ \caption{libjpeg.so.8.4.0 各状態のファイルサイズ}
  \label{tab:debuginfo-jpegsize}
 \begin{center}
   \begin{tabular}{|c|c|}
  \hline
- $B>uBV(B & $B%5%$%:(B \\
+ 状態 & サイズ \\
  \hline
- strip $BA0(B & $BLs(B1.3MB \\
- strip $B8e(B & 236KB \\
- $B%G%P%C%0>pJs%U%!%$%k(B & 1.1MB \\
+ strip 前 & 約1.3MB \\
+ strip 後 & 236KB \\
+ デバッグ情報ファイル & 1.1MB \\
  \hline
  \end{tabular}
 \end{center}
 \end{table}
 
-$B$3$N$h$&$K%5%$%:$,Bg$-$/0[$J$k$N$G!"%Q%C%1!<%8$rJ,$1$F$b%f!<%6$,MxMQ$7$F$$$k%Q%C%1!<%8%j%]%8%H%j(B
-$B$HF1$8>l=j!&J}K!$GDs6!$7$F$7$^$&$H!"%_%i!<$K;~4V$,$+$+$k$h$&$K$J$j$^$9$7%f!<%6$KITMW$J%G!<%?$,3JG<$5$l$?%j(B
-$B%]%8%H%j>pJs$r;}$?$;$k$h$&$K$J$j$^$9!#(B
+このようにサイズが大きく異なるので、パッケージを分けてもユーザが利用しているパッケージリポジトリ
+と同じ場所・方法で提供してしまうと、ミラーに時間がかかるようになりますしユーザに不要なデータが格納されたリ
+ポジトリ情報を持たせるようになります。
 
-$B:#2s!"$3$NLdBj$r2sHr$9$k$?$a$K%j%]%8%H%j$rJ,$1$k$3$H$r9M$($^$7$?!#(B
-$BNc$($P!"(Bunstable $B$G(B strip $B$5$l$F$$$k%Q%C%1!<%8!JDL>o$N%Q%C%1!<%8!K$O(B unstable $B$H$@$1;XDj$7!"(B
-$B%G%P%C%0>pJs$rDs6!$9$k%Q%C%1!<%8$O(B unstable/debug $B$9$k$H$$$&J}K!$G$9!#(B
-$BNc$r?^(B\ref{fig:debuginfo-apt-line}$B$K<($7$^$9!#(B
+今回、この問題を回避するためにリポジトリを分けることを考えました。
+例えば、unstable で strip されているパッケージ（通常のパッケージ）は unstable とだけ指定し、
+デバッグ情報を提供するパッケージは unstable/debug するという方法です。
+例を図\ref{fig:debuginfo-apt-line}に示します。
 
 \begin{table}[ht]
 \begin{center}
@@ -199,52 +199,52 @@ deb http://cdn.debian.or.jp/debian/ unstable main non-free
 deb http://cdn.debian.or.jp/debian/ unstable/debug main 
 \end{commandline}
 \end{center}
- \caption{$B%G%P%C%0>pJs%Q%C%1!<%8$rMxMQ$9$k>l9g$N(B apt-line $B@_DjNc(B}
+ \caption{デバッグ情報パッケージを利用する場合の apt-line 設定例}
  \label{fig:debuginfo-apt-line}
 \end{table}
 
 
-$B%G%P%C%0>pJs$,I,MW$J%f!<%6$O(B unstable/debug $B$r(B apt-line $B$KDI2C$9$k$3$H$K$h$C$F%G%P%C%0>pJs(B
-$BMQ$N%Q%C%1!<%8$,MxMQ$G$-$k$h$&$K$J$j$^$9!#(B
-$B$^$?%Q%C%1!<%8$,3JG<$5$l$k%G%#%l%/%H%j$N%Q%9$rJQ99$9$k$3$H$K$h$C$F!"%G%P%C%0>pJs$N$_$r(B
-$BDs6!$9$k%_%i!<$r9=C[$9$k$3$H$,$G$-!"(Bdebug $B>pJs$r%_%i!<$7$J$$%_%i!<%5!<%P$NIi2Y$b:#$^$G$HJQ$o(B
-$B$i$J$$$H$$$&;v$K$J$j$^$9!#(B
+デバッグ情報が必要なユーザは unstable/debug を apt-line に追加することによってデバッグ情報
+用のパッケージが利用できるようになります。
+またパッケージが格納されるディレクトリのパスを変更することによって、デバッグ情報のみを
+提供するミラーを構築することができ、debug 情報をミラーしないミラーサーバの負荷も今までと変わ
+らないという事になります。
 
-\subsubsection{$B<BAu8e$K$D$$$F(B}
+\subsubsection{実装後について}
 
-$B$3$l$i$r<BAu$7$?%7%9%F%`$r(B reprepro + sbuild + rebuildd $B$G9=C[$7$^$7$?!#(B
-$B8=:_(Bstable/amd64$B$N$_$r%?!<%2%C%H%F%9%H$H$7$FF0:n$5$;$F$$$^$9!#(B
-$B$^$@A4$F%S%k%I$G$-$F$$$^$;$s!#$5$/$i(BVPS$B$G#1=54V$[$I%S%k%I$7$F$$$^$9$,!"(B
-$B$^$?(Bgnome-power-manager$B$r%S%k%I$7$F$$$k$H$3$m$G$9!#(B
+これらを実装したシステムを reprepro + sbuild + rebuildd で構築しました。
+現在stable/amd64のみをターゲットテストとして動作させています。
+まだ全てビルドできていません。さくらVPSで１週間ほどビルドしていますが、
+またgnome-power-managerをビルドしているところです。
 
-\subsection{$B9M$($i$l$kLdBj(B}
+\subsection{考えられる問題}
 
-\subsubsection{$B%P%$%J%j$NIT0lCW(B}
-$B4{B8$N%7%9%F%`$@$H!"(Bstrip $B$5$l$?%P%$%J%j$H(B $B%G%P%C%0>pJs$,0lCW$7$J$$$N$G(B
-$B%*%U%#%7%c%k$N%P%$%J%j$H:.$<$F;H$($J$$$3$H$,9M$($i$l$^$9!#;d$,Ds6!$7$F$$$k(B
-$B$5$l$F$$$k%G%P%C%0>pJs%Q%C%1!<%8$r;H$&>l9g!"(B
-$B;d$,Ds6!$7$F$kDL>o$N%Q%C%1!<%8$bMxMQ$7$J$$$H0UL#$,$J$$$G$7$g$&!#(B
-$B:#$O$3$l$r%P!<%8%g%s$K$h$k0MB84X78$G2sHr$7$F$$$^$9!#(B
-$B:G=*E*$K$O(B buildd $B$KF~$l$F$b$i$&$3$H$r9M$($F$$$^$9!#>\:Y$K$D$$$F$O$^$?8e$G!#(B
+\subsubsection{バイナリの不一致}
+既存のシステムだと、strip されたバイナリと デバッグ情報が一致しないので
+オフィシャルのバイナリと混ぜて使えないことが考えられます。私が提供している
+されているデバッグ情報パッケージを使う場合、
+私が提供してる通常のパッケージも利用しないと意味がないでしょう。
+今はこれをバージョンによる依存関係で回避しています。
+最終的には buildd に入れてもらうことを考えています。詳細についてはまた後で。
 
-\subsection{$B$=$b$=$b(B debug.debian.net$B$,$"$k$s$8$c$M!)$H$$$&OC(B}
-$B$5$F!";d$N$h$&$JK^?M$,9M$($k$h$&$J$3$H$O@h?MC#$O$9$G$K9M$($F$$$k$o$1$G$7$F!"(B
-$B!J4{$K9T$J$C$F$$$k$3$H$rCN$C$?$N$OBgE}0lJY6/2q%9%1%8%e!<%k$,=P$F$+$i$J$N$G$9$,!#!K(B
-$B4{$K(B \url{http://debug.debian.net}$B$H$$$&%5!<%S%9$,$"$j<BAu$5$l!"$=$7$F=*N;$7$F$$$^$7$?!#(B
-$B<BAu$H9M$($b$[$H$s$IF1$8$G$9!#Bg$-$/0c$&$H$3$m$O%G%P%C%0>pJs%Q%C%1!<%8$N(B
-$B%5%U%#%C%/%9$,(B\texttt{-dbg}$B$G$O$J$/!"(B\texttt{-dbgsym}$B$G$"$kE@$H!"(B
-$B%G%P%C%0>pJs$r:n@.$9$kItJ,$,(B \texttt{dh\_builddeb} $B$G$O$J$/!"(Bdpkg-deb $B$r;H$C$F$$$k(B
-$BE@!"$=$7$F(B\texttt{dh\_strip}$B$rD>@\JQ99$9$k$N$G$O$J$/!"%7%s%\%j%C%/%j%s%/$G(B
-$B5!G=$r%*!<%P!<%i%$%I$5$;$F$$$kE@$G$9!#$3$A$i$N$*J}$,(Bdebhelper$B$K<j$r2C$($J$/$F:Q$`$N$G(B
-$B$3$A$i$K>h$j49$($F!"$$$/$D$+$N=$@5$r9T$$$^$7$?!#(B
-$B85!9$3$N%5!<%S%9$O(B myon \footnote{Christoph Berg$B;a!#(BDAM $B$N0l?M!#(B}
-\url{http://debug.debian.net}$B:F2TF/$5$;$k$3(B
-$B$H$K$7$^$7$?!#$3$NH/I=$,9T$o$l$F$$$k:"$K$O2TF/$7$F$$$k$H;W$$$^$9!#(B
+\subsection{そもそも debug.debian.netがあるんじゃね？という話}
+さて、私のような凡人が考えるようなことは先人達はすでに考えているわけでして、
+（既に行なっていることを知ったのは大統一勉強会スケジュールが出てからなのですが。）
+既に \url{http://debug.debian.net}というサービスがあり実装され、そして終了していました。
+実装と考えもほとんど同じです。大きく違うところはデバッグ情報パッケージの
+サフィックスが\texttt{-dbg}ではなく、\texttt{-dbgsym}である点と、
+デバッグ情報を作成する部分が \texttt{dh\_builddeb} ではなく、dpkg-deb を使っている
+点、そして\texttt{dh\_strip}を直接変更するのではなく、シンボリックリンクで
+機能をオーバーライドさせている点です。こちらのお方がdebhelperに手を加えなくて済むので
+こちらに乗り換えて、いくつかの修正を行いました。
+元々このサービスは myon \footnote{Christoph Berg氏。DAM の一人。}
+\url{http://debug.debian.net}再稼働させるこ
+とにしました。この発表が行われている頃には稼働していると思います。
 
-\subsection{$B:#8e$N2]Bj(B}
+\subsection{今後の課題}
 
-$B$3$N$^$^%9%?%s%I%"%m%s$G%G%P%C%0>pJs%Q%C%1!<%8$rDs6!$7$F$bL5BL$J%P%$%J%j$r@8@.$9$k$@$1$J$N$G!"(B
-buildd $B$K$3$N%7%9%F%`$rF~$l$F$b$i$$!"(Bdak $B$G(B $B%G%#%9%H%j%S%e!<%7%g%s(B/debug $B$H$7$F(B
-$B=hM}$7$F$b$i$&$3$H$,:#8e$NBg$-$J2]Bj$K$J$C$F$$$^$9!#$3$N$3$H$K$D$$$FMh7n3+:E$5$l$k(B Debconf 12 
-$B$G(BBOF $B$^$?$O(BFTP$B%A!<%`!"(Bwanna-buildd$B%A!<%`$HOC$,$G$-$l$P$H;W$C$F$$$^$9!#(B
+このままスタンドアロンでデバッグ情報パッケージを提供しても無駄なバイナリを生成するだけなので、
+buildd にこのシステムを入れてもらい、dak で ディストリビューション/debug として
+処理してもらうことが今後の大きな課題になっています。このことについて来月開催される Debconf 12 
+でBOF またはFTPチーム、wanna-builddチームと話ができればと思っています。
 \end{document}

@@ -1,7 +1,7 @@
 %% -*-tex-*-
 %%
 %% Copyright (C) 2012 Hiroshi Kubo  all rights reserved.
-%% $BK\;qNA$NCx:n8"$O!"Cx<T$G$"$k5WJ]Gn(B <h-kubo@geisya.or.jp> $B$K$"$j$^$9!#(B
+%% 本資料の著作権は、著者である久保博 <h-kubo@geisya.or.jp> にあります。
 %%
 %% This document material is licensed under the GNU General Public License version 2.0.
 %% This document is originally in the form of LaTeX source code. This shall be referenced as the ``Corresponding Source''
@@ -10,32 +10,32 @@
 %% Also, license statement is mentioned in the last section of the document body.
 %% 
 %%
-\dancersection{Autofs $B$H(B pam\_chroot $B$G:n$k%^%k%A%f!<%6!<4D6-(B}{$B;3>k9q$N=;?M(B \  $B5WJ]Gn(B}
-\subsection{$B$O$8$a$K(B}
-$B3'$5$s$N?&>l$J$I$NAH?%Fb$G$O(B
-$B%U%!%$%k6&M-%5!<%P!<$d%a!<%k<u?.%5!<%P!<$J$I!"AH?%Fb$G>pJs$r6&M-$9$k$?$a$N%5!<%P!<$r7z$F$F$$$k>lLL$b$"$k$+$H;W$$$^$9$,!"(B
+\dancersection{Autofs と pam\_chroot で作るマルチユーザー環境}{山城国の住人 \  久保博}
+\subsection{はじめに}
+皆さんの職場などの組織内では
+ファイル共有サーバーやメール受信サーバーなど、組織内で情報を共有するためのサーバーを建てている場面もあるかと思いますが、
 \begin{itemize}
-\item $BB>$N%f!<%6!<$N%[!<%`%G%#%l%/%H%jFb$,GA$1$k$HITET9g$,$"$k!#(B
-\item $B%7%9%F%`Fb$N8+$;$J$/$FNI$$%U%!%$%k$O8+$;$?$/$J$$(B
+\item 他のユーザーのホームディレクトリ内が覗けると不都合がある。
+\item システム内の見せなくて良いファイルは見せたくない
 \end{itemize}
-$B$J$I!"1?MQLL$N@)Ls$,$"$C$F!"0lHL%f!<%6!<$K%m%0%$%s$5$;$k$3$H$rm4m0$9$k$3$H$O$J$$$G$9$+(B?
+など、運用面の制約があって、一般ユーザーにログインさせることを躊躇することはないですか?
 
-$B$=$s$J>l9g$K$O!"%f!<%6!<Kh$K(B chroot $B4D6-$rMQ0U$G$-$l$P0B?4$7$F%m%0%$%s$5$;$i$l$k$h$&$K$J$j$^$9!#(B
-$B$7$+$7!"0lHL$KCN$i$l$?J}K!$G<B;\$7$h$&$H$9$k$H!"%f!<%6!<Kh$K(B chroot $B@h$N%7%9%F%`4D6-$rMQ0U$9$k$3$H$K$J$j$^$9$7!"(B
-$B%f!<%6!<$rDI2C$9$k$?$S$K?7$7$$(B chroot $B4D6-$rMQ0U$7$?$j$9$l$P!"$=$l$@$1B?$/$N%G%#%9%/%9%Z!<%9$bI,MW$G$9!#(B
+そんな場合には、ユーザー毎に chroot 環境を用意できれば安心してログインさせられるようになります。
+しかし、一般に知られた方法で実施しようとすると、ユーザー毎に chroot 先のシステム環境を用意することになりますし、
+ユーザーを追加するたびに新しい chroot 環境を用意したりすれば、それだけ多くのディスクスペースも必要です。
 
-$B$H$3$m$,!"(B $B0l9)IW$9$k$H!"0l$D$N(B chroot $B4D6-$rJ#?t$N%f!<%6!<4V$G6&MQ$7$J$,$i%f!<%6!<4V$N(B chroot $B4D6-$OJ,N%$5$;$k$3$H$,$G$-$k$H$$$&!"$&$^$$OC$,$"$k$N$G$9!#(B
+ところが、 一工夫すると、一つの chroot 環境を複数のユーザー間で共用しながらユーザー間の chroot 環境は分離させることができるという、うまい話があるのです。
 
-\subsection{$BF;6qN)$F(B}
+\subsection{道具立て}
 
-$B$=$N$?$a$N<g$JF;6q$,(B autofs $B$H(B pam\_chroot $B$G$9!#$^$:$O$=$l$>$l$K$D$$$F>R2p$r$7$F$*$-$^$7$g$&!#(B
+そのための主な道具が autofs と pam\_chroot です。まずはそれぞれについて紹介をしておきましょう。
 
 \subsubsection{pam\_chroot}
 
-PAM $B$H$O(B Pluggable Authentication Modules $B$NN,(B\footnote{pam(5) $B$N(B pam $B$G$O$J$/!"(B PAM(7) $B$N(B PAM $B$G$9!#(B}$B$G$9!#(B
-$B:#$O$J$-(B Sun Microsystems $B$,@$$K=P$7$?G'>Z=hM}$NOHAH$G!"F0E*%i%$%V%i%j$H$7$F%b%8%e!<%k2=$5$l$?=hM}!"@_Dj%U%!%$%k!"8F=PB&$X$N(BAPI $B$J$I$+$i@.$j$^$9!#(B
-pam\_chroot $B$O$=$NCf$G!"G'>Z=hM}$NESCf$GG'>Z$5$l$?%f!<%6!<%;%C%7%g%s$N%W%m%;%9$r(B chroot $B4D6-$KJ|$j9~$s$G$7$^$&=hM}$rC4Ev$7$^$9!#(B
-$B<!$N%3%^%s%I$G%$%s%9%H!<%k$7$^$7$g$&!#(B
+PAM とは Pluggable Authentication Modules の略\footnote{pam(5) の pam ではなく、 PAM(7) の PAM です。}です。
+今はなき Sun Microsystems が世に出した認証処理の枠組で、動的ライブラリとしてモジュール化された処理、設定ファイル、呼出側へのAPI などから成ります。
+pam\_chroot はその中で、認証処理の途中で認証されたユーザーセッションのプロセスを chroot 環境に放り込んでしまう処理を担当します。
+次のコマンドでインストールしましょう。
 
 \begin{verbatim}
 $ sudo aptitude install libpam-chroot
@@ -43,132 +43,132 @@ $ sudo aptitude install libpam-chroot
 
 \subsubsection{Autofs}
 
-Autofs $B$O!"%*!<%H%^%&%s%?!<$H8F$P$l$k%3%^%s%I$G$9!#(B 
-Sun Microsystems $B$K$O(B NFS $B$N3HD%5!G=$N(B automount $B$H$$$&%3%^%s%I$,$"$j!"(B NFS $B$N%\%j%e!<%`$N%^%&%s%H$r%*%s%G%^%s%I$G9T$J$C$F$/$l$k%G!<%b%s$G$7$?$,!"(B
-Linux $B$N(B autofs $B$O(B NFS $B$K8B$i$:!"B>$N%U%!%$%k%7%9%F%`$b%*%s%G%^%s%I$G%^%&%s%H$7$F$/$l$^$9!#(B
-$B<!$N%3%^%s%I$G%$%s%9%H!<%k$7$^$7$g$&!#(B
+Autofs は、オートマウンターと呼ばれるコマンドです。 
+Sun Microsystems には NFS の拡張機能の automount というコマンドがあり、 NFS のボリュームのマウントをオンデマンドで行なってくれるデーモンでしたが、
+Linux の autofs は NFS に限らず、他のファイルシステムもオンデマンドでマウントしてくれます。
+次のコマンドでインストールしましょう。
 
 \begin{verbatim}
 $ sudo aptitude install autofs5
 \end{verbatim}
 
-\subsection{$B%^%k%A%f!<%6!<4D6-$N@_7W(B}
-$BF;6qN)$F$,B7$C$?$i!"<!$O$I$N$h$&$K4D6-$r9=C[$r$9$k$+!"9M$($^$9!#(B
-$B%m%0%$%s$7$5$($9$l$P$I$s$J>l9g$G$b(B chroot $B4D6-$KJ|$j9~$s$G$7$^$&$H!"%7%9%F%`4IM}$,$G$-$J$/$J$j$^$9$+$i!"(B
-$B$I$s$J>r7o$G%m%0%$%s$7$?$i(B chroot $B4D6-$KJ|$j9~$`$N$+!"$=$7$F!"$I$&$$$&5!9=$r;H$C$FJ|$j9~$`$+$r9M$($F7h$a$F$f$-$^$9!#(B
+\subsection{マルチユーザー環境の設計}
+道具立てが揃ったら、次はどのように環境を構築をするか、考えます。
+ログインしさえすればどんな場合でも chroot 環境に放り込んでしまうと、システム管理ができなくなりますから、
+どんな条件でログインしたら chroot 環境に放り込むのか、そして、どういう機構を使って放り込むかを考えて決めてゆきます。
 
-\subsubsection{$B%"%+%&%s%H(B}
+\subsubsection{アカウント}
 
-$B!V(Bchroot $B$5$;$k%f!<%6!<!W$r$I$N$h$&$K;XDj$9$k$+!"$^$:LdBj$K$J$j$^$9$,!"%f!<%6!<$N%0%k!<%W@_Dj$r;H$&$H8e!9@_Dj$,JXMx$K$J$j$^$9$N$G!"$*4+$a$7$^$9!#(B
-$B$3$3$G$O!"(Bchroot $B$5$;$k%f!<%6!<$O(B staff $B%0%k!<%W$KB0$9$k$3$H$K$7$^$9!#(B
-root $B$H4IM}MQ%"%+%&%s%H!J(Badmin $B$J$I!K$O!"(B staff $B%0%k!<%W$KB0$5$;$J$$$h$&$KCm0U$7$^$7$g$&!#(B
+「chroot させるユーザー」をどのように指定するか、まず問題になりますが、ユーザーのグループ設定を使うと後々設定が便利になりますので、お勧めします。
+ここでは、chroot させるユーザーは staff グループに属することにします。
+root と管理用アカウント（admin など）は、 staff グループに属させないように注意しましょう。
 
-\subsubsection{$B%m%0%$%s$N7PO)(B}
+\subsubsection{ログインの経路}
 
-$B<!$K!"(B $B%m%0%$%s=hM}$N$$$:$l$+$NCJ3,$G%f!<%6!<$N%W%m%;%9$r(B chroot $B4D6-$KJ|$j9~$`$o$1$G$9$+$i!"(B
-$B$I$N$h$&$K%m%0%$%s$9$k$+$rFCDj$7$F$*$/I,MW$,$"$j$^$9!#(B
-$B$$$o$P!"%7%9%F%`Fb$KB-$rF'$_F~$l$k8<4X8}$rGD0.$7$F$*$/!"$H$$$&$o$1$G$9!#(B
-$BI.<T$N;W$$$D$/BeI=E*$J8<4X8}$r5s$2$F$_$^$7$g$&!#(B
+次に、 ログイン処理のいずれかの段階でユーザーのプロセスを chroot 環境に放り込むわけですから、
+どのようにログインするかを特定しておく必要があります。
+いわば、システム内に足を踏み入れる玄関口を把握しておく、というわけです。
+筆者の思いつく代表的な玄関口を挙げてみましょう。
 
 \begin{itemize}
-\item VGA$B%3%s%=!<%k(B
-\item $B%7%j%"%k%3%s%=!<%k(B
+\item VGAコンソール
+\item シリアルコンソール
 \item ssh, sftp
 \item rlogin, rcp, rsh
 \item telnet
 \item ftp
-\item X $B%;%C%7%g%s%^%M!<%8%c!<(B (xdm, gdm,\ldots)
+\item X セッションマネージャー (xdm, gdm,\ldots)
 \item su, sudo
 \end{itemize}
 
-$B$I$&$G$7$g$&!"FI<T$N$_$J$5$s$K$H$C$F!"==J,$G$7$g$&$+!#4pK\E*$K$O!"$3$l$i$N?t$@$1(B chroot $B$N@_Dj$,I,MW$G$9!#(B
+どうでしょう、読者のみなさんにとって、十分でしょうか。基本的には、これらの数だけ chroot の設定が必要です。
 
-\subsubsection{chroot $B$N=hM}$r2?$KG$$;$k$+(B}
+\subsubsection{chroot の処理を何に任せるか}
 
-chroot $B$9$kA`:n$O!"7k6I(B chroot $B%7%9%F%`%3!<%k$r8F$S=P$9=hM}$K5"Ce$9$k$o$1$G$9$,!"(B
-$B%m%0%$%s$r;J$k%"%W%j%1!<%7%g%s%5!<%P!<%W%m%0%i%`$=$N$b$N$,!"(B chroot $B$KBP1~$7$F$$$k>l9g$b$"$j$^$9!#(B
-$B$=$&$G$J$$>l9g$O!"(B PAM $B$GG'>Z$N=hM}$r$9$k:]$K!"(B pam\_chroot $B$G(B chroot $B$9$k$h$&$K$7$^$9!#(B
+chroot する操作は、結局 chroot システムコールを呼び出す処理に帰着するわけですが、
+ログインを司るアプリケーションサーバープログラムそのものが、 chroot に対応している場合もあります。
+そうでない場合は、 PAM で認証の処理をする際に、 pam\_chroot で chroot するようにします。
 
-$B@_Dj$5$($9$l$P(B chroot $B$5$;$i$l$k%5!<%P!<$K$O!"(B
+設定さえすれば chroot させられるサーバーには、
 \begin{itemize}
-\item OpenSSH 4.8 $B0J9_(B
+\item OpenSSH 4.8 以降
 \item ProFTPD
 \item vsftpd
 \end{itemize}
-$B$,$"$j$^$9$N$G!"$3$l$i$O%5!<%P!<$N5!G=$r3hMQ$7!"B>$N7PO)$G$N%m%0%$%s$G$O(B pam\_chroot $B$G(B chroot $B$5$;$k$3$H$K$7$^$9!#(B
+がありますので、これらはサーバーの機能を活用し、他の経路でのログインでは pam\_chroot で chroot させることにします。
 
-\subsection{$B@_Dj(B}
+\subsection{設定}
 
-\subsubsection{chroot $B$N@_Dj(B}
+\subsubsection{chroot の設定}
 
-$B$3$3$G$O!"(B{\tt /jail/chroot} $B$N2<$K%f!<%6!<L>$HF1$8L>A0$N%G%#%l%/%H%j$r:n$j!"(B
-$B3F%f!<%6!<$,%m%0%$%s$7$?$i!"$=$N%G%#%l%/%H%j$N2<$K(B chroot $B$5$;$k$h$&$K$7$^$9!#(B
-$BNc$($P!"%f!<%6!<L>(B {\tt hiroshi} $B$G%m%0%$%s$7$?$i!"(B {\tt /jail/chroot/hiroshi } $B$N2<$K(B chroot $B$9$k$3$H$K$J$j$^$9!#(B
-$B$^$:$O!"(Bchroot $B@h$H$7$FI,MW$J%G%#%l%/%H%j$r:n$j$^$9!#(B
+ここでは、{\tt /jail/chroot} の下にユーザー名と同じ名前のディレクトリを作り、
+各ユーザーがログインしたら、そのディレクトリの下に chroot させるようにします。
+例えば、ユーザー名 {\tt hiroshi} でログインしたら、 {\tt /jail/chroot/hiroshi } の下に chroot することになります。
+まずは、chroot 先として必要なディレクトリを作ります。
 
 \begin{verbatim}
 mkdir /jail/chroot
 \end{verbatim}
 
 
-\subsubsubsection{OpenSSH $B$N@_Dj(B}\label{sec:openssh}
+\subsubsubsection{OpenSSH の設定}\label{sec:openssh}
 
-{\tt /etc/ssh/sshd\_config} $B$K!"<!$N@_Dj9T$rDI5-$7$^$9!#(B
+{\tt /etc/ssh/sshd\_config} に、次の設定行を追記します。
 \begin{tabbing}
 \tt Match \= \tt Group staff \\
 \> \tt ChrootDirectory /jail/chroot/\%u
 \end{tabbing}
 
 
-\subsubsubsection{ProFTPD $B$N@_Dj(B}
+\subsubsubsection{ProFTPD の設定}
 
-$B0lHL%f!<%6!<$N(B FTP $B$N%;%C%7%g%s$G$O!"<+J,$N%[!<%`%G%#%l%/%H%j$K$5$(%"%/%;%9$G$-$l$P!"==J,$J$O$:$G$9!#(B
-$B$^$?!"(BProFTPD $B$N>l9g!"%f!<%6!<%;%C%7%g%s$+$i(B {\tt /dev/} $B0J2<$N%9%Z%7%c%k%U%!%$%k$K%"%/%;%9$5$;$kI,MW$5$($"$j$^$;$s!#(B
-$B$G$9$N$G!"3F?M$N%[!<%`%G%#%l%/%H%j$KJD$89~$a$F$7$^$&$3$H$K$7$^$9!#(B
+一般ユーザーの FTP のセッションでは、自分のホームディレクトリにさえアクセスできれば、十分なはずです。
+また、ProFTPD の場合、ユーザーセッションから {\tt /dev/} 以下のスペシャルファイルにアクセスさせる必要さえありません。
+ですので、各人のホームディレクトリに閉じ込めてしまうことにします。
 
-ProFTPD $B$N@_Dj%U%!%$%k(B {\tt /etc/proftpd/proftpd.conf} $B$G(B
+ProFTPD の設定ファイル {\tt /etc/proftpd/proftpd.conf} で
 \begin{verbatim}
 DefaultRoot	~ staff,!root
 \end{verbatim}
-$B$N$h$&$K$7$F$*$-$^$9!#(B
+のようにしておきます。
 
 
 
-\subsubsubsection{pam\_chroot $B$K$h$k@_Dj(B}\label{sec:pamchroot}
+\subsubsubsection{pam\_chroot による設定}\label{sec:pamchroot}
 
-VGA$B%b%K%?!<$N%3%s%=!<%k$d%7%j%"%k%3%s%=!<%k$N%m%0%$%s$rC4Ev$9$k(B {\tt /bin/login}, r$B7O%3%^%s%I(B\footnote{rlogin, rsh, rexec, rmt, \ldots}$B!"(Btelnet $B$J$I$+$i$N%m%0%$%s$G$O!"%m%0%$%s=hM}$rC4Ev$9$k%W%m%0%i%`=hM}$,<+NO$G(B chroot $B$r8F$s$@$j$O$7$^$;$s!#(B
-$B$3$l$i$NG'>Z=hM}$G$O(B PAM $B$rMxMQ$9$k$N$G!"(BPAM $B$N%b%8%e!<%k!"(Bpam\_chroot $B$G(B chroot $B$9$k$h$&$K@_Dj$7$^$9!#(B
+VGAモニターのコンソールやシリアルコンソールのログインを担当する {\tt /bin/login}, r系コマンド\footnote{rlogin, rsh, rexec, rmt, \ldots}、telnet などからのログインでは、ログイン処理を担当するプログラム処理が自力で chroot を呼んだりはしません。
+これらの認証処理では PAM を利用するので、PAM のモジュール、pam\_chroot で chroot するように設定します。
 
- {\tt /etc/pam.d/login , /etc/pam.d/rlogin, /etc/pam.d/rexec, /etc/pam.d/rsh} $B$=$7$F(B {\tt /etc/pam.d/other} $B$K@_Dj$rDI5-$7$^$9!#(B
+ {\tt /etc/pam.d/login , /etc/pam.d/rlogin, /etc/pam.d/rexec, /etc/pam.d/rsh} そして {\tt /etc/pam.d/other} に設定を追記します。
 
 \begin{verbatim}
 session		required	pam_chroot.so use_groups
 \end{verbatim}
 
 
-$B$^$?!"(B /etc/security/chroot.conf $B$K!"<!$N0l9T$rDI2C$7$^$9!#(B
+また、 /etc/security/chroot.conf に、次の一行を追加します。
 \begin{verbatim}
 @staff  /jail/chroot/%u
 \end{verbatim}
 
 
-$B$J$*!"I.<T$ND4$Y$?HO0O$G$O!"(Bkrb5-telnetd $B%Q%C%1!<%8$GDs6!$5$l$k(B telnet $B%5!<%P!<%G!<%b%s$d(B krb5-rsh-server $B%Q%C%1!<%8$GDs6!$5$l$k(B rlogin $B%5!<%P!<%G!<%b%s$O(B PAM $B$KBP1~$7$F$*$i$:!"(B chroot $B$O$G$-$^$;$s!#(B
-$BG'>Z$K(B Kerberos $B$rMxMQ$7$?$$>l9g$O(B PAM $B$KBP1~$7$?(B telnetd $B$J$I$rDs6!$9$k(B heimdal-servers $B%Q%C%1!<%8$r;H$&$H(B chroot $B$G$-$^$9!#(B
+なお、筆者の調べた範囲では、krb5-telnetd パッケージで提供される telnet サーバーデーモンや krb5-rsh-server パッケージで提供される rlogin サーバーデーモンは PAM に対応しておらず、 chroot はできません。
+認証に Kerberos を利用したい場合は PAM に対応した telnetd などを提供する heimdal-servers パッケージを使うと chroot できます。
 
 
-$B$^$?!"(Bxdm, gdm $B$K$D$$$F$O!"(BDebian squeeze $B$N>l9g!"(B xdm $B$O(B xdm $B%Q%C%1!<%8!"(B gdm $B$O(B gdm $B$b$7$/$O(B gdm3 $B%Q%C%1!<%8$GDs6!$5$l$^$9!#I.<T$N4D6-$G$O(B gdm3 $B$H(B xdm $B$rMQ0U$7$F$$$^$9$N$G!"(B{\tt /etc/pam.d/gdm3, /etc/pam.d/xdm } $B$K@_Dj$rDI5-$7$F$$$^$9!#(B
+また、xdm, gdm については、Debian squeeze の場合、 xdm は xdm パッケージ、 gdm は gdm もしくは gdm3 パッケージで提供されます。筆者の環境では gdm3 と xdm を用意していますので、{\tt /etc/pam.d/gdm3, /etc/pam.d/xdm } に設定を追記しています。
 
 \begin{verbatim}
 session		required	pam_chroot.so use_groups
 \end{verbatim}
 
 
-$B$J$*$3$N>l9g!"(BX$B%5!<%P!<$H(B X$B%/%i%$%"%s%H$N4V$NG'>Z$N$?$a$KMxMQ$9$k(B \$XAUTHORITY $BG'>Z%U%!%$%k$N@_Dj$,!"(Bchroot $BA08e$G@09g$7$F$$$J$$$H$$$1$^$;$s!#I.<T$N4D6-$G$O$&$^$/$$$-$^$7$?$,!"(Bchroot $B4D6-$N@_Dj$,JQ$o$k$H(B X$B%5!<%P!<$H(BX$B%/%i%$%"%s%H$N4V$NG'>Z$KLdBj$,H/@8$9$k2DG=@-$O$"$j$^$9!#(B
+なおこの場合、Xサーバーと Xクライアントの間の認証のために利用する \$XAUTHORITY 認証ファイルの設定が、chroot 前後で整合していないといけません。筆者の環境ではうまくいきましたが、chroot 環境の設定が変わると XサーバーとXクライアントの間の認証に問題が発生する可能性はあります。
 
-\subsubsection{Chroot $B4D6-$r9=C[$9$k(B autofs $B$N@_Dj(B}
+\subsubsection{Chroot 環境を構築する autofs の設定}
 
-$B<!$K!"(B{\tt /jail/chroot} $B0J2<$K!"3F%f!<%6!<Kh$N(B chroot $B4D6-$r9=C[$9$k$?$a$N(B autofs $B$N@_Dj$r>R2p$7$^$9!#(B
-$BJT=8$9$k@_Dj%U%!%$%k$K$O!"%^%9%?!<%^%C%W%U%!%$%k(B\footnote{$B>\$7$/$O(B {\tt man auto.master} $B$r;2>H!#(B}$B$N(B {\tt /etc/auto.master} $B$H4V@\%^%C%W%U%!%$%k(B\footnote{$B>\$7$/$O(B {\tt man 5 autofs} $B$r;2>H!#(B} {\tt /etc/auto.jailstaff} $B$NFs$D$"$j$^$9!#(B
+次に、{\tt /jail/chroot} 以下に、各ユーザー毎の chroot 環境を構築するための autofs の設定を紹介します。
+編集する設定ファイルには、マスターマップファイル\footnote{詳しくは {\tt man auto.master} を参照。}の {\tt /etc/auto.master} と間接マップファイル\footnote{詳しくは {\tt man 5 autofs} を参照。} {\tt /etc/auto.jailstaff} の二つあります。
 \begin{description}
 \item[/etc/autofs.master]
 {\small \ \par
@@ -196,86 +196,86 @@ session		required	pam_chroot.so use_groups
 \end{description}
 
 
-$B@_Dj$G$-$?$i!"(B {\tt mkdir /jail/root } $B$r$7$F$+$i!"(B autofs $B$r5/F0$7$^$7$g$&!#(B
+設定できたら、 {\tt mkdir /jail/root } をしてから、 autofs を起動しましょう。
 
 \begin{verbatim}
 # /etc/init.d/autofs start
 \end{verbatim}
 
-$B$b$A$m$s!"(B{\tt /etc}, {\tt /bin}, {\tt /usr}, {\tt /lib} $B$J$I$N%G%#%l%/%H%j$r(B dchroot $B$d(B schroot $B$G9=C[$7$?JL$N%P!<%8%g%s$N(B Debian $B$N$b$N$K$9$k$3$H$b$G$-$^$9!#(B
+もちろん、{\tt /etc}, {\tt /bin}, {\tt /usr}, {\tt /lib} などのディレクトリを dchroot や schroot で構築した別のバージョンの Debian のものにすることもできます。
 
 
 
-\subsection{$BJL$NJ}K!(B}
+\subsection{別の方法}
 
-\subsubsection{OpenSSH $B$G(B ChrootDirectory $B$r;H$o$J$$J}K!(B}
-OpenSSH $B$O(B PAM $B$KBP1~$7$F$$$k$N$G!"(Bpam\_chroot $B$r;H$&$3$H$b$G$-$k$N$G$9$,!"(B\ref{sec:openssh}$B@a$G$O!"(Bpam\_chroot $B$r;H$o$:$K(B chroot $B$5$;$kJ}K!$r>R2p$7$^$7$?!#(B
-$B$=$NM}M3$O!"(B\ref{sec:openssh}$B@a$NJ}K!$G$OFC8"J,N%$N5!G=$,M-8z$J$^$^$G(B chroot $B$rH<$&%m%0%$%s$,$G$-$k$N$G!"$h$j0BA4$JJ}K!$@$+$i$G$9!#(B
+\subsubsection{OpenSSH で ChrootDirectory を使わない方法}
+OpenSSH は PAM に対応しているので、pam\_chroot を使うこともできるのですが、\ref{sec:openssh}節では、pam\_chroot を使わずに chroot させる方法を紹介しました。
+その理由は、\ref{sec:openssh}節の方法では特権分離の機能が有効なままで chroot を伴うログインができるので、より安全な方法だからです。
 
-$B0lJ}!"FC8"J,N%$N5!G=$rL58z$K$7$J$/$F$O$$$1$^$;$s$,!"(Bpam\_chroot $B$r;H$&$3$H$b$G$-$k$N$G!"$3$3$G%H%j%S%"$H$7$F>R2p$7$F$*$-$^$9!#(B
+一方、特権分離の機能を無効にしなくてはいけませんが、pam\_chroot を使うこともできるので、ここでトリビアとして紹介しておきます。
 
- pam\_chroot $B$K(B chroot $B$N=hM}$r0Q$M$k>l9g!"%m%0%$%s%f!<%6!<$NG'>Z$,:Q$s$G!"(B
-  pam\_chroot $B$,(Bchroot $B%7%9%F%`%3!<%k$r8F$V=hM}$NCJ3,$G!"(Bsshd $B$,(B root $B8"8B$GF0$$$F$$$J$$$H$$$1$J$$$N$G!"(B
-OpenSSH $B$N!VFC8"J,N%!W$H8F$P$l$k5!G=$rL58z$K$9$kI,MW$,$"$j$^$9!#(B
+ pam\_chroot に chroot の処理を委ねる場合、ログインユーザーの認証が済んで、
+  pam\_chroot がchroot システムコールを呼ぶ処理の段階で、sshd が root 権限で動いていないといけないので、
+OpenSSH の「特権分離」と呼ばれる機能を無効にする必要があります。
 
-$B$=$N@_Dj$G$9$,!"(B{\tt /etc/ssh/sshd\_config} $B$N(B
+その設定ですが、{\tt /etc/ssh/sshd\_config} の
 
 {\tt UsePAM no}
 
-$B$N9T$r(B
+の行を
 
 {\tt UsePAM yes}
 
-$B$KJQ99$9$k$H!"(BPAM $B$,M-8z$K$J$j$^$9!#$3$l$GFC8"J,N%$OMx$+$J$/$J$j$^$9$,!"L@<(E*$K6X;_$9$k>l9g$O(B
+に変更すると、PAM が有効になります。これで特権分離は利かなくなりますが、明示的に禁止する場合は
 
 {\tt UsePrivilegeSeparation yes}
 
-$B$N9T$r(B
+の行を
 
 {\tt UsePrivilegeSeparation no}
 
-$B$K$7$^$9!#$=$N>e$G!"(B {\tt /etc/pam.d/sshd } $B$K(B\ref{sec:pamchroot}$B@a$K7G$2$?@_Dj$rDI5-$7$F!"(B chroot $B$r(B pam\_chroot   $B$K0Q$M$k$h$&$K$7$^$9!#(B
+にします。その上で、 {\tt /etc/pam.d/sshd } に\ref{sec:pamchroot}節に掲げた設定を追記して、 chroot を pam\_chroot   に委ねるようにします。
 
 \subsubsection{rssh}
-rsh $B$N=q$-4V0c$$$G$O$"$j$^$;$s!#(B
-rssh $B$H$$$&!"(B scp $B$d(B sftp $B@lMQ%"%+%&%s%H$G%m%0%$%s%7%'%k$H$7$FMxMQ$9$kL\E*$N%7%'%k$,$"$j$^$9!#(B
-rssh $B$N@_Dj%U%!%$%k$K$O!"(B chroot $B$r;XDj$G$-$k$N$G!"(B
-$B%f!<%6!<$N%m%0%$%s%7%'%k$r(B rssh $B$K$9$k$H!"(B rssh $B$,(B chroot $B$rC4Ev$7$F$/$l$^$9!#(B
-SSH $B$G$N@\B3$G%U%!%$%kE>Aw$7$+5v$5$J$$%f!<%6!<$K$O!"$3$N%7%'%k$r;H$&$HNI$$$G$7$g$&!#(B
+rsh の書き間違いではありません。
+rssh という、 scp や sftp 専用アカウントでログインシェルとして利用する目的のシェルがあります。
+rssh の設定ファイルには、 chroot を指定できるので、
+ユーザーのログインシェルを rssh にすると、 rssh が chroot を担当してくれます。
+SSH での接続でファイル転送しか許さないユーザーには、このシェルを使うと良いでしょう。
 
 \subsubsection{wu-ftpd, vsftpd}
-Ftp $B%5!<%P!<$N$$$/$D$+$N<BAu$K$O!"%0%k!<%WC10L$G$O$J$$!"JL$N5-K!$G(B chroot $B@h$r;XDj$9$k5!G=$,$"$j$^$9!#(B
-$B$b$H$b$H$O!"(Bwu-ftpd $B$H$$$&8E$$(B ftp $B%5!<%P!<$N<BAu$GF3F~$5$l$?5-K!$G!"(B
-/etc/passwd $B$K$"$k%f!<%6!<$N%[!<%`%G%#%l%/%H%j$N%Q%9$N@_Dj$K1w$$$F(B ``/home/./foo'' $B$N$h$&$K!"(B ``/./ `` $B$H$$$&6h@Z$j;R$,$"$k$H!"(B ftp $B$N%m%0%$%s;~$K$=$3$X(B chroot $B$5$;$^$9!#(B
-$B:G6a$O(BWu-ftpd $B$r;H$&?M$b$[$H$s$I$$$J$$$H;W$$$^$9$,!"?7$7$/$F?M5$$N$"$k(B ftp $B%5!<%P!<$N<BAu$N(B vsftpd $B$b$3$N5-K!$r0z$-7Q$$$G$*$j!"@_Dj$9$l$P(B ``/./ ``  $B$N%G%#%l%/%H%j$K(B chroot $B$5$;$i$l$^$9!#(B
+Ftp サーバーのいくつかの実装には、グループ単位ではない、別の記法で chroot 先を指定する機能があります。
+もともとは、wu-ftpd という古い ftp サーバーの実装で導入された記法で、
+/etc/passwd にあるユーザーのホームディレクトリのパスの設定に於いて ``/home/./foo'' のように、 ``/./ `` という区切り子があると、 ftp のログイン時にそこへ chroot させます。
+最近はWu-ftpd を使う人もほとんどいないと思いますが、新しくて人気のある ftp サーバーの実装の vsftpd もこの記法を引き継いでおり、設定すれば ``/./ ``  のディレクトリに chroot させられます。
 
-\subsection{$B1~MQ(B}
+\subsection{応用}
 
-Autofs $B$N4V@\%^%C%W%U%!%$%k$K%U%!%$%k%7%9%F%`$N%^%C%T%s%0$NDj5A$rDI2C$9$k$3$H$G!"$$$m$$$m$J$3$H$,$G$-$=$&$G$9!#(B
+Autofs の間接マップファイルにファイルシステムのマッピングの定義を追加することで、いろいろなことができそうです。
 
 \begin{itemize}
-\item Apache httpd $B$N(B userdir $B$N(B public\_html $B$r(B autofs $B$NJL$N>l=j$+$i%^%&%s%H$9$k!#(B
-\item Git$B$N%Y%"%j%]%8%H%j$r(B autofs $B$G3F%f!<%6!<$N(B chroot $BG[2<$K%^%&%s%H$7$F!"(B ssh://$\cdots$ $B$G%"%/%;%9$G$-$k$h$&$K$7!"6&M-%j%]%8%H%j$rDs6!$9$k!#(B
-\item Subversion $B$N6&M-%j%]%8%H%j$r(B autofs $B$G3F%f!<%6!<$N(B chroot $BG[2<$K%^%&%s%H$7$F(B $B!"(B ssh+svn://$\cdots$/ $B$G%"%/%;%9$G$-$k$h$&$K$9$k!#(B
+\item Apache httpd の userdir の public\_html を autofs の別の場所からマウントする。
+\item Gitのベアリポジトリを autofs で各ユーザーの chroot 配下にマウントして、 ssh://$\cdots$ でアクセスできるようにし、共有リポジトリを提供する。
+\item Subversion の共有リポジトリを autofs で各ユーザーの chroot 配下にマウントして 、 ssh+svn://$\cdots$/ でアクセスできるようにする。
 \end{itemize}
 
 
-\subsection{$B$^$H$a(B}
+\subsection{まとめ}
 
-$B0lHL%f!<%6!<$N%m%0%$%s$9$k4D6-$r(B chroot $B4D6-$KJD$89~$a$k$?$a$N(B Debian GNU/Linux $B%7%9%F%`$N@_Dj$NLdBj$r<h$j>e$2!"FC$K!"(Bchroot $B4D6-$r:n$k$?$a$K(B autofs $B$,M-MQ$G$"$k$3$H$r>R2p$7$^$7$?!#(B
+一般ユーザーのログインする環境を chroot 環境に閉じ込めるための Debian GNU/Linux システムの設定の問題を取り上げ、特に、chroot 環境を作るために autofs が有用であることを紹介しました。
 
-$B$^$?(B Debian $B$NJ82=$G$O!"(B pbuilder $B$d(B schroot $B$J$I!"0l?M$G@jM-$9$k(BPC$B$GJL$N(BOS$B4D6-$r9=C[$9$k$?$a$K(B chroot $B$N5!9=$r;H$&$3$H$,B?$$$G$9$,!"(B chroot $B$r%^%k%A%f!<%6!<4D6-$rIqBf$7$?JL$NH/A[$N;H$$J}$,>R2p$G$-$?$N$G$O$J$$$+$H;W$$$^$9!#(B
+また Debian の文化では、 pbuilder や schroot など、一人で占有するPCで別のOS環境を構築するために chroot の機構を使うことが多いですが、 chroot をマルチユーザー環境を舞台した別の発想の使い方が紹介できたのではないかと思います。
 
-\subsection*{$B<U<-(B}
-$B4X78$9$kA4$F$N%=%U%H%&%'%"$N3+H/<T$N3'MM$K46<UCW$7$^$9!#(B
+\subsection*{謝辞}
+関係する全てのソフトウェアの開発者の皆様に感謝致します。
 
-\subsection*{$BK\;qNA$K4X$9$k8"Mx$HMxMQ5vBz$N>r7o(B}
+\subsection*{本資料に関する権利と利用許諾の条件}
 
 
-$BK\>O$NCx:n8"$O!"Cx<T$G$"$k5WJ]Gn(B $<$h-kubo@geisya.or.jp$>$ $B$K$"$j$^$9(B\footnote{Copyright \copyright 2012 Hiroshi Kubo all rights reserved.}$B!#(B
-$B$^$?!"K\>O$NMxMQ5vBz$N>r7o$O(B GNU General Public License Version 2 $B$K=>$$$^$9!#(B
+本章の著作権は、著者である久保博 $<$h-kubo@geisya.or.jp$>$ にあります\footnote{Copyright \copyright 2012 Hiroshi Kubo all rights reserved.}。
+また、本章の利用許諾の条件は GNU General Public License Version 2 に従います。
 
-GNU General Public License Version 2 $B$N86J8$O%$%s%?!<%M%C%H$r2p$7$F(B http://www.gnu.org/licenses/old-licenses/gpl-2.0.html $B$N(BURL$B$+$iF~<j$G$-$^$9!#(B
+GNU General Public License Version 2 の原文はインターネットを介して http://www.gnu.org/licenses/old-licenses/gpl-2.0.html のURLから入手できます。
 %%
 %%                     GNU GENERAL PUBLIC LICENSE
 %%                        Version 2, June 1991

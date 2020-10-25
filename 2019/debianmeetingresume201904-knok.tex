@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,9 +31,9 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
 \newenvironment{commandlinesmall}%
@@ -50,83 +50,83 @@
 }
 %end of commandlinesmall
 
-\title{$BBh(B173$B2sEl5~%(%j%"(BDebian$BJY6/2q(B \\$B!!(B\\grml-debootstrap$B$rMQ$$$?(B \\USB$B5/F0%a%b%j$N:n@.(B}
+\title{第173回東京エリアDebian勉強会 \\　\\grml-debootstrapを用いた \\USB起動メモリの作成}
 \subtitle{}
-\author{NOKUBI Takatsugu ($BLn<s(B $B5.;L(B) \\knok@debian.org}
+\author{NOKUBI Takatsugu (野首 貴嗣) \\knok@debian.org}
 \date{2019-04-20}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
 
-\section{$BI=;f(B}
+\section{表紙}
 
 \begin{frame}
   \titlepage{}
 \end{frame}
 
 
-\section{$B<+8J>R2p(B}
+\section{自己紹介}
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
   \begin{itemize}
-  \item NOKUBI Takatsugu ($BLn<s(B $B5.;L(B)
+  \item NOKUBI Takatsugu (野首 貴嗣)
   \item knok@debian.org / knok@daionet.gr.jp
   \item Twitter: @knok
   \item Debian developer since 2002
-  \item bo $B;~Be$+$i$N%^%7%s$r1?MQ$7B3$1$F$$$k(B
+  \item bo 時代からのマシンを運用し続けている
   \end{itemize}
 \end{frame}
 
 
-\section{$BL\<!(B}
+\section{目次}
 
-\begin{frame}{$B%"%8%'%s%@(B}
+\begin{frame}{アジェンダ}
   \begin{itemize}
-  \item USB$B%a%b%j$r;H$&F05!(B
-  \item grml-debootstrap$B35MW(B
-  \item $B%;%C%H%"%C%W=`Hw(B
-  \item $B@_Dj(B
-  \item $B%V!<%H%m!<%@!<$N@_Dj(B
+  \item USBメモリを使う動機
+  \item grml-debootstrap概要
+  \item セットアップ準備
+  \item 設定
+  \item ブートローダーの設定
   \end{itemize}
 \end{frame}
 
 
-\section{USB$B%a%b%j$r;H$&F05!(B}
-\emtext{USB$B%a%b%j$r;H$&F05!(B}
+\section{USBメモリを使う動機}
+\emtext{USBメモリを使う動機}
 
-\begin{frame}[containsverbatim]{$B%/%j!<%s$J4D6-$r9=C[$G$-$k(B}
+\begin{frame}[containsverbatim]{クリーンな環境を構築できる}
   \begin{itemize}
-  \item $BFbB!%9%H%l!<%8$K1F6A$J$7(B
-  \item USB$B%a%b%j0J30$N<jK!(B
+  \item 内臓ストレージに影響なし
+  \item USBメモリ以外の手法
     \begin{itemize}
-    \item chroot$B4D6-(B(debootstrap)
+    \item chroot環境(debootstrap)
       \begin{itemize}
-      \item daemon$BN`$N07$$$,LLE](B
+      \item daemon類の扱いが面倒
       \end{itemize}
-    \item $B%3%s%F%J(B(LXC/LXD/Docker$BEy(B)
-    \item $B40A42>A[4D6-(B(VirtualBox, KVM$BEy(B)
+    \item コンテナ(LXC/LXD/Docker等)
+    \item 完全仮想環境(VirtualBox, KVM等)
       \begin{itemize}
-      \item $BJ*M}%G%P%$%9$r07$$$?$$;~BgJQ(B
+      \item 物理デバイスを扱いたい時大変
       \end{itemize}
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{$B%]!<%?%V%k$J4D6-(B}
+\begin{frame}[containsverbatim]{ポータブルな環境}
   \begin{itemize}
-  \item $BJ*M}%^%7%s$N4D6-$r1x$5$J$$(B
+  \item 物理マシンの環境を汚さない
     \begin{itemize}
-    \item $BBgDq$O%i%$%;%s%9$5$l$?(Bproprietary OS$B$,F~$C$F$$$k(B
-    \item $B%j%+%P%j!<NN0h!"?GCG%D!<%k$J$I(B
+    \item 大抵はライセンスされたproprietary OSが入っている
+    \item リカバリー領域、診断ツールなど
     \end{itemize}
-  \item $B0l$D$N%a%G%#%"$rJ#?t$N%G%P%$%9$G;H$($k(B
-  \item $BJ#?t$N%G%P%$%9$rMQ0U$9$l$P0[$J$k4D6-$rMQ0U$G$-$k(B
-  \item $BJ*M}%G%P%$%9$9$Y$F$r07$($k(B
+  \item 一つのメディアを複数のデバイスで使える
+  \item 複数のデバイスを用意すれば異なる環境を用意できる
+  \item 物理デバイスすべてを扱える
     \begin{itemize}
-    \item $B2>A[4D6-$HHf3S$7$F(B
+    \item 仮想環境と比較して
     \end{itemize}
-  \item NAS$B$N5/F0%G%P%$%9$H$7$F(B(Microserver)
+  \item NASの起動デバイスとして(Microserver)
   \end{itemize}
 \end{frame}
 
@@ -135,58 +135,58 @@
 
 \begin{frame}[containsverbatim]{grml-debootstrap}
 
-GRML Live Linux$B$N0lIt(B
+GRML Live Linuxの一部
 \begin{itemize}
   \item \url{http://grml.org/}
     \begin{itemize}
-    \item $B%7%9%F%`4IM}<T8~$1(BLive Linux$B4D6-(B
-    \item FAI$B$KBP1~(B
+    \item システム管理者向けLive Linux環境
+    \item FAIに対応
     \end{itemize}
-  \item $B%Q%C%1!<%8%a%s%F%J%s%9(B: Grml Team
-  \item $B4XO"%D!<%k(B: grml-rescueboot, grml2usb
-  \item $B%=!<%9%3!<%I(B: \url{https://github.com/grml/grml-debootstrap}
+  \item パッケージメンテナンス: Grml Team
+  \item 関連ツール: grml-rescueboot, grml2usb
+  \item ソースコード: \url{https://github.com/grml/grml-debootstrap}
 \end{itemize}
 
 \end{frame}
 
 
-\section{$B%;%C%H%"%C%W=`Hw(B}
-\emtext{$B%;%C%H%"%C%W=`Hw(B}
+\section{セットアップ準備}
+\emtext{セットアップ準備}
 
-\subsection{USB$B%a%b%j$NA*Dj(B}
-\begin{frame}[containsverbatim]{$BA*Dj4p=`(B}
+\subsection{USBメモリの選定}
+\begin{frame}[containsverbatim]{選定基準}
   \begin{itemize}
-  \item $BMQES$HMFNL(B
+  \item 用途と容量
     \begin{itemize}
-    \item $B%G%9%/%H%C%WMQES$J$i(B32GB$B$b$"$l$P==J,(B
-    \item $B%9%H%l!<%8$r;H$o$J$$%5!<%P!<MQES$J$i(B16GB$BDxEY$G==J,(B
+    \item デスクトップ用途なら32GBもあれば十分
+    \item ストレージを使わないサーバー用途なら16GB程度で十分
     \end{itemize}
-  \item $BB.EY(B
-  \item $BBQ5W@-(B
+  \item 速度
+  \item 耐久性
     \begin{itemize}
-    \item $B0BJ*$O%X%S!<$J%"%/%;%9$,C_@Q$9$k$H$9$02u$l$k(B
+    \item 安物はヘビーなアクセスが蓄積するとすぐ壊れる
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%Q!<%F%#%7%g%K%s%0(B}
+\begin{frame}[containsverbatim]{パーティショニング}
   \begin{itemize}
-  \item EFI$B$KBP1~$9$k(B
+  \item EFIに対応する
     \begin{itemize}
-    \item EFI$BNN0h$rJ,$1$kI,MW$"$j(B
-    \item GPT$B$r;H$&(B
-    \item $B%*%W%7%g%s(B: MBR$B$K$bBP1~$9$k$J$i(B2048$B%;%/%?L\$+$i%Q!<%F%#%7%g%s$r3+;O$9$k(B
+    \item EFI領域を分ける必要あり
+    \item GPTを使う
+    \item オプション: MBRにも対応するなら2048セクタ目からパーティションを開始する
     \end{itemize}
-  \item $BJ}?K(B: $B%9%o%C%W%Q!<%F%#%7%g%s$O:n$i$J$$(B
-  \item root$B%U%!%$%k%7%9%F%`$NA*Br(B
+  \item 方針: スワップパーティションは作らない
+  \item rootファイルシステムの選択
     \begin{itemize}
     \item ext4
-    \item f2fs - $B:G?7$N(Bgrub$B$G$7$+BP1~$7$F$$$J$$E@$KCm0U(B
+    \item f2fs - 最新のgrubでしか対応していない点に注意
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B<B9TNc(B}
+\begin{frame}[containsverbatim]{実行例}
   \begin{commandlinesmall}
 $ sudo gdisk /dev/sda
 GPT fdisk (gdisk) version 1.0.1
@@ -218,10 +218,10 @@ The operation has completed successfully.
 \end{frame}
 
 
-\subsection{$B%$%s%9%H!<%k(B}
-\emtext{$B%$%s%9%H!<%k(B}
+\subsection{インストール}
+\emtext{インストール}
 
-\begin{frame}[containsverbatim]{$B%U%!%$%k%7%9%F%`:n@.(B}
+\begin{frame}[containsverbatim]{ファイルシステム作成}
   \begin{commandlinesmall}
 $ sudo mkfs.vfat -F32 /dev/sda1         
 mkfs.fat 4.1 (2017-01-24)
@@ -248,8 +248,8 @@ Info: format successful
   \end{commandlinesmall}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%^%&%s%H$H%;%C%H%"%C%W(B}
---efi$B%*%W%7%g%s$O(BEFI$B4D6-$G5/F0$7$F$$$J$$$HF0:n$7$J$$E@$KCm0U(B
+\begin{frame}[containsverbatim]{マウントとセットアップ}
+--efiオプションはEFI環境で起動していないと動作しない点に注意
   \begin{commandlinesmall}
 $ sudo grml-debootstrap -m http://deb.debian.org/debian -r stretch -t /dev/sda2 --efi /dev/sda1 --grub /dev/sda --arch amd64 --filesystem ext4 --password toor
  * EFI support detected.
@@ -313,9 +313,9 @@ Finished chroot installation, exiting.
   \end{commandlinesmall}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B<j:n6H(B}
+\begin{frame}[containsverbatim]{手作業}
 
-EFI$B%Q!<%F%#%7%g%s$N(B/EFI/BOOT$B0J2<$K(BBOOTX64.EFI$B$H$$$&L>>N$G%U%!%$%k$rG[CV(B
+EFIパーティションの/EFI/BOOT以下にBOOTX64.EFIという名称でファイルを配置
 \begin{commandline}
 # mount /dev/sda1 /mnt
 # cd /mnt/EFI
@@ -323,44 +323,44 @@ EFI$B%Q!<%F%#%7%g%s$N(B/EFI/BOOT$B0J2<$K(BBOOTX64.EFI$B$H$$$&L>>N$G%U%!%$%k
 # cp /boot/efi/EFI/debian/grubx64.efi BOOT/BOOTX64.EFI
 # umount /mnt
 \end{commandline}
-$BF1MM$K(Bgrub-efi-ia32$B$rMQ$$$F(BBOOT/BOOTx32.EFI$B$rMQ0U$9$l$P(B32bit UEFI$BBP1~$b$G$-$k(B
+同様にgrub-efi-ia32を用いてBOOT/BOOTx32.EFIを用意すれば32bit UEFI対応もできる
 \\
-MBR$B$K=q$-9~$a$P(BEFI/MBR$BN>BP1~$b2DG=(B
+MBRに書き込めばEFI/MBR両対応も可能
 \end{frame}
 
-\section{$BF0:n3NG'(B}
-\emtext{$BF0:n3NG'(B}
+\section{動作確認}
+\emtext{動作確認}
 
-\begin{frame}[containsverbatim]{VirtualBox$B$K$h$kF0:n3NG'(B}
+\begin{frame}[containsverbatim]{VirtualBoxによる動作確認}
   \begin{itemize}
-  \item disk$B%0%k!<%W$KDI2C(B
+  \item diskグループに追加
     \begin{itemize}
     \item sudo adduser user disk
-    \item $B%m%0%$%s$7D>$9(B
+    \item ログインし直す
     \end{itemize}
-  \item Raw disk$B$KBP1~$9$k(Bvmdk$B$N:n@.(B
+  \item Raw diskに対応するvmdkの作成
     \begin{commandlinesmall}
       $ vboxmanage internalcommands createrawvmdk -filename \
       ~/usb.vmdk -rawdisk /dev/sda
     \end{commandlinesmall}
-  \item VirtualBox$B$G2>A[%^%7%s$r:n@.(B
+  \item VirtualBoxで仮想マシンを作成
     \begin{itemize}
-    \item $B%9%H%l!<%8$K@hDx:n@.$7$?(Busb.vmdk$B$r;XDj(B
-    \item UEFI$B$rM-8z2=(B
+    \item ストレージに先程作成したusb.vmdkを指定
+    \item UEFIを有効化
     \end{itemize}
-  \item $B5/F0(B
+  \item 起動
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B;29MJ88%(B}
+\begin{frame}[containsverbatim]{参考文献}
   \begin{itemize}
-  \item $B5/F0%9%H%l!<%8(B
+  \item 起動ストレージ
     \begin{itemize}
-    \item fstab, grub.cfg$B$K(BUUID$B$G5-=R(B
+    \item fstab, grub.cfgにUUIDで記述
     \end{itemize}
   \item Network
     \begin{itemize}
-    \item if addr$B$G%$%s%?!<%U%'!<%9L>$r3NG'$7$F(Bdhclient
+    \item if addrでインターフェース名を確認してdhclient
     \end{itemize}
   \item Timezone
     \begin{itemize}
@@ -368,67 +368,67 @@ MBR$B$K=q$-9~$a$P(BEFI/MBR$BN>BP1~$b2DG=(B
     \end{itemize}
   \item Hardware Clock
     \begin{itemize}
-    \item /etc/adjtime$B$NKvHx=$@5(B
-    \item LOCAL$B$G(BRTC$B$r%m!<%+%k07$$$K(B
+    \item /etc/adjtimeの末尾修正
+    \item LOCALでRTCをローカル扱いに
     \end{itemize}
   \item Keymap
     \begin{itemize}
     \item dpkg-reconfigure keyboard-configuration
     \item \url{https://wiki.debian.org/Keyboard}
-    \item $B$*9%$_$G(B XKBOPTIONS="ctrl:swapcaps"
+    \item お好みで XKBOPTIONS="ctrl:swapcaps"
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B;29MJ88%(B}
+\begin{frame}[containsverbatim]{参考文献}
   \begin{itemize}
-  \item grml-debootstrap$B$r>R2p(B
+  \item grml-debootstrapを紹介
     \begin{itemize}
-    \item $B%$%s%9%H!<%i$r;H$o$:%9%H%l!<%8$K(BDebian$B4D6-$r9=C[(B
+    \item インストーラを使わずストレージにDebian環境を構築
     \end{itemize}
-  \item USB$B%a%b%j$r;H$&F05!(B
+  \item USBメモリを使う動機
     \begin{itemize}
-    \item $BJ#?t$N%G%P%$%9$GF1$84D6-$rMxMQ$G$-$k(B
-    \item $B%a%G%#%"$rJ,$1$k$3$H$G0[$J$kMQES$K;H$($k(B
-    \item $B5/F0%^%7%s$N4D6-$r1x$5$J$$(B
+    \item 複数のデバイスで同じ環境を利用できる
+    \item メディアを分けることで異なる用途に使える
+    \item 起動マシンの環境を汚さない
     \end{itemize}
-  \item UEFI$B4D6-8~$1$K%G%U%)%k%H$N%V!<%H%m!<%@!<$rG[CV(B
-  \item VirtualBox$B$rF0:n%F%9%H$K;H$($k(B
+  \item UEFI環境向けにデフォルトのブートローダーを配置
+  \item VirtualBoxを動作テストに使える
     \begin{itemize}
-    \item $B:Y$+$$D4@0!"%Q%C%1!<%8$NJQ99$J$I$b$G$-$k(B
+    \item 細かい調整、パッケージの変更などもできる
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\section{$B;29MJ88%(B}
-\emtext{$B;29MJ88%(B}
+\section{参考文献}
+\emtext{参考文献}
 
-\begin{frame}[containsverbatim]{$B;29MJ88%(B}
+\begin{frame}[containsverbatim]{参考文献}
 
-$B;29MJ88%(B
+参考文献
   \begin{itemize}
-  \item BIOS, UEFI$BN>J}$G5/F02DG=$J(Bdebian$B%$%s%9%H!<%k(BUSB$B%a%G%#%"$r:n$k(B \url{http://pman0214.github.io/blog/debian-install-bios-efi.html}
-  \item 32bit UEFI $BEk:\$N(B2-in-1 PC$B$K(Bubuntu14.04$B$r%$%s%9%H!<%k$7$?5-O?(B \url{https://qiita.com/shirotamago/items/a4b0c8863a492abe50ad}
+  \item BIOS, UEFI両方で起動可能なdebianインストールUSBメディアを作る \url{http://pman0214.github.io/blog/debian-install-bios-efi.html}
+  \item 32bit UEFI 搭載の2-in-1 PCにubuntu14.04をインストールした記録 \url{https://qiita.com/shirotamago/items/a4b0c8863a492abe50ad}
    \item Boot your USB Drive in VirtualBox \url{http://agnipulse.com/2009/07/boot-your-usb-drive-in-virtualbox/}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%U%!%$%k%7%9%F%`$K$D$$$F(B}
-  F2FS$B$O$I$&$+(B?
+\begin{frame}[containsverbatim]{ファイルシステムについて}
+  F2FSはどうか?
   \begin{itemize}
-  \item $B<wL?$O?-$S$k$+$b(B?($BL$8!>Z(B)
+  \item 寿命は伸びるかも?(未検証)
     \begin{itemize}
-    \item USB$B%a%b%j$G(BTRIM$B$OH/9T$G$-$k$+(B
-    \item $B%G%P%$%90MB8(B, hdparm -I$B$G3NG'(B
+    \item USBメモリでTRIMは発行できるか
+    \item デバイス依存, hdparm -Iで確認
     \end{itemize}
-  \item stretch$B$N(Bgrub2$B$O(Bf2fs$B$r%5%]!<%H$7$F$$$J$$(B
+  \item stretchのgrub2はf2fsをサポートしていない
     \begin{itemize}
-      \item /boot $B$rJL$K:n$k$3$H$GBP1~2DG=(B
+      \item /boot を別に作ることで対応可能
     \end{itemize}
-  \item $B%Q%U%)!<%^%s%9(B
+  \item パフォーマンス
     \begin{itemize}
     \item F2FS Benchmarks From USB Flash Storage (Phoronix) \url{https://www.phoronix.com/scan.php?page=article&item=linux_f2fs_usb3&num=1}
-    \item $B0lD90lC;(B?
+    \item 一長一短?
     \end{itemize}
   \end{itemize}
 \end{frame}

@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2012 Junichi Uekawa
@@ -30,15 +30,15 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{$BEl5~%(%j%"(BDebian$BJY6/2q(B}
+\title{東京エリアDebian勉強会}
 \subtitle{systemd}
-\author{$B4d>>(B $B?.MN(B\\iwamatsu@debian.org}
-\date{2012$BG/(B11$B7n(B17$BF|(B}
+\author{岩松 信洋\\iwamatsu@debian.org}
+\date{2012年11月17日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
@@ -47,7 +47,7 @@
 
 %\begin{frame}[containsverbatim]
 %
-%$B$*$^$($i!"$A$g$C$H(B $B!V(B\texttt{ps ax | grep systemd}$B!W(B $B<B9T$7$F$_$m!*(B
+%おまえら、ちょっと 「\texttt{ps ax | grep systemd}」 実行してみろ！
 %\begin{commandline}
 %
 %hooo%
@@ -55,35 +55,35 @@
 %\end{commandline}
 %\end{frame}
 
-\begin{frame}{$B$O$8$a$K(B}
+\begin{frame}{はじめに}
 
 \begin{itemize}
-\item $B@$$NCf$N<gMW$J(BLinux$B%G%#%9%H%j%S%e!<%7%g%s$O(B 
-SysVinit $B$N(B init scripts $B$+$iB>$N(Binit $B%7%9%F%`$K0\9T$7$D$D$"$k!J$O$:!K!#(B
-\item Fedora$B$d(BArch Linux$B$,(Bsystemd $B$K0\9T$r;O$a$?$H$$$&$3$H$b$"$j!"(B
-$B0lIt$G@9$j>e$,$C$F$$$k!J0$I!6+4-$H$b$$$&!K!#(B
-\item $B$^$5$+(B $B$$$^$@$K(B SysVinit $B$r;H$C$F$J$$$h$M!)(B
-\item Debian$B$H(Bsystemd$B$K$D$$$F$^$H$a$?!#(B
+\item 世の中の主要なLinuxディストリビューションは 
+SysVinit の init scripts から他のinit システムに移行しつつある（はず）。
+\item FedoraやArch Linuxがsystemd に移行を始めたということもあり、
+一部で盛り上がっている（阿鼻叫喚ともいう）。
+\item まさか いまだに SysVinit を使ってないよね？
+\item Debianとsystemdについてまとめた。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{systemd$B$H$O!)(B}
+\begin{frame}{systemdとは？}
 
 \begin{itemize}
-\item RedHat $B$K6P$a$F$$$k(B Lennart Poettering $B;a$K$h$C$F3+H/$5$l$F$$$k!#(B
-\item init $B$NBeBX%W%m%0%i%`!#(B
-\item $B<B:]$K$O(B init $B$NBeBX$@$1$G$O$J$/!"(BLinux $B$N%5!<%S%9!J%G!<%b%s!K4IM}%U%l!<%`%o!<%/!#(B
-%Linux $B%+!<%M%kMQ$N%G%P%$%94IM}%D!<%k$G$"$k(B udev $B$,(B systemd $B$N%=!<%9$K%^!<%8(B
-%$B$5$l$F$$$^$9!#%m%0%7%9%F%`$b$"$k!#>-Mh$O(B cron $B$d(B acpid $B$J$I$NBeBX$(5!G=$r(B
-%$BDs6!$9$kM=Dj$i$7$$!#(B
-\item $B:#$^$G$N(Binit$B%7%9%F%`$N0c$$(B
+\item RedHat に勤めている Lennart Poettering 氏によって開発されている。
+\item init の代替プログラム。
+\item 実際には init の代替だけではなく、Linux のサービス（デーモン）管理フレームワーク。
+%Linux カーネル用のデバイス管理ツールである udev が systemd のソースにマージ
+%されています。ログシステムもある。将来は cron や acpid などの代替え機能を
+%提供する予定らしい。
+\item 今までのinitシステムの違い
   \begin{itemize}
-  \item $B%5!<%S%9$N%W%m%;%94IM}$r(B pid $B$G$O$J$/!"(Bcgroups $B$r;H$&!#(B
-  \item $B%5!<%S%9$N5/F0$r%=%1%C%H$H%P%9(B(dbus)$B$r;H$&!#(B
-  \item $B%5!<%S%9$N0MB84X78$,$"$j!"$3$l$K$h$C$F%7%9%F%`N)$A>e$2=hM}$r$h$jJBNsE*$K9T$($k!#(B
-  \item System V $B%9%?%$%k$H(BBSD$B%9%?%$%k$NN>J}$r%5%]!<%H$7$F$$$k!#(B
-  \item CosoleKit $B$H$NO"7H!#(B
+  \item サービスのプロセス管理を pid ではなく、cgroups を使う。
+  \item サービスの起動をソケットとバス(dbus)を使う。
+  \item サービスの依存関係があり、これによってシステム立ち上げ処理をより並列的に行える。
+  \item System V スタイルとBSDスタイルの両方をサポートしている。
+  \item CosoleKit との連携。
   \end{itemize}
 \end{itemize}
 
@@ -94,73 +94,73 @@ SysVinit $B$N(B init scripts $B$+$iB>$N(Binit $B%7%9%F%`$K0\9T$7$D$D$"$k!J$
 \includegraphics[width=1\hsize]{image201211/systemd-relation.eps}
 \end{frame}
 
-\begin{frame}{systemd$B$H$O!)(B}
+\begin{frame}{systemdとは？}
 
 \begin{itemize}
-\item $B3+H/$O(B freedesktop.org$B$G9T$o$l$F$*$j!"3+H/$O3hH/$G=5$K0lEY$O%P!<%8%g%s%"%C%W!#(B
-\item $B:G?7%P!<%8%g%s$O(B v195$B!#(B
+\item 開発は freedesktop.orgで行われており、開発は活発で週に一度はバージョンアップ。
+\item 最新バージョンは v195。
 \item \url{http://cgit.freedesktop.org/systemd/systemd/}
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{SysVinit $B$HHf$Y$?(B systemd $B$NMxE@(B}
+\begin{frame}{SysVinit と比べた systemd の利点}
 
 \begin{itemize}
-\item $B@_Dj$,MF0W!#(B
-\item $B5/F0$,Aa$$!#(B
-\item $B%+!<%M%k%b%8%e!<%k$NA`:n!"%;%C%7%g%s4IM}!"%m%04IM}!"%G%#%9%/$N0E9f2=$J$I$,E}9g$5$l$F$$$k!#(B
+\item 設定が容易。
+\item 起動が早い。
+\item カーネルモジュールの操作、セッション管理、ログ管理、ディスクの暗号化などが統合されている。
 \end{itemize}
 
-$B$=$NB>!"3+H/<T$K$h$k@bL@$,(B\url{http://0pointer.de/blog/projects/why.html}
-$B$K$"$k!#(B
+その他、開発者による説明が\url{http://0pointer.de/blog/projects/why.html}
+にある。
 
 \end{frame}
 
-\begin{frame}{SysVinit $B$HHf$Y$?(B systemd $B$N7gE@(B/$BIT0B(B}
+\begin{frame}{SysVinit と比べた systemd の欠点/不安}
 
 \begin{itemize}
-\item $B$"$i$f$k4pK\%5!<%S%9(B(cron$B$J$I$b(B)$B$r$^$H$a$k$H$$$&ATBg$JJ*8l!#(B
-\item $BF|K\8l%I%-%e%a%s%H$,$J$$!"$0$i$$!)(B
-\item kFreeBSD $B$G$b4hD%$l$P$&$4$/$i$7$$!#!J$I$&$d$C$F$k$N$+$OITL@!K(B
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}{Debian$B$G;H$&(B}
-
-\begin{itemize}
-\item systemd $B$O$b$A$m$s(B Debian $B$G$bDs6!$5$l$F$$$k(B
-\item testing / unstable $B$G(B v44 $B$,MxMQ$G$-$k(B\\
-$B:G?7HG$H%P!<%8%g%s$K:9$,$"$k$,!"%"%C%W%9%H%j!<%`$G(B
-$BIQHK$K%P!<%8%g%s%"%C%W$9$k$N$G%P!<%8%g%s$O$"$^$jLdBj$G$O$J$$(B
-v44 $B$G$b(B systemd $B$r==J,$K;H$&$3$H$,$G$-$k(B
-
-\item $B$$$^$N$H$3$m(B Debian$B$K4X$9$k>pJs$O(B \url{http://wiki.debian.org/systemd}
-$B$K$^$H$^$C$F$$$k$,>pJs$,>/$J$/!"FbMF$b8E$$(B
+\item あらゆる基本サービス(cronなども)をまとめるという壮大な物語。
+\item 日本語ドキュメントがない、ぐらい？
+\item kFreeBSD でも頑張ればうごくらしい。（どうやってるのかは不明）
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%k(B}
+\begin{frame}{Debianで使う}
 
 \begin{itemize}
-\item apt-get / aptitude $B$G%$%s%9%H!<%k$G$-$k!#(B
-\item Linux $B%+!<%M%k$O(B 2.6.39 $B0J>e!"(Bdevtmpfs, fanotify, autofs4, cgroups $B$,M-8z$K$J$C$F$$$kI,MW$,$"$k!#(B
+\item systemd はもちろん Debian でも提供されている
+\item testing / unstable で v44 が利用できる\\
+最新版とバージョンに差があるが、アップストリームで
+頻繁にバージョンアップするのでバージョンはあまり問題ではない
+v44 でも systemd を十分に使うことができる
+
+\item いまのところ Debianに関する情報は \url{http://wiki.debian.org/systemd}
+にまとまっているが情報が少なく、内容も古い
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%k(B}
+\begin{frame}[containsverbatim]{インストール}
 
-$B%$%s%9%H!<%k$O0J2<$N$h$&$K<B9T$9$k!#(B
+\begin{itemize}
+\item apt-get / aptitude でインストールできる。
+\item Linux カーネルは 2.6.39 以上、devtmpfs, fanotify, autofs4, cgroups が有効になっている必要がある。
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[containsverbatim]{インストール}
+
+インストールは以下のように実行する。
 
 \begin{commandline}
 $ sudo apt-get install systemd
 \end{commandline}
 %$
 
-$B0J2<$N%Q%C%1!<%8$,0MB84X78$G%$%s%9%H!<%k$5$l$k!#(B
+以下のパッケージが依存関係でインストールされる。
 \begin{commandline}
 libsystemd-daemon0
 libsystemd-id128-0
@@ -171,17 +171,17 @@ libpam-systemd
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%k(B}
+\begin{frame}[containsverbatim]{インストール}
 
 \begin{itemize}
-\item $B<!$K%V!<%H%m!<%@$K(Binit$B;XDj$rDI2C$9$k(B
-\item GRUB $B$r;H$C$F$$$k>l9g!"(B\texttt{/etc/default/grub} $B$N(B
-\texttt{GRUB\_CMDLINE\_LINUX\_DEFAULT} $B$K(B {\bf init=/lib/systemd/systemd} $B$rDI5-$9$k(B
+\item 次にブートローダにinit指定を追加する
+\item GRUB を使っている場合、\texttt{/etc/default/grub} の
+\texttt{GRUB\_CMDLINE\_LINUX\_DEFAULT} に {\bf init=/lib/systemd/systemd} を追記する
  
 \begin{commandline}
-$BJQ99A0(B:
+変更前:
 GRUB_CMDLINE_LINUX_DEFAULT="quiet"
-$BJQ998e(B:
+変更後:
 GRUB_CMDLINE_LINUX_DEFAULT="quiet init=/lib/systemd/systemd"
 \end{commandline} 
 %$
@@ -190,12 +190,12 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet init=/lib/systemd/systemd"
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%k(B}
+\begin{frame}[containsverbatim]{インストール}
 
 \begin{itemize}
-\item $BJQ998e!"(B{\bf update-grub}$B$r<B9T$7!"(BGRUB $B$K@_Dj$rH?1G$9$k!#(B
-\item $B$=$7$F%j%V!<%H$9$k!#(B
-\item $B@_Dj$,4V0c$C$F$$$J$$$1$l$P(B systemd $B$GN)$A>e$,$k$O$:!#(B
+\item 変更後、{\bf update-grub}を実行し、GRUB に設定を反映する。
+\item そしてリブートする。
+\item 設定が間違っていないければ systemd で立ち上がるはず。
 \end{itemize}
 
 \begin{commandline}
@@ -207,12 +207,12 @@ $ sudo reboot
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B5/F0B.EY(B}
+\begin{frame}[containsverbatim]{起動速度}
 
 \begin{itemize}
-\item systemd $B$O%"%J%i%$%6$r%G%U%)%k%H$G%5%]!<%H$7$F$$$k!#(B\\
-SysVinit $B$@$H(B bootchart2 $B$GB,Dj$9$kI,MW$,$"$k!#(B
-\item $B5/F0$K$+$+$C$?;~4V$r3NG'$9$k$K$O(B \texttt{systemd-analyze} $B$r<B9T$9$k!#(B
+\item systemd はアナライザをデフォルトでサポートしている。\\
+SysVinit だと bootchart2 で測定する必要がある。
+\item 起動にかかった時間を確認するには \texttt{systemd-analyze} を実行する。
 \begin{commandline}
 $ systemd-analyze 
 Startup finished in 1831ms (kernel) + \ 
@@ -222,12 +222,12 @@ Startup finished in 1831ms (kernel) + \
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B5/F0B.EY(B}
+\begin{frame}[containsverbatim]{起動速度}
 
 \begin{itemize}
 
-\item $B$^$?!"2hA|$G3NG'$7$?$$>l9g$K$O(B \texttt{prop} $B%*%W%7%g%s$r;XDj$7$F<B9T$9$k!#(B\\
-  SVG $B%U%)!<%^%C%H$G=PNO$5$l$k$N$G!"%j%@%$%l%/%H$7$F%U%!%$%k$KJ]B8$9$k!#(B
+\item また、画像で確認したい場合には \texttt{prop} オプションを指定して実行する。\\
+  SVG フォーマットで出力されるので、リダイレクトしてファイルに保存する。
 \begin{commandline}
 $ systemd-analyze plot > systemd-boot.svg
 \end{commandline}
@@ -243,104 +243,104 @@ $ systemd-analyze plot > systemd-boot.svg
 \end{center}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B5/F0B.EY(B}
+\begin{frame}[containsverbatim]{起動速度}
 
-$B;n$7$K<+J,$,>oMQ$7$F$$$k4D6-$G5/F0;~4V$rB,Dj$7$?$H$3$m!"(B
-SysVinit $B$OLs(B15$BIC!"(Bsystemd $B$OLs(B10$BIC$@$C$?!#(B 
-
-\end{frame}
-
-\begin{frame}{$BMQ8l(B}
-
-systemd $B$r07$&$K$O@lLgMQ8l$,=P$F$/$k$N$G@bL@$9$k!#(B
+試しに自分が常用している環境で起動時間を測定したところ、
+SysVinit は約15秒、systemd は約10秒だった。 
 
 \end{frame}
 
-\begin{frame}{$B%f%K%C%H(B}
+\begin{frame}{用語}
+
+systemd を扱うには専門用語が出てくるので説明する。
+
+\end{frame}
+
+\begin{frame}{ユニット}
 
 \begin{itemize}
-\item systemd $B$G$O%G!<%b%s$J$I$N@)8fBP>]$N$3$H$r%f%K%C%H$H8F$V!#(B
-\item $B%f%K%C%H$K$O%5!<%S%9!"%G%P%$%9!"%^%&%s%H%]%$%s%H$J$I!"$$$/$D$+$N<oN`$,$"$k!#(B
-\item $B$3$N%f%K%C%H$O%F%-%9%H%U%!%$%k$G5-=R$5$l!"(B\texttt{/lib/systemd/system/} $B0J2<$K3JG<$5$l$F$$$k!#(B
-\item $B3F%f%K%C%H$O3HD%;R$r;}$A!"%5!<%S%9$N>l9g$O(B\texttt{.service}$B$H$J$C$F$$$k!#(B
+\item systemd ではデーモンなどの制御対象のことをユニットと呼ぶ。
+\item ユニットにはサービス、デバイス、マウントポイントなど、いくつかの種類がある。
+\item このユニットはテキストファイルで記述され、\texttt{/lib/systemd/system/} 以下に格納されている。
+\item 各ユニットは拡張子を持ち、サービスの場合は\texttt{.service}となっている。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{$B%f%K%C%H(B}
+\begin{frame}{ユニット}
 
 \begin{table}[htb]
 \begin{center}
   \begin{tabular}{ll}
-    $B%f%K%C%H$N<oN`(B & $B@bL@(B \\
-    service & $B%5!<%S%9(B \\
-    socket & $B%=%1%C%H$G5/F0$9$k$?$a$N%=%1%C%HDj5A(B \\
-    target & $B3F%5!<%S%9$rF14|$5$;$k$?$a$NDj5A(B \\
-    device & udev $B$G4IM}$9$k%G%P%$%9(B \\
-    snapshot & $B$"$k;~E@$N(Binit $B$N>uBV(B \\
-    timer & $B%$%Y%s%H$+$i;~4V7P2a(B \\
-    path & $B4F;k$9$k%Q%9(B \\
-    mount & $B%^%&%s%H%]%$%s%H(B \\
-    swap & $B%9%o%C%W(B \\
-    automaount & $B<+F0%^%&%s%H%]%$%s%H(B \\
+    ユニットの種類 & 説明 \\
+    service & サービス \\
+    socket & ソケットで起動するためのソケット定義 \\
+    target & 各サービスを同期させるための定義 \\
+    device & udev で管理するデバイス \\
+    snapshot & ある時点のinit の状態 \\
+    timer & イベントから時間経過 \\
+    path & 監視するパス \\
+    mount & マウントポイント \\
+    swap & スワップ \\
+    automaount & 自動マウントポイント \\
   \end{tabular}
-%\caption{systemd $B$GDs6!$9$k%f%K%C%H(B}
+%\caption{systemd で提供するユニット}
 %\label{tbl:unit}
 \end{center}
 \end{table}
 
-mount, swap, automout $B$O5/F0;~$K(B \texttt{/etc/fstab} $B$+$i<+F0E*$K(B
-$B%f%K%C%H$r@8@.$9$k!#(B
+mount, swap, automout は起動時に \texttt{/etc/fstab} から自動的に
+ユニットを生成する。
 
 \end{frame}
 
-\begin{frame}{$B%?!<%2%C%H(B}
+\begin{frame}{ターゲット}
 \begin{itemize}
-\item SysVinit $B$N(B runlevel $BAjEv$N$b$N!#(B
-\item $B$3$l$O%G%#%9%H%j%S%e!<%7%g%s$K$h$C$F0[$J$k!#(B
-\item Debian$B$N>l9g$O0J2<$NDL$j!#(B
+\item SysVinit の runlevel 相当のもの。
+\item これはディストリビューションによって異なる。
+\item Debianの場合は以下の通り。
 
 \begin{table}[h]
 \begin{center}
   \begin{tabular}{ll}
-    run level & systemd $B$N%?!<%2%C%H(B \\
+    run level & systemd のターゲット \\
     0 & poweroff.target \\
     1 & rescue.target \\
     2 - 5 & multi-user.target \\
     6 & reboot.target \\
   \end{tabular}
-%\caption{run level$B$H%?!<%2%C%H$NBP1~(B}
+%\caption{run levelとターゲットの対応}
 %\label{tbl:target}
 \end{center}
 \end{table}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{$B%?!<%2%C%H(B}
+\begin{frame}{ターゲット}
 
 \begin{itemize}
-\item $B$3$NB>$K(Bgraphical.target $B$H(B emergency.target $B$,$"$k!#(B
-\item graphical.target X $B$K$h$k5/F0$r9T$&$H$-$K8F$P$l$k%?!<%2%C%H(B
-\item emergency.target $B$O>c32$,5/$3$C$?;~$K5/F0$G$-$k$h$&$K$9$k$?$a$N%?!<%2%C%H!#(B
-\item $B%?!<%2%C%H$O%+!<%M%k$N%V!<%H%*%W%7%g%s$K(B \texttt{systemd.unit=}$B$G;XDj$G$-$k!#(B
-\item $B2?$b;XDj$7$J$$>l9g$O(Bdefault.target $B$,8F$P$l$k$h$&$K$J$C$F$$$k!#(B
+\item この他にgraphical.target と emergency.target がある。
+\item graphical.target X による起動を行うときに呼ばれるターゲット
+\item emergency.target は障害が起こった時に起動できるようにするためのターゲット。
+\item ターゲットはカーネルのブートオプションに \texttt{systemd.unit=}で指定できる。
+\item 何も指定しない場合はdefault.target が呼ばれるようになっている。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{$B%f%K%C%H$NA`:nJ}K!(B}
+\begin{frame}{ユニットの操作方法}
 
 \begin{itemize}
-\item systemd $B$K0\9T$7$?8e!"%G!<%b%sEy$N@)8f$O(B /etc/init.d/ $B0J2<$r<B9T$9$k$N$G$O$J$/!"(B{\bf systemctl}
-$B%3%^%s%I$r;H$C$FA`:n$9$k!#(B
-\item $B0J2<$K%f%K%C%H$NA`:nJ}K!$K$D$$$F@bL@$9$k!#(B
+\item systemd に移行した後、デーモン等の制御は /etc/init.d/ 以下を実行するのではなく、{\bf systemctl}
+コマンドを使って操作する。
+\item 以下にユニットの操作方法について説明する。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B5/F0$7$F$$$k%f%K%C%H$rI=<($9$k(B}
+\begin{frame}[containsverbatim]{起動しているユニットを表示する}
 
-$B5/F0$7$F$$$k%f%K%C%H$rI=<($9$k$K$O(B sytemctl $B$r<B9T$9$k!#(B
+起動しているユニットを表示するには sytemctl を実行する。
 
 \begin{commandline}
 $ systemctl
@@ -358,9 +358,9 @@ ifup@eth0.service         loaded active exited        ifup for eth0
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$BA4$F$N%f%K%C%H$rI=<($9$k(B}
+\begin{frame}[containsverbatim]{全てのユニットを表示する}
 
-$BA`:n$G$-$k%f%K%C%H$rI=<($9$k$K$O(B \texttt{--all} $B$r;XDj$9$k!#(B
+操作できるユニットを表示するには \texttt{--all} を指定する。
  
 \begin{commandline}
 $ systemctl --all
@@ -377,12 +377,12 @@ dev-disk...2dpart2.device loaded active   plugged       QEMU_HARDDISK
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$N>uBV$r3NG'$9$k(B}
+\begin{frame}[containsverbatim]{ユニットの状態を確認する}
 
-$B%f%K%C%H$N>uBV$r3NG'$9$k$K$O!"(B\texttt{status} $B%*%W%7%g%s$K3NG'$7$?$$%f%K%C%HL>$r(B
-$B;XDj$7$F<B9T$9$k!#(B
+ユニットの状態を確認するには、\texttt{status} オプションに確認したいユニット名を
+指定して実行する。
 
-$B0J2<$K(B rsyslog.service $B%f%K%C%H$N>uBV$r3NG'$9$kNc$r<($9!#(B
+以下に rsyslog.service ユニットの状態を確認する例を示す。
 \begin{commandline}
 $ systemctl status rsyslog.service
     Loaded: loaded (/lib/systemd/system/rsyslog.service; enabled)
@@ -390,83 +390,83 @@ $ systemctl status rsyslog.service
    Process: 474 ExecStartPre=/bin/systemctl stop systemd-kmsg-syslogd.service (code=exited, status=0/SUCCESS)
   Main PID: 483 (rsyslogd)
     CGroup: name=systemd:/system/rsyslog.service
-           $B(&(B 483 /usr/sbin/rsyslogd -n -c5
+           └ 483 /usr/sbin/rsyslogd -n -c5
 \end{commandline}
 %$
 
-$B$3$l$K$h$j!"$3$N%f%K%C%H$O(B \texttt{/lib/systemd/system/rsyslog.service}$B$K$h$C$F(B
-\texttt{Wed, 14 Nov 2012 00:37:18 -0800}$B$K5/F0$7$F$$$k$3$H$,J,$+$k!#(B
+これにより、このユニットは \texttt{/lib/systemd/system/rsyslog.service}によって
+\texttt{Wed, 14 Nov 2012 00:37:18 -0800}に起動していることが分かる。
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$r5/F0$9$k(B}
+\begin{frame}[containsverbatim]{ユニットを起動する}
 
-$B5/F0$7$F$$$J$$%f%K%C%H$r5/F0$9$k$K$O!"(B \texttt{start}$B%*%W%7%g%s$K%f%K%C%HL>$r;XDj$7$F<B9T$9$k!#(B
-$B$3$l$O(B \texttt{/etc/init.d/$B%5!<%S%9(B start}$B$HF1MM$NF0$-$H$J$k!#(B
+起動していないユニットを起動するには、 \texttt{start}オプションにユニット名を指定して実行する。
+これは \texttt{/etc/init.d/サービス start}と同様の動きとなる。
 \begin{commandline}
-$ sudo systemctl start $B%f%K%C%HL>(B
+$ sudo systemctl start ユニット名
 \end{commandline}
 %$
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$rDd;_$9$k(B}
+\begin{frame}[containsverbatim]{ユニットを停止する}
 
-$B5/F0$7$F$$$k%f%K%C%H$rDd;_$9$k$K$O!"(B\texttt{stop}$B%*%W%7%g%s$K%f%K%C%HL>$r;XDj$7$F<B9T$9$k!#(B
-$B$3$l$O(B \texttt{/etc/init.d/$B%5!<%S%9(B stop}$B$HF1MM$NF0$-$H$J$k!#(B
+起動しているユニットを停止するには、\texttt{stop}オプションにユニット名を指定して実行する。
+これは \texttt{/etc/init.d/サービス stop}と同様の動きとなる。
 \begin{commandline}
-$ sudo systemctl stop $B%f%K%C%HL>(B
+$ sudo systemctl stop ユニット名
 \end{commandline}
 %$
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$N@_Dj$r:FFI$_9~$_$9$k(B}
+\begin{frame}[containsverbatim]{ユニットの設定を再読み込みする}
 
-$B%f%K%C%H$N@_Dj$r:FFI$_9~$_$9$k$K$O!"(B\texttt{daemon-reload}$B%*%W%7%g%s$K%f%K%C%HL>$r;XDj$7$F<B9T$9$k!#(B
+ユニットの設定を再読み込みするには、\texttt{daemon-reload}オプションにユニット名を指定して実行する。
 \begin{commandline}
-$ sudo systemctl daemon-reload $B%f%K%C%HL>(B
+$ sudo systemctl daemon-reload ユニット名
 \end{commandline}
 %$
 
-$B<B:]$KF0$$$F$$$k%G!<%b%s$N@_Dj!"Nc$($P(Bhttpd$B$N@_Dj$r:FFI$_9~$_$7!":F5/F0$9$k$K$O(B \texttt{reload}$B%*%W%7%g%s$r;H$&!#(B
+実際に動いているデーモンの設定、例えばhttpdの設定を再読み込みし、再起動するには \texttt{reload}オプションを使う。
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$N<+F05/F0$rM-8z$K$9$k(B}
+\begin{frame}[containsverbatim]{ユニットの自動起動を有効にする}
 
 \begin{itemize}
-\item $B%f%K%C%H$N<+F05/F0$rM-8z$K$9$k$K$O(B \texttt{enable} $B%*%W%7%g%s$K%f%K%C%HL>$r;XDj$7$F<B9T$9$k!#(B
-\item $BM-8z$K$9$k$H(B \texttt{/etc/systemd/system/$B%?!<%2%C%H(B.wants/}$B$K(B\texttt{/lib/systemd/system/}$B$K$"$k%f%K%C%H(B
-$B$X$N%7%s%\%j%C%/%j%s%/$,:n@.$5$l$k!#(B
-\item $B$I$N%?!<%2%C%H$G<+F05/F0$,M-8z$K$J$k$+$O!"%f%K%C%H%U%!%$%k$N(B \texttt{Install}$B%;%/%7%g%s$G;XDj$9$k!#(B
+\item ユニットの自動起動を有効にするには \texttt{enable} オプションにユニット名を指定して実行する。
+\item 有効にすると \texttt{/etc/systemd/system/ターゲット.wants/}に\texttt{/lib/systemd/system/}にあるユニット
+へのシンボリックリンクが作成される。
+\item どのターゲットで自動起動が有効になるかは、ユニットファイルの \texttt{Install}セクションで指定する。
 \end{itemize}
 
 \begin{commandline}
-$ sudo systemctl enable $B%f%K%C%HL>(B
+$ sudo systemctl enable ユニット名
 \end{commandline}
 %$
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$N<+F05/F0$rL58z$K$9$k(B}
+\begin{frame}[containsverbatim]{ユニットの自動起動を無効にする}
 
 \begin{itemize}
-\item $B%f%K%C%H$N<+F05/F0$rL58z$K$9$k$K$O(B \texttt{disable} $B%*%W%7%g%s$K%f%K%C%HL>$r;XDj$7$F<B9T$9$k!#(B
-\item $BL58z$K$9$k$H!"(B/etc/systemd/system/$B%?!<%2%C%H(B.wants/$B$K$"$k%7%s%\%j%C%/%j%s%/$,:o=|$5$l$k!#(B
+\item ユニットの自動起動を無効にするには \texttt{disable} オプションにユニット名を指定して実行する。
+\item 無効にすると、/etc/systemd/system/ターゲット.wants/にあるシンボリックリンクが削除される。
 \end{itemize}
 \begin{commandline}
-$ sudo systemctl disabe $B%f%K%C%HL>(B
+$ sudo systemctl disabe ユニット名
 \end{commandline}
 %$
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$N>\:Y$r3NG'$9$k(B}
+\begin{frame}[containsverbatim]{ユニットの詳細を確認する}
 
 \begin{itemize}
-\item $B%f%K%C%H$N>\:Y$r3NG'$9$k$K$O(B \texttt{show} $B%*%W%7%g%s$K%f%K%C%HL>$r;XDj$7$F<B9T$9$k!#(B
-\item $B$3$l$K$h$j;XDj$7$?%f%K%C%H$HB>$N%f%K%C%H!"%?!<%2%C%H$N4X78$J$I$,J,$+$k!#(B
+\item ユニットの詳細を確認するには \texttt{show} オプションにユニット名を指定して実行する。
+\item これにより指定したユニットと他のユニット、ターゲットの関係などが分かる。
 \end{itemize}
 
 \begin{commandline}
@@ -483,35 +483,35 @@ Conflicts=shutdown.target
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$K$D$$$F(B}
+\begin{frame}[containsverbatim]{ユニットについて}
 
-$B%f%K%C%H$K$O3F%f%K%C%H4V$N0MB84X78$r5-=R$9$k$3$H$,$G$-$k!#(B
-$B0MB84X78$N;XDj$H$7$F0J2<$,$"$k!#(B
+ユニットには各ユニット間の依存関係を記述することができる。
+依存関係の指定として以下がある。
 
 %\begin{table}[htb]
 \begin{center}
   \begin{tabular}{ll}
-    $BDj5A(B & $B@bL@(B \\
-    Before & $B$=$N%f%K%C%H$N8e$K5/F0$5$l$k$Y$-%f%K%C%H!#(B \\
-    After & $B$=$N%f%K%C%H$NA0$K5/F0$5$l$k$Y$-%f%K%C%H!#(B \\
-    Conflicts & $BF1;~$K5/F0$G$-$J$$%f%K%C%H!#(B \\
-    Service & $B%=%1%C%H$K$h$k5/F0$r9T$&%f%K%C%H!#(B \\
-    Sockets & $B%=%1%C%H$K$h$k%f%K%C%H$N5/F0$r9T$&>l9g$N%=%1%C%H>pJs!#(B \\
-    Wants  & $BF1;~$K5/F0$7$F$[$7$$%f%K%C%H!#@.8y!"<:GT$O4X78$J$$!#(B\\
-    Requires & $BF1;~$K5/F0$5$l$J$1$l$P$J$i$J$$%f%K%C%H!#%f%K%C%H$N5/F0$,<:GT$7$?>l9g$OMW5a85$b<:GT$9$k(B \\
-    BindTo & $B%f%K%C%H$r%0%k!<%W$H$7$F$^$H$a$k!#(B
-%$B%f%K%C%H$,$J$/$J$C$?>l9g!"%0%k!<%W$G;XDj$5$l$F$$$k%f%K%C%H$ODd;_$5$l$k!#(B\\
+    定義 & 説明 \\
+    Before & そのユニットの後に起動されるべきユニット。 \\
+    After & そのユニットの前に起動されるべきユニット。 \\
+    Conflicts & 同時に起動できないユニット。 \\
+    Service & ソケットによる起動を行うユニット。 \\
+    Sockets & ソケットによるユニットの起動を行う場合のソケット情報。 \\
+    Wants  & 同時に起動してほしいユニット。成功、失敗は関係ない。\\
+    Requires & 同時に起動されなければならないユニット。ユニットの起動が失敗した場合は要求元も失敗する \\
+    BindTo & ユニットをグループとしてまとめる。
+%ユニットがなくなった場合、グループで指定されているユニットは停止される。\\
   \end{tabular}
-%\caption{$B%f%K%C%H$N0MB8Dj5A(B}
+%\caption{ユニットの依存定義}
 %\label{tbl:unit-depends}
 \end{center}
 %\end{table}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%f%K%C%H$K$D$$$F(B}
+\begin{frame}[containsverbatim]{ユニットについて}
 
-$BNc$($P!"(Bdefault.target $B$NFbMF$O0J2<$N$h$&$K$J$C$F$$$k!#(B
+例えば、default.target の内容は以下のようになっている。
 
 \begin{commandline}
 [Unit]
@@ -522,22 +522,22 @@ Conflicts=rescue.target
 AllowIsolate=yes
 \end{commandline}
 
-$B$3$N%?!<%2%C%H$O(B
-multi-user.target$B$HF1;~$K5/F0$5$l!"(Bmulti-user.target$B$N8e$K5/F0$9$k!#(B
-$B$^$?!"(Brescue.target$B$HF1;~$K5/F0$G$-$J$$!#(B
+このターゲットは
+multi-user.targetと同時に起動され、multi-user.targetの後に起動する。
+また、rescue.targetと同時に起動できない。
 
 \end{frame}
 
-\begin{frame}{$B$^$H$a(B}
+\begin{frame}{まとめ}
 
 \begin{itemize}
-\item Debian $B$G$bLdBj$J$/(Bsystemd $B$,MxMQ$G$-$k4D6-$,@0$C$F$$$k!#(B
-\item $B%l%,%7!<$J(BSysVinit$B$O<N$F!"?7$7$$(Binit$B$N@$3&$XB-$rF'$_F~$l$F$_$F$O$$$+$,$G$7$g$&$+!#(B
+\item Debian でも問題なくsystemd が利用できる環境が整っている。
+\item レガシーなSysVinitは捨て、新しいinitの世界へ足を踏み入れてみてはいかがでしょうか。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{$B;29MJ88%(B}
+\begin{frame}{参考文献}
 
 \url{http://www.slideshare.net/moriwaka/systemd}
 

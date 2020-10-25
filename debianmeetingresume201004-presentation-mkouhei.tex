@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -29,15 +29,15 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{upstart $B:FF~Lg(B}
+\title{upstart 再入門}
 \subtitle{}
-\author{$BA0ED(B $B9LJ?(B mkouhei@debian.or.jp\\IRC nick: mkouhei}
-\date{2010$BG/(B4$B7n(B17$BF|(B}
+\author{前田 耕平 mkouhei@debian.or.jp\\IRC nick: mkouhei}
+\date{2010年4月17日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
@@ -45,73 +45,73 @@
 \frame{\titlepage{}}
 
 \begin{frame}
- \frametitle{$B?<F~$j$7$h$&$H$7$?$N$@$,!D!#(B}
+ \frametitle{深入りしようとしたのだが…。}
 
   \begin{itemize}
-   \item $B;EAH$_$N?<F~$j$r;n$_$?$N$@$,!D!#(B
-   \item $BG/EYJQ$o$C$F%W%i%$%Y!<%H$NM>NO$,$J$/$F:C@^!#(B
-   \item 2$B7n$H$^$C$?$/F1$8$N$b$I$&$+$H!#(B
+   \item 仕組みの深入りを試みたのだが…。
+   \item 年度変わってプライベートの余力がなくて挫折。
+   \item 2月とまったく同じのもどうかと。
   \end{itemize}
- $B$=$3$G(Bupstart$B$N5/F0$r(B bootchart $B$G8+$F$_$?!#(B
+ そこでupstartの起動を bootchart で見てみた。
 \end{frame}
 
 
 \section{}
 \begin{frame}
- \frametitle{$B;vA0=`Hw(B}
- $BMQ0U$9$k(B $B%$%s%9%H!<%k%$%a!<%8!"%Q%C%1!<%8!"(B
+ \frametitle{事前準備}
+ 用意する インストールイメージ、パッケージ、
  \begin{itemize}
   \item debian-testing-amd64-businesscard.iso
-  \item qemu-kvm $B%Q%C%1!<%8(B
-  \item qcow2 $B%U%)!<%^%C%H$N%G%#%9%/%$%a!<%8(B
-  \item bootchart $B%Q%C%1!<%8(B
+  \item qemu-kvm パッケージ
+  \item qcow2 フォーマットのディスクイメージ
+  \item bootchart パッケージ
  \end{itemize}
 
- KVM/QEMU $B%2%9%H$K(B sysvinit $B$H(B upstart $B$N(B2$B<oN`$rMQ0U(B
+ KVM/QEMU ゲストに sysvinit と upstart の2種類を用意
  \begin{itemize}
-  \item Debian GNU/Linux Sid $B$N:G>.9=@.$r%$%s%9%H!<%k(B
-  \item $B%$%s%9%H!<%k8e!"%G%#%9%/%$%a!<%8$+$i%3%T!<:n@.(B
-  \item $B%3%T!<8e!"(Bupstart $B%Q%C%1!<%8$r%$%s%9%H!<%k(B
+  \item Debian GNU/Linux Sid の最小構成をインストール
+  \item インストール後、ディスクイメージからコピー作成
+  \item コピー後、upstart パッケージをインストール
  \end{itemize}
  \end{frame}
 
-\begin{frame}[containsverbatim]{upstart $B$N%$%s%9%H!<%k(B}
+\begin{frame}[containsverbatim]{upstart のインストール}
 \begin{commandline}
 $ sudo apt-get install upstart
 (snip)
-$B=EBg$JLdBj$r0z$-5/$3$92DG=@-$N$"$k$3$H$r$7$h$&$H$7$F$$$^$9!#(B
-$BB39T$9$k$K$O!"(B'Yes, do as I say!' $B$H$$$&%U%l!<%:$r%?%$%W$7$F$/$@$5$$!#(B
+重大な問題を引き起こす可能性のあることをしようとしています。
+続行するには、'Yes, do as I say!' というフレーズをタイプしてください。
  ?] Yes, do as I say!
 \end{commandline}
- 2$B7n$N$H$-$H$O0c$$!":#2s$O(B upstart $B$r%$%s%9%H!<%k$7$F$bLdBj$J$7!#(B
- \footnote{lxc $B$G$O$J$/(B KVM/QEMU $B$@$+$i!"$J$N$+H]$+$OL$8!>Z!#(B}
+ 2月のときとは違い、今回は upstart をインストールしても問題なし。
+ \footnote{lxc ではなく KVM/QEMU だから、なのか否かは未検証。}
 
 \end{frame}
 
-\begin{frame}{2$B7n$N$*$5$i$$(B : upstart $B$NFCD'(B}
-$B%5!<%S%93+;O!&Dd;_$O%$%Y%s%HDL?.$K4p$E$/$3$H!#(B
+\begin{frame}{2月のおさらい : upstart の特徴}
+サービス開始・停止はイベント通信に基づくこと。
 
-$B5/F0$5$;$k%W%m%;%9$rJB9T=hM}$G$-$k$3$H$,%a%j%C%H!#(B
+起動させるプロセスを並行処理できることがメリット。
 
-$BB>$NFCD'$O!"(B
+他の特徴は、
 \begin{itemize}
- \item $B%?%9%/$d%5!<%S%9$N5/F0!&Dd;_$G%$%Y%s%H$,H/@8(B
- \item $B%$%Y%s%H$O%7%9%F%`>e$NB>$N%W%m%;%9$+$i<u$1<h$k(B
- \item $B%5!<%S%9$,M=4|$;$:FMA3=*N;$7$F$b:F5/F0$9$k(B
- \item $B%G!<%b%s$N4F;k$H:F5/F0$O?F%W%m%;%9$+$iJ,N%(B
- \item D-Bus $B$rDL$8$F(B init $B%G!<%b%s$HDL?.(B
+ \item タスクやサービスの起動・停止でイベントが発生
+ \item イベントはシステム上の他のプロセスから受け取る
+ \item サービスが予期せず突然終了しても再起動する
+ \item デーモンの監視と再起動は親プロセスから分離
+ \item D-Bus を通じて init デーモンと通信
 \end{itemize}
 
- $B%W%m%;%9$rJB9T=hM}$5$;$k$3$H$G=hM}B.EY$r8~>e$5$;$k$N$G!"%W%m%;%9$,B?$$(B
- $B$[$I!"8z2L$O9b$$$O$:!#(B
+ プロセスを並行処理させることで処理速度を向上させるので、プロセスが多い
+ ほど、効果は高いはず。
 \end{frame}
 
-\begin{frame}{$B5/F0B.EY$rHf$Y$F$_$k(B}
- $BMQ0U$7$?4D6-$O0J2<$N$H$*$j!#(B
+\begin{frame}{起動速度を比べてみる}
+ 用意した環境は以下のとおり。
 
 \begin{table}
 \begin{tabular}[h]{|c|c|c|c|c|}\hline
-init$B$N<oN`(B & $B:G>.9=@.(B\footnote{bootchart $B$O%$%s%9%H!<%k(B} & CouchDB\footnote{$B:G>.9=@.$K(B couchdb $B$r%$%s%9%H!<%k(B} & LAMP \footnote{CouchDB $B$N9=@.$K(B apache2,rails, mysql-server $B$r%$%s%9%H!<%k(B} & GNOME \footnote{$B:G>.9=@.$K(B xserver-xorg, gnome $B$r%$%s%9%H!<%k(B} \\
+initの種類 & 最小構成\footnote{bootchart はインストール} & CouchDB\footnote{最小構成に couchdb をインストール} & LAMP \footnote{CouchDB の構成に apache2,rails, mysql-server をインストール} & GNOME \footnote{最小構成に xserver-xorg, gnome をインストール} \\
 \hline\hline
 sysvinit & & & & \\
 \hline
@@ -121,9 +121,9 @@ upstart & & & & \\
 \end{table}
 \end{frame}
 
-\emtext{bootchart $B$N7k2L(B}
+\emtext{bootchart の結果}
 
-\begin{frame}{$B:G>.9=@.(B}
+\begin{frame}{最小構成}
 \begin{minipage}[t]{0.48\hsize}
 sysvinit
 \begin{figure}[h]
@@ -198,14 +198,14 @@ upstart
 \end{minipage}
 \end{frame}
 
-\begin{frame}{$B7k2L(B}
+\begin{frame}{結果}
 
 \begin{table}
 \begin{tabular}{|c|c|c|c|c|}\hline
-init$B$N<oN`(B & $B:G>.9=@.(B\footnote{bootchart $B$O%$%s%9%H!<%k(B} &
- CouchDB\footnote{$B:G>.9=@.$K(B couchdb $B$r%$%s%9%H!<%k(B} & LAMP
- \footnote{CouchDB $B$N9=@.$K(B apache2,rails, mysql-server $B$r%$%s%9%H!<%k(B} & GNOME
- \footnote{$B:G>.9=@.$K(B xserver-xorg, gnome $B$r%$%s%9%H!<%k(B} \\
+initの種類 & 最小構成\footnote{bootchart はインストール} &
+ CouchDB\footnote{最小構成に couchdb をインストール} & LAMP
+ \footnote{CouchDB の構成に apache2,rails, mysql-server をインストール} & GNOME
+ \footnote{最小構成に xserver-xorg, gnome をインストール} \\
 \hline\hline
 sysvinit & 5 sec & 6 sec & 8 sec & 8 sec \\
 \hline
@@ -213,26 +213,26 @@ upstart & 5 sec & 6 sec & 8 sec & 8 sec \\
 \hline
 \end{tabular}
 \end{table}
-$B5/F0;~4V$K$O$^$C$?$/0c$$$J$7!D!#(B
+起動時間にはまったく違いなし…。
 \end{frame}
 
-\begin{frame}{$B$=$&$$$($P!"K:$l$F$$$?!#(B}
+\begin{frame}{そういえば、忘れていた。}
  \begin{itemize}
-  \item Debian $B$N(B upstart $B$O8_49%b!<%I$J$N$G!"(Bsysvinit $B$NF0:n$rLOJo$7$F(B
-	$B$$$k$N$@$C$?!#(B
-  \item $B$3$l$G$OHf3S$K$J$i$s!#(B
+  \item Debian の upstart は互換モードなので、sysvinit の動作を模倣して
+	いるのだった。
+  \item これでは比較にならん。
  \end{itemize}
 \end{frame}
 
-\begin{frame}{Ubuntu 9.10 $B$r;n$7$F$_$?!#(B}
+\begin{frame}{Ubuntu 9.10 を試してみた。}
 \begin{minipage}[t]{0.48\hsize}
 \begin{itemize}
- \item Ubuntu 9.10 $B$G$O%M%$%F%#%V%b!<%I(B
- \item Debian $B$KHf$Y$k$H:G>.9=@.$KM>7W$J%Q%C%1!<%8$,$"$k$_$?$$(B
- \item init $B$N=hM}=*N;;~$G(B bootchart $B$N%m%0<}=8$r;_$a$k$o$1$G$O(B
-       $B$J$$$h$&$@$,!"<B<AE*$K$O(B25$BICDxEY$G5/F0$,40N;!#(B
- \item $B$G$b5/F0%W%m%;%9$,JB9T=hM}$5$l$F$$$k$3$H(B Debian $B$G$N7k2L$rHf$Y$F(B
-       $B$bJ,$+$k!#(B
+ \item Ubuntu 9.10 ではネイティブモード
+ \item Debian に比べると最小構成に余計なパッケージがあるみたい
+ \item init の処理終了時で bootchart のログ収集を止めるわけでは
+       ないようだが、実質的には25秒程度で起動が完了。
+ \item でも起動プロセスが並行処理されていること Debian での結果を比べて
+       も分かる。
 \end{itemize}
 \end{minipage}
 \begin{minipage}[t]{0.48\hsize}
@@ -244,15 +244,15 @@ upstart & 5 sec & 6 sec & 8 sec & 8 sec \\
 \end{minipage}
 \end{frame}
 
-\begin{frame}{$B$^$H$a(B}
+\begin{frame}{まとめ}
 \begin{itemize}
- \item $B%M%$%F%#%V%b!<%I$8$c$J$$$H(B upstart $B$OK\Mh$N%a%j%C%H$,3h$+$;$J$$46(B
-       $B$8!#(B
- \item $B$H$O$$$(!"$$$-$J$j%M%$%F%#%V%b!<%I$N(B upstart $B$K@Z$jBX$($k$N$O%j%9(B
-       $B%/$"$k$N$G!"0l;~E*$K8_49%b!<%I$r;H$&$N$O;_$`$rF@$J$$$N$+$b$7$l$J(B
-       $B$$!#(B
- \item $B$G$b!"(BSqueeze $B$G$:$C$H8_49%b!<%I$J$N$b$I$&$+$H!#(BSqueezeAndAHalf
-       $B%j%j!<%9;~$K%M%$%F%#%V%b!<%I$K@Z$jBX$($i$l$k$H$&$l$7$$$+$b!#(B
+ \item ネイティブモードじゃないと upstart は本来のメリットが活かせない感
+       じ。
+ \item とはいえ、いきなりネイティブモードの upstart に切り替えるのはリス
+       クあるので、一時的に互換モードを使うのは止むを得ないのかもしれな
+       い。
+ \item でも、Squeeze でずっと互換モードなのもどうかと。SqueezeAndAHalf
+       リリース時にネイティブモードに切り替えられるとうれしいかも。
 \end{itemize}
 
 \end{frame}

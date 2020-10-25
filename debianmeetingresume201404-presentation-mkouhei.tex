@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,15 +31,15 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{Golang$B$G=q$+$l$?%D!<%k$r(B\\Debian$B%Q%C%1!<%8$K$9$k(B}
+\title{Golangで書かれたツールを\\Debianパッケージにする}
 \subtitle{}
-\author{$B$^$($@$3$&$X$$(B}
-\date{2014$BG/(B4$B7n(B19$BF|(B}
+\author{まえだこうへい}
+\date{2014年4月19日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
@@ -50,53 +50,53 @@
 
 \frame{\titlepage{}}
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
  \begin{itemize}
-  \item[Debian:] blockdiag$B%7%j!<%:!"(Bdjango REST framework$B!"(B\\yrmcds$B$J$I$N%a%s%F%J(B
-  \item[$B8@8l(B:] $B<g$K(BPython$B!#(B\\$B:G6a(BGolang$B$b;H$*$&$HJY6/Cf(B
-  \item[$B2HDm(B:] $BG-0lI$(B($B!j(B)$B!"L<Fs?M!":J0l?M(B
-  \item[$BJY6/2q(B:] $B$[$\(BDebian$BJY6/2q$N$_!#$G$b:#F|$OLsH>G/$V$j(B
-  \item[$B;E;v(B:] Python$B$G(BLDAP$B$4$K$g$4$K$g$H$+!"(B\\django REST framework$B$G(BAPI$B3+H/$H$+(B
+  \item[Debian:] blockdiagシリーズ、django REST framework、\\yrmcdsなどのメンテナ
+  \item[言語:] 主にPython。\\最近Golangも使おうと勉強中
+  \item[家庭:] 猫一匹(♀)、娘二人、妻一人
+  \item[勉強会:] ほぼDebian勉強会のみ。でも今日は約半年ぶり
+  \item[仕事:] PythonでLDAPごにょごにょとか、\\django REST frameworkでAPI開発とか
  \end{itemize}
 \end{frame}
 
-\begin{frame}{$B:#F|$NOC$NN.$l$HA0Ds(B}
+\begin{frame}{今日の話の流れと前提}
 \begin{itemize}
-  \item Golang$B$N%D!<%k$r%Q%C%1!<%82=$7$h$&$H;W$C$?F05!(B
-  \item Debian$B$G$N(BGolang$B$r;H$&J}K!(B
-  \item Debian$B%Q%C%1!<%82=$KI,MW$J(BGolang$B$NCN<1(B
-  \item $B%Q%C%1!<%82=$9$k$?$a$N$*:nK!(B
-  \item Golang$B$N%D!<%k$r(BDebian$B%Q%C%1!<%8$K$9$k(B
+  \item Golangのツールをパッケージ化しようと思った動機
+  \item DebianでのGolangを使う方法
+  \item Debianパッケージ化に必要なGolangの知識
+  \item パッケージ化するためのお作法
+  \item GolangのツールをDebianパッケージにする
 \end{itemize}
 
-$B"(A0Ds>r7o!'(B Sid$B$r=`Hw$9$k$3$H(B
+※前提条件： Sidを準備すること
 \end{frame}
 
 
-\begin{frame}{$B:#F|$NOC$NN.$l$HA0Ds(B}
+\begin{frame}{今日の話の流れと前提}
 \begin{itemize}
-  \item \textcolor{red}{Golang$B$N%D!<%k$r%Q%C%1!<%82=$7$h$&$H;W$C$?F05!(B}
-  \item Debian$B$G$N(BGolang$B$r;H$&J}K!(B
-  \item Debian$B%Q%C%1!<%82=$KI,MW$J(BGolang$B$NCN<1(B
-  \item $B%Q%C%1!<%82=$9$k$?$a$N$*:nK!(B
-  \item Golang$B$N%D!<%k$r(BDebian$B%Q%C%1!<%8$K$9$k(B
+  \item \textcolor{red}{Golangのツールをパッケージ化しようと思った動機}
+  \item DebianでのGolangを使う方法
+  \item Debianパッケージ化に必要なGolangの知識
+  \item パッケージ化するためのお作法
+  \item GolangのツールをDebianパッケージにする
 \end{itemize}
 
-$B"(A0Ds>r7o!'(B Sid$B$r=`Hw$9$k$3$H(B
+※前提条件： Sidを準備すること
 \end{frame}
 
-\begin{frame}{Serf$B$r;H$*$&$H;W$C$?$N$G(B}
+\begin{frame}{Serfを使おうと思ったので}
   \begin{itemize}
-  \item[0.] $B$d$j$?$$$H;W$C$F$$$k$3$H$r(BSerf$B$G$G$-$=$&!)(B
-  \item[1.] main$B$K$J$$$N$G(BDebian$B%Q%C%1!<%8$r:n@.$9$C$+(B
-  \item[2.] $B0MB84X78$N%Q%C%1!<%8$b8.JB$_%Q%C%1!<%82=I,MW!*(B
-  \item[3.] $BA4It:n$C$?$1$IB?$$!*(Bpkg-go$B%A!<%`$K2CF~!*(B
-  \item[4.] pkg-go$B$N%]%j%7!<8+$?$i!"%Q%C%1!<%8L>$J$I=$@5I,MW(B
-  \item[5.] $B=$@5=*$o$C$?$N$G!"(BML$BEj9F$H(BITP$B$d$k$+!<"+%$%^%3%3(B
+  \item[0.] やりたいと思っていることをSerfでできそう？
+  \item[1.] mainにないのでDebianパッケージを作成すっか
+  \item[2.] 依存関係のパッケージも軒並みパッケージ化必要！
+  \item[3.] 全部作ったけど多い！pkg-goチームに加入！
+  \item[4.] pkg-goのポリシー見たら、パッケージ名など修正必要
+  \item[5.] 修正終わったので、ML投稿とITPやるかー←イマココ
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Debian$B%Q%C%1!<%82=$,I,MW$J$b$N$I$b(B($B"(;M3Q(B)}
+\begin{frame}{Debianパッケージ化が必要なものども(※四角)}
 \begin{figure}[H]
 \begin{center}
   \includegraphics[width=0.7\hsize]{image201404/serf-dependency.eps}
@@ -105,27 +105,27 @@
 \end{figure}
 \end{frame}
 
-\begin{frame}{$B!!(B}
+\begin{frame}{　}
 \begin{itemize}
-  \item Golang$B$N%D!<%k$r%Q%C%1!<%82=$7$h$&$H;W$C$?F05!(B
-  \item \textcolor{red}{Debian$B$G$N(BGolang$B$r;H$&J}K!(B}
-  \item Debian$B%Q%C%1!<%82=$KI,MW$J(BGolang$B$NCN<1(B
-  \item $B%Q%C%1!<%82=$9$k$?$a$N$*:nK!(B
-  \item Golang$B$N%D!<%k$r(BDebian$B%Q%C%1!<%8$K$9$k(B
+  \item Golangのツールをパッケージ化しようと思った動機
+  \item \textcolor{red}{DebianでのGolangを使う方法}
+  \item Debianパッケージ化に必要なGolangの知識
+  \item パッケージ化するためのお作法
+  \item GolangのツールをDebianパッケージにする
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Debian$B$G$N(BGolang$B$N4D6-9=C[(B}
+\begin{frame}[containsverbatim]{DebianでのGolangの環境構築}
 \begin{commandline}
 $ sudo apt-get install golang
 \end{commandline}
 \end{frame}
 
-\begin{frame}{$B%$%s%9%H!<%k$5$l$k%Q%C%1!<%8(B}
+\begin{frame}{インストールされるパッケージ}
 \begin{itemize}
 \item golang-doc
 \item golang-go
-\item golang-go-linux-amd64 \footnote{amd64$B$N>l9g(B}
+\item golang-go-linux-amd64 \footnote{amd64の場合}
 \item golang-go.tools
 \item golang-src
 \item libjs-jquery
@@ -134,18 +134,18 @@ $ sudo apt-get install golang
 \end{frame}
 
 
-\begin{frame}{$B!!(B}
+\begin{frame}{　}
 \begin{itemize}
-  \item Golang$B$N%D!<%k$r%Q%C%1!<%82=$7$h$&$H;W$C$?F05!(B
-  \item Debian$B$G$N(BGolang$B$r;H$&J}K!(B
-  \item \textcolor{red}{Debian$B%Q%C%1!<%82=$KI,MW$J(BGolang$B$NCN<1(B}
-  \item $B%Q%C%1!<%82=$9$k$?$a$N$*:nK!(B
-  \item Golang$B$N%D!<%k$r(BDebian$B%Q%C%1!<%8$K$9$k(B
+  \item Golangのツールをパッケージ化しようと思った動機
+  \item DebianでのGolangを使う方法
+  \item \textcolor{red}{Debianパッケージ化に必要なGolangの知識}
+  \item パッケージ化するためのお作法
+  \item GolangのツールをDebianパッケージにする
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Golang$B$N%3%s%Q%$%kJ}K!(B}
-  hello world(hello.go)$B$rMQ0U(B
+\begin{frame}[containsverbatim]{Golangのコンパイル方法}
+  hello world(hello.go)を用意
  \begin{commandline}
 package main
 
@@ -157,23 +157,23 @@ func main() {
  \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Golang$B$N%3%s%Q%$%kJ}K!(B}
-  go build$B$G%3%s%Q%$%k(B
+\begin{frame}[containsverbatim]{Golangのコンパイル方法}
+  go buildでコンパイル
  \begin{commandline}
 $ go build hello.go
  \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Golang$B$N%3%s%Q%$%kJ}K!(B}
-$B<B9T(B
+\begin{frame}[containsverbatim]{Golangのコンパイル方法}
+実行
  \begin{commandline}
 $ ./hello
 Hello world.
  \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Golang$B$N%3%s%Q%$%kJ}K!(B}
-$B@EE*%j%s%/$5$l$F$$$k$3$H$r3NG'(B
+\begin{frame}[containsverbatim]{Golangのコンパイル方法}
+静的リンクされていることを確認
  \begin{commandline}
 $ file hello
 hello: ELF 64-bit LSB executable, x86-64, \
@@ -181,18 +181,18 @@ version 1 (SYSV), statically linked, not stripped
  \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$BI8=`%i%$%V%i%j0J30$K0MB8$9$k>l9g(B}
+\begin{frame}[containsverbatim]{標準ライブラリ以外に依存する場合}
 \begin{itemize}
-  \item $B4D6-JQ?t(BGOPATH$B$r@_Dj(B
-  \item $BI8=`%i%$%V%i%j0J30$N(BGolang$B$N(BDebian$B%Q%C%1!<%8$O!"(B/usr/share/gocode$B$K%$%s%9%H!<%k$5$l$k(B
+  \item 環境変数GOPATHを設定
+  \item 標準ライブラリ以外のGolangのDebianパッケージは、/usr/share/gocodeにインストールされる
 \end{itemize}
 \begin{commandline}
 $ export GOPATH=/usr/share/gocode
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$BI8=`%i%$%V%i%j0J30$K0MB8$9$k>l9g(B}
-golang-dns-dev(Go$BMQ$N(BDNS$B%i%$%V%i%j(B)$B$r;H$C$F$_$k(B
+\begin{frame}[containsverbatim]{標準ライブラリ以外に依存する場合}
+golang-dns-dev(Go用のDNSライブラリ)を使ってみる
 \begin{commandline}
 $ sudo apt-get install golang-dns-dev
 $ dpkg -L golang-dns-dev
@@ -207,9 +207,9 @@ $ dpkg -L golang-dns-dev
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$BI8=`%i%$%V%i%j0J30$K0MB8$9$k>l9g(B}
-Golang$B$N%D!<%k$G0MB8%Q%C%1!<%8$r%$%s%9%H!<%k>l9g(B
-$B"(%f!<%6%G%#%l%/%H%j$K%$%s%9%H!<%k$9$kNc(B
+\begin{frame}[containsverbatim]{標準ライブラリ以外に依存する場合}
+Golangのツールで依存パッケージをインストール場合
+※ユーザディレクトリにインストールする例
 \begin{commandline}
 $ mkdir $HOME/gocode
 $ export GOPATH=$HOME/gocode
@@ -217,9 +217,9 @@ $ go get github.com/miekg/dns
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$BI8=`%i%$%V%i%j0J30$K0MB8$9$k>l9g(B}
+\begin{frame}[containsverbatim]{標準ライブラリ以外に依存する場合}
 
-import$B$N$_H4?h(B\footnote{$B;2>H(B: \url{https://github.com/mkouhei/godig/blob/devel/dig.go}}
+importのみ抜粋\footnote{参照: \url{https://github.com/mkouhei/godig/blob/devel/dig.go}}
 \begin{commandline}
 package main
 
@@ -233,9 +233,9 @@ import (
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$BI8=`%i%$%V%i%j0J30$K0MB8$9$k>l9g(B}
+\begin{frame}[containsverbatim]{標準ライブラリ以外に依存する場合}
 
-$B<B9T(B
+実行
 {\tiny
 {\begin{lstlisting}
 $ go run dig.go
@@ -248,86 +248,86 @@ debian.or.jp.   600     IN      SOA     ns.debian.or.jp. root.debian.or.jp.\
 \end{lstlisting}}}
 \end{frame}
 
-\begin{frame}{$B!!(B}
+\begin{frame}{　}
 \begin{itemize}
-  \item Golang$B$N%D!<%k$r%Q%C%1!<%82=$7$h$&$H;W$C$?F05!(B
-  \item Debian$B$G$N(BGolang$B$r;H$&J}K!(B
-  \item Debian$B%Q%C%1!<%82=$KI,MW$J(BGolang$B$NCN<1(B
-  \item \textcolor{red}{$B%Q%C%1!<%82=$9$k$?$a$N$*:nK!(B}
-  \item Golang$B$N%D!<%k$r(BDebian$B%Q%C%1!<%8$K$9$k(B
+  \item Golangのツールをパッケージ化しようと思った動機
+  \item DebianでのGolangを使う方法
+  \item Debianパッケージ化に必要なGolangの知識
+  \item \textcolor{red}{パッケージ化するためのお作法}
+  \item GolangのツールをDebianパッケージにする
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Golang$B$N(BDebian$B%Q%C%1!<%82=$N$*:nK!(B}
-  $B%P%$%J%j$N$_$N>l9g(B
+\begin{frame}{GolangのDebianパッケージ化のお作法}
+  バイナリのみの場合
   \begin{itemize}
-  \item $B4pK\E*$K$O(BDepends$B$OI,MW$J$$(B
-  \item $B%G!<%b%s2=$9$k$HI,MW$K$J$k%1!<%9$b$"$k(B
-  \item $B%Q%C%1!<%8L>$O(BUpstream$B$NL>>N$HF1$8$G$b$h$$(B
+  \item 基本的にはDependsは必要ない
+  \item デーモン化すると必要になるケースもある
+  \item パッケージ名はUpstreamの名称と同じでもよい
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Golang$B$N(BDebian$B%Q%C%1!<%82=$N$*:nK!(B}
-  $B%i%$%V%i%j$N$_$N>l9g(B
+\begin{frame}{GolangのDebianパッケージ化のお作法}
+  ライブラリのみの場合
   \begin{itemize}
-  \item $B%=!<%9%3!<%I$NG[I[$@$1$J$N$G%3%s%Q%$%k$OITMW(B
-  \item $B%P%$%J%j$H0l=o$KG[I[$9$k>l9g$O!"%P%$%J%j$HF1MM(B
-  \item $B%=!<%9%Q%C%1!<%8!"%P%$%J%j%Q%C%1!<%8$H$b(B"golang-"$B$H$$$&(Bprefix$B$,I,MW(B
-  \item $B%P%$%J%j%Q%C%1!<%8$K$O(B"-dev"$B$H$$$&(Bsuffix$B$bI,MW(B
+  \item ソースコードの配布だけなのでコンパイルは不要
+  \item バイナリと一緒に配布する場合は、バイナリと同様
+  \item ソースパッケージ、バイナリパッケージとも"golang-"というprefixが必要
+  \item バイナリパッケージには"-dev"というsuffixも必要
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Golang$B$N(BDebian$B%Q%C%1!<%82=$N$*:nK!(B}
- $B6&DL(B
+\begin{frame}{GolangのDebianパッケージ化のお作法}
+ 共通
  \begin{itemize}
- \item $B%S%k%I$d%F%9%H<B9T;~$K!"(B\texttt{go get}$B$r;H$C$F$O%"%+%s(B
- \item $BEAE}E*$J%P!<%8%g%s%K%s%0$,$5$l$F$$$J$1$l$P(B"0.0~git20140419-1"$B$H$$$&%P!<%8%g%s$r$D$1$k(B
- \item $B%=!<%9%Q%C%1!<%8$O(Bgit-buildpackage$B$G4IM}$9$k(B
+ \item ビルドやテスト実行時に、\texttt{go get}を使ってはアカン
+ \item 伝統的なバージョンニングがされていなければ"0.0~git20140419-1"というバージョンをつける
+ \item ソースパッケージはgit-buildpackageで管理する
 \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B!!(B}
+\begin{frame}{　}
 \begin{itemize}
-  \item Golang$B$N%D!<%k$r%Q%C%1!<%82=$7$h$&$H;W$C$?F05!(B
-  \item Debian$B$G$N(BGolang$B$r;H$&J}K!(B
-  \item Debian$B%Q%C%1!<%82=$KI,MW$J(BGolang$B$NCN<1(B
-  \item $B%Q%C%1!<%82=$9$k$?$a$N$*:nK!(B
-  \item \textcolor{red}{Golang$B$N%D!<%k$r(BDebian$B%Q%C%1!<%8$K$9$k(B}
+  \item Golangのツールをパッケージ化しようと思った動機
+  \item DebianでのGolangを使う方法
+  \item Debianパッケージ化に必要なGolangの知識
+  \item パッケージ化するためのお作法
+  \item \textcolor{red}{GolangのツールをDebianパッケージにする}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{$B%=!<%9%3!<%I$NF~<j(B}
+\begin{frame}{ソースコードの入手}
 \begin{itemize}
-  \item tarball$B$,$"$l$P$=$l$r$J$1$l$P!"%j%]%8%H%j$+$iF~<j(B
-  \item $B%P!<%8%g%s$r3NG'$9$k(B\footnote{$B$J$1$l$PA0=R$N(B0.0~git20140419$B$N$h$&$J%P!<%8%g%s$r$D$1$k(B}
-  \item $B%=!<%9%Q%C%1!<%8MQ$N(BGit$B%j%]%8%H%j$r:n$j!"(B\texttt{git import-orig}$B%3%^%s%I$G%$%s%]!<%H$9$k(B
+  \item tarballがあればそれをなければ、リポジトリから入手
+  \item バージョンを確認する\footnote{なければ前述の0.0~git20140419のようなバージョンをつける}
+  \item ソースパッケージ用のGitリポジトリを作り、\texttt{git import-orig}コマンドでインポートする
 \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B%=!<%9%Q%C%1!<%8$N:n@.(B}
+\begin{frame}{ソースパッケージの作成}
 \begin{itemize}
-  \item[1.] \texttt{dh\_make}$B%3%^%s%I$G(Bdebian$B%G%#%l%/%H%j$r@8@.(B
-  \item[2.] $BITMW$J%F%s%W%l!<%H$r:o=|(B
-  \item[3.] control,copyright,rules,changelog$B$J$I$r=$@5(B
-  \item[4.] \texttt{git-buildpackage}$B%3%^%s%I$G%Q%C%1!<%8$r%S%k%I(B\footnote{main$B$KF~$C$F$$$J$$%Q%C%1!<%8$K0MB8$7$F$$$J$$>l9g$O!"(B\texttt{pbuilder}$B$NJ}$,8D?ME*$K$O3Z(B}
+  \item[1.] \texttt{dh\_make}コマンドでdebianディレクトリを生成
+  \item[2.] 不要なテンプレートを削除
+  \item[3.] control,copyright,rules,changelogなどを修正
+  \item[4.] \texttt{git-buildpackage}コマンドでパッケージをビルド\footnote{mainに入っていないパッケージに依存していない場合は、\texttt{pbuilder}の方が個人的には楽}
 \end{itemize}
 \end{frame}
 
 \begin{frame}{debian/control}
   \begin{itemize}
-    \item $B6&DL(B
+    \item 共通
       \begin{itemize}
-      \item Build-Depends$B$K(Bgolang-go
+      \item Build-Dependsにgolang-go
       \end{itemize}
-    \item $B%i%$%V%i%j(B
+    \item ライブラリ
       \begin{itemize}
-      \item Build-Depends$B$K(Bdh-golang
-      \item Depends$B$K(Bgolang-go$B$rDI5-(B
+      \item Build-Dependsにdh-golang
+      \item Dependsにgolang-goを追記
       \item Architecture: all
       \end{itemize}
-    \item $B%P%$%J%j(B
+    \item バイナリ
       \begin{itemize}
         \item Architecture: any
       \end{itemize}
@@ -336,29 +336,29 @@ debian.or.jp.   600     IN      SOA     ns.debian.or.jp. root.debian.or.jp.\
 
 \begin{frame}{debian/rules}
   \begin{itemize}
-  \item $B6&DL(B
+  \item 共通
     \begin{itemize}
-    \item \texttt{dh}$B%3%^%s%I$K(B\texttt{--buildsystem=golang}$B%*%W%7%g%s$r;XDj(B
+    \item \texttt{dh}コマンドに\texttt{--buildsystem=golang}オプションを指定
     \end{itemize}
-  \item $B%i%$%V%i%j(B
+  \item ライブラリ
     \begin{itemize}
-    \item $B4D6-JQ?t(B\texttt{DH\_GOPKG}$B$K(B\texttt{GOPATH}$B$G;XDj$7$?%G%#%l%/%H%j$7$?$KE83+$5$l$kL>A06u4V$r;XDj(B
-    \item \texttt{dh}$B%3%^%s%I$K(B\texttt{--with=golang}$B%*%W%7%g%s$r;XDj(B
-    \item \texttt{override\_dh\_auto\_install}$B%?!<%2%C%H$G!"(B\texttt{dh\_auto\_install -O-buildsystem=golang}$B$r@_Dj(B
+    \item 環境変数\texttt{DH\_GOPKG}に\texttt{GOPATH}で指定したディレクトリしたに展開される名前空間を指定
+    \item \texttt{dh}コマンドに\texttt{--with=golang}オプションを指定
+    \item \texttt{override\_dh\_auto\_install}ターゲットで、\texttt{dh\_auto\_install -O-buildsystem=golang}を設定
     \end{itemize}
-  \item $B%P%$%J%j(B
+  \item バイナリ
     \begin{itemize}
-      \item \texttt{dh}$B%3%^%s%I$K(B\texttt{--with=golang}$B%*%W%7%g%s$,ITMW(B
+      \item \texttt{dh}コマンドに\texttt{--with=golang}オプションが不要
     \end{itemize}
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{$B$^$H$a(B}
+\begin{frame}{まとめ}
 \begin{itemize}
-  \item Debian$B%Q%C%1!<%8$r:n$k>e$GI,MW$J(BGolang$B%Q%C%1!<%8!"%3%s%Q%$%k$NJ}K!(B
-  \item Golang$B$N(BDebain$B%Q%C%1!<%82=(B
-  \item pkg-go team$B$K$h$k(BGolang$B%Q%C%1!<%8$N%]%j%7!<(B
+  \item Debianパッケージを作る上で必要なGolangパッケージ、コンパイルの方法
+  \item GolangのDebainパッケージ化
+  \item pkg-go teamによるGolangパッケージのポリシー
 \end{itemize}
 \end{frame}
 

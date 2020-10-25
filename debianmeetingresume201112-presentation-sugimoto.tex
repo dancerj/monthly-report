@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -30,15 +30,15 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{$BEl5~%(%j%"(BDebian$BJY6/2q(B \\quilt $B$G(Bporting $B$7$F$_$?(B}
+\title{東京エリアDebian勉強会 \\quilt でporting してみた}
 \subtitle{}
-\author{$B?yK\(B $BE5=<(B dictoss@live.jp}
-\date{2011$BG/(B12$B7n(B17$BF|(B}
+\author{杉本 典充 dictoss@live.jp}
+\date{2011年12月17日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
@@ -48,171 +48,171 @@
 %\section{}
 
 \begin{frame}
- \frametitle{$B%"%8%'%s%@(B}
+ \frametitle{アジェンダ}
  \begin{itemize}
-  \item Debian $B%Q%C%1!<%8$N%U%)!<%^%C%H(B
-  \item quilt $B%Q%C%1!<%8$N>R2p(B
-  \item Debian GNU/kFreeBSD$B$H(Bporting
-  \item quilt$B$r;H$C$F(Bporting$B%Q%C%A$N:n@.(B
-  \item $B<A5?1~Ez(B
+  \item Debian パッケージのフォーマット
+  \item quilt パッケージの紹介
+  \item Debian GNU/kFreeBSDとporting
+  \item quiltを使ってportingパッチの作成
+  \item 質疑応答
  \end{itemize}
 \end{frame}
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
  \begin{itemize}
-  \item $B?yK\!!E5=<(B (SUGIMOTO Norimitsu)
+  \item 杉本　典充 (SUGIMOTO Norimitsu)
   \item Twitter: @dictoss
-  \item $B$7$,$J$$%=%U%H%&%'%"3+H/<T(B
-  \item Debian User$B$G$"$j!"(BFreeBSD User$B$G$b$"$k(B
-  \item $BN><T$,9g$o$5$C$?(BDebian GNU/kFreeBSD$B$,$*$b$7$m$=$&$J$N$G!":G6a;H$C$F$$$k(B
+  \item しがないソフトウェア開発者
+  \item Debian Userであり、FreeBSD Userでもある
+  \item 両者が合わさったDebian GNU/kFreeBSDがおもしろそうなので、最近使っている
  \end{itemize}
 \end{frame}
 
-\emtext{Debian$B%Q%C%1!<%8$N%U%)!<%^%C%H(B}
+\emtext{Debianパッケージのフォーマット}
 
-\begin{frame}{Debian$B%Q%C%1!<%8$N%U%)!<%^%C%H(B}
+\begin{frame}{Debianパッケージのフォーマット}
  \begin{itemize}
-  \item man dpkg-source(1)$B$K=q$$$F$"$j$^$9(B
+  \item man dpkg-source(1)に書いてあります
   \item 3.0(native)
    \begin{itemize}
-    \item $B:G=i$N:"$+$i$"$k(BFormat 1.0(native)$B$+$i05=L7A<0$,A}$($?$b$N!#(B
+    \item 最初の頃からあるFormat 1.0(native)から圧縮形式が増えたもの。
     \item packagename-version.tar.ext
     \item packagename-version.dsc
    \end{itemize}
   \item 3.0(quilt)
    \begin{itemize}
-    \item upstream$B$+$i;}$C$F$-$F%Q%C%A$J$I=$@5$r2C$($?%Q%C%1!<%8$O$3$N7A<0!#(B
+    \item upstreamから持ってきてパッチなど修正を加えたパッケージはこの形式。
     \item packagename-upstreamversion.orig.tar.ext
-    \item packagename-upstreamversion.orig-component.tar.ext$B!JG$0U!K(B
+    \item packagename-upstreamversion.orig-component.tar.ext（任意）
     \item packagename-debianversion.debian.tar.ext
     \item packagename-debianversion.dsc
    \end{itemize}
  \end{itemize}
 \end{frame}
 
-\begin{frame}{quilt$B%3%^%s%I(B}
+\begin{frame}{quiltコマンド}
  \begin{itemize}
-  \item 3.0(quilt)$B$G;HMQ$7$F$$$k%Q%C%A4IM}%D!<%k(B
-  \item debian$B%W%m%8%'%/%H%*%j%8%J%k$G$O$J$/!"0J2<%W%m%8%'%/%H$N@.2LJ*$r%Q%C%1!<%8$7$?$b$N$G$9(B
+  \item 3.0(quilt)で使用しているパッチ管理ツール
+  \item debianプロジェクトオリジナルではなく、以下プロジェクトの成果物をパッケージしたものです
   \item https://savannah.nongnu.org/projects/quilt
-  \item debian/patches/series$B!"Kt$O(Bdebian/patches/debian.series$B$K%Q%C%A$,@Q$^$l$^$9(B
-  \item devscripts$B$N0MB8$G0l=o$KF~$i$J$$$N$GJLES!V(Bapt-get install quilt$B!W(B
+  \item debian/patches/series、又はdebian/patches/debian.seriesにパッチが積まれます
+  \item devscriptsの依存で一緒に入らないので別途「apt-get install quilt」
  \end{itemize}
 \end{frame}
 
 \emtext{Debian GNU/kFreeBSD}
 
-\begin{frame}{Debian GNU/kFreeBSD$B$H$O(B}
+\begin{frame}{Debian GNU/kFreeBSDとは}
  \begin{itemize}
-  \item FreeBSD$B%+!<%M%k$r;H$C$FF0:n$9$k(BDebian
-  \item kfreebsd-i386$B!"(Bkfreebsd-amd64$B$,%"!<%-%F%/%A%cL>(B
-  \item $B$b$A$m$s(Bapt$B$,;H$($^$9(B
-  \item $B%I%i%$%P$d%G%P%$%9$O$d$C$Q$j(BFreeBSD$B!J(Bkldstat$B$H$+!"(B/dev/ad4s1$B$H$+!K(B
-  \item ZFS$B$,;H$($k(B
-  \item debootstrap$B$G(Blinux-i386$B%P%$%J%j$r%$%s%9%H!<%k$7$F(Bchroot$B$9$k$H(Blinux$B%P%$%J%j$,F0$/(B
+  \item FreeBSDカーネルを使って動作するDebian
+  \item kfreebsd-i386、kfreebsd-amd64がアーキテクチャ名
+  \item もちろんaptが使えます
+  \item ドライバやデバイスはやっぱりFreeBSD（kldstatとか、/dev/ad4s1とか）
+  \item ZFSが使える
+  \item debootstrapでlinux-i386バイナリをインストールしてchrootするとlinuxバイナリが動く
  \end{itemize}
 \end{frame}
 
-\begin{frame}{porting$B$C$F2?!)(B}
+\begin{frame}{portingって何？}
  \begin{itemize}
-  \item $BMM!9$J%"!<%-%F%/%A%c$GF0:n$5$;$k$h$&$KBP1~$9$k$3$H(B(armel$B$d(Bmips$B$KBP1~$9$k$J$I(B)
-  \item $B%+!<%M%k$d(BCPU$B$N0c$$$r0U<1$9$kI,MW$,$"$k(B
+  \item 様々なアーキテクチャで動作させるように対応すること(armelやmipsに対応するなど)
+  \item カーネルやCPUの違いを意識する必要がある
   \item http://www.debian.org/ports/
   \item http://www.debian.org/ports/kfreebsd-gnu/
   \item http://glibc-bsd.alioth.debian.org/porting/
  \end{itemize}
 \end{frame}
 
-\begin{frame}{kfreebsd$B$K$*$1$k(Bporting$B:n6H(B}
+\begin{frame}{kfreebsdにおけるporting作業}
  \begin{itemize}
-  \item $B6qBNE*$J:n6H$O!"(Bhttp://glibc-bsd.alioth.debian.org/porting/PORTING
-  \item uname$B%A%'%C%/(B
-  \item debian/control$B$G%+!<%M%k$N0c$$$J$N$+!"(BCPU$B$N0c$$$J$N$+(B
-  \item libtool$B!"(Baclocal.m4$B$J$I!J(Bautomake$B!"(Bautoconf$B<~$j!K(B
-  \item \_\_FreeBSD\_kernel\_\_$B!"(B\_\_FreeBSD\_kernel\_version$B$H$$$C$?%^%/%mL>$KBP1~$9$k$3$H!J(BFreeBSD$BK\2H$O(B\_\_FreeBSD\_\_$B$r;H$C$F$$$k!K(B
-  \item FreeBSD$B$N%G%P%$%94IM}$O(Bdevfs$B$r;H$C$F$$$^$9$N$GBP1~$,I,MW(B
-  \item FreeBSD$B$J$N$GB8:_$7$J$$%7%0%J%k$,$"$j$^$9(B
-  \item linux$B8BDj$N6&M-%i%$%V%i%jL>$r%O!<%I%3!<%I$7$F$$$kItJ,$N=|5n(B
+  \item 具体的な作業は、http://glibc-bsd.alioth.debian.org/porting/PORTING
+  \item unameチェック
+  \item debian/controlでカーネルの違いなのか、CPUの違いなのか
+  \item libtool、aclocal.m4など（automake、autoconf周り）
+  \item \_\_FreeBSD\_kernel\_\_、\_\_FreeBSD\_kernel\_versionといったマクロ名に対応すること（FreeBSD本家は\_\_FreeBSD\_\_を使っている）
+  \item FreeBSDのデバイス管理はdevfsを使っていますので対応が必要
+  \item FreeBSDなので存在しないシグナルがあります
+  \item linux限定の共有ライブラリ名をハードコードしている部分の除去
  \end{itemize}
 \end{frame}
 
 \begin{frame}
 \begin{center}
-\LARGE{$B$D$^$j(BDebian GNU/kFreeBSD$B$G;H$($k$h$&$K$9$k$K$O(Bpatch$B$r$"$F$kI,MW$,$"$k(B}
+\LARGE{つまりDebian GNU/kFreeBSDで使えるようにするにはpatchをあてる必要がある}
 \end{center}
 \end{frame}
 
 \begin{frame}
 \begin{center}
-\LARGE{$B$=$3$G(Bquilt$BEP>l(B}
+\LARGE{そこでquilt登場}
 \end{center}
 \end{frame}
 
 
-\begin{frame}{porting$B:n6H(B}
+\begin{frame}{porting作業}
  \begin{itemize}
-  \item $BBP>]%Q%C%1!<%8$O(Bicewm$B$H$$$&%&%#%s%I%&%^%M!<%8%c$G$9(B
-  \item icewm$B$N%?%9%/%P!<$K$"$kEE8;>uBVDLCN%"%$%3%s$,(Bkfreebsd$B$@$H!"I=<($5$l$J$$(B
-  \item linux-i386$B!"(Blinux-amd64$B$G$OI=<($5$l$k$N$O3NG':Q$_(B
-  \item porting$B$9$l$P!"(Bkfreebsd$B$G$bI=<($G$-$k$O$:(B
+  \item 対象パッケージはicewmというウィンドウマネージャです
+  \item icewmのタスクバーにある電源状態通知アイコンがkfreebsdだと、表示されない
+  \item linux-i386、linux-amd64では表示されるのは確認済み
+  \item portingすれば、kfreebsdでも表示できるはず
  \end{itemize}
 \end{frame}
 
-\begin{frame}{kfreebsd$B$GF0$+$J$$860x$NDI5a(B}
+\begin{frame}{kfreebsdで動かない原因の追求}
  \begin{itemize}
-  \item "grep -nr \_\_FreeBSD\_\_ *"$B!"(B"grep -nr \_\_linux\_\_"$B$r<B9T$7$F$_$k(B
-  \item $B860x$O%^%/%mL>$,0c$&$;$$$G!"(Blinux$B%+!<%M%k;~$N=hM}$,<B9T$5$l$F$$$?(B
-  \item $B$3$l$rD>$;$P!"F0$/$O$:!*!*(B
+  \item "grep -nr \_\_FreeBSD\_\_ *"、"grep -nr \_\_linux\_\_"を実行してみる
+  \item 原因はマクロ名が違うせいで、linuxカーネル時の処理が実行されていた
+  \item これを直せば、動くはず！！
 %  \item #if defined(\_\_FreeBSD\_\_) || defined(\_\_FreeBSD\_kernel\_\_)
  \end{itemize}
 \end{frame}
 
-\begin{frame}{quilt$B%3%^%s%I$G(Bpatch$BA`:n(B}
+\begin{frame}{quiltコマンドでpatch操作}
  \begin{itemize}
-  \item debian/patches/series$B$K4IM}$7$F$$$k%Q%C%A%U%!%$%k$,@Q$^$l$F$$$^$9(B
+  \item debian/patches/seriesに管理しているパッチファイルが積まれています
   \item quilt new kfreebsd\_porting\_aapm
-  \item $B?7$7$$%Q%C%A%U%!%$%k$rDI2C$G$-$^$7$?(B
+  \item 新しいパッチファイルを追加できました
  \end{itemize}
 \end{frame}
 
-\begin{frame}{quilt$B%3%^%s%I$G(Bpatch$BA`:n(B}
+\begin{frame}{quiltコマンドでpatch操作}
  \begin{itemize}
   \item quilt add src/aapm.h
   \begin{itemize}
-   \item $B=$@5$9$k%U%!%$%k$r(Bquilt$B%3%^%s%I$GEPO?$7$^$9(B
+   \item 修正するファイルをquiltコマンドで登録します
   \end{itemize}
   \item quilt edit src/aapm.h
   \begin{itemize}
-   \item $B%U%!%$%k$r=$@5$7$^$9(B
+   \item ファイルを修正します
   \end{itemize}
   \item quilt refresh
   \begin{itemize}
-   \item kfreebsd\_porting\_aapm$B$K=PNO$7$^$9(B
+   \item kfreebsd\_porting\_aapmに出力します
   \end{itemize}
-  \item $B%U%!%$%k$,J#?t$"$k$N$G!"(Badd$B!"(Bedit$B!"(Brefresh$B$r7+$jJV$7$^$9!#(B
+  \item ファイルが複数あるので、add、edit、refreshを繰り返します。
  \end{itemize}
 \end{frame}
 
-\begin{frame}{$B%S%k%I$G$-$k$+3N$+$a$k(B}
+\begin{frame}{ビルドできるか確かめる}
  \begin{itemize}
-  \item dch$B%3%^%s%I$G(Bchangelog$B$rDI2C(B
-  \item debuild -uc -us$B%3%^%s%I$G%Q%C%1!<%8$r%S%k%I$7$^$9(B
+  \item dchコマンドでchangelogを追加
+  \item debuild -uc -usコマンドでパッケージをビルドします
  \end{itemize}
 \end{frame}
 
-\begin{frame}{$B%Q%C%1!<%8$,%S%k%I$G$-$^$7$?(B}
+\begin{frame}{パッケージがビルドできました}
  \begin{itemize}
-  \item $B%$%s%9%H!<%k$7$FF0:n3NG'!V(B\$ sudo dpkg -i icewm*.deb$B!W(B 
-  \item $BEE8;>uBVDLCN%"%$%3%s$,I=<($5$l$^$7$?(B
-  \item reportbug$B%3%^%s%I$G(Bpatch$B$rAw?.$7$F$*$-$^$9(B
+  \item インストールして動作確認「\$ sudo dpkg -i icewm*.deb」 
+  \item 電源状態通知アイコンが表示されました
+  \item reportbugコマンドでpatchを送信しておきます
   \item http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=650395
  \end{itemize}
 \end{frame}
 
-\begin{frame}{$B;29M>pJs(B}
+\begin{frame}{参考情報}
  \begin{itemize}
-  \item $BEl5~%(%j%"(BDebian $BJY6/2q(B2007 $BG/(B01 $B7n9f!V%Q%C%A4IM}%D!<%k(Bquilt $B$N;H$$J}!W>.NS576)(B
-  \item $BEl5~%(%j%"(BDebian $BJY6/2q(B2010 $BG/(B03 $B7n9f!V(Bdpkg $B%=!<%97A<0(B''3.0(quilt)''$B!W5HLnM?;V?N(B
+  \item 東京エリアDebian 勉強会2007 年01 月号「パッチ管理ツールquilt の使い方」小林儀匡
+  \item 東京エリアDebian 勉強会2010 年03 月号「dpkg ソース形式''3.0(quilt)''」吉野与志仁
   \item man dpkg-source(1), man quilt(1)
   \item http://wiki.debian.org/Projects/DebSrc3.0
   \item http://wiki.debian.org/Debian\_GNU/kFreeBSD
@@ -221,9 +221,9 @@
 \end{frame}
 
 
-\begin{frame}{$B<A5?1~Ez(B}
+\begin{frame}{質疑応答}
 \begin{center}
-\Large $B$J$K$+<ALd$O$"$j$^$9$+!)(B
+\Large なにか質問はありますか？
 \end{center}
 \end{frame}
 

@@ -1,6 +1,6 @@
 %; whizzy section -pdf xpdf -latex ./whizzypdfptex.sh
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2007 Junichi Uekawa
@@ -38,8 +38,8 @@
 \setbeamertemplate{frametitle}[default][center]
 \usefonttheme{professionalfonts}
 
-% commandline$B4D6-$rDj5A!#2hLLF~=PNO$K$D$$$F$O(Bcommandline$B4D6-(B
-% $B$GI=5-$9$k(B
+% commandline環境を定義。画面入出力についてはcommandline環境
+% で表記する
 \newenvironment{commandline}%
 {\VerbatimEnvironment
   \begin{Sbox}\begin{minipage}{1.0\hsize}\begin{fontsize}{12}{12} \begin{BVerbatim}}%
@@ -77,19 +77,19 @@
 %  presentation (shell-command (concat "xpdf -fullscreen " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{$BEl5~%(%j%"(B Debian $BJY6/2q(B}
-\subtitle{Debian Package $B%O%s%:%*%s(B}
-\author{$B4d>>(B $B?.MN(B iwamatsu@debian.or.jp\\IRC nick: iwamatsu}
-\date{2008$BG/(B03$B7n(B01$BF|(B}
+\title{東京エリア Debian 勉強会}
+\subtitle{Debian Package ハンズオン}
+\author{岩松 信洋 iwamatsu@debian.or.jp\\IRC nick: iwamatsu}
+\date{2008年03月01日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 
-% $B4V$N%?%$%H%k%Z!<%8MQ(B
+% 間のタイトルページ用
 \newcommand{\emtext}[1]{
 \begin{frame}{}
  
@@ -114,44 +114,44 @@
 \begin{frame}
  \frametitle{Agenda}
   \begin{itemize}
-  \item $B:#2s$NL\E*H/I=(B
-  \item Debian Package $B$r:n@.$9$kA0$N=`Hw(B
-  \item $B:#2s$N@8lS(B
-  \item $B%W%m%0%i%`$,F0:n$r3NG'$9$k(B
-  \item Debian Package $B$N?w7A$r:n$k(B
-  \item debian/control $B%U%!%$%k$NJT=8(B
-  \item debian/changelog $B%U%!%$%k$NJT=8(B
-  \item debian/copyright $B%U%!%$%k$NJT=8(B
-  \item debian/rules $B%U%!%$%k$rJT=8$9$k(B
-  \item Debian Package$B!!$N:n@.(B
-  \item Debian Package $B$N%F%9%H(B
-  \item $BK\F|$N$^$H$a(B
-  \item $B=*$o$j$K(B
-  \item $B<A5?1~Ez(B
+  \item 今回の目的発表
+  \item Debian Package を作成する前の準備
+  \item 今回の生贄
+  \item プログラムが動作を確認する
+  \item Debian Package の雛形を作る
+  \item debian/control ファイルの編集
+  \item debian/changelog ファイルの編集
+  \item debian/copyright ファイルの編集
+  \item debian/rules ファイルを編集する
+  \item Debian Package　の作成
+  \item Debian Package のテスト
+  \item 本日のまとめ
+  \item 終わりに
+  \item 質疑応答
  \end{itemize}
 \end{frame}
 
-\section{$B:#2s$NL\E*(B}
-\emtext{$B:#2s$NL\E*(B}
+\section{今回の目的}
+\emtext{今回の目的}
 
 \begin{frame}
-\alert{{\LARGE$B!!%7%s%0%k%P%$%J%j$N(B Debian Package $B$,:n@.$G$-$k$h$&$K$J$k$3$H!#(B}}
+\alert{{\LARGE　シングルバイナリの Debian Package が作成できるようになること。}}
 \end{frame}
 
-\section{Debian Package $B$r:n@.$9$kA0$N=`Hw(B}
-\emtext{Debian Package $B$r:n@.$9$kA0$N=`Hw(B}
+\section{Debian Package を作成する前の準備}
+\emtext{Debian Package を作成する前の準備}
 
-\section{Debian Package $B:n@.4D6-(B}
+\section{Debian Package 作成環境}
 \begin{frame}
-$B0J2<$N4D6-JQ?t$r@_Dj$7$F$*$/$HJXMx!#(B
+以下の環境変数を設定しておくと便利。
 
 \begin{itemize}
-  \item DEBFULLNAME $B$N@_Dj(B
+  \item DEBFULLNAME の設定
 
-    Debian Package $B$N%a%s%F%JL>(B
-  \item DEBEMAIL $B$N@_Dj(B
+    Debian Package のメンテナ名
+  \item DEBEMAIL の設定
 
-    Debian Package  $B%a%s%F%J%s%9MQ$N%a!<%k%"%I%l%9(B
+    Debian Package  メンテナンス用のメールアドレス
 \end{itemize}
 \end{frame}
 
@@ -159,16 +159,16 @@
 
 \begin{commandline}
 $ cat ~/.bashrc
---$BN,(B--
+--略--
 export DEBFULLNAME="Nobuhiro Iwamatsu"
 export DEBEMAIL=iwamatsu@nigauri.org
---$BN,(B--
+--略--
 $ source ~/.bashrc
 \end{commandline}
 \end{frame}
 
-\begin{frame}{$BI,MW$J%Q%C%1!<%8(B}
-$B:GDc8BI,MW$JI,MW$J%Q%C%1!<%8$O0J2<$NDL$j!#(B
+\begin{frame}{必要なパッケージ}
+最低限必要な必要なパッケージは以下の通り。
 \begin{itemize}
  \item devscripts
  \item debhelper
@@ -179,15 +179,15 @@ $ source ~/.bashrc
  \item dh-make
 \end{itemize}
 
-$B$"$k$HJXMx$J%Q%C%1!<%8(B
+あると便利なパッケージ
 \begin{itemize}
 \item apt-file
 \item pbuilder
 \end{itemize}
 \end{frame}
 
-\section{$B:#2s$N@8lS(B}
-\emtext{$B:#2s$N@8lS(B}
+\section{今回の生贄}
+\emtext{今回の生贄}
 
 \begin{frame}[containsverbatim]
 {\LARGE sl}
@@ -208,11 +208,11 @@ __/ =| o |=-~~\  /~~\  /~~\  /~~\ ____Y___________|__|__________________________
 \end{commandline}
 \end{frame}
 
-\section{$B%W%m%0%i%`$,F0:n$r3NG'$9$k(B}
-\emtext{$B%W%m%0%i%`$,F0:n$r3NG'$9$k(B}
+\section{プログラムが動作を確認する}
+\emtext{プログラムが動作を確認する}
 
 \begin{frame}[containsverbatim]
-$B$^$:!"%W%m%0%i%`$,F0:n$9$k$+3NG'$7$^$7$g$&!#(B
+まず、プログラムが動作するか確認しましょう。
 \begin{commandline}
 $ tar -xf sl.tar
 $ cd sl
@@ -221,7 +221,7 @@ $ make
 \end{frame}
 
 \begin{frame}[containsverbatim]
-curses.h $B$,$J$$$?$a!"%3%s%Q%$%k$K<:GT$7$^$7$?!#(B
+curses.h がないため、コンパイルに失敗しました。
 \begin{commandline}
 $ tar -xf sl.tar
 $ cd sl
@@ -237,9 +237,9 @@ sl.c:42: error: (Each undeclared identifier is reported only once
 \end{frame}
 
 \begin{frame}[containsverbatim]
-curses.h $B$r;}$C$?(B Debian Package $B$,I,MW$G$9!#(B
-$B$I$N%U%!%$%k$,$I$N%Q%C%1!<%8$8$h$C$F%$%s%9%H!<%k$5$l$k$N$+!"D4$Y$k$K$O(B
-\alert{apt-file}$B$r;H$&$HJXMx$G$9!#(B
+curses.h を持った Debian Package が必要です。
+どのファイルがどのパッケージじよってインストールされるのか、調べるには
+\alert{apt-file}を使うと便利です。
 \begin{commandline}
 # sudo apt-file update
 $ apt-file search /usr/include/curses.h
@@ -248,7 +248,7 @@ libncurses5-dev: usr/include/curses.h
 \end{frame}
 
 \begin{frame}[containsverbatim]
-\alert{libncueses5-dev} $B%Q%C%1!<%8$r%$%s%9%H!<%k$7$F:FEY%3%s%Q%$%k$7$^$7$g$&!#(B
+\alert{libncueses5-dev} パッケージをインストールして再度コンパイルしましょう。
 \begin{commandline}
 # apt-get update
 # apt-get install libncurses5-dev
@@ -260,21 +260,21 @@ cc -O -o sl sl.c -lcurses -ltermcap
 \end{frame}
 
 \begin{frame}[containsverbatim]
-$B%3%s%Q%$%k$,DL$C$?$N$G!"F0:n%F%9%H$r$7$^$7$g$&!#(B
+コンパイルが通ったので、動作テストをしましょう。
 \begin{commandline}
 % ./sl
 \end{commandline}
 \end{frame}
 
-\section{Debian Package $B$N?w7A$r:n$k(B}
-\emtext{Debian Package $B$N?w7A$r:n$k(B}
+\section{Debian Package の雛形を作る}
+\emtext{Debian Package の雛形を作る}
 
 \begin{frame}[containsverbatim]
-$B%G%#%l%/%H%j$K%P!<%8%g%s$,$J$$>l9g$O%P!<%8%g%s$,IU$$$?%G%#%l%/%H%jL>$KJQ99$7$^$9!#(B
-Debian Package $B$N?w7A$r:n@.$9$k$K$O!"(Bdh\_make $B%3%^%s%I$r;H$$$^$9!#(B
+ディレクトリにバージョンがない場合はバージョンが付いたディレクトリ名に変更します。
+Debian Package の雛形を作成するには、dh\_make コマンドを使います。
 
-%Debian Package $B$O%Q%C%1!<%8$N%P!<%8%g%s$rMW5a$7$^$9!#%G%#%l%/%H%j$K%P!<%8%g%s$,(B
-%$B$J$$>l9g$O%P!<%8%g%s$,IU$$$?%G%#%l%/%H%jL>$KJQ99$7$^$9!#(B
+%Debian Package はパッケージのバージョンを要求します。ディレクトリにバージョンが
+%ない場合はバージョンが付いたディレクトリ名に変更します。
 \begin{commandline}
 $ tar -xf sl.tar
 $ mv sl sl-0.0.0
@@ -295,11 +295,11 @@ library, kernel module or cdbs?
 
 \begin{frame}
 \begin{itemize}
-  \item s: $B0l$D$N<B9T%P%$%J%j$rDs6!$9$k%Q%C%1!<%8(B
-  \item m: 2$B$D0J>e$N<B9T%P%$%J%j$rDs6!$9$k%Q%C%1!<%8(B
-  \item l: $B%i%$%V%i%jMQ%Q%C%1!<%8(B
-  \item k: $B%+!<%M%k%b%8%e!<%kMQ%Q%C%1!<%8(B
-  \item b: cdbs $B$r;H$C$?%Q%C%1!<%8(B
+  \item s: 一つの実行バイナリを提供するパッケージ
+  \item m: 2つ以上の実行バイナリを提供するパッケージ
+  \item l: ライブラリ用パッケージ
+  \item k: カーネルモジュール用パッケージ
+  \item b: cdbs を使ったパッケージ
 \end{itemize}
 \end{frame}
 
@@ -344,8 +344,8 @@ or add --createorig to create one.
 \end{frame}
 
 \begin{frame}[containsverbatim]
-xxx.orig.tar.gz $B$,$J$$$H!"%(%i!<$K$J$j$^$9!#(B\\
---createorig $B%*%W%7%g%s$r2C$($F!!(Bdh\_make$B$r<B9T$7$^$7$g$&!#(B
+xxx.orig.tar.gz がないと、エラーになります。\\
+--createorig オプションを加えて　dh\_makeを実行しましょう。
 
 \begin{commandline}
 $ dh_make --createorig
@@ -356,12 +356,12 @@ $ dh_make --createorig
 
 \begin{frame}[containsverbatim]
 
-dh\_make $B<B9T8e!"(Bdebian $B%G%#%l%/%H%j$,:n@.$5$l$^$9!#(B
+dh\_make 実行後、debian ディレクトリが作成されます。
 \begin{commandline}
 $ ls ./debian/
 README.Debian  control    dirs  emacsen-remove.ex   
 init.d.lsb.ex  manpage.xml.ex   mogeri.doc-base.EX  
-preinst.ex     watch.ex$B!!!!(Bchangelog  copyright  
+preinst.ex     watch.ex　　changelog  copyright  
 docs           emacsen-startup.ex manpage.1.ex     
 menu.ex        postinst.ex      prerm.ex
 compat         cron.d.ex        emacsen-install.ex  
@@ -371,7 +371,7 @@ postrm.ex      rules
 \end{frame}
 
 \begin{frame}[containsverbatim]
-*.ex / *.EX $B$O%5%s%W%k$J$N$G:o=|$7$^$9!#(B
+*.ex / *.EX はサンプルなので削除します。
 \begin{commandline}
 $ rm -rf ./debian/*.ex
 $ rm -rf ./debian/*.EX
@@ -380,22 +380,22 @@ $ rm -rf ./debian/*.EX
 
 \begin{frame}[containsverbatim]
 
-$B:GDc8BI,MW$J(B debian $B%G%#%l%/%H%j0J2<$K$"$k%U%!%$%k$O0J2<$NDL$j$G$9!#!#(B
+最低限必要な debian ディレクトリ以下にあるファイルは以下の通りです。。
 
 \begin{itemize}
-  \item README.Debian --$B!!(BPackage $B$N(BREADME
-  \item control       -- Package $B$N@bL@!"%S%k%I$KI,MW$J>pJs$J$I(B
-  \item dirs          -- Package $B$GMxMQ$9$k%G%#%l%/%H%j$r5-=R(B
-  \item changelog     -- Package $B$NJQ99MzNr(B
-  \item copyright     -- Package $B$N%3%T!<%i%$%H(B
-  \item docs          -- $B%I%-%e%a%s%H%U%!%$%k0lMw(B
-  \item rules         -- Package $B:n@.MQ$N%9%/%j%W%H(B(Makefile)
-  \item compat        -- debhelper $B$N%P!<%8%g%s(B
+  \item README.Debian --　Package のREADME
+  \item control       -- Package の説明、ビルドに必要な情報など
+  \item dirs          -- Package で利用するディレクトリを記述
+  \item changelog     -- Package の変更履歴
+  \item copyright     -- Package のコピーライト
+  \item docs          -- ドキュメントファイル一覧
+  \item rules         -- Package 作成用のスクリプト(Makefile)
+  \item compat        -- debhelper のバージョン
 \end{itemize}
 \end{frame}
 
-\section{debian/control $B%U%!%$%k$NJT=8(B}
-\emtext{debian/control $B%U%!%$%k$NJT=8(B}
+\section{debian/control ファイルの編集}
+\emtext{debian/control ファイルの編集}
 
 \begin{frame}[containsverbatim]
 \begin{commandline}
@@ -414,13 +414,13 @@ Description: Key type correction software
 \end{commandline}
 \end{frame}
 
-\section{debian/changelog $B%U%!%$%k$NJT=8(B}
-\emtext{debian/changelog $B%U%!%$%k$NJT=8(B}
+\section{debian/changelog ファイルの編集}
+\emtext{debian/changelog ファイルの編集}
 
 \begin{frame}[containsverbatim]
 
-$B<!$K(B Debian $B$N(B Changelog $B$rJT=8$7$^$7$g$&!#(B
-$BJT=8$9$k$K$O!"(Bdch $B%3%^%s%I$r;H$$$^$9!#(B
+次に Debian の Changelog を編集しましょう。
+編集するには、dch コマンドを使います。
 
 \begin{commandline}
 $ dch 
@@ -434,8 +434,8 @@ sl (0.0.0-1) unstable; urgency=low
 \end{commandline}
 \end{frame}
 
-\section{debian/copyright $B%U%!%$%k$NJT=8(B}
-\emtext{debian/copyright $B%U%!%$%k$NJT=8(B}
+\section{debian/copyright ファイルの編集}
+\emtext{debian/copyright ファイルの編集}
 
 \begin{frame}[containsverbatim]
 \begin{commandlinesmall}
@@ -471,40 +471,40 @@ is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
 \end{frame}
 
 \begin{frame}
-$B$a$s$I$/$5$$$N$G!"%3%T!<!#(B
+めんどくさいので、コピー。
 \end{frame}
 
 \begin{frame}
-$B<B:]$O!"%=%U%H%&%'%"$NCx:n8"$r;}$C$F$$$k?M$KO"Mm$r$H$j!"%i%$%;%s%9$r3NG'$9$kI,MW$,$"$j$^$9!#(B
+実際は、ソフトウェアの著作権を持っている人に連絡をとり、ライセンスを確認する必要があります。
 \end{frame}
 
-\section{debian/rules $B%U%!%$%k$rJT=8$9$k(B}
-\emtext{debian/rules $B%U%!%$%k$rJT=8$9$k(B}
+\section{debian/rules ファイルを編集する}
+\emtext{debian/rules ファイルを編集する}
 \begin{frame}[containsverbatim]
-debian/rules $B$O!!(BDebian Package $B$r:n@.$9$k(B Makefile $B$G$9!#(B
+debian/rules は　Debian Package を作成する Makefile です。
 \begin{itemize}
- \item configure $B%?!<%2%C%H(B
- \item build $B%?!<%2%C%H(B
- \item clean $B%?!<%2%C%H(B
- \item install $B%?!<%2%C%H(B
+ \item configure ターゲット
+ \item build ターゲット
+ \item clean ターゲット
+ \item install ターゲット
 \end{itemize}
 \end{frame}
 
 \begin{frame}[containsverbatim]
-$B:#2s$O%7%s%W%k$J%W%m%0%i%`$J$N$G!"JQ99$9$kI,MW$O$"$j$^$;$s!#(B
+今回はシンプルなプログラムなので、変更する必要はありません。
 \end{frame}
 
-\section{$B$H$j$"$($:(B Package $B$r:n@.$9$k(B}
-\emtext{$B$H$j$"$($:(B Package $B$r:n@.$9$k(B}
+\section{とりあえず Package を作成する}
+\emtext{とりあえず Package を作成する}
 \begin{frame}[containsverbatim]
 
-Debian Package $B$r:n$k;~$O!"(B\alert{debuild} $B%3%^%s%I$r;H$$$^$9!#(B
+Debian Package を作る時は、\alert{debuild} コマンドを使います。
 \begin{commandline}
 $ debuild -us -uc
 \end{commandline}
--us $B%=!<%9%Q%C%1!<%8$K(BGPG$B%5%$%s$r$7$J$$(B
+-us ソースパッケージにGPGサインをしない
 
--uc *.changes $B%U%!%$%k$K(B GPG $B%5%$%s$r$7$J$$(B
+-uc *.changes ファイルに GPG サインをしない
 
 \end{frame}
 
@@ -518,22 +518,22 @@ rm -f build-stamp configure-stamp
 # Add here commands to clean up after the \
 build process.
 /usr/bin/make clean
-make[1]: $B%G%#%l%/%H%j(B `/tmp/sl-0.0.0' $B$KF~$j$^$9(B
-make[1]: *** $B%?!<%2%C%H(B `clean' $B$r(B make $B$9$k%k!<%k(B \
-$B$,$"$j$^$;$s(B.  $BCf;_(B.
-make[1]: $B%G%#%l%/%H%j(B `/tmp/sl-0.0.0' $B$+$i=P$^$9(B
-make: *** [clean] $B%(%i!<(B 2
+make[1]: ディレクトリ `/tmp/sl-0.0.0' に入ります
+make[1]: *** ターゲット `clean' を make するルール \
+がありません.  中止.
+make[1]: ディレクトリ `/tmp/sl-0.0.0' から出ます
+make: *** [clean] エラー 2
 debuild: fatal error at line 1239:
 fakeroot debian/rules clean failed
 \end{commandline}
 \end{frame}
 
-\section{Makefile $B$N=$@5(B}
-\emtext{Makefile $B$N=$@5(B}
+\section{Makefile の修正}
+\emtext{Makefile の修正}
 \begin{frame}[containsverbatim]
 
-$B?^(Brules $B%U%!%$%k$H(BMakefile $B$N4X78?^(B
-$B:#$N(BMakefile
+図rules ファイルとMakefile の関係図
+今のMakefile
 \begin{commandline}
 CC=cc
 CFLAGS=-O
@@ -545,33 +545,33 @@ sl: sl.c sl.h
 \end{frame}
 
 \begin{frame}[containsverbatim]
-$B=$@58e(B
+修正後
 \begin{commandline}
 CC=cc
 CFLAGS=-O
-BINDIR?=/usr/games/ <--- $B%$%s%9%H!<%k@h$rDI2C(B
+BINDIR?=/usr/games/ <--- インストール先を追加
 
 \end{commandline}
-\alert{BINDIR} : $B<B9T%P%$%J%j$,%$%s%9%H!<%k$5$l$k%G%#%l%/%H%j(B
+\alert{BINDIR} : 実行バイナリがインストールされるディレクトリ
 \end{frame}
 
 \begin{frame}[containsverbatim]
-$B=$@58e(B
+修正後
 \begin{commandline}
 
-install:  <-- install $B%?!<%2%C%H$rDI2C(B
+install:  <-- install ターゲットを追加
   install -d ${DESTDIR}${BINDIR}
   install -m 755 sl ${DESTDIR}${BINDIR}
 
-clean:    <-- clean $B%?!<%2%C%H$rDI2C(B
+clean:    <-- clean ターゲットを追加
   rm -rf sl
 
 \end{commandline}
-\alert{DESTDIR}: Debian Package $B$N%$%s%9%H!<%k$5$l$k(B TOP $B%G%#%l%/%H%j(B
+\alert{DESTDIR}: Debian Package のインストールされる TOP ディレクトリ
 \end{frame}
 
-\section{$B:FEY(BDebian Package$B$r:n@.(B}
-\emtext{$B:FEY(BDebian Package$B$r:n@.(B}
+\section{再度Debian Packageを作成}
+\emtext{再度Debian Packageを作成}
 \begin{frame}[containsverbatim]
 \begin{commandline}
 $ debuild -us -uc
@@ -591,44 +591,44 @@ Finished running lintian.
 \end{commandline}
 \end{frame}
 
-\section{Debian Package$B$N%F%9%H(B}
-\emtext{Debian Package $B$N%F%9%H(B}
+\section{Debian Packageのテスト}
+\emtext{Debian Package のテスト}
 
 \section{}
 \begin{frame}[containsverbatim]
 \begin{itemize}
   \item pbuilder
 
-   $B:GDc8B$N(BDebian system$B$+$i!"%Q%C%1!<%8$r:n@.$9$k$?$a$N%D!<%k!#(B 
+   最低限のDebian systemから、パッケージを作成するためのツール。 
 
-$B!!!!!!(B\begin{commandline}
+　　　\begin{commandline}
 $ sudo /usr/sbin/pbuilder build sl_0.0.0-1.dsc 
    \end{commandline}
   \item piuparts 
 
-   Debian Package $B$N(B $B%$%s%9%H!<%k(B/$B%"%s%$%s%9%H!<%k$N%A%'%C%/$r$9$k$?$a$N%D!<%k!#(B
+   Debian Package の インストール/アンインストールのチェックをするためのツール。
 
 \end{itemize}
 \end{frame}
 
-\section{$B$^$H$a(B}
-\emtext{$BK\F|$N$^$H$a(B}
+\section{まとめ}
+\emtext{本日のまとめ}
 
 \section{}
 \begin{frame}
 \begin{itemize}
-  \item $B$^$:$O!"%=%U%H%&%'%"$,F0:n$9$k$+3NG'$9$k(B
-  \item dh\_make $B%3%^%s%I(B $B$G%Q%C%1!<%8$N?w7A$r:n@.$9$k(B
-  \item debuild $B%3%^%s%I(B $B$G%Q%C%1!<%8:n@.(B
-  \item $B%i%$%;%s%9$d%3%T!<%i%$%H$N3NG'$r$9$k$3$H(B
-  \item lintian/linda $B$G(B $B%Q%C%1!<%8$N%A%'%C%/(B
-  \item $B%$%s%9%H!<%k$7$FF0:n3NG'$^$G9T$&(B
-  \item $B%"%s%$%s%9%H!<%k$N3NG'$bK:$l$:$K(B
+  \item まずは、ソフトウェアが動作するか確認する
+  \item dh\_make コマンド でパッケージの雛形を作成する
+  \item debuild コマンド でパッケージ作成
+  \item ライセンスやコピーライトの確認をすること
+  \item lintian/linda で パッケージのチェック
+  \item インストールして動作確認まで行う
+  \item アンインストールの確認も忘れずに
 \end{itemize}
 \end{frame}
 
-\section{$B>pJs8;(B}
-\emtext{$B>pJs8;(B}
+\section{情報源}
+\emtext{情報源}
 \begin{frame}
 \begin{itemize}
   \item Debian Project / Debian JP Project Website
@@ -637,37 +637,37 @@ $ sudo /usr/sbin/pbuilder build sl_0.0.0-1.dsc
 
     \url{http://www.debian.or.jp}
 
-  \item $BEl5~%(%j%"(BDebian$BJY6/2q(B
+  \item 東京エリアDebian勉強会
 
     \url{http://tokyodebian.alioth.debian.org}
   \item Debian Policy
     
     \url{http://www.debian.org/doc/debian-policy/}
 
-  \item Debian $B?7%a%s%F%J%,%$%I(B
+  \item Debian 新メンテナガイド
     
     \url{http://www.debian.org/doc/manuals/maint-guide/index.ja.html}
 \end{itemize}
 \end{frame}
 
-\section{$B=*$o$j$K(B}
-\emtext{$B=*$o$j$K(B}
+\section{終わりに}
+\emtext{終わりに}
 
 \section{}
 \begin{frame}
-$B:#G/$N(BDebian$BJY6/2q$G$O!"Kh7nMM!9$J(BDebian Pakcage $B$N(B
-$B:n@.J}K!$r$_$J$5$s$KEA<x$7$^$9!#(B
+今年のDebian勉強会では、毎月様々なDebian Pakcage の
+作成方法をみなさんに伝授します。
 \begin{itemize}
-  \item $B%G!<%?$@$1$N(BDebianPackage$B:n@.J}K!(B
-  \item VCS$B$r;H$C$?(BDebian Package$B$N:n@.J}K!(B
-  \item $B%i%$%V%i%j$N(BDebian Package $B:n@.J}K!(B
-  \item $B$J$I$J$I(B
+  \item データだけのDebianPackage作成方法
+  \item VCSを使ったDebian Packageの作成方法
+  \item ライブラリのDebian Package 作成方法
+  \item などなど
 \end{itemize}
 \end{frame}
 
 
-\section{$B<A5?1~Ez(B}
-\emtext{$B<A5?1~Ez(B}
+\section{質疑応答}
+\emtext{質疑応答}
 
 \end{document}
 

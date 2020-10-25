@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,14 +31,14 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{$BBh(B144$B2sEl5~%(%j%"(BDebian$BJY6/2q(B \\$B!!(B\\preseed$B$G(BDebian$B$r<+F0%$%s%9%H!<%k$r$7$F$_$h$&(B}
+\title{第144回東京エリアDebian勉強会 \\　\\preseedでDebianを自動インストールをしてみよう}
 \subtitle{}
-\author{Norimitsu Sugimoto ($B?yK\(B $BE5=<(B) \\dictoss@live.jp}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
 \date{2016-10-15}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
@@ -48,101 +48,101 @@
 
 %\section{}
 
-\begin{frame}{$B%"%8%'%s%@(B}
+\begin{frame}{アジェンダ}
   \begin{itemize}
-  \item $B<+8J>R2p(B
-  \item debian$B$r%$%s%9%H!<%k$9$kJ}K!(B
-  \item pressed$B$H$O(B
-  \item preseed$B$r;H$C$F(Bdebian$B$r%$%s%9%H!<%k$9$k(B
-  \item netinst$B%$%a!<%8$r;H$C$?<+F0%$%s%9%H!<%k(B
-  \item virt-install$B$r;H$C$?<+F0%$%s%9%H!<%k(B
-  \item $B$^$H$a(B
-  \item $B;29M;qNA(B
+  \item 自己紹介
+  \item debianをインストールする方法
+  \item pressedとは
+  \item preseedを使ってdebianをインストールする
+  \item netinstイメージを使った自動インストール
+  \item virt-installを使った自動インストール
+  \item まとめ
+  \item 参考資料
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
   \begin{itemize}
-  \item Norimitsu Sugimoto ($B?yK\(B $BE5=<(B)
+  \item Norimitsu Sugimoto (杉本 典充)
   \item dictoss@live.jp
   \item Twitter: @dictoss
-  \item Debian$B;H$C$F(B10$BG/0J>e!"(BFreeBSD$B;H$C$F(B5$BG/0J>e(B
-  \item Debian GNU/kFreeBSD$B$,5$$K$J$C$F$*$j%&%)%C%ACf(B
-  \item tilegx$B$K>/$7<j$r=P$7$?$,$J$+$J$+<j$4$o$$(B
-  \item $B;E;v$O%=%U%H%&%'%"3+H/<T$r$d$C$F$^$9(B
-  \item python$B$H(BDjango$B$NAH$_9g$o$;$G;H$&$3$H$,B?$$$G$9(B
+  \item Debian使って10年以上、FreeBSD使って5年以上
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item tilegxに少し手を出したがなかなか手ごわい
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
   \end{itemize}
 \end{frame}
 
 
-\emtext{debian$B$r%$%s%9%H!<%k$9$kJ}K!(B}
+\emtext{debianをインストールする方法}
 
-\begin{frame}[containsverbatim]{debian$B$r%$%s%9%H!<%k$9$kJ}K!(B}
+\begin{frame}[containsverbatim]{debianをインストールする方法}
   \begin{itemize}
-  \item Debian Installer$B$r;H$&$3$H$,B?$$(B
+  \item Debian Installerを使うことが多い
     \begin{itemize}
-    \item $BA4%Q%C%1!<%8$r<}O?$7$?(BISO$B%$%a!<%872!#(BCD$B!"(BDVD$B!"(BBlu-ray$B7A<0(B
-    \item netinst$B%$%a!<%8!#(BCD$B$N(BISO$B7A<0!"(BUSB$B%a%b%j7A<0(B
-    \item vmlinuz$B!"(Binitrd.gz$B$NC1BN%U%!%$%k!#%_%i!<%5%$%H$KCV$$$F$"$j$^$9(B
+    \item 全パッケージを収録したISOイメージ群。CD、DVD、Blu-ray形式
+    \item netinstイメージ。CDのISO形式、USBメモリ形式
+    \item vmlinuz、initrd.gzの単体ファイル。ミラーサイトに置いてあります
     \end{itemize}
-  \item $BF|>oMxMQ$9$k(BPC$B$X%$%s%9%H!<%k$9$k$J$i(Bnetinst$B%$%a!<%8$NMxMQ$,$*$9$9$a(B
+  \item 日常利用するPCへインストールするならnetinstイメージの利用がおすすめ
   \end{itemize}
 \end{frame}
 
 
 \emtext{preseed}
 
-\begin{frame}[containsverbatim]{preseed$B$H$O(B}
+\begin{frame}[containsverbatim]{preseedとは}
   \begin{itemize}
-  \item Debian Installer$B$N!V%$%s%9%H!<%k$N<B9TCf$K<jF0$G2sEz$rF~NO$;$:$K!"%$%s%9%H!<%k%W%m%;%9Cf$N<ALd$NEz$r@_Dj$9$kJ}K!$rDs6!!W$9$k5!G=(B
+  \item Debian Installerの「インストールの実行中に手動で回答を入力せずに、インストールプロセス中の質問の答を設定する方法を提供」する機能
   \item \url{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
-  \item preseed.cfg = $B%$%s%9%H!<%k=hM}$N%Q%i%a!<%?$rDj5A$7$?%U%!%$%k(B
+  \item preseed.cfg = インストール処理のパラメータを定義したファイル
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{preseed$B$N6hJ,(B}
+\begin{frame}[containsverbatim]{preseedの区分}
   \begin{itemize}
   \item initrd preseed
     \begin{itemize}
-    \item Debian Installer$B$N(Binitrd.gz$B$NCf$K(B/preseed.cfg$B$rG[CV$9$k(B
-    \item $B%$%s%9%H!<%i5/F0D>8e$NA*Br;h$+$i(B/preseed.cfg$B$NDj5A$K=>$$<+F0%$%s%9%H!<%k$9$k(B
+    \item Debian Installerのinitrd.gzの中に/preseed.cfgを配置する
+    \item インストーラ起動直後の選択肢から/preseed.cfgの定義に従い自動インストールする
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{preseed$B$N6hJ,(B}
+\begin{frame}[containsverbatim]{preseedの区分}
   \begin{itemize}
   \item file preseed
   \begin{itemize}
-    \item Debian Installer$B$N(BISO$B%U%!%$%k$N(B/preseed.cfg$B$rG[CV$9$k!J!aMW%j%^%9%?%j%s%0!K(B
-    \item Debian Installer$B$N(BUSB$B%a%b%j$N(B/preseed.cfg$B$rG[CV$9$k(B
-    \item kernel$B%V!<%H%Q%i%a!<%?$G%U%!%$%k$N>l=j$r;XDj$9$k!J(Bpreseed/file$B!"(Bpreseed/file/checksum$B!K(B
+    \item Debian InstallerのISOファイルの/preseed.cfgを配置する（＝要リマスタリング）
+    \item Debian InstallerのUSBメモリの/preseed.cfgを配置する
+    \item kernelブートパラメータでファイルの場所を指定する（preseed/file、preseed/file/checksum）
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{preseed$B$N6hJ,(B}
+\begin{frame}[containsverbatim]{preseedの区分}
   \begin{itemize}
   \item network preseed
     \begin{itemize}
-    \item IP$B%"%I%l%9$N<hF@$^$?$O@_Dj8e$K(Bpreseed.cfg$B$r(Bwget$B$G%@%&%s%m!<%I$9$k(B
-    \item kernel$B%V!<%H%Q%i%a!<%?$G%U%!%$%k$N>l=j$r;XDj$9$k!J(Bpreseed/url$B!"(Bpreseed/url/checksum$B!K(B
-    \item IP$B%"%I%l%9$r<hF@$9$kA0$NA*Br;h$r=P$5$J$$$h$&$K$9$k$?$aDI2C$N(Bkernel$B%V!<%H%Q%i%a!<%?$b;XDj$,I,MW(B
+    \item IPアドレスの取得または設定後にpreseed.cfgをwgetでダウンロードする
+    \item kernelブートパラメータでファイルの場所を指定する（preseed/url、preseed/url/checksum）
+    \item IPアドレスを取得する前の選択肢を出さないようにするため追加のkernelブートパラメータも指定が必要
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{preseed$B%U%!%$%k$N;EMM(B}
+\begin{frame}[containsverbatim]{preseedファイルの仕様}
   \begin{itemize}
-  \item $B;EMM$O(Bweb$B%5%$%H$K@bL@$,$"$j$^$9(B
+  \item 仕様はwebサイトに説明があります
     \begin{itemize}
-    \item $B!V(BB.4. $B;vA0@_Dj%U%!%$%k$NFbMF(B (jessie $BMQ(B)$B!W(B
+    \item 「B.4. 事前設定ファイルの内容 (jessie 用)」
     \item \url{https://www.debian.org/releases/stable/s390x/apbs04.html.ja}
-    \item $B!V(BB.2.4. preseed $B$GMxMQ$G$-$k%(%$%j%"%9!W(B
+    \item 「B.2.4. preseed で利用できるエイリアス」
     \item \url{https://www.debian.org/releases/stable/s390x/apbs02.html.ja#preseed-aliases}
     \end{itemize}
-  \item Debian 8(Jessie)$BMQ$N%5%s%W%k$,$"$j$^$9(B
+  \item Debian 8(Jessie)用のサンプルがあります
     \begin{itemize}
     \item \url{https://www.debian.org/releases/jessie/example-preseed.txt}
     \end{itemize}
@@ -150,41 +150,41 @@
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%kCf$N%+%9%?%`%3%^%s%I<B9T(B}
+\begin{frame}[containsverbatim]{インストール中のカスタムコマンド実行}
   \begin{itemize}
   \item preseed/early\_command
     \begin{itemize}
-    \item $BA4BN$N%$%s%9%H!<%k=hM}$,;O$^$kA0$K%3%^%s%I$r<B9T$9$k(B
+    \item 全体のインストール処理が始まる前にコマンドを実行する
     \end{itemize}
-  \item $B=hM}L>(B/early\_command$B!!(B
+  \item 処理名/early\_command　
     \begin{itemize}
-      \item $B$"$k=hM}$,;O$^$kA0$K%3%^%s%I$r<B9T$9$k(B
-      \item $BNc!K(B partman/early\_command 
+      \item ある処理が始まる前にコマンドを実行する
+      \item 例） partman/early\_command 
     \end{itemize}
   \item preseed/late\_command
     \begin{itemize}
-    \item $B%$%s%9%H!<%k$,40N;$7!":F5/F0$9$kA0$K%3%^%s%I$r<B9T$9$k(B
-    \item $B%$%s%9%H!<%k@h%G%#%9%/$N(B/$B$O!"(B/target$B$H$7$F%^%&%s%HCf(B
+    \item インストールが完了し、再起動する前にコマンドを実行する
+    \item インストール先ディスクの/は、/targetとしてマウント中
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\emtext{preseed$B$r;H$C$F(Bdebian$B$r%$%s%9%H!<%k$9$k(B}
+\emtext{preseedを使ってdebianをインストールする}
 
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%k%F%9%H4D6-(B}
+\begin{frame}[containsverbatim]{インストールテスト環境}
   \begin{itemize}
-  \item Debian GNU/Linux 8$B$N(BKVM$B%[%9%H4D6-$H$7$?2>A[%^%7%s$X%$%s%9%H!<%k$9$k(B
-  \item $B;HMQ$9$k(Bpreseed.cfg$B$O;qNA;2>H(B
+  \item Debian GNU/Linux 8のKVMホスト環境とした仮想マシンへインストールする
+  \item 使用するpreseed.cfgは資料参照
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{netinst$B$G(Bpreseed}
+\begin{frame}[containsverbatim]{netinstでpreseed}
   \begin{itemize}
-  \item netinst$B$N(BISO$B%$%a!<%8$J$I$+$i%V!<%H$7$?>l9g$K;H$&(B
-  \item network preseed$B$H$7$FF0:n$9$k(B
-  \item Debian Installer$B$N(Bkernel$B%V!<%H%Q%i%a!<%?$K0J2<$rF~NO$7$F5/F0(B
+  \item netinstのISOイメージなどからブートした場合に使う
+  \item network preseedとして動作する
+  \item Debian Installerのkernelブートパラメータに以下を入力して起動
   \end{itemize}
   \begin{commandline}
     auto=true priority=critical \
@@ -192,22 +192,22 @@
     preseed/url/checksum=cdd4bc6c41bd8d96dbcd37c6df442222
   \end{commandline}
   \begin{itemize}
-  \item preseed/url/checksum$B$O(Bmd5sum$B$G$9!JI,?\!K(B
-  \item md5sum$B$,8m$C$F$$$k>l9g!"(Bpreseed$B%U%!%$%k$O;HMQ$5$l$J$$(B
+  \item preseed/url/checksumはmd5sumです（必須）
+  \item md5sumが誤っている場合、preseedファイルは使用されない
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{virt-install$B$G(Bpreseed}
+\begin{frame}[containsverbatim]{virt-installでpreseed}
   \begin{itemize}
-  \item virt-install$B$N5!G=$K$"$k(Binitrd-inject$B%*%W%7%g%s$r;H$&(B
-  \item initrd preseed$B$H$7$FF0:n$9$k(B
-  \item $B%U%!%$%kL>$OI,$:(Bpreseed.cfg$B$K$9$k$3$H(B
+  \item virt-installの機能にあるinitrd-injectオプションを使う
+  \item initrd preseedとして動作する
+  \item ファイル名は必ずpreseed.cfgにすること
   \end{itemize}
   \begin{commandline}
 $ sudo virt-install \
     --name deb-preseed-1 \
-    ($B>JN,(B) \
+    (省略) \
     --os-type linux --os-variant generic \
     --console pty,target_type=serial \
     --location 'http://ftp.jp.debian.org/debian/dists/jessie/main/installer-amd64/' \
@@ -217,21 +217,21 @@ $ sudo virt-install \
 \end{frame}
 
 
-\emtext{$B$^$H$a(B}
+\emtext{まとめ}
 
-\begin{frame}[containsverbatim]{$B$^$H$a(B}
+\begin{frame}[containsverbatim]{まとめ}
   \begin{itemize}
-  \item preseed$B5!G=$r;n$7$F$_$^$7$?(B
-  \item $B2>A[2=4D6-$XF|>oE*$K(BDebian$B$r%$%s%9%H!<%k$7$F$$$k>l9g$O8zN($,>e$,$k$H;W$$$^$9(B
-  \item $B$&$^$/3hMQ$7$F(Bdebian$B%i%$%U$r$*3Z$7$_$/$@$5$$(B
+  \item preseed機能を試してみました
+  \item 仮想化環境へ日常的にDebianをインストールしている場合は効率が上がると思います
+  \item うまく活用してdebianライフをお楽しみください
   \end{itemize}
 \end{frame}
 
   
-\begin{frame}{$B;29M>pJs(B}
+\begin{frame}{参考情報}
   \begin{itemize}
-  \item $B!V(BDebianInstallerPreseed$B!W(B \url{https://wiki.debian.org/DebianInstaller/Preseed}
-  \item $B!VIUO?(BB preseed $B$rMxMQ$7$?%$%s%9%H!<%k$N<+F02=!W(B \url{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
+  \item 「DebianInstallerPreseed」 \url{https://wiki.debian.org/DebianInstaller/Preseed}
+  \item 「付録B preseed を利用したインストールの自動化」 \url{https://www.debian.org/releases/jessie/amd64/apb.html.ja}
   \end{itemize}
 \end{frame}
 

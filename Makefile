@@ -34,7 +34,7 @@ publish: $(RELEASEFILES)
 %.dvi: %.tex
 	## start of linting stuff
 	# check kanji-code of the tex file.
-	iconv -f iso-2022-jp -t iso-2022-jp < $< > /dev/null
+	iconv -f utf-8 -t utf-8 < $< > /dev/null
 	# check some obvious spelling mistakes Debian勉強会標準以外の表記を使った場合ここがエラーになります。修正してからコミットしてください。
 	./utils/spelllint.sh $<
 	## end of linting stuff

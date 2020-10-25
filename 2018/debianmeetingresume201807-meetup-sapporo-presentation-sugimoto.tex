@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,14 +31,14 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{Debian / Ubuntu $B%f!<%6!<%_!<%H%"%C%W(B in $B;%KZ(B 2018.07 \\$B!!(B\\Debian$B$G<+Bp$K%j%b!<%H@\B3(B / OpenVPN$BJT(B}
+\title{Debian / Ubuntu ユーザーミートアップ in 札幌 2018.07 \\　\\Debianで自宅にリモート接続 / OpenVPN編}
 \subtitle{}
-\author{Norimitsu Sugimoto ($B?yK\(B $BE5=<(B) \\dictoss@live.jp}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
 \date{2018-07-06}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
@@ -48,103 +48,103 @@
 
 %\section{}
 
-\begin{frame}{$B%"%8%'%s%@(B}
+\begin{frame}{アジェンダ}
   \begin{itemize}
-  \item $B<+8J>R2p(B
-  \item VPN$B$K$D$$$F(B
-  \item OpenVPN$B$N>R2p(B
-  \item OpenVPN$B$N@_Dj!J%5!<%P!"%/%i%$%"%s%H!K(B
-  \item $B$*$o$j$K(B
-  \item $B;29M;qNA(B
+  \item 自己紹介
+  \item VPNについて
+  \item OpenVPNの紹介
+  \item OpenVPNの設定（サーバ、クライアント）
+  \item おわりに
+  \item 参考資料
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
   \begin{itemize}
-  \item Norimitsu Sugimoto ($B?yK\(B $BE5=<(B)
+  \item Norimitsu Sugimoto (杉本 典充)
   \item dictoss@live.jp
   \item Twitter: @dictoss
-  \item $BBg3X@8$N$H$-$+$i(BDebian$B$r;H$C$F$$$^$9(B
-  \item $B;E;v$O%=%U%H%&%'%"3+H/<T$r$d$C$F$^$9(B
+  \item 大学生のときからDebianを使っています
+  \item 仕事はソフトウェア開発者をやってます
   \end{itemize}
 \end{frame}
 
 
-\emtext{VPN$B$K$D$$$F(B}
+\emtext{VPNについて}
 
-\begin{frame}[containsverbatim]{VPN$B$N<oN`(B}
+\begin{frame}[containsverbatim]{VPNの種類}
   \begin{itemize}
-  \item IPsec$B7O(B
+  \item IPsec系
     \begin{itemize}
     \item L2TP/IPsec
     \end{itemize}
-  \item SSL-VPN$B7O(B
+  \item SSL-VPN系
     \begin{itemize}
     \item SSTP
     \item SoftEther
     \item OpenVPN
     \end{itemize}
-  \item $BMxMQ$r?d>)$7$J$$2a5n$N5;=Q(B
+  \item 利用を推奨しない過去の技術
     \begin{itemize}
-    \item PPTP$B!J%;%-%e%j%F%#6/EY$,Dc$/!"FMGK:Q$_!K(B
+    \item PPTP（セキュリティ強度が低く、突破済み）
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\emtext{OpenVPN$B$N>R2p(B}
+\emtext{OpenVPNの紹介}
 
-\begin{frame}[containsverbatim]{OpenVPN$B$N>R2p(B}
+\begin{frame}[containsverbatim]{OpenVPNの紹介}
   \begin{itemize}
-  \item SSL-VPN$B$r;H$C$?(BVPN$B@\B3$r9T$&%=%U%H%&%'%"(B
+  \item SSL-VPNを使ったVPN接続を行うソフトウェア
   \item https://openvpn.net/
-  \item $B%i%$%;%s%9$O(BGPLv2
-  \item TLS 1.0$B!A(BTLS 1.2$B$K$h$k0E9fDL?.$r%5%]!<%H(B
-  \item $B%5!<%PB&$N5!G=$H%/%i%$%"%s%HB&$N5!G=$NN>J}$r$b$D(B
-  \item $B%G%U%)%k%H$N%]!<%HHV9f$O(B1194/UDP$B$G!"(BTCP$B$bMxMQ2DG=(B
+  \item ライセンスはGPLv2
+  \item TLS 1.0〜TLS 1.2による暗号通信をサポート
+  \item サーバ側の機能とクライアント側の機能の両方をもつ
+  \item デフォルトのポート番号は1194/UDPで、TCPも利用可能
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{Debian$B$K$*$1$k(BOpenVPN}
+\begin{frame}[containsverbatim]{DebianにおけるOpenVPN}
   \begin{itemize}
   \item Debian 8
     \begin{itemize}
-    \item openvpn-2.3.4$B!"(Bopenvpn-2.4.0$B!J(Bjessie-backports$B!K(B
+    \item openvpn-2.3.4、openvpn-2.4.0（jessie-backports）
     \end{itemize}
   \item Debian 9 
     \begin{itemize}
-    \item openvpn-2.4.0$B!"(Bopenvpn-2.4.4$B!J(Bstretch-backports$B!K(B
+    \item openvpn-2.4.0、openvpn-2.4.4（stretch-backports）
     \end{itemize}
-  \item openvpn$B$N(B2.3$B7O$H(B2.4$B7O$N0c$$(B
+  \item openvpnの2.3系と2.4系の違い
     \begin{itemize}
-    \item 2.3.3$B$+$i(BTLS 1.2$B$,MxMQ2DG=!#$?$@$7;H$($k0E9f$O(BTLS 1.0$BM3Mh$N$b$N$K8B$i$l$k!J(BAES-CBC$B!"(BRSA$B!"(BDHE$B!K(B
-    \item 2.4$B$+$i(BAES-GCM$B$d!"(BECDHE$B!"(BECDSA$B$J$I(BTLS-1.2$B$GMxMQ2DG=$J9bEY$J0E9f$r%5%]!<%H(B
-    \item $B%5!<%P$H%/%i%$%"%s%H$G(B2.3$B7O$H(B2.4$B7O$,:.:_$9$k>l9g!"8E$$%P!<%8%g%s$,%5%]!<%H$9$k@_Dj$K9g$o$;$kI,MW$,$"$k(B
+    \item 2.3.3からTLS 1.2が利用可能。ただし使える暗号はTLS 1.0由来のものに限られる（AES-CBC、RSA、DHE）
+    \item 2.4からAES-GCMや、ECDHE、ECDSAなどTLS-1.2で利用可能な高度な暗号をサポート
+    \item サーバとクライアントで2.3系と2.4系が混在する場合、古いバージョンがサポートする設定に合わせる必要がある
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\emtext{OpenVPN$B$N@_Dj$N2r@b(B}
+\emtext{OpenVPNの設定の解説}
 
-\begin{frame}[containsverbatim]{OpenVPN$B$N@_Dj!J%5!<%P!K(B}
+\begin{frame}[containsverbatim]{OpenVPNの設定（サーバ）}
   \begin{itemize}
-  \item "apt-get install openvpn" $B$G%$%s%9%H!<%k(B
-  \item $B>ZL@=q$d80$N@8@.!J(Beasy-rsa 2$B!K(B
+  \item "apt-get install openvpn" でインストール
+  \item 証明書や鍵の生成（easy-rsa 2）
   \begin{itemize}
   \item \url{https://openvpn.net/index.php/open-source/documentation/miscellaneous/77-rsa-key-management.html}
   \end{itemize}
-  \item $B%5!<%PB&$N@_Dj$N%5%s%W%k(B
+  \item サーバ側の設定のサンプル
     \begin{itemize}
     \item \url{https://github.com/OpenVPN/openvpn/blob/master/sample/sample-config-files/server.conf}
   \end{itemize}
-  \item $B@_Dj%U%!%$%k$O(B"/etc/openvpn/*.conf"$B$rMxMQ!#J#?t$N(BVPN$B@_Dj$rF1;~<B9T$9$k%^%k%A%$%s%9%?%s%9$,2DG=!#Nc!K(B443/TCP$B$H(B1194/UDP$B$NN>J}$r(Blisten$B$9$k(B
+  \item 設定ファイルは"/etc/openvpn/*.conf"を利用。複数のVPN設定を同時実行するマルチインスタンスが可能。例）443/TCPと1194/UDPの両方をlistenする
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{OpenVPN$B$N@_Dj!J%5!<%PB&$r0lItH4?h!K(B}
+\begin{frame}[containsverbatim]{OpenVPNの設定（サーバ側を一部抜粋）}
 \begin{commandline}
 tls-server
 tls-version-min 1.2
@@ -163,19 +163,19 @@ tls-auth /etc/openvpn/easy-rsa/2.0/keys/ta.key 0
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{OpenVPN$B$N@_Dj!J%/%i%$%"%s%H!K(B}
+\begin{frame}[containsverbatim]{OpenVPNの設定（クライアント）}
   \begin{itemize}
-  \item "apt-get install openvpn" $B$G%$%s%9%H!<%k(B
-  \item $B%/%i%$%"%s%HB&$N@_Dj$N%5%s%W%k(B
+  \item "apt-get install openvpn" でインストール
+  \item クライアント側の設定のサンプル
   \begin{itemize}
   \item \url{https://github.com/OpenVPN/openvpn/blob/master/sample/sample-config-files/client.conf}
   \end{itemize}
-  \item $B@_Dj%U%!%$%k$O!"(B"/etc/openvpn/client.conf"$B$H$9$k$3$H(B
-  \item systemctl start openvpn $B$G5/F0(B
+  \item 設定ファイルは、"/etc/openvpn/client.conf"とすること
+  \item systemctl start openvpn で起動
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{OpenVPN$B$N@_Dj!J%/%i%$%"%s%HB&$r0lItH4?h!K(B}
+\begin{frame}[containsverbatim]{OpenVPNの設定（クライアント側を一部抜粋）}
 \begin{commandline}
 client
 tls-client
@@ -193,18 +193,18 @@ log-append /var/log/openvpn.log
 \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B$*$o$j$K(B}
+\begin{frame}[containsverbatim]{おわりに}
   \begin{itemize}
-  \item Debian$B%Q%C%1!<%8$GDs6!$7$F$$$k(BOpenVPN$B$r@bL@$7$^$7$?(B
-  \item $B%5!<%PB&$H%/%i%$%"%s%HB&$N@_Dj$r@bL@$7$^$7$?(B
-  \item $BB.EY=E;k$N>l9g$O!"(BUDP$B$r;H$C$F$/$@$5$$(B
-  \item $B$D$J$,$i$J$$!"@Z$l$d$9$$>l9g$O!"(Bopenvpn$B$N@_Dj%U%!%$%k$N(BMTU$BCM$r>/$7>.$5$/$7$F$_$F$/$@$5$$(B
-  \item $BKL3$F;$N9-Bg$JCO$G$b!"(BVPN$B@\B3$G$-$l$P%N!<%H(BPC$B$+$i$I$3$G$b<+Bp$N%M%C%H%o!<%/$X@\B3$G$-$^$9(B
+  \item Debianパッケージで提供しているOpenVPNを説明しました
+  \item サーバ側とクライアント側の設定を説明しました
+  \item 速度重視の場合は、UDPを使ってください
+  \item つながらない、切れやすい場合は、openvpnの設定ファイルのMTU値を少し小さくしてみてください
+  \item 北海道の広大な地でも、VPN接続できればノートPCからどこでも自宅のネットワークへ接続できます
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B;29M>pJs(B}
+\begin{frame}{参考情報}
   \begin{itemize}
   \item \url{https://wiki.debian.org/OpenVPN}
   \item \url{https://openvpn.net/index.php/open-source/documentation.html}

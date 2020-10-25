@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2012 Junichi Uekawa
@@ -29,9 +29,9 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
 \newenvironment{commandlinesmall}%
@@ -48,10 +48,10 @@
 }
 %end of commandlinesmall
 
-\title{Debian $B$H(B systemd}
-\subtitle{$BEl5~%(%j%"(BDebian$BJY6/2q(B/OSC 2015 Tokyo Fall\\$BBh(B132$B2s(B 2015$BG/(B10$B7nEY(B 2$B2sL\(B}
-\author{$B4d>>(B $B?.MN(B}
-\date{2015$BG/(B10$B7n(B24$BF|(B}
+\title{Debian と systemd}
+\subtitle{東京エリアDebian勉強会/OSC 2015 Tokyo Fall\\第132回 2015年10月度 2回目}
+\author{岩松 信洋}
+\date{2015年10月24日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
@@ -60,33 +60,33 @@
 \titlepage{}
 \end{frame}
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
 \begin{itemize}
-  \item $B%=%U%H%&%'%"%(%s%8%K%"(B
+  \item ソフトウェアエンジニア
   \item Debian Project Official Developer
-  \item Bluez, Mozc, Erlang $B<~$j$N%Q%C%1!<%8%a%s%F%J(B
-  \item 2015$BG/EY(B Debian JP Project Leader
-  \item Linux kernel $B3+H/!"(BU-Boot Custodian$B!"(BXFCE $BF|K\8l%3!<%G%#%M!<%?!"(BYocto Project $B3+H/(B
+  \item Bluez, Mozc, Erlang 周りのパッケージメンテナ
+  \item 2015年度 Debian JP Project Leader
+  \item Linux kernel 開発、U-Boot Custodian、XFCE 日本語コーディネータ、Yocto Project 開発
  \end{itemize}
 \end{frame}
 
 \begin{frame}{Agenda}
   \begin{itemize}
-   \item systemd $B$H$O(B
-   \item systemd $B$X$N0\9T$H5/$-$?;vJA(B
-   \item systemd $B$r;HMQ$;$:$K(B Debian $B$rMxMQ$9$k$K$O(B
-   \item $B:#8e$N%$%Y%s%H(B
+   \item systemd とは
+   \item systemd への移行と起きた事柄
+   \item systemd を使用せずに Debian を利用するには
+   \item 今後のイベント
   \end{itemize}
 \end{frame}
 
-\section{systemd $B$H$O(B}
-\emtext{systemd $B$H$O(B}
+\section{systemd とは}
+\emtext{systemd とは}
 
 \begin{frame}{systemd}
 \begin{itemize}
-\item init $B%W%m%0%i%`$N0l$D(B
+\item init プログラムの一つ
 
-      init $B$H$O(B $B%+!<%M%k$,8F$V:G=i$N%W%m%0%i%`$NAm>N(B
+      init とは カーネルが呼ぶ最初のプログラムの総称
 
       \end{itemize}
 \end{frame}
@@ -94,12 +94,12 @@
 \begin{frame}{systemd}
 
 \begin{minipage}{0.55\hsize}
-$B%V!<%H%7!<%1%s%9(B
+ブートシーケンス
 \begin{enumerate}
-\item $BEE8;EjF~(B $\rightarrow$ BIOS $B$^$?$O(B UEFI $B$,5/F0(B
-\item BIOS $B$^$?$O(B UEFI $\rightarrow$  $B%V!<%H%m!<%@$r5/F0(B
-\item $B%V!<%H%m!<%@(B $\rightarrow$ $B%+!<%M%k(B $B$r5/F0(B
-\item $B%+!<%M%k(B $\rightarrow$ init $B$r5/F0(B
+\item 電源投入 $\rightarrow$ BIOS または UEFI が起動
+\item BIOS または UEFI $\rightarrow$  ブートローダを起動
+\item ブートローダ $\rightarrow$ カーネル を起動
+\item カーネル $\rightarrow$ init を起動
 \end{enumerate}
 \end{minipage}
 \begin{minipage}{0.39\hsize}
@@ -110,26 +110,26 @@
 
 \begin{frame}{systemd}
 \begin{itemize}
-\item init $B%W%m%0%i%`$N0l$D(B
+\item init プログラムの一つ
 
-      init $B$H$O(B $B%+!<%M%k$,8F$V:G=i$N%W%m%0%i%`$NAm>N(B
+      init とは カーネルが呼ぶ最初のプログラムの総称
 
-\item cgroup $B$K$h$k%W%m%;%94IM}(B
-\item $B%G!<%b%s$NJBNs=hM}(B
-\item shell $B$r;H$o$J$$@_Dj(B
-\item linux $B@lMQ(B init $B%W%m%0%i%`(B
-\item Debian$B!"(BUbuntu$B!"(BRedHat $B$J$I$N<gMW(B Linux $B%G%#%9%H%j%S%e!<%7%g%s$N%G%U%)%k%H(Binit $B%W%m%0%i%`$H$7$F:NMQ$5$l$F$$$k!#(B
+\item cgroup によるプロセス管理
+\item デーモンの並列処理
+\item shell を使わない設定
+\item linux 専用 init プログラム
+\item Debian、Ubuntu、RedHat などの主要 Linux ディストリビューションのデフォルトinit プログラムとして採用されている。
 \end{itemize}
 \end{frame}
 
-\section{systemd $B$X$N0\9T$H(BDebian $B3&7($G5/$-$?;vJA(B}
-\emtext{systemd $B$X$N0\9T$H(BDebian $B3&7($G5/$-$?;vJA(B}
+\section{systemd への移行とDebian 界隈で起きた事柄}
+\emtext{systemd への移行とDebian 界隈で起きた事柄}
 
-\begin{frame}{2014$BG/(B2$B7n(B11$BF|(B}
+\begin{frame}{2014年2月11日}
 
 \begin{itemize}
-\item Debian 8.0 $B$+$i%G%U%)%k%H(B init $B%7%9%F%`(B $B$,(B sysvinit $B$+$i(B systemd $B$K!#(B
-\item Debian $B5;=Q0Q0w2q!J(BDebian Technical Committee: Debian $B%W%m%8%'%/%HFb$N5;=QE*$JO@Ah$K$D$$$F:G=*H=CG$r2<$90Q0w2q!K$,7hDj$7$?$b$N!#(B
+\item Debian 8.0 からデフォルト init システム が sysvinit から systemd に。
+\item Debian 技術委員会（Debian Technical Committee: Debian プロジェクト内の技術的な論争について最終判断を下す委員会）が決定したもの。
 
 \url{https://lists.debian.org/debian-ctte/2014/02/msg00402.html}
 
@@ -141,63 +141,63 @@
 
 
 
-\begin{frame}{2014$BG/(B9$B7n(B19$BF|(B}
+\begin{frame}{2014年9月19日}
 
 \begin{itemize}
-\item $B%G%U%)%k%H$N(B init $B%7%9%F%`(B $B$,(B systemd $B$K$J$j!"%$%s%9%H!<%i$N%G%U%)%k%H(B $B%G%9%/%H%C%W4D6-$K4X$7$F$b:F9M$5$l$k!#(B
-\item $B$=$N7k2L!"(BXfce $B$+$i(B GNOME3 $B$KJQ99$5$l$k!#(B
+\item デフォルトの init システム が systemd になり、インストーラのデフォルト デスクトップ環境に関しても再考される。
+\item その結果、Xfce から GNOME3 に変更される。
       \url{https://anonscm.debian.org/cgit/tasksel/tasksel.git/commit/?id=dce99f5f8d84e4c885e6beb4cc1bb5bb1d9ee6d7}
-      \footnote{init $B%7%9%F%`(B $B$,(B systemd $B$G$J$/$F$b(B GNOME3$B$OF0:n$9$k!#(B}
+      \footnote{init システム が systemd でなくても GNOME3は動作する。}
 
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{2014$BG/(B10$B7n(B16$BF|(B}
+\begin{frame}{2014年10月16日}
 
 \begin{itemize}
-\item Ian Jackson $B$,(B init $B%7%9%F%`$NA*Br$N<+M3$r;D$7$F$*$/$Y$-$G$O!"$H(B
-systemd$B$r;HMQ$7$J$$%7%9%F%`$N%5%]!<%H$r%Q%C%1!<%8%a%s%F%J$K5a$a$k0lHL7h5D$rDs0F!#(B
-\item $B;Y;}<T$,=8$^$j!"0lHL7h5D$,9T$o$l$k$3$H$K$J$C$?$,!"7k2LIT@.N)!#(B
+\item Ian Jackson が init システムの選択の自由を残しておくべきでは、と
+systemdを使用しないシステムのサポートをパッケージメンテナに求める一般決議を提案。
+\item 支持者が集まり、一般決議が行われることになったが、結果不成立。
 
 \url{https://lists.debian.org/debian-vote/2014/10/msg00001.html}
 
-\item Jessie $B%U%j!<%:D>A0$G$NDs0F$KITK~$,=P$k!#(B
-\item $B5;=Q7hDj%W%m%;%9$NLdBj$,O*Dh$5$l$k!#(B
+\item Jessie フリーズ直前での提案に不満が出る。
+\item 技術決定プロセスの問題が露呈される。
 
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{$B$=$N7k2L!D(B}
+\begin{frame}{その結果…}
 
 
 \begin{itemize}
-\item Joey Hess $B$,(B Debian Developer $B$r<-$a$k(B
+\item Joey Hess が Debian Developer を辞める
 
-debconf$B!"(Bdebhelper$B!"(Balian$B!"(Bikiwiki $B$J$I$N3+H/<T(B
+debconf、debhelper、alian、ikiwiki などの開発者
 
-\item Colin Watson$B!"(BRuss Allbery$B!"(BIan Jackson $B$,(B Debian $B5;=Q0Q0w2q(B $B$r<-$a$k(B
-\item Tollef Fog Heen $B$,(B systemd $B%a%s%F%J$+$i<-$a$k(B
+\item Colin Watson、Russ Allbery、Ian Jackson が Debian 技術委員会 を辞める
+\item Tollef Fog Heen が systemd メンテナから辞める
 
-$B$=$N8e(B Debian $B5;=Q0Q0w2q(B $B%a%s%P$K!#(B
+その後 Debian 技術委員会 メンバに。
 
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{2014$BG/(B11$B7n(B28$BF|(B}
+\begin{frame}{2014年11月28日}
 
-$B$=$7$F(B Devuan$B%W%m%8%'%/%H$,N)$A>e$,$k!#(B
+そして Devuanプロジェクトが立ち上がる。
 
 \begin{center}
 \includegraphics[width=1\hsize]{image201510/Devuan-logo.png}
 \end{center}
 
 \begin{itemize}
-\item Debian $B%Y!<%9$N(B systemd $B$r;H$o$J$$(BOS$B$rDs6!$9$k%W%m%8%'%/%H(B
-\item i386, amd64, armhf $B$N%$%a!<%8$H%$%s%9%H!<%i$rHRI[(B
-\item udev $B$NBeBX%W%m%0%i%`$G$"$k(Bvdev$B$r3+H/(B
+\item Debian ベースの systemd を使わないOSを提供するプロジェクト
+\item i386, amd64, armhf のイメージとインストーラを頒布
+\item udev の代替プログラムであるvdevを開発
 \item \url{http://files.devuan.org/}
 \end{itemize}
 
@@ -207,11 +207,11 @@ debconf$B!"(Bdebhelper$B!"(Balian$B!"(Bikiwiki $B$J$I$N3+H/<T(B
 
 \begin{itemize}
 
-\item 2015/4/21 Ubuntu 15.04 $B%j%j!<%9(B
+\item 2015/4/21 Ubuntu 15.04 リリース
 
-    init $B%7%9%F%`$K(B systemd $B$r:NMQ$7$?$O$8$a$F$N%j%j!<%9(B
+    init システムに systemd を採用したはじめてのリリース
 
-\item 2015/4/25 Debian 8.0 ($B%3!<%I%M!<%`(B Jessie$B!K%j%j!<%9(B
+\item 2015/4/25 Debian 8.0 (コードネーム Jessie）リリース
 
 \end{itemize}
 
@@ -219,25 +219,25 @@ debconf$B!"(Bdebhelper$B!"(Balian$B!"(Bikiwiki $B$J$I$N3+H/<T(B
 
 \begin{frame}
 \begin{itemize}
-\item $BM%=($J3+H/<T$,%W%m%8%'%/%H$J$I$+$iH4$1$k(B
-\item Devuan $B%W%m%8%'%/%H$,N)$A>e$,$k(B
-\item $B$=$l$G$b(B Debian 8.0 $B$OM=DjDL$j%j%j!<%9$5$l$?(B
+\item 優秀な開発者がプロジェクトなどから抜ける
+\item Devuan プロジェクトが立ち上がる
+\item それでも Debian 8.0 は予定通りリリースされた
 \end{itemize}
 \end{frame}
 
-\section{systemd $B$r;HMQ$;$:$K(B Debian $B$rMxMQ$9$k$K$O(B}
-\emtext{systemd $B$r;HMQ$;$:$K(B Debian $B$rMxMQ$9$k$K$O(B}
+\section{systemd を使用せずに Debian を利用するには}
+\emtext{systemd を使用せずに Debian を利用するには}
 
 \begin{frame}[containsverbatim]
-Debian $B$G$O(B systemd $B$K$J$C$F$b%G!<%b%s$KBP$9$kA`:nJ}K!$OJQ$o$i$J$$(B
+Debian では systemd になってもデーモンに対する操作方法は変わらない
 
 \begin{itemize}
-\item $BNc(B: apache2 start
+\item 例: apache2 start
 \begin{commandline}
 $ sudo service apache2 start
 \end{commandline}
 
-\item $BNc(B: apache2 stop
+\item 例: apache2 stop
 \begin{commandline}
 $ sudo service apache2 stop
 \end{commandline}
@@ -246,19 +246,19 @@ $ sudo service apache2 stop
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{sysvinit $B$X$N@Z$jBX$((B}
+\begin{frame}[containsverbatim]{sysvinit への切り替え}
 
-Debian $B$N(B init $B%7%9%F%`$r(B sysvinit $B$K@Z$jBX$($?$$!#(B
+Debian の init システムを sysvinit に切り替えたい。
 
 \begin{itemize}
-\item systemd $B7y$$(B
-\item sysvinit $B$N$[$&$K47$l$F$$$k(B
-\item $BFH<+%5!<%S%9%a%s%F%J%s%9$N$?$a(B
+\item systemd 嫌い
+\item sysvinit のほうに慣れている
+\item 独自サービスメンテナンスのため
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}[containsverbatim]{sysvinitへの切り替え}
 
 \begin{commandline}
 $ sudo apt-get install sysvinit-core
@@ -267,55 +267,55 @@ $ sudo apt-get install sysvinit-core
 \end{frame}
 
 
-\begin{frame}{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}{sysvinitへの切り替え}
 
-$BJQ99E@(B
+変更点
 \begin{itemize}
-\item init $B$,(B systemd $B$+$i(B sysvinit $B$K(B
-\item systemd-sysv $B%Q%C%1!<%8$,:o=|$5$l!"(B/sbin/init $B$N%7%s%\%j%C%/%j%s%/$,$J$/$J$k(B
-\item $BJQ$o$j$K(B sysvinit $B$N(B /sbin/init $B%P%$%J%j$,%$%s%9%H!<%k$5$l$k(B
-\item init $B$K$h$k(B cgroups $B$N%3%s%H%m!<%k$,$J$/$J$k(B
-\item systemd $B$K0MB8$7$F$$$k%=%U%H%&%'%"$,F0:n$7$J$/$J$k(B\\
-	GDM$B!"(Blightdm $B$J$I(B
+\item init が systemd から sysvinit に
+\item systemd-sysv パッケージが削除され、/sbin/init のシンボリックリンクがなくなる
+\item 変わりに sysvinit の /sbin/init バイナリがインストールされる
+\item init による cgroups のコントロールがなくなる
+\item systemd に依存しているソフトウェアが動作しなくなる\\
+	GDM、lightdm など
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}[containsverbatim]{sysvinitへの切り替え}
 
-systemd $B$K0MB8$7$F$$$k%=%U%H%&%'%"$N5_:Q(B
+systemd に依存しているソフトウェアの救済
 
 \begin{itemize}
-\item systemd-shim $B%Q%C%1!<%8(B
+\item systemd-shim パッケージ
 \begin{commandline}
 $ sudo apt-get install systemd-shim
 \end{commandline}
-\item systemd $B$+$i%Q%C%1!<%8$H$7$FJ,N%$G$-$J$$5!G=$rDs6!(B
-\item cgroup $B$O(B cgmanager $B$G4IM}!#(Bcgm $B%3%^%s%I$r;H$C$F=hM}(B
+\item systemd からパッケージとして分離できない機能を提供
+\item cgroup は cgmanager で管理。cgm コマンドを使って処理
 
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}{sysvinitへの切り替え}
 \includegraphics[width=1\hsize]{image201510/shim0.png}
 \end{frame}
 
-\begin{frame}{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}{sysvinitへの切り替え}
 \includegraphics[width=1\hsize]{image201510/shim1.png}
 \end{frame}
 
-\begin{frame}{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}{sysvinitへの切り替え}
 \includegraphics[width=1\hsize]{image201510/shim2.png}
 \end{frame}
 
-\begin{frame}{sysvinit$B$X$N@Z$jBX$((B}
+\begin{frame}{sysvinitへの切り替え}
 \includegraphics[width=1\hsize]{image201510/shim3.png}
 \end{frame}
 
 %\begin{frame}[containsverbatim]
 %
-%systemd $B$N>l9g$O(Bshutdown $B$O0J2<$N$h$&$K<B9T$5$l$k$,!"(B
+%systemd の場合はshutdown は以下のように実行されるが、
 %\begin{commandline}
 %$ gdbus call -y -d org.freedesktop.systemd1 \
 %	-o /org/freedesktop/systemd1 \
@@ -323,17 +323,17 @@ $ sudo apt-get install systemd-shim
 %	'shutdown.target' ''
 %\end{commandline}
 %
-%\item cgroup $B$O(B cgmanager $B$G4IM}!#(Bcgm $B%3%^%s%I$r;H$C$F=hM}!#(B
+%\item cgroup は cgmanager で管理。cgm コマンドを使って処理。
 %\end{itemize}
 %
 %\end{frame}
 
-\begin{frame}[containsverbatim]{sysvinit $B%9%/%j%W%H(B}
+\begin{frame}[containsverbatim]{sysvinit スクリプト}
 
 \begin{itemize}
-\item systemd $B$K$J$C$?$i(B /etc/init.d $B0J2<$O$I$&$J$k$N$+(B
-\item /lib/lsb/init-functions $B$K$h$k%i%C%Q!<$,$"$k(B
-\item apache2 $B$rNc$K$7$F@bL@(B
+\item systemd になったら /etc/init.d 以下はどうなるのか
+\item /lib/lsb/init-functions によるラッパーがある
+\item apache2 を例にして説明
 
 \end{itemize}
 
@@ -397,7 +397,7 @@ $ sudo apt-get install systemd-shim
 %                _use_systemctl=1
 % 
 %
-%$B!JCfN,!K(B
+%（中略）
 %
 %systemctl_redirect () {
 %    local s
@@ -422,7 +422,7 @@ $ sudo apt-get install systemd-shim
 %
 %    service="${prog%.sh}.service"
 %
-%$B!JCfN,!K(B
+%（中略）
 %
 %    [ "$command" = status ] || log_daemon_msg "$s" "$service"
 %    /bin/systemctl $sctl_args $command "$service"
@@ -467,10 +467,10 @@ $ sudo apt-get install systemd-shim
 %\end{frame}
 %
 %\begin{frame}
-%	systemd $BBP1~%G!<%b%s(B
-%	$BBP1~N((B
+%	systemd 対応デーモン
+%	対応率
 %
-%	sysvinit $B$H(B systemd $B$NBP1~J}K!$K$D$$$F(B
+%	sysvinit と systemd の対応方法について
 %
 \begin{frame}
 \begin{center}
@@ -504,43 +504,43 @@ $ sudo apt-get install systemd-shim
 
 \begin{frame}
 \begin{itemize}
-\item /lib/lsb/init-functions $B$r;H$C$F$J$$%G!<%b%s$,$"$k$N$G$O!)(B
-\item lintian $B$N(B \texttt{init.d-script-does-not-source-init-functions} $B$K0z$C$+$+$C$F$$$k$b$N$OMWCm0U(B
+\item /lib/lsb/init-functions を使ってないデーモンがあるのでは？
+\item lintian の \texttt{init.d-script-does-not-source-init-functions} に引っかかっているものは要注意
 
 \url{https://lintian.debian.org/tags/init.d-script-does-not-source-init-functions.html}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{$B$^$H$a(B}
+\begin{frame}{まとめ}
 
 \begin{itemize}
-\item Debian $B$G$O(B systemd $B$r;H$o$J$$$G1?MQ$G$-$k(B
-\item systemd $B$r:o=|$7$?>l9g$O(Bsystemd-shim $B$r%$%s%9%H!<%k$7$F$*$/$H$h$$(B
-\item $B%5!<%S%94XO"$O$$$^$^$G$N%3%^%s%I$,$=$N$^$^;H$($k(B
-\item /etc/init.d/ $B0J2<$O(B systemd $B$H(B sysvinit $B$G$bN>J};H$($k$h$&$K$J$C$F$$$k(B
+\item Debian では systemd を使わないで運用できる
+\item systemd を削除した場合はsystemd-shim をインストールしておくとよい
+\item サービス関連はいままでのコマンドがそのまま使える
+\item /etc/init.d/ 以下は systemd と sysvinit でも両方使えるようになっている
 \end{itemize}
 
 \end{frame}
 
-\section{$B<ALd(B}
-\emtext{$B<ALd(B}
-\begin{frame}{$B<ALd(B}
-$B2?$+<ALd$O$"$j$^$9$+!)(B
+\section{質問}
+\emtext{質問}
+\begin{frame}{質問}
+何か質問はありますか？
 \end{frame}
 
-\section{$B%V!<%9(B}
-\emtext{$B%V!<%9(B}
-\begin{frame}{$B%V!<%9=P$7$F$$$^$9(B}
-$B%V!<%9=P$7$F$$$^$9!#$h$+$C$?$i4s$C$F$/$@$5$$!*(B
+\section{ブース}
+\emtext{ブース}
+\begin{frame}{ブース出しています}
+ブース出しています。よかったら寄ってください！
 \end{frame}
 
-\section{$B:#8e$N%$%Y%s%H(B}
-\emtext{$B:#8e$N%$%Y%s%H(B}
-\begin{frame}{$B:#8e$N%$%Y%s%H(B}
+\section{今後のイベント}
+\emtext{今後のイベント}
+\begin{frame}{今後のイベント}
 \begin{itemize}
-\item 2015/11/7 ($BEZ(B) KOF 2015 $B=PE8(B\&$BH/I=!#(B\\
+\item 2015/11/7 (土) KOF 2015 出展\&発表。\\
 \url{https://k-of.jp/2015/}
-\item 2015/11/21($BEZ(B) 14:00-19:00 $BBh(B133$B2sEl5~%(%j%"(BDebian$BJY6/2q(B
+\item 2015/11/21(土) 14:00-19:00 第133回東京エリアDebian勉強会
 \end{itemize}
 \end{frame}
 

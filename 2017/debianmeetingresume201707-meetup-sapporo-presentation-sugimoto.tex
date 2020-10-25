@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,14 +31,14 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{Debian / Ubuntu $B%f!<%6!<%_!<%H%"%C%W(B in $B;%KZ(B 2017.07 \\$B!!(B\\lxc$B$K$D$$$F(B}
+\title{Debian / Ubuntu ユーザーミートアップ in 札幌 2017.07 \\　\\lxcについて}
 \subtitle{}
-\author{Norimitsu Sugimoto ($B?yK\(B $BE5=<(B) \\dictoss@live.jp}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
 \date{2017-07-14}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
@@ -48,102 +48,102 @@
 
 %\section{}
 
-\begin{frame}{$B%"%8%'%s%@(B}
+\begin{frame}{アジェンダ}
   \begin{itemize}
-  \item $B<+8J>R2p(B
-  \item $B2>A[2=5;=Q$K$D$$$F(B
-  \item lxc$B$H$O(B
-  \item lxc$B$N%$%s%9%H!<%k(B
-  \item lxc$B$N%3%^%s%I2r@b(B
-  \item lxc$B$r<BMQ$9$k(B
-  \item $B$*$o$j$K(B
-  \item $B;29M;qNA(B
+  \item 自己紹介
+  \item 仮想化技術について
+  \item lxcとは
+  \item lxcのインストール
+  \item lxcのコマンド解説
+  \item lxcを実用する
+  \item おわりに
+  \item 参考資料
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
   \begin{itemize}
-  \item Norimitsu Sugimoto ($B?yK\(B $BE5=<(B)
+  \item Norimitsu Sugimoto (杉本 典充)
   \item dictoss@live.jp
   \item Twitter: @dictoss
-  \item Debian-3.1$B!"(BFreeBSD-6.2$B$N:"$+$i;H$C$F$$$^$9(B
-  \item Debian GNU/kFreeBSD$B$,5$$K$J$C$F$*$j%&%)%C%ACf(B
-  \item $B;E;v$O%=%U%H%&%'%"3+H/<T$r$d$C$F$^$9(B
+  \item Debian-3.1、FreeBSD-6.2の頃から使っています
+  \item Debian GNU/kFreeBSDが気になっておりウォッチ中
+  \item 仕事はソフトウェア開発者をやってます
   \end{itemize}
 \end{frame}
 
 
-\emtext{$B2>A[2=5;=Q$K$D$$$F(B}
+\emtext{仮想化技術について}
 
-\begin{frame}[containsverbatim]{$B2>A[2=5;=Q$NJ,N`(B}
+\begin{frame}[containsverbatim]{仮想化技術の分類}
   \begin{itemize}
-  \item $B%3%s%F%J7?2>A[2=(B
-  \item $B=`2>A[2=7?(B
-  \item $B40A42>A[2=7?(B ($B%(%_%e%l!<%7%g%s7?(B)
-  \item $B40A42>A[2=7?(B ($B%O%$%Q!<%P%$%67?(B)
+  \item コンテナ型仮想化
+  \item 準仮想化型
+  \item 完全仮想化型 (エミュレーション型)
+  \item 完全仮想化型 (ハイパーバイザ型)
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B2>A[2=5;=Q$N%a%j%C%H!&%G%a%j%C%H(B}
+\begin{frame}[containsverbatim]{仮想化技術のメリット・デメリット}
   \begin{itemize}
-  \item $B=`2>A[2=7?!"40A42>A[2=7?(B
+  \item 準仮想化型、完全仮想化型
     \begin{itemize}
-    \item $BJ*M}%^%7%s$r%(%_%e%l!<%H$7$?2>A[%^%7%s$H$7$FF0:n$9$k(B
-    \item $B2>A[%^%7%s>e$G$b%+!<%M%k$rF0:n$5$;$k(B
-    \item $BJ*M}%^%7%s$GF0$+$7$F$$$?%W%m%0%i%`$O$[$\$=$N$^$^F0$/(B
-    \item CPU$B!"%a%b%j!"%G%#%9%/$rB?$/>CHq$9$k(B
+    \item 物理マシンをエミュレートした仮想マシンとして動作する
+    \item 仮想マシン上でもカーネルを動作させる
+    \item 物理マシンで動かしていたプログラムはほぼそのまま動く
+    \item CPU、メモリ、ディスクを多く消費する
     \end{itemize}
-  \item $B%3%s%F%J7?2>A[2=(B
+  \item コンテナ型仮想化
     \begin{itemize}
-    \item $B%2%9%H4D6-$NF0:n$K%+!<%M%k$OITMW(B($B%[%9%H4D6-$N%+!<%M%k>e$GF0:n(B)
-    \item $B%2%9%H4D6-$O!"%[%9%H4D6-$+$i8+$k$H%W%m%;%9$H$7$F07$o$l$k(B
-    \item $B%2%9%H4D6-$,MxMQ$G$-$k%j%=!<%9$K@)Ls$,$D$/>l9g$,$"$k(B
+    \item ゲスト環境の動作にカーネルは不要(ホスト環境のカーネル上で動作)
+    \item ゲスト環境は、ホスト環境から見るとプロセスとして扱われる
+    \item ゲスト環境が利用できるリソースに制約がつく場合がある
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 \begin{frame}[containsverbatim]{chroot}
   \begin{itemize}
-  \item chroot$B%7%9%F%`%3!<%k$H(Bchroot$B%3%^%s%I(B
-  \item 1982$BG/$K%S%k!&%8%g%$$,3+H/$7$?$H$5$l$F$$$k(B
-  \item \# chroot rootfsdir $B$G%3%s%F%J4D6-$KF~$l$k$3$H$,$G$-$k(B
+  \item chrootシステムコールとchrootコマンド
+  \item 1982年にビル・ジョイが開発したとされている
+  \item \# chroot rootfsdir でコンテナ環境に入れることができる
   \end{itemize}
 \end{frame}
 
 
 \emtext{lxc}
 
-\begin{frame}[containsverbatim]{lxc$B$H$O(B}
+\begin{frame}[containsverbatim]{lxcとは}
   \begin{itemize}
-  \item LinuX Containers$B$N$3$H$G!">JN,$7$F(Blxc$B$HFI$s$G$$$k(B
-  \item $B$"$k%G%#%l%/%H%jG[2<$K<B9T%U%!%$%k!"%i%$%V%i%j!"@_Dj%U%!%$%k$rE,@Z$KG[CV$7$?(Brootfs$B$r=`Hw$9$k(B
-  \item rootfs$B$r(Bchroot$B4D6-$G5/F0$7!"2>A[%^%7%s$N$h$&$KF0$+$9$3$H$,$G$-$k(B
-  \item Debian 9 Stretch $B$G$O(B lxc-2.0.5 $B$r:NMQ(B
+  \item LinuX Containersのことで、省略してlxcと読んでいる
+  \item あるディレクトリ配下に実行ファイル、ライブラリ、設定ファイルを適切に配置したrootfsを準備する
+  \item rootfsをchroot環境で起動し、仮想マシンのように動かすことができる
+  \item Debian 9 Stretch では lxc-2.0.5 を採用
   \end{itemize}
 \end{frame}
 
 
-\emtext{lxc$B$N%$%s%9%H!<%k(B}
+\emtext{lxcのインストール}
 
 % https://wiki.debian.org/LXC/LibVirtDefaultNetwork
-\begin{frame}[containsverbatim]{$B%$%s%9%H!<%k$NN.$l(B}
+\begin{frame}[containsverbatim]{インストールの流れ}
   \begin{itemize}
-  \item $B%V%j%C%8%M%C%H%o!<%/$H(Blibvirtd$B$N=`Hw(B
-  \item lxc$B$N%$%s%9%H!<%k(B
+  \item ブリッジネットワークとlibvirtdの準備
+  \item lxcのインストール
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{$B%V%j%C%8%M%C%H%o!<%/$H(Blibvirtd$B$N=`Hw(B}
+\begin{frame}[containsverbatim]{ブリッジネットワークとlibvirtdの準備}
 
-$B%Q%C%1!<%8$N%$%s%9%H!<%k(B
+パッケージのインストール
 \begin{commandline}
   # apt-get install libvirt-clients \
   libvirt-daemon-system ebtables dnsmasq
 \end{commandline}
 
-$B2>A[%M%C%H%o!<%/$N@_Dj(B
+仮想ネットワークの設定
 \begin{commandline}
   # virsh net-autostart default
   # virsh net-start default
@@ -152,8 +152,8 @@
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{$B%V%j%C%8%M%C%H%o!<%/$H(Blibvirtd$B$N=`Hw(B}
-$B3NG'(B
+\begin{frame}[containsverbatim]{ブリッジネットワークとlibvirtdの準備}
+確認
 \begin{commandline}
   $ sudo virsh net-info default
   Name:           default
@@ -164,31 +164,31 @@
   Bridge:         virbr0
   
   $ ip a show virbr0
-  $B"*(B192.168.122.1/24 $B$,IUM?$5$l$F$$$k(B
+  →192.168.122.1/24 が付与されている
 \end{commandline}
 
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{lxc$B$N%$%s%9%H!<%k(B}
-  $B%3%s%F%JFb$N%j%=!<%9@)Ls$r=hM}$9$k(Bcgroup$B$N3NG'(B
+\begin{frame}[containsverbatim]{lxcのインストール}
+  コンテナ内のリソース制約を処理するcgroupの確認
   \begin{commandline}
     # mount | grep cgroup
-    $B"*(Bstretch$B$OI8=`$G(Bmount$B$5$l$F$$$k(B
+    →stretchは標準でmountされている
   \end{commandline}
-  $B%Q%C%1!<%8$N%$%s%9%H!<%k(B
+  パッケージのインストール
   \begin{commandline}
     # apt-get install lxc libvirt0 libpam-cgroup \
     libpam-cgfs
   \end{commandline}
-  $B4D6-$r3NG'(B
+  環境を確認
   \begin{commandline}
   $ ls /usr/bin | grep lxc
   # lxc-checkconfig
   \end{commandline}
 \end{frame}
 
-\begin{frame}[containsverbatim]{lxc$B$N%$%s%9%H!<%k(B}
+\begin{frame}[containsverbatim]{lxcのインストール}
   \begin{itemize}
   \item lxc-create
   \item lxc-destroy
@@ -200,7 +200,7 @@
 \end{frame}
 
 
-\emtext{lxc$B$N%3%^%s%I2r@b(B}
+\emtext{lxcのコマンド解説}
 
 \begin{frame}[containsverbatim]{lxc-create(1)}
   \begin{commandline}
@@ -209,18 +209,18 @@
     --mirror=http://ftp.jp.debian.org/debian
   \end{commandline}   
   \begin{itemize}
-  \item $B<B9T$9$k$H%F%s%W%l!<%H$,(Bdebian$B$N>l9g$O(Bdebootstrap$B$r<B9T$7$F(Brootfs$B$r%@%&%s%m!<%I$9$k(B
-  \item lxc$B$N%2%9%H4D6-$N%G%#%l%/%H%j$O!"(B/var/lib/lxc/''$B%3%s%F%JL>(B'' $B!#Cf?H$O0J2<!#(B
+  \item 実行するとテンプレートがdebianの場合はdebootstrapを実行してrootfsをダウンロードする
+  \item lxcのゲスト環境のディレクトリは、/var/lib/lxc/''コンテナ名'' 。中身は以下。
     \begin{itemize}
-    \item config ($B@_Dj%U%!%$%k(B)
-    \item rootfs ($B%3%s%F%J$NCf?H(B)
+    \item config (設定ファイル)
+    \item rootfs (コンテナの中身)
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 \begin{frame}[containsverbatim]{lxc-create(2)}
   \begin{itemize}
-  \item config$B$r=$@5$7$F!"%M%C%H%o!<%/$N@_Dj$r9T$&(B
+  \item configを修正して、ネットワークの設定を行う
   \item lxc.network.type = veth
   \item lxc.network.flags = up
   \item lxc.network.link = virbr0
@@ -235,7 +235,7 @@
   # lxc-destroy -n demo1
   \end{commandline}
   \begin{itemize}
-  \item $B%3%s%F%J$r:o=|$7$^$9(B
+  \item コンテナを削除します
   \end{itemize}
 \end{frame}
 
@@ -244,9 +244,9 @@
   # lxc-start -n demo1
   \end{commandline}
   \begin{itemize}
-  \item $B<B9T$7$F2?$b%(%i!<$,I=<($5$l$J$1$l$P!"%P%C%/%0%i%&%s%I$G(Blxc$B%3%s%F%J$,F0$-=P$7$^$9(B
-  \item $B5/F0$7$?%3%s%F%J$X$N@\B3$O!"8e=R$9$k(Blxc-console$B$^$?$O(Blxc-attach$B$G9T$$$^$9(B
-  \item $B%3%s%F%J$X$N%m%0%$%s$O(Bssh$B$G$b%m%0%$%s$G$-$^$9$,!"%f!<%6$r:n@.$9$kI,MW$,$"$j$^$9(B
+  \item 実行して何もエラーが表示されなければ、バックグラウンドでlxcコンテナが動き出します
+  \item 起動したコンテナへの接続は、後述するlxc-consoleまたはlxc-attachで行います
+  \item コンテナへのログインはsshでもログインできますが、ユーザを作成する必要があります
   \end{itemize}
 \end{frame}
 
@@ -255,9 +255,9 @@
   # lxc-stop -n demo1
   \end{commandline}
   \begin{itemize}
-  \item $B%3%s%F%J4D6-$r=*N;$9$k$h$&;X<($r=P$7$^$9(B
-  \item $B%3%s%F%J4D6-$N=*N;$H$O!"%3%s%F%JFb$N(Binit$B%W%m%0%i%`$r=*N;$9$k$3$H$r$$$$$^$9(B
-  \item $B%3%s%F%J4D6-$G(Bshutdown$BL?Na$O<B9T$G$-$^$;$s(B
+  \item コンテナ環境を終了するよう指示を出します
+  \item コンテナ環境の終了とは、コンテナ内のinitプログラムを終了することをいいます
+  \item コンテナ環境でshutdown命令は実行できません
   \end{itemize}
 \end{frame}
 
@@ -266,8 +266,8 @@
   # lxc-console -n demo1
   \end{commandline}
   \begin{itemize}
-  \item lxc$B$N%2%9%H4D6-$N%3%s%=!<%k$K@\B3$7$^$9(B
-  \item $B%3%s%=!<%k$rH4$1$k>l9g$O!"!V(BCtrl+a q$B!W$N=g$KF~NO$7$F$/$@$5$$(B
+  \item lxcのゲスト環境のコンソールに接続します
+  \item コンソールを抜ける場合は、「Ctrl+a q」の順に入力してください
   \end{itemize}
 \end{frame}
 
@@ -276,61 +276,61 @@
   # lxc-attach -n demo1 {command}
   \end{commandline}
   \begin{itemize}
-  \item lxc$B$N%2%9%H4D6-$G%3%^%s%I$r<B9T$7$^$9(B
-  \item $B%3%^%s%I$r;XDj$7$J$$>l9g$O!"%3%s%F%JFb$N%f!<%6$N%G%U%)%k%H%7%'%k$,<B9T$5$l$^$9(B
-  \item lxc-console$B$G%m%0%$%s$9$k$3$H$KHf$Y!"$$$-$J$j%3%s%F%JFb$G%7%'%k$r<B9T$G$-$k$?$a!"(Blxc-attach$B$NJ}$,%3%s%F%JFb$N@0Hw$,$7$d$9$$$G$9(B
+  \item lxcのゲスト環境でコマンドを実行します
+  \item コマンドを指定しない場合は、コンテナ内のユーザのデフォルトシェルが実行されます
+  \item lxc-consoleでログインすることに比べ、いきなりコンテナ内でシェルを実行できるため、lxc-attachの方がコンテナ内の整備がしやすいです
   \end{itemize}
 \end{frame}
 
 
-\emtext{lxc$B$r<BMQ$9$k(B}
+\emtext{lxcを実用する}
 
-\begin{frame}[containsverbatim]{$B%3%s%F%J4D6-$N%;%C%H%"%C%W$NN.$l(B}
+\begin{frame}[containsverbatim]{コンテナ環境のセットアップの流れ}
   \begin{itemize}
-  \item lxc-create $B$r<B9T$7$F%3%s%F%J$r@8@.$9$k(B
-  \item lxc$B$N%2%9%H4D6-$N(Bconfig$B$r=q$-49$($F%M%C%H%o!<%/$r@_Dj$9$k(B
-  \item lxc-start$B$7$F%3%s%F%J$r5/F0$9$k(B
-  \item lxc-attach$B$G%2%9%H4D6-$KF~$k(B
+  \item lxc-create を実行してコンテナを生成する
+  \item lxcのゲスト環境のconfigを書き換えてネットワークを設定する
+  \item lxc-startしてコンテナを起動する
+  \item lxc-attachでゲスト環境に入る
   \begin{commandline}
   # passwd
   # adduser username
   # apt-get install sudo vim-tiny
   # visudo
   \end{commandline}
-  \item ssh$B%m%0%$%s$7$F$*9%$_$K@_Dj$9$k(B
+  \item sshログインしてお好みに設定する
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B2?$K(Blxc$B$r;H$&$+(B}
+\begin{frame}[containsverbatim]{何にlxcを使うか}
   \begin{itemize}
-  \item $B0l;~E*$J8!>Z$G!"%[%9%H4D6-$K$$$m$$$m%$%s%9%H!<%k$7$?$/$J$$>l9g(B
-  \item $B%"%W%j%1!<%7%g%s$N%/%j!<%s%S%k%I$d%/%j!<%s%$%s%9%H!<%k$r%F%9%H$9$k>l9g(B
-  \item $B%[%9%H4D6-$O(Bsystemd$B!"%2%9%H4D6-$O(Bsysvinit$B$H;H$$J,$1$k>l9g(B
-  \item python2$B7O$H(Bpython3$B7O$N(Bwsgi$B%"%W%j$r(B1$B$D$N%[%9%H$GF0$+$7$?$$>l9g(B
-  \item $B%[%9%H4D6-$H0[$J$k(BCPU$B%"!<%-%F%/%A%c$N%(%_%e%l!<%7%g%s4D6-$,$[$7$$>l9g(B
+  \item 一時的な検証で、ホスト環境にいろいろインストールしたくない場合
+  \item アプリケーションのクリーンビルドやクリーンインストールをテストする場合
+  \item ホスト環境はsystemd、ゲスト環境はsysvinitと使い分ける場合
+  \item python2系とpython3系のwsgiアプリを1つのホストで動かしたい場合
+  \item ホスト環境と異なるCPUアーキテクチャのエミュレーション環境がほしい場合
     \begin{itemize}
     \item apt-get install qemu qemu-user-static binfmt-support
-    \item $B$=$N8e!"(Blxc-create$B$r<B9T$7$F$/$@$5$$(B
-    \item $B>\$7$/$O(B CrossDebootstrap $B$rD4$Y$F$_$F$/$@$5$$(B
+    \item その後、lxc-createを実行してください
+    \item 詳しくは CrossDebootstrap を調べてみてください
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{$B$*$o$j$K(B}
+\begin{frame}[containsverbatim]{おわりに}
   \begin{itemize}
-  \item Debian$B>e$G(Blxc$B$r;n$7$F$_$^$7$?(B
-  \item $BH/E87O$G$"$k(BLXD$B$d(Bdocker$B$X$D$J$2$F$$$-$^$7$g$&(B
-  \item $B%3%s%F%J$OJXMx$G$9$N$G;n$7$F$_$F$/$@$5$$(B
+  \item Debian上でlxcを試してみました
+  \item 発展系であるLXDやdockerへつなげていきましょう
+  \item コンテナは便利ですので試してみてください
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}{$B;29M>pJs(B}
+\begin{frame}{参考情報}
   \begin{itemize}
-  \item $B!V(BLXC$B!W(B \url{https://linuxcontainers.org/}
-  \item $B!V(BLXC - Debian Wiki$B!W(B \url{https://wiki.debian.org/LXC}
-  \item $B!V(BLXCLibVirtDefaultNetwork$B!W(B \url{https://wiki.debian.org/LXC/LibVirtDefaultNetwork}
+  \item 「LXC」 \url{https://linuxcontainers.org/}
+  \item 「LXC - Debian Wiki」 \url{https://wiki.debian.org/LXC}
+  \item 「LXCLibVirtDefaultNetwork」 \url{https://wiki.debian.org/LXC/LibVirtDefaultNetwork}
   \end{itemize}
 \end{frame}
 

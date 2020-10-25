@@ -1,18 +1,18 @@
 \documentclass[cjk,dvipdfmx,14pt,compress,%
 hyperref={bookmarks=true,bookmarksnumbered=true,bookmarksopen=false,%
 colorlinks=false,%
-pdftitle={$BBh(B 134 $B2s(B $B4X@>(B Debian $BJY6/2q(B},%
-pdfauthor={$B:4!9LZMNJ?(B},%
-%pdfinstitute={$B4X@>(B Debian $BJY6/2q(B},%
-pdfsubject={$B;qNA(B},%
+pdftitle={第 134 回 関西 Debian 勉強会},%
+pdfauthor={佐々木洋平},%
+%pdfinstitute={関西 Debian 勉強会},%
+pdfsubject={資料},%
 }]{beamer}
 
-\title{$B:G6a$N(BDebian$B%Q%C%1!<%8:n@.4D6-(B}
-\subtitle{$\sim$$BBh(B 134 $B2s(B $B4X@>(B Debian $BJY6/2q(B$\sim$}
-\author[$B:4!9LZMNJ?(B]{{\large\textbf{$B:4!9LZMNJ?(B}}\newline\texttt{uwabami@debian.or.jp}}
+\title{最近のDebianパッケージ作成環境}
+\subtitle{$\sim$第 134 回 関西 Debian 勉強会$\sim$}
+\author[佐々木洋平]{{\large\textbf{佐々木洋平}}\newline\texttt{uwabami@debian.or.jp}}
 %\email{uwabami@gfd-dennou.org}
-\institute[Debian JP]{{\normalsize\texttt{$B4X@>(B Debian $BJY6/2q(B}}}
-\date{{\small{2018 $BG/(B 4 $B7n(B 22 $BF|(B}}}
+\institute[Debian JP]{{\normalsize\texttt{関西 Debian 勉強会}}}
+\date{{\small{2018 年 4 月 22 日}}}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -25,8 +25,8 @@ pdfsubject={$B;qNA(B},%
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
 \usetheme{KansaiDebian}
 \begin{document}
-\begin{frame}{$B;vA0=`Hw(B}
-  $B0J2<$r%$%s%9%H!<%k$7$F$*$$$F2<$5$$!#(B
+\begin{frame}{事前準備}
+  以下をインストールしておいて下さい。
   \begin{enumerate}
   \item \texttt{git-buildpackage}
   \item \texttt{sbuild}
@@ -40,28 +40,28 @@ pdfsubject={$B;qNA(B},%
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{$B$*$3$H$o$j(B}
+  \frametitle{おことわり}
   \begin{itemize}
-  \item $B5?Ld!"<ALd!"%D%C%3%_!"Cc!9!"(B\alert{$BBg4?7^(B}
-  \item $B$=$N>l$G%$%s%?%i%/%F%#%V$K$I$&$>(B
-  \item $B%O%C%7%e%?%0(B \texttt{\#kansaidebian}
+  \item 疑問、質問、ツッコミ、茶々、\alert{大歓迎}
+  \item その場でインタラクティブにどうぞ
+  \item ハッシュタグ \texttt{\#kansaidebian}
   \end{itemize}
 \end{frame}
 
-\takahashi[50]{$B:#F|$N$*Bj(B}
+\takahashi[50]{今日のお題}
 
 \begin{frame}[fragile]
-  \frametitle{$B:#F|$N$*Bj(B}
+  \frametitle{今日のお題}
   \begin{itemize}
-  \item $B%b%@%s$J%Q%C%1!<%8:n@.4D6-9=C[$K$D$$$F(B
+  \item モダンなパッケージ作成環境構築について
     \begin{enumerate}
     \item \texttt{git-buildpackage}
     \item \texttt{sbuild}, \texttt{cowbuilder}
     \item \texttt{lintian}, \texttt{piuparts}
     \item \texttt{autopkgtest}, \texttt{debci}
     \end{enumerate}
-  \item \sout{$B$3$N4V<+J,$G;E9~$s$G$7$^$C$?(B}$B%P%0$r$=$N>l$G=$@5$7%"%C%W%m!<%I!#(B
-  \item $B$=$N:]$N:n6H$r%i%$%V$G8+$;$D$D!"3'$+$i%D%C%3%_$r<u$1$k(B($B<u$1$?$$(B)$B!#(B
+  \item \sout{この間自分で仕込んでしまった}バグをその場で修正しアップロード。
+  \item その際の作業をライブで見せつつ、皆からツッコミを受ける(受けたい)。
   \end{itemize}
 \end{frame}
 
@@ -69,23 +69,23 @@ pdfsubject={$B;qNA(B},%
   \frametitle{\texttt{git-buildpackage}}
   \begin{itemize}
   \item %
-    Debian $B%Q%C%1!<%8$r(B Git $B$G4IM}$9$k(B/
-    $B4IM}$5$l$F$k%j%]%8%H%j$rNI$$6q9g$K07$&%D!<%k(B
+    Debian パッケージを Git で管理する/
+    管理されてるリポジトリを良い具合に扱うツール
   \item %
-    $B%$%s%9%H!<%k$7$F$$$J$$?M$O%$%s%9%H!<%k$7$^$7$g$&!#(B
+    インストールしていない人はインストールしましょう。
   \item %
-    Debian $B%Q%C%1!<%8354Q(B
+    Debian パッケージ概観
     \begin{itemize}
-    \item gbp $B$N;~$N%V%i%s%A9=@.(B
-    \item patch $B4IM}(B: quilt, gbp pq
-    \item \texttt{packaging-tutorial}: \\$B%A%e!<%H%j%"%k%I%-%e%a%s%H(B(PDF)$B$,F~<j$G$-$^$9!#(B
+    \item gbp の時のブランチ構成
+    \item patch 管理: quilt, gbp pq
+    \item \texttt{packaging-tutorial}: \\チュートリアルドキュメント(PDF)が入手できます。
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{\texttt{git-buildpackage}: $B$*$9$9$a(B}
-  $B$o$?$7$O$3$s$J(B alias, zsh function $B$r;E9~$s$G$$$^$9(B:
+  \frametitle{\texttt{git-buildpackage}: おすすめ}
+  わたしはこんな alias, zsh function を仕込んでいます:
   \footnotesize
 \begin{verbatim}
 git-b:
@@ -109,20 +109,20 @@ git-bs () {
 \begin{frame}
   \frametitle{\texttt{sbuild}}
   \begin{itemize}
-  \item $B%Q%C%1!<%8$N%/%j!<%s%k!<%`%S%k%I4D6-(B
+  \item パッケージのクリーンルームビルド環境
     \begin{itemize}
     \item %
-      $B:G6a(B \texttt{sbuild-debian-developer-setup} $B$H$$$&(B
-      $B$*<j7Z%;%C%H%"%C%W%Q%C%1!<%8$b$"$k!#(B
+      最近 \texttt{sbuild-debian-developer-setup} という
+      お手軽セットアップパッケージもある。
     \end{itemize}
-  \item $BF1MM$N%=%U%H%&%'%"(B:\\
+  \item 同様のソフトウェア:\\
     \texttt{pbuilder, cowbuilder, qemubuilder}
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{\texttt{sbuild}$B$N@_Dj(B: \texttt{\$HOME/.sbuildrc}}
-  $BD9$$$N$G!"0J2<$r$4Mw2<$5$$!#(B
+  \frametitle{\texttt{sbuild}の設定: \texttt{\$HOME/.sbuildrc}}
+  長いので、以下をご覧下さい。
   \begin{center}
     {\small{\texttt{https://uwabami.github.io/cc-env/DebianPackaging.html}}}
   \end{center}
@@ -130,35 +130,35 @@ git-bs () {
   \item \texttt{lintian}
     \begin{itemize}
     \item %
-      $B%Q%C%1!<%8>pJs$N(B lint
+      パッケージ情報の lint
     \end{itemize}
   \item \texttt{piuparts}
     \begin{itemize}
     \item %
-      $B%Q%C%1!<%8$N%$%s%9%H!<%k!":o=|$N%A%'%C%+!<(B
+      パッケージのインストール、削除のチェッカー
     \item %
-      $B%3%^%s%I%i%$%s%*%W%7%g%s$,?'!9%"%l$J$N$G!"Cm0U(B
+      コマンドラインオプションが色々アレなので、注意
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{rdepends $B$N(B autopkgtest: CI}
+  \frametitle{rdepends の autopkgtest: CI}
   \begin{itemize}
   \item \texttt{debci}: Debian CI
     \begin{itemize}
-    \item $B>\:Y$O(B \texttt{ci.debian.net} $B;2>H(B
-    \item $B8D?M$G;H$&$K$O!"$A$g$C$HBg6D(B. \\
-      $B"M(B \texttt{sbuild} $B$N(B post-hook $B$G8F$S=P$9$h$&$K$7$F$_$?(B\\
+    \item 詳細は \texttt{ci.debian.net} 参照
+    \item 個人で使うには、ちょっと大仰. \\
+      ⇒ \texttt{sbuild} の post-hook で呼び出すようにしてみた\\
       {\footnotesize{\texttt{https://uwabami.github.io/cc-env/DebianPackaging.html}}}
-    \item \texttt{salsa.debian.org} $B$N(B CI $B$G8F$S=P$9$h$&$K$7$F$bNI$$$+$b!#(B
+    \item \texttt{salsa.debian.org} の CI で呼び出すようにしても良いかも。
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\takahashi[50]{$B2?$+$4<ALd$J$I$"$j$^$9$+(B?}
+\takahashi[50]{何かご質問などありますか?}
 
-\takahashi[50]{$B$"$j$,$H$&(B\\$B$4$6$$$^$7$?(B!}
+\takahashi[50]{ありがとう\\ございました!}
 
 \end{document}
 %%% Local Variables:

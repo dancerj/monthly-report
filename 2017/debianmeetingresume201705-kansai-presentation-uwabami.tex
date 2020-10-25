@@ -3,21 +3,21 @@ hyperref={bookmarks=true,bookmarksnumbered=true,bookmarksopen=false,%
 colorlinks=false,%
 pdftitle={},%
 pdfauthor={}%,
-pdfinstitute={$B4X@>(B Debian $BJY6/2q(B},%
+pdfinstitute={関西 Debian 勉強会},%
 pdfsubject={},%
 }]{beamer}
 
-\title{GnuPG $B$K$^$D$o$k%"%l%3%l(B}
+\title{GnuPG にまつわるアレコレ}
 \subtitle{$\sim$GnuPG ver.2, Yubikey, Keybase$\sim$}
-\author[$B:4!9LZ(B $BMNJ?(B]{%
-  $B:4!9LZMNJ?(B/Youhei SASAKI\newline%
+\author[佐々木 洋平]{%
+  佐々木洋平/Youhei SASAKI\newline%
   \texttt{uwabami@debian.or.jp}\newline%
   GPG key ID:\texttt{0x9394F354891D7E07}
 }
-\institute[$BBh(B123$B2s(B $B4X@>(BDebian$BJY6/2q(B]{%
-  {\normalsize\texttt{$BBh(B123$B2s(B $B4X@>(B Debian $BJY6/2q(B $B;qNA(B}}
+\institute[第123回 関西Debian勉強会]{%
+  {\normalsize\texttt{第123回 関西 Debian 勉強会 資料}}
 }
-\date[2017/05/28]{{\small{2017 $BG/(B 5 $B7n(B 28 $BF|(B}}}
+\date[2017/05/28]{{\small{2017 年 5 月 28 日}}}
 \usefonttheme{professionalfonts}
 \usepackage{amsmath,amssymb}
 \usepackage{minijs}
@@ -34,14 +34,14 @@ pdfsubject={},%
 \titlepage
 \end{frame}
 
-\takahashi[100]{\textbf{$BCm0U(B\\$B:F7G(B}}
+\takahashi[100]{\textbf{注意\\再掲}}
 
 \begin{frame}[fragile]
   \frametitle{Disclaimer}
   \begin{itemize}
-  \item $B5?Ld!"<ALd!"%D%C%3%_!"Cc!9!"(B\alert{$BBg4?7^(B}
-  \item $B$=$N>l$G%$%s%?%i%/%F%#%V$K$I$&$>(B
-  \item $B%O%C%7%e%?%0(B \#kansaidebian
+  \item 疑問、質問、ツッコミ、茶々、\alert{大歓迎}
+  \item その場でインタラクティブにどうぞ
+  \item ハッシュタグ \#kansaidebian
   \end{itemize}
 \end{frame}
 
@@ -49,89 +49,89 @@ pdfsubject={},%
   \frametitle{Outline}
   \tableofcontents
 \end{frame}
-\section{GnuPG $B$H$O(B? - $B$*$5$i$$(B}
-\takahashi[100]{$B<ALd(B}
+\section{GnuPG とは? - おさらい}
+\takahashi[100]{質問}
 \takahashi[20]{%
-  $B!V(BGnuPG$B$C$F$J$s$G$9$+(B?$B!W(B\newline
-  $B$H$$$&J}$O$$$i$C$7$c$$$^$9$+(B?
+  「GnuPGってなんですか?」\newline
+  という方はいらっしゃいますか?
 }
-\begin{frame}{GnuPG $B$H$O(B? - OpenPGP}
+\begin{frame}{GnuPG とは? - OpenPGP}
   \begin{itemize}
   \item %
     OpenPGP
     \begin{itemize}
     \item %
-      $B8x3+800E9f$H6&DL800E9f$rMQ$$$?0E9f$HEE;R=pL>$K4X$9$k6&DL5,3J(B
+      公開鍵暗号と共通鍵暗号を用いた暗号と電子署名に関する共通規格
       (RFC:2440,4880,5581,6637)
     \item %
-      $B0E9f2=$K$h$C$FEpD0$rKI$0(B($B5!L)@-(B):
+      暗号化によって盗聴を防ぐ(機密性):
       \begin{itemize}
       \item %
-        $BNc(B: $B%a!<%k$rAj<j$N8x3+80$G0E9f2=$7$FAw?."*I|9f$G$-$k$N$O<u?.<T(B
+        例: メールを相手の公開鍵で暗号化して送信→復号できるのは受信者
       \end{itemize}
     \item %
-      $B=pL>$K$h$C$F2~cb$r8!CN2DG=$K$9$k(B($B40A4@-(B):
+      署名によって改竄を検知可能にする(完全性):
       \begin{itemize}
       \item %
-        $BNc(B1: apt $B$N(B Release $B%U%!%$%k$K=pL>$7!"2~cb$rKI;_$9$k(B(secure-apt)
+        例1: apt の Release ファイルに署名し、改竄を防止する(secure-apt)
       \item %
-        $BNc(B2: DNS$B$K8x3+80$rDI2C$7!"Aw?.%a!<%k$KHkL)80$G=pL>"*Aw?.85$r8!>Z(B(DKIM)
+        例2: DNSに公開鍵を追加し、送信メールに秘密鍵で署名→送信元を検証(DKIM)
       \end{itemize}
     \item %
-      $B?.Mj$NNX(B(Web of trust)$B$K$h$C$FK\?M$rF1Dj(B
+      信頼の輪(Web of trust)によって本人を同定
     \end{itemize}
   \end{itemize}
 \end{frame}
-\begin{frame}{GnuPG $B$H$O(B? - GnuPG}
+\begin{frame}{GnuPG とは? - GnuPG}
   \begin{itemize}
   \item %
     GnuPG
     \begin{itemize}
     \item %
-      OpenPGP $B5,3J(B(RFC 4880) $B$N(B GNU $B$K$h$k<BAu(B.
+      OpenPGP 規格(RFC 4880) の GNU による実装.
     \item %
-      $B0J2<$b;29M$K(B
+      以下も参考に
       \begin{itemize}
       \item %
         The GNU Privacy Guard: \url{http://gnupg.org/}
       \item %
-        GNU Privacy Guard $B9V:B(B: \url{http://gnupg.hclippr.com/main}
+        GNU Privacy Guard 講座: \url{http://gnupg.hclippr.com/main}
       \end{itemize}
     \item %
-      $B2a5n$NJY6/2q;qNA$b;29M$K$J$k$+$H;W$$$^$9!#(B
+      過去の勉強会資料も参考になるかと思います。
       \begin{itemize}
       \item %
-        $BARI_8g!"(B2008: GPG $B:G=i$N0lJb!"Bh(B11$B2s4X@>(BDebian$BJY6/2q!"(Bp.8--13
+        倉敷悟、2008: GPG 最初の一歩、第11回関西Debian勉強会、p.8--13
       \item %
-        $B$+$o$@$F$D$?$m$&!"(B2015: wiki:Subkeys$B!"Bh(B101$B2s4X@>(BDebian$BJY6/2q!"(Bp.6--9
+        かわだてつたろう、2015: wiki:Subkeys、第101回関西Debian勉強会、p.6--9
       \end{itemize}
     \end{itemize}
   \end{itemize}
 \end{frame}
 
-\section{GnuPG 2 - Stretch $B$+$i$NBg$-$JJQ99E@(B}
-\begin{frame}{GnuPG 2 - Stretch $B$+$i$NBg$-$JJQ99E@(B}
+\section{GnuPG 2 - Stretch からの大きな変更点}
+\begin{frame}{GnuPG 2 - Stretch からの大きな変更点}
   \begin{itemize}
   \item %
-    $B:rG/$N(B Mini Debian Conference Japan 2016 $B$G$N(B g$B?7It$5$s$NH/I=$,(B
-    $BAG@2$7$$2r@b$K$J$C$F$$$^$9$N$G!"@'Hs$4Mw2<$5$$(B
+    昨年の Mini Debian Conference Japan 2016 での g新部さんの発表が
+    素晴しい解説になっていますので、是非ご覧下さい
     \begin{itemize}
     \item %
-      g$B?7It(B $BM5!"(B2016: $B:G6a$N(BGnuPG, Mini Debian Conference Japan 2016,\\
+      g新部 裕、2016: 最近のGnuPG, Mini Debian Conference Japan 2016,\\
       \url{http://miniconf.debian.or.jp/assets/files/gnupg-now.html}
     \end{itemize}
   \item %
-    $BK\>.@a$NFbMF$O(Bg$B?7It$5$s$NH/I=;qNA$NJ}$,$^$H$^$C$F$$$kLu$G(B$\cdots$
+    本小節の内容はg新部さんの発表資料の方がまとまっている訳で$\cdots$
   \end{itemize}
 \end{frame}
-\begin{frame}{GnuPG 2 - Stretch $B$+$i$NBg$-$JJQ99E@(B}
+\begin{frame}{GnuPG 2 - Stretch からの大きな変更点}
   \begin{table}
-    \caption{Jessie, Stretch $B$K$*$1$k%Q%C%1!<%8L>$HBP1~$9$k(B GnuPG $B$N(B version}
-    \label{table:Jessie, Stretch $B$K$*$1$k%Q%C%1!<%8L>$HBP1~$9$k(B GnuPG $B$N(B version}
+    \caption{Jessie, Stretch におけるパッケージ名と対応する GnuPG の version}
+    \label{table:Jessie, Stretch におけるパッケージ名と対応する GnuPG の version}
     \centering
     \begin{tabular}[htbp!]{llcl}
       \hline
-      $B%Q%C%1!<%8L>(B     & Jessie                  & $\to$ & Stretch                 \\
+      パッケージ名     & Jessie                  & $\to$ & Stretch                 \\
       \hline
       \texttt{gnupg}   & GnuPG ver. \textbf{1.4} &       & GnuPG ver. \textbf{2.1} \\
       \texttt{gnupg1}  & -                       &       & GnuPG ver. \textbf{1.4} \\
@@ -139,86 +139,86 @@ pdfsubject={},%
       \hline
     \end{tabular}
   \end{table}
-  Stretch $B$+$i$O(B
+  Stretch からは
   \begin{center}
     \textbf{%
-      $B$3$l$^$GDL$j(B \texttt{gpg} $B%3%^%s%I$rBG$D$H!"(B%
-      GnuPG ver. 2 $B$,<B9T$5$l$k(B
+      これまで通り \texttt{gpg} コマンドを打つと、%
+      GnuPG ver. 2 が実行される
     }
   \end{center}
-  $B$H$$$&;v$K$J$k$o$1$G$9!#(B
+  という事になるわけです。
 \end{frame}
-\begin{frame}{GnuPG ver.2.1 $B$G$NJQ99E@(B}
+\begin{frame}{GnuPG ver.2.1 での変更点}
   \begin{figure}[htbp!]
     \centering
     \includegraphics[width=.8\linewidth]{image201705/gnupg2.png}
     \caption{%
-      GPG 2 $B$G$N3F<o%W%m%0%i%`$H%G!<%?$NN.$l(B.
-      g$B?7It(B(2016) $B$r;29M$K:n@.!#(B
+      GPG 2 での各種プログラムとデータの流れ.
+      g新部(2016) を参考に作成。
     }
-    \label{figure:GnuPG 2 $B$G$N3F<o%W%m%0%i%`$H%G!<%?$NN.$l(B}
+    \label{figure:GnuPG 2 での各種プログラムとデータの流れ}
   \end{figure}
 \end{frame}
-\begin{frame}{GnuPG ver.2.1 $B$G$NJQ99E@(B}
+\begin{frame}{GnuPG ver.2.1 での変更点}
   \begin{figure}[htbp!]
     \centering
     \includegraphics[width=.8\linewidth]{image201705/gnupg2.png}
     \caption{%
-      GPG 2 $B$G$N3F<o%W%m%0%i%`$H%G!<%?$NN.$l(B.
-      g$B?7It(B(2016) $B$r;29M$K:n@.!#(B
+      GPG 2 での各種プログラムとデータの流れ.
+      g新部(2016) を参考に作成。
     }
-    \label{figure:GnuPG 2 $B$G$N3F<o%W%m%0%i%`$H%G!<%?$NN.$l(B}
+    \label{figure:GnuPG 2 での各種プログラムとデータの流れ}
   \end{figure}
 \end{frame}
-\section{$B%;%-%e%j%F%#%H!<%/%s$r(BDebian$B$G;H$&(B}
-\takahashi[30]{$BHkL)80$r$I$&$d$C$F(B\\$B4IM}$5$l$F$$$^$9$+(B?}
-\begin{frame}{$B%;%-%e%j%F%#%H!<%/%s$NNc(B: Yubikey 4 Nano}
+\section{セキュリティトークンをDebianで使う}
+\takahashi[30]{秘密鍵をどうやって\\管理されていますか?}
+\begin{frame}{セキュリティトークンの例: Yubikey 4 Nano}
   \begin{figure}[htbp!]
     \centering
     \includegraphics[width=.8\linewidth]{image201705/Yubikey4Nano.jpg}
-    \caption{YubiKey 4 Nano$B!#1lAp$NH"$O%5%$%:Hf3S$N$?$a(B}
-    \label{figure:YubiKey 4 Nano$B!#1lAp$NH"$O%5%$%:Hf3S$N$?$a(B}
+    \caption{YubiKey 4 Nano。煙草の箱はサイズ比較のため}
+    \label{figure:YubiKey 4 Nano。煙草の箱はサイズ比較のため}
   \end{figure}
 \end{frame}
 \begin{frame}
-  \frametitle{$B%;%-%e%j%F%#%H!<%/%s$NNc(B: Yubikey}
+  \frametitle{セキュリティトークンの例: Yubikey}
   \begin{itemize}
   \item %
-    $B%=%U%H5;8&$5$s$N%5%$%H$d(B CloudGate $B$5$s$N%5%$%H$r;29M$K(B
+    ソフト技研さんのサイトや CloudGate さんのサイトを参考に
     \begin{itemize}
     \item %
-      Yubikey$B%i%$%s%J%C%W(B - $B%=%U%H5;8&(B\\
+      Yubikeyラインナップ - ソフト技研\\
       \url{https://yubikey.yubion.com/yubikey_lineup.html}
     \item %
-      Yubikey$B@=IJ0lMw(B \\
+      Yubikey製品一覧 \\
       \url{https://www.cloudgate.jp/yubikey.html}
     \end{itemize}
   \end{itemize}
 \end{frame}
-\begin{frame}{Yubikey $B$N5!G=(B}
+\begin{frame}{Yubikey の機能}
   \begin{itemize}
   \item %
-    Yubikey $B$N5!G=(B
+    Yubikey の機能
     \begin{itemize}
     \item %
-      $BB?MWAGG'>ZMQ$N%;%-%e%j%F%#%H!<%/%s(B
+      多要素認証用のセキュリティトークン
     \item %
-      One Time Password $B@8@.5!(B
+      One Time Password 生成機
     \item%
-      GnuPG $BMQ$N%;%-%e%j%F%#%H!<%/%s(B
+      GnuPG 用のセキュリティトークン
     \end{itemize}
   \item %
-    $B;DG0$J$,$i8=:_$N(BYubikey $B$N%i%$%s%J%C%W$O(B ed25519 $B$O;H$($J$$(B
+    残念ながら現在のYubikey のラインナップは ed25519 は使えない
     \begin{itemize}
     \item %
-      NIST P-256, P-384 $B$OBP1~$9$k5!<o$O$"$j(B
+      NIST P-256, P-384 は対応する機種はあり
     \end{itemize}
   \end{itemize}
 \end{frame}
-\begin{frame}{Debian $B$G(B Yubikey}
+\begin{frame}{Debian で Yubikey}
   \begin{itemize}
   \item %
-    Debian $B%Q%C%1!<%8$"$j""(B
+    Debian パッケージあり□
     \begin{itemize}
     \item %
       \texttt{yubikey-neo-manager}: \\
@@ -231,7 +231,7 @@ pdfsubject={},%
       Graphical tool for managing your PIV-enabled YubiKey
     \end{itemize}
   \item %
-    Debian($B7O(B)$B$G$N(B How to
+    Debian(系)での How to
     \begin{itemize}
     \item %
       drduh/Yubikey-Guid:\\
@@ -242,74 +242,74 @@ pdfsubject={},%
     \end{itemize}
   \end{itemize}
 \end{frame}
-\begin{frame}{$B;(46(B}
+\begin{frame}{雑感}
   \begin{itemize}
   \item %
-    $BMxE@(B
+    利点
     \begin{itemize}
     \item %
-      $B80$N4IM}$K4X$7$F!"$=$l$[$I?@7P<A$K$J$i$J$/$FNI$$(B
+      鍵の管理に関して、それほど神経質にならなくて良い
     \item
-      \texttt{scdaemon} $B$,80$HDL?.$7$F$/$l$k$N$G!"(B
-      $B!VKh2s%Q%9%U%l!<%:$rBG$D!W$H$+(B
-      $B!V(B\texttt{gpg-agent} $B$N(B cache-ttl $B$rD9$/$7$F8mKb2=$9!W$H$$$C$?>.:Y9)$r$;$:$H$b(B
-      GPG $B$,;H$($F(B($B=pL>!"(BSSH $B%m%0%$%s$,$G$-$FJXMx(B)
+      \texttt{scdaemon} が鍵と通信してくれるので、
+      「毎回パスフレーズを打つ」とか
+      「\texttt{gpg-agent} の cache-ttl を長くして誤魔化す」といった小細工をせずとも
+      GPG が使えて(署名、SSH ログインができて便利)
     \end{itemize}
   \item %
-    $B7gE@(B
+    欠点
     \begin{itemize}
     \item %
-      \texttt{scdaemon} $B$,(B Yubikey $B$HDL?.$7!"(B
-      $B7k2L$rJV$7$F$/$k$N$KHyL/$J;~4V:9$,$"$k(B.
+      \texttt{scdaemon} が Yubikey と通信し、
+      結果を返してくるのに微妙な時間差がある.
     \item %
-      $B>.$5$$5!:`$J$N$G!"(BOTP $B5!G=Ey$rM-8z$K$7$F$$$k$H8mF~NO$,IQH/$9$k!"5$$,!#(B
+      小さい機材なので、OTP 機能等を有効にしていると誤入力が頻発する、気が。
     \item %
-      $B;H$C$F$$$k(B laptop $B$N(B USB $B%]!<%H$,JQ(B(?)$B$J$N$+!"6v$K%O%s%0$9$k(B
-      ($B$3$l$O(B Yubikey $B$H$OL54X78$G$9$,(B)$B!#(B
+      使っている laptop の USB ポートが変(?)なのか、偶にハングする
+      (これは Yubikey とは無関係ですが)。
     \item %
-      $B<+M3$J5!:`$G$O$J$$(B
+      自由な機材ではない
     \end{itemize}
   \end{itemize}
 \end{frame}
-\section{$B80=pL>$K(BSNS$B$r(B? - \texttt{keybase.io}}
-\begin{frame}{$B80=pL>$K(BSNS$B$r(B? - \texttt{keybase.io}}
+\section{鍵署名にSNSを? - \texttt{keybase.io}}
+\begin{frame}{鍵署名にSNSを? - \texttt{keybase.io}}
   \begin{itemize}
   \item Keybase: \url{https://keybase.io/}
     \begin{itemize}
     \item %
-      $B=pL>!"0E9f2=!"804IM}$N%D!<%k(B
+      署名、暗号化、鍵管理のツール
     \item %
-      $B8x3+80$N8x3+%5!<%P(B, $B%"%+%&%s%HJ];}<T$H$N0E9f2=DL?.(B
+      公開鍵の公開サーバ, アカウント保持者との暗号化通信
     \item %
-      $BAaB.EPO?$7$F$_$^$7$?(B
+      早速登録してみました
       \begin{itemize}
       \item Youhei SASAKI: \url{https://keybase.io/uwabami}
       \end{itemize}
     \end{itemize}
   \item %
-    $B4v$D$+$N(B SNS $B$HO"7H2DG=(B:
-    $BK\?M3NG'$N$?$a$N8D?M>pJs$H$7$F$N(B SNS
+    幾つかの SNS と連携可能:
+    本人確認のための個人情報としての SNS
   \end{itemize}
 \end{frame}
-\begin{frame}{keybase - $B;(46(B}
+\begin{frame}{keybase - 雑感}
   \begin{itemize}
   \item %
-    $B%"%+%&%s%H@_Dj$N=j$G(B
+    アカウント設定の所で
     \begin{center}
-      \textbf{$BHkL)80$r%"%C%W%m!<%I$7$F$*$/$H(B}\\
-      Web $B>e$G(Bkeybase$B$K%"%+%&%s%H$"$k?M$H(B\\
-      $BHkL)$N%a%C%;!<%8$N$d$j$H$j$,$G$-$k$h(B
+      \textbf{秘密鍵をアップロードしておくと}\\
+      Web 上でkeybaseにアカウントある人と\\
+      秘密のメッセージのやりとりができるよ
     \end{center}
-    $B$H$"$k(B.
+    とある.
   \item %
-    $BHkL)80$r%"%C%W%m!<%I$7$F$$$k?M$b$$$i$C$7$c$k$s$G$7$g$&$M(B($BK@(B)$B!#(B
+    秘密鍵をアップロードしている人もいらっしゃるんでしょうね(棒)。
     \begin{itemize}
     \item %
-      $B!VHkL)80$r%"%C%W%m!<%I$7$F$$$k$+$I$&$+!W$r%9%F!<%?%9$KI=<($7$FM_$7$$(B
+      「秘密鍵をアップロードしているかどうか」をステータスに表示して欲しい
     \end{itemize}
   \end{itemize}
 \end{frame}
-\takahashi[70]{$B$=$s$J(B\\$B$3$s$J$G(B}
+\takahashi[70]{そんな\\こんなで}
 \end{document}
 %%% Local Variables:
 %%% mode: japanese-latex

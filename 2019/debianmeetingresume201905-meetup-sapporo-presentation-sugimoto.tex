@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B
+% platex, latex-beamer でコンパイルすることを想定。
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,14 +31,14 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
-\title{golang$B$N(B''net/http/fcgi''$B$r;H$C$F(BREST API$B%"%W%j$r:n$k(B}
-\subtitle{Debian / Ubuntu $B%f!<%6!<%_!<%H%"%C%W(B in $B;%KZ(B 2019.05}
-\author{Norimitsu Sugimoto ($B?yK\(B $BE5=<(B) \\dictoss@live.jp}
+\title{golangの''net/http/fcgi''を使ってREST APIアプリを作る}
+\subtitle{Debian / Ubuntu ユーザーミートアップ in 札幌 2019.05}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
 \date{2019-05-31}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
@@ -47,54 +47,54 @@
 \frame{\titlepage{}}
 
 
-\section{$B%"%8%'%s%@(B}
+\section{アジェンダ}
 
-\begin{frame}{$B%"%8%'%s%@(B}
+\begin{frame}{アジェンダ}
   \begin{itemize}
-  \item $B<+8J>R2p(B
-  \item golang$B$K$D$$$F(B
-  \item Debian$B$H(Bgolang
-  \item go$B$N%"%W%j%1!<%7%g%s$rF0$+$9(B
-  \item $B$*$o$j$K(B
-  \item $B;29M;qNA(B
+  \item 自己紹介
+  \item golangについて
+  \item Debianとgolang
+  \item goのアプリケーションを動かす
+  \item おわりに
+  \item 参考資料
   \end{itemize}
 \end{frame}
 
 
-\section{$B<+8J>R2p(B}
+\section{自己紹介}
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
   \begin{itemize}
-  \item Norimitsu Sugimoto ($B?yK\(B $BE5=<(B)
+  \item Norimitsu Sugimoto (杉本 典充)
   \item dictoss@live.jp
   \item Twitter: @dictoss
-  \item $BBg3X@8$N$H$-$+$i(BDebian$B$r;H$C$F$$$^$9(B
-  \item $B;E;v$O%=%U%H%&%'%"3+H/<T$r$d$C$F$^$9(B
+  \item 大学生のときからDebianを使っています
+  \item 仕事はソフトウェア開発者をやってます
   \end{itemize}
 \end{frame}
 
 
-\section{golang$B$K$D$$$F(B}
-\emtext{golang$B$K$D$$$F(B}
+\section{golangについて}
+\emtext{golangについて}
 
-\begin{frame}[containsverbatim]{golang$B$K$D$$$F(B}
+\begin{frame}[containsverbatim]{golangについて}
   \begin{itemize}
-  \item 2009/11/10$B$K(Bgoogle$B$,H/I=$7$?%*!<%W%s%=!<%9$N%W%m%0%i%_%s%08@8l(B
-  \item $B:G?7$N0BDjHG!V(Bgo1.12$B!W$N%j%j!<%9$O(B 2019/2/25
-  \item $B%W%m%0%i%_%s%0$NFCD'(B
+  \item 2009/11/10にgoogleが発表したオープンソースのプログラミング言語
+  \item 最新の安定版「go1.12」のリリースは 2019/2/25
+  \item プログラミングの特徴
     \begin{itemize}
-    \item $BJQ?t$O@EE*$J7?IU$1$r9T$&(B
-    \item $B%M%C%H%o!<%/$d%^%k%A%9%l%C%I=hM}$r9T$&K-IY$JI8=`%i%$%V%i%j$r;}$D(B
-    \item struct$B$G%G!<%?9=B$$rDj5A$G$-!"(Bclass$B$O$J$$!J(Binterface$B$O$"$k!K(B
+    \item 変数は静的な型付けを行う
+    \item ネットワークやマルチスレッド処理を行う豊富な標準ライブラリを持つ
+    \item structでデータ構造を定義でき、classはない（interfaceはある）
     \end{itemize}
-  \item $BFCD'(B
+  \item 特徴
     \begin{itemize}
-    \item "go build" $B%3%^%s%I$G(BOS$B%M%$%F%#%V$J<B9T%U%!%$%k$r%S%k%I$9$k(B
+    \item "go build" コマンドでOSネイティブな実行ファイルをビルドする
       \begin{itemize}
-      \item Linux$B!"(BmacOS$B!"(BWindows$B!"(BFreeBSD $B8~$1$N<B9T%U%!%$%k$r%S%k%I2DG=(B
+      \item Linux、macOS、Windows、FreeBSD 向けの実行ファイルをビルド可能
       \end{itemize}
     \end{itemize}
-  \item golang$B$G<BAu$7$F$$$k%"%W%j%1!<%7%g%sNc(B
+  \item golangで実装しているアプリケーション例
     \begin{itemize}
     \item \url{https://github.com/golang/go/wiki/GoUsers}
     \end{itemize}
@@ -102,14 +102,14 @@
 \end{frame}
 
 
-\section{Debian$B$H(Bgolang}
+\section{Debianとgolang}
 
-\begin{frame}[containsverbatim]{Debian$B$H(Bgolang}
+\begin{frame}[containsverbatim]{Debianとgolang}
   \begin{itemize}
   \item Debian 9 Stretch
     \begin{itemize}
     \item golang-1.7.4
-    \item golang-1.11.5$B!J(Bstretch-backports$B!K(B
+    \item golang-1.11.5（stretch-backports）
     \end{itemize}
   \item Debian 10 Buster
     \begin{itemize}
@@ -119,42 +119,42 @@
 \end{frame}
 
 
-\section{go$B$N%"%W%j%1!<%7%g%s$rF0$+$9(B}
-\emtext{go$B$N%"%W%j%1!<%7%g%s$rF0$+$9(B}
+\section{goのアプリケーションを動かす}
+\emtext{goのアプリケーションを動かす}
 
-\subsection{$BF0:n4D6-$H%G%b%"%W%j%1!<%7%g%s(B}
+\subsection{動作環境とデモアプリケーション}
 
-\begin{frame}[containsverbatim]{$BF0:n4D6-$H%G%b%"%W%j%1!<%7%g%s(B}
+\begin{frame}[containsverbatim]{動作環境とデモアプリケーション}
   \begin{itemize}
   \item Debian GNU/Linux 10 Buster amd64
-  \item golang $B%Q%C%1!<%8!J(Bgolang-1.11$B!K$N(Bgo$B%3%^%s%I$rMxMQ$9$k(B
-  \item $B%G%b%"%W%j%1!<%7%g%s(B
+  \item golang パッケージ（golang-1.11）のgoコマンドを利用する
+  \item デモアプリケーション
     \begin{itemize}
     \item \url{https://github.com/dictoss/golang-practice/tree/master/src/github.com/dictoss/fcgi_server}
-    \item FastCGI$B$H$7$FF0:n$9$k(BREST API$B%5!<%P(B
-    \item $B$3$N%"%W%j%1!<%7%g%s$r%G!<%b%s$H$7$F<B9T(B
+    \item FastCGIとして動作するREST APIサーバ
+    \item このアプリケーションをデーモンとして実行
     \end{itemize}
   \item nginx
     \begin{itemize}
-    \item http $B$N%j%/%(%9%H$rBT$A<u$1$k(B
-    \item $B%j%/%(%9%H$r(B FastCGI $B$N%P%C%/%(%s%I$X(B proxy $B$9$k(B
+    \item http のリクエストを待ち受ける
+    \item リクエストを FastCGI のバックエンドへ proxy する
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\subsection{$B%Q%C%1!<%8$N%$%s%9%H!<%k(B}
+\subsection{パッケージのインストール}
 
-\begin{frame}[containsverbatim]{$B%Q%C%1!<%8$N%$%s%9%H!<%k(B}
+\begin{frame}[containsverbatim]{パッケージのインストール}
 
-apt$B%3%^%s%I$GI,MW$J%Q%C%1!<%8$r%$%s%9%H!<%k(B
+aptコマンドで必要なパッケージをインストール
 
 \begin{commandline}
 # apt update
 # apt install golang nginx curl git
 \end{commandline}
 
-go$B%3%^%s%I$N%P!<%8%g%s$r3NG'(B
+goコマンドのバージョンを確認
 
 \begin{commandline}
 $ go version
@@ -164,17 +164,17 @@ go version go1.11.6 linux/amd64
 \end{frame}
 
 
-\subsection{$B%S%k%I$H<B9T(B}
+\subsection{ビルドと実行}
 
-\begin{frame}[containsverbatim]{$B%S%k%I$H<B9T(B}
+\begin{frame}[containsverbatim]{ビルドと実行}
 
-$B%=!<%9%3!<%I$r<hF@(B
+ソースコードを取得
 
 \begin{commandline}
 $ git clone https://github.com/dictoss/golang-practice.git
 \end{commandline}
 
-$B%S%k%I$7$F<B9T%U%!%$%k$r@8@.(B
+ビルドして実行ファイルを生成
 
 \begin{commandline}
 $ cd golang-practice/src/github.com/dictoss/fcgi_server/
@@ -188,7 +188,7 @@ Go BuildID=NgM3NZ0-K_rN-eMIo4T1/8VObv2x-PXhaCtETqR2t
 not stripped
 \end{commandline}
 
-$B<B9T$G$-$k$+3NG'(B
+実行できるか確認
 
 \begin{commandline}
 $ ./fcgi_server
@@ -197,11 +197,11 @@ $ ./fcgi_server
 \end{frame}
 
 
-\subsection{nginx$B$N(Bfastcgi$B@_Dj(B}
+\subsection{nginxのfastcgi設定}
 
-\begin{frame}[containsverbatim]{nginx$B$N(Bfastcgi$B@_Dj(B}
+\begin{frame}[containsverbatim]{nginxのfastcgi設定}
 
-web$B%5!<%P$N(B /gofcgi $B$N%Q%9$X%"%/%;%9$5$l$?$H$-$K(BFast CGI$B$G(Bproxy$B$9$k(B
+webサーバの /gofcgi のパスへアクセスされたときにFast CGIでproxyする
 
 \begin{commandline}
 # vi /etc/nginx/sites-available/default
@@ -221,11 +221,11 @@ server {
 \end{frame}
 
 
-\subsection{$BF0:n3NG'(B}
+\subsection{動作確認}
 
-\begin{frame}[containsverbatim]{$BF0:n3NG'(B}
+\begin{frame}[containsverbatim]{動作確認}
 
-$BF0:n3NG'(B
+動作確認
 
 \begin{commandline}
   $ cat hello2_request.json | \
@@ -238,11 +238,11 @@ server {
 \end{frame}
 
 
-\subsection{$B%G!<%b%s@_Dj(B}
+\subsection{デーモン設定}
 
-\begin{frame}[containsverbatim]{$B%G!<%b%s@_Dj!J(B1$B!K(B}
+\begin{frame}[containsverbatim]{デーモン設定（1）}
 
-systemd$B$N(Bservice$B%U%!%$%k(B
+systemdのserviceファイル
 
 \begin{commandline}
 $ cat gofcgi-apid.service
@@ -266,9 +266,9 @@ WantedBy=multi-user.target
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B%G!<%b%s@_Dj!J(B2$B!K(B}
+\begin{frame}[containsverbatim]{デーモン設定（2）}
 
-$B<B9T%U%!%$%k$r%G%#%l%/%H%j$KG[CV(B
+実行ファイルをディレクトリに配置
 
 \begin{commandline}
 # mkdir /usr/local/gofcgi-apid
@@ -276,14 +276,14 @@ WantedBy=multi-user.target
 # chmod 755 /usr/local/gofcgi-apid/fcgi_server
 \end{commandline}
 
-service$B%U%!%$%k$r(Bsystemd$B$KEPO?$7!"HK1I(B
+serviceファイルをsystemdに登録し、繁栄
 
 \begin{commandline}
 # cp gofcgi-apid.service /lib/systemd/system/
 # systemctl daemon-reload
 \end{commandline}
 
-API$B%5!<%P$r(Bsystemctl$B%3%^%s%I$G5/F0(B/$BDd;_(B
+APIサーバをsystemctlコマンドで起動/停止
 
 \begin{commandline}
 # systemctl start gofcgi-apid
@@ -293,20 +293,20 @@ API$B%5!<%P$r(Bsystemctl$B%3%^%s%I$G5/F0(B/$BDd;_(B
 \end{frame}
 
 
-\section{$B$*$o$j$K(B}
+\section{おわりに}
 
-\begin{frame}[containsverbatim]{$B$*$o$j$K(B}
+\begin{frame}[containsverbatim]{おわりに}
   \begin{itemize}
-  \item Debian $B%Q%C%1!<%8$GDs6!$7$F$$$k(B golang $B$r>R2p$7$^$7$?(B
-  \item golang $B$G%5!<%P%"%W%j$r:n$C$F$_$^$7$?(B
-  \item Debian $B$G(B golang $B%i%$%U$r$*3Z$7$_$/$@$5$$(B
+  \item Debian パッケージで提供している golang を紹介しました
+  \item golang でサーバアプリを作ってみました
+  \item Debian で golang ライフをお楽しみください
   \end{itemize}
 \end{frame}
 
 
-\section{$B;29M>pJs(B}
+\section{参考情報}
 
-\begin{frame}{$B;29M>pJs(B}
+\begin{frame}{参考情報}
   \begin{itemize}
   \item The Go Programming Language
     \begin{itemize}
@@ -316,7 +316,7 @@ API$B%5!<%P$r(Bsystemctl$B%3%^%s%I$G5/F0(B/$BDd;_(B
     \begin{itemize}
     \item \url{https://go-team.pages.debian.net/packaging.html}
     \end{itemize}
-  \item debian$B$K$*$1$k(Bnginx$B$N@_DjNc(B
+  \item debianにおけるnginxの設定例
     \begin{itemize}
     \item \url{https://tokyodebian-team.pages.debian.net/pdf2018/debianmeetingresume201811-presentation-sugimoto.pdf}
     \end{itemize}

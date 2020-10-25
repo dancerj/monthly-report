@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}\\|\\\\emtext"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2012 Junichi Uekawa
@@ -29,9 +29,9 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
 \newenvironment{commandlinesmall}%
@@ -49,34 +49,34 @@
 %end of commandlinesmall
 
 
-\title{Debian linux kernel / armmp $B%U%l!<%P(B}
-\subtitle{$BEl5~%(%j%"(BDebian$BJY6/2q(B $BBh(B102$B2s(B 2013$BG/(B7$B7nEY(B}
-\author{$B4d>>(B $B?.MN(B}
-\date{2013$BG/(B7$B7n(B20$BF|(B}
+\title{Debian linux kernel / armmp フレーバ}
+\subtitle{東京エリアDebian勉強会 第102回 2013年7月度}
+\author{岩松 信洋}
+\date{2013年7月20日}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
 
 \frame{\titlepage{}}
 
-\begin{frame}{arm multi platform$B$H$=$N;EAH$_(B}
+\begin{frame}{arm multi platformとその仕組み}
 
 \begin{itemize}
-\item arm multi platform$B!J(BARMMP$B!K!#(B
-\item $B0l$D$N(B linux kernel $B%P%$%J%j$GJ#?t$N(BARM Soc$B!"%?!<%2%C%H%\!<%I$r%5%]!<%H$9$k;EAH$_!#(B
-\item $B%+!<%M%k5/F0;~$KEO$5$l$k(B Device Tree (DT$B!K$N(Bblob$B$K$h$C$FM-8z2=$5$lF0:n$9$k$h$&$K=i4|2=$5$l$k!#(B
+\item arm multi platform（ARMMP）。
+\item 一つの linux kernel バイナリで複数のARM Soc、ターゲットボードをサポートする仕組み。
+\item カーネル起動時に渡される Device Tree (DT）のblobによって有効化され動作するように初期化される。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}{ARMMP $B%+!<%M%k$N5/F0J}K!(B}
-$B5/F0J}K!$O(B3$B$D$[$I$"$k!#(B
+\begin{frame}{ARMMP カーネルの起動方法}
+起動方法は3つほどある。
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{zImage$B$K(Bdtb (DT blob)$B$rIU2C$9$k!#$=$7$F$=$N(BzImage$B$r5/F0$9$k(B}
+\begin{frame}[containsverbatim]{zImageにdtb (DT blob)を付加する。そしてそのzImageを起動する}
 
-$B%+!<%M%k$N(BCONFIG\_ARM\_APPENDED\_DTB$B$,I,MW!#(B
+カーネルのCONFIG\_ARM\_APPENDED\_DTBが必要。
 \begin{commandline}
 $ cat zImage foo.dtb > zImage+dtb 
 \end{commandline}
@@ -88,7 +88,7 @@ $ go 2000000
 %$
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B@h$G:n@.$7$?(BzImage $B$r(B uImage $B$KJQ49$7$F5/F0$9$k(B}
+\begin{frame}[containsverbatim]{先で作成したzImage を uImage に変換して起動する}
 
 \begin{commandline}
 $ cat zImage foo.dtb > zImage+dtb 
@@ -104,12 +104,12 @@ $ bootm
 %$
 \end{frame}
 
-\begin{frame}[containsverbatim]{$B@h$G:n@.$7$?(BzImage $B$r(B uImage $B$KJQ49$7$F5/F0$9$k(B}
+\begin{frame}[containsverbatim]{先で作成したzImage を uImage に変換して起動する}
 \begin{itemize}
 
-\item $B$?$@$7%+!<%M%k$,%m!<%I$5$l$k%"%I%l%9$J$I$O(BSoC$B$d%\!<%IKh$K0[$J$k$N$G!"(B AMMMP $B$N>l9g$O(B mkimage
-$B<B9T;~$K%"%I%l%9$r;XDj$9$kI,MW$,$"$k!#(B
-\item \texttt{-a} $B$G%m!<%I%"%I%l%9!"(B\texttt{-e}$B$G%(%s%H%j%]%$%s%H%"%I%l%9$r;XDj!#(B
+\item ただしカーネルがロードされるアドレスなどはSoCやボード毎に異なるので、 AMMMP の場合は mkimage
+実行時にアドレスを指定する必要がある。
+\item \texttt{-a} でロードアドレス、\texttt{-e}でエントリポイントアドレスを指定。
 \end{itemize}
 
 \begin{commandline}
@@ -121,12 +121,12 @@ $ mkimage -A arm -O linux -T kernel -C none \
 %$
 \end{frame}
 
-\begin{frame}[containsverbatim]{uImage $B$H(B dtb blob $BJL$KFI$_9~$s$G5/F0$9$k!#!J%V!<%H%m!<%@0MB8!K(B}
+\begin{frame}[containsverbatim]{uImage と dtb blob 別に読み込んで起動する。（ブートローダ依存）}
 
 \begin{itemize}
-\item  ARMMP $B$O(B $B0l$D$N%P%$%J%j$GJ#?t$N(BARM SoC$B!"%\!<%I$r%5%]!<%H$9$k$3$H$,L\E*$J$N$G!">e5-$NJ}K!$G$O%5%]!<%H$G$-$J$$!#(B
-\item uImage $B$H(B dtb blob $B$rJ,$1$F5/F0$5$;$k$N$,M}A[!#(B
-\item U-Boot $B$N>l9g$O(B $B%+!<%M%k$r5/F0$9$k%3%^%s%I(B\texttt{bootm} $B$r;H$&!#(B
+\item  ARMMP は 一つのバイナリで複数のARM SoC、ボードをサポートすることが目的なので、上記の方法ではサポートできない。
+\item uImage と dtb blob を分けて起動させるのが理想。
+\item U-Boot の場合は カーネルを起動するコマンド\texttt{bootm} を使う。
 \end{itemize}
 
 \begin{commandline}
@@ -139,7 +139,7 @@ $ mkimage -A arm -O linux -T kernel -C none \
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{uImage $B$H(B dtb blob $BJL$KFI$_9~$s$G5/F0$9$k!#!J%V!<%H%m!<%@0MB8!K(B}
+\begin{frame}[containsverbatim]{uImage と dtb blob 別に読み込んで起動する。（ブートローダ依存）}
 
 \begin{commandline}
 $ tftpboot 2000000 uImage
@@ -150,40 +150,40 @@ $ bootm 2000000 - 3000000
 %$
 
 \begin{itemize}
-\item $BBh(B1$B0z?t$O(BuImage $B$,%m!<%I$5$l$F$$$k%"%I%l%9(B
-\item $BBh(B2$B0z?t$O(B uInitrd$B!J(Binitrd $B%$%a!<%8$N(BuImage$B!K$,%m!<%I$5$l$F$$$k%"%I%l%9(B
-\item $BBh(B3$B0z?t$K$O(B dtb $B$,%m!<%I$5$l$F$$$k%"%I%l%9(B
-\item \texttt{-}$B$O(B $B;XDj$J$7(B
+\item 第1引数はuImage がロードされているアドレス
+\item 第2引数は uInitrd（initrd イメージのuImage）がロードされているアドレス
+\item 第3引数には dtb がロードされているアドレス
+\item \texttt{-}は 指定なし
 \end{itemize}
 
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{$B%+!<%M%k%b%8%e!<%k$NBP1~(B}
+\begin{frame}[containsverbatim]{カーネルモジュールの対応}
 
 \begin{itemize}
-\item $B%+!<%M%k%b%8%e!<%k$b(BDT$B$K$h$C$F@_Dj$G$-$k!#(B
-\item $BI,MW$J%+!<%M%k%I%i%$%P$rAH$_9~$_$K$7$F%+!<%M%k$r5/F0$5$;$k$N$b$h$$$,%+!<%M%k$,HnBg2=$9$k!#(B
-\item SoC$B$N%3%"ItJ,$O:GDc8B$N5!G=$OAH$_9~$_$K@_Dj$7!"3F%G%P%$%9MQ%I%i%$%P$O%b%8%e!<%k$K$7$F(Binitrd $B$J$I$+$i%m!<%I$9$k$h$&$K$9$k$N$,$h$$!#(B
+\item カーネルモジュールもDTによって設定できる。
+\item 必要なカーネルドライバを組み込みにしてカーネルを起動させるのもよいがカーネルが肥大化する。
+\item SoCのコア部分は最低限の機能は組み込みに設定し、各デバイス用ドライバはモジュールにしてinitrd などからロードするようにするのがよい。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{Debian$B$G$N%5%]!<%H(B}
+\begin{frame}[containsverbatim]{Debianでのサポート}
 
 \begin{itemize}
-\item Debian $B$G(B ARMMP $B$r%5%]!<%H$9$k$?$a!"(Barmhf $B$K(B armmp $B%U%l!<%P$rDI2C!#(B
-\item Plat'Home$B$5$s(B $B$N(B Openblocks AX3 $B$r(BDebian$B$G%5%]!<%H!#(B
-\item $B$I$&$;8e$GI,MW$K$J$k$7!#(B
+\item Debian で ARMMP をサポートするため、armhf に armmp フレーバを追加。
+\item Plat'Homeさん の Openblocks AX3 をDebianでサポート。
+\item どうせ後で必要になるし。
 \end{itemize}
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{Debian$B$G$N%+!<%M%kDs6!$HMxMQJ}K!(B}
+\begin{frame}[containsverbatim]{Debianでのカーネル提供と利用方法}
 
 \begin{itemize}
-\item Debian $B$O%+!<%M%k%$%a!<%8$r(B uImage $B$GDs6!$7$F$$$J$$!#(BzImage(vmlinuz)$B$N$_!#(B
-\item $B%+!<%M%k$,%m!<%I$5$l$k%"%I%l%9$,8GDjCM$K$J$C$F$7$^$&$N$G!"J#?t$N%G%P%$%9$r%5%]!<%H$G$-$J$$!#(B
+\item Debian はカーネルイメージを uImage で提供していない。zImage(vmlinuz)のみ。
+\item カーネルがロードされるアドレスが固定値になってしまうので、複数のデバイスをサポートできない。
 \end{itemize}
 
 \end{frame}
@@ -191,8 +191,8 @@ $ bootm 2000000 - 3000000
 \begin{frame}[containsverbatim]{flash-kenrel}
 
 \begin{itemize}
-\item $B@_Dj$5$l$?%G!<%?$r$b$H$K%+!<%M%k$d(Binitrd$B$r(BU-Boot$B$J$I$,07$($k7A<0$KJQ49!"(B
-$B%U%i%C%7%e%a%b%j$K=q$-9~$`5!G=Ey$rDs6!$9$k(B
+\item 設定されたデータをもとにカーネルやinitrdをU-Bootなどが扱える形式に変換、
+フラッシュメモリに書き込む機能等を提供する
 \end{itemize}
 
 \begin{commandline}
@@ -214,9 +214,9 @@ Bootloader-Sets-root: no
 \begin{frame}[containsverbatim]{flash-kenrel}
 
 \begin{itemize}
-\item $B<B9T$9$k$H@_Dj$5$l$F$$$k%G!<%?$H5/F0$7$F$$$k%+!<%M%k>pJs(B
-$B!J(B/proc/cpuinfo$B!"$^$?$O(B/proc/device-tree/model$B!K$r85$K%+!<%M%k$H(Binittd $B$r(B
-$BJQ49$7!"%$%s%9%H!<%k$9$k!#(B
+\item 実行すると設定されているデータと起動しているカーネル情報
+（/proc/cpuinfo、または/proc/device-tree/model）を元にカーネルとinittd を
+変換し、インストールする。
 \end{itemize}
 
 \end{frame}
@@ -247,8 +247,8 @@ uImage                   vmlinuz-3.10-1-armmp
 
 \begin{frame}[containsverbatim]{flash-kenrel}
 
-flash-kernel $B$K$h$C$F:n@.$5$l$?%$%a!<%8$r;H$C$?5/F0J}K!$O%\!<%IKh$K0[$J$j$^$9!#(B
-OpenBlocks AX3$B$N>l9g$O0J2<$NJ}K!$G5/F0$G$-$k$O$:$G$9!#(B
+flash-kernel によって作成されたイメージを使った起動方法はボード毎に異なります。
+OpenBlocks AX3の場合は以下の方法で起動できるはずです。
 
 \begin{commandline}
 $ ide reset
@@ -259,16 +259,16 @@ $ bootm 2000000 3000000
 
 \end{frame}
 
-\begin{frame}{$B=*$o$j$K(B}
+\begin{frame}{終わりに}
 
 \begin{itemize}[<+->]
-\item ARMMP $B$N;EAH$_$H!"(BDebian$B$NBP1~J}K!$K$D$$$F@bL@$7$?!#(B
-\item Debian $B$G(B ARMMP $B$r;H$&$K$O(B armmp $B%U%l!<%P$r;H$&!#(B
-\item Debian$B$GDs6!$5$l$F$$$k%+!<%M%k$r(BuImage$B$KJQ49$9$k$K$O(B flash-kernel $B$r;H$&!#(B
-\item flash-kernel $B$N%G!<%?$O$W$i$C$H%[!<%`$5$s$HAjCL$7$FF~$l$h$&$H;W$C$F$$$k$N$G$^$@%3%_%C%H$5$l$F$J$$!#(B
-\item $B$^$?!"%(%s%H%j!<%]%$%s%H$r@_Dj$9$k9`L\$H(BDT$B$N(B model $B$r;XDj$9$k9`L\$,$J$$$N$G$3$l$bBP1~$9$k!#(B
-\item $B;D:n6H$H$7$F$O%+!<%M%k(B 3.10 $B$G$O(B mvebu $B$,F0:n$7$J$$!#%Q%C%A$rEv$F$kI,MW$,$"$k(B
-\item $B$H$$$&$3$H$G$^$@$^$@$d$k$3$H$O$?$/$5$s$"$j$^$9!#(B
+\item ARMMP の仕組みと、Debianの対応方法について説明した。
+\item Debian で ARMMP を使うには armmp フレーバを使う。
+\item Debianで提供されているカーネルをuImageに変換するには flash-kernel を使う。
+\item flash-kernel のデータはぷらっとホームさんと相談して入れようと思っているのでまだコミットされてない。
+\item また、エントリーポイントを設定する項目とDTの model を指定する項目がないのでこれも対応する。
+\item 残作業としてはカーネル 3.10 では mvebu が動作しない。パッチを当てる必要がある
+\item ということでまだまだやることはたくさんあります。
 \end{itemize}
 
 \end{frame}

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 2005-2006 prework format is different from 2007-
-for A in debianmeetingresume200[56]??.tex; do echo $A; iconv -f iso-2022-jp -t euc-jp $A | awk '/\\subsection{»öÁ°²İÂê¾Ò²ğ}/,/\\dancersection/  { if ($0 ~ /\\subsubsection{(.*)}/ ) {gsub(/\\subsubsection{/,""); gsub(/}/,""); print $0}}' ; done 
+for A in debianmeetingresume200[56]??.tex; do echo $A; iconv -f iso-2022-jp -t euc-jp $A | awk '/\\subsection{äº‹å‰èª²é¡Œç´¹ä»‹}/,/\\dancersection/  { if ($0 ~ /\\subsubsection{(.*)}/ ) {gsub(/\\subsubsection{/,""); gsub(/}/,""); print $0}}' ; done 
 
 # 2007-2008 prework format
 
-for A in debianmeetingresume200[78]??.tex; do echo $A; iconv -f iso-2022-jp -t euc-jp $A | awk '/\\dancersection{»öÁ°²İÂê}/,/%%% trivia quiz/  { if ($0 ~ /\\subsection{(.*)}/ ) {gsub(/\\subsection{/,""); gsub(/}/,""); print $0}}' ; done 
+for A in debianmeetingresume200[78]??.tex; do echo $A; iconv -f iso-2022-jp -t euc-jp $A | awk '/\\dancersection{äº‹å‰èª²é¡Œ}/,/%%% trivia quiz/  { if ($0 ~ /\\subsection{(.*)}/ ) {gsub(/\\subsection{/,""); gsub(/}/,""); print $0}}' ; done 

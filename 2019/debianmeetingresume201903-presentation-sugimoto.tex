@@ -1,7 +1,7 @@
 %; whizzy paragraph -pdf xpdf -latex ./whizzypdfptex.sh
 %; whizzy-paragraph "^\\\\begin{frame}"
 % latex beamer presentation.
-% platex, latex-beamer $B$G%3%s%Q%$%k$9$k$3$H$rA[Dj!#(B 
+% platex, latex-beamer でコンパイルすることを想定。 
 
 %     Tokyo Debian Meeting resources
 %     Copyright (C) 2009 Junichi Uekawa
@@ -31,9 +31,9 @@
 %  presentation (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
 
 %http://www.naney.org/diki/dk/hyperref.html
-%$BF|K\8l(BEUC$B7O4D6-$N;~(B
+%日本語EUC系環境の時
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-%$B%7%U%H(BJIS$B7O4D6-$N;~(B
+%シフトJIS系環境の時
 %\AtBeginDvi{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
 
 \newenvironment{commandlinesmall}%
@@ -50,88 +50,88 @@
 }
 %end of commandlinesmall
 
-\title{$BBh(B172$B2sEl5~%(%j%"(BDebian$BJY6/2q(B \\$B!!(B\\systemd$B$H(Bsysvinit$B$N%G!<%b%s$GF0:n$9$k(BDebian$B%Q%C%1!<%8$N:n$jJ}$rD4$Y$F$_$k(B}
+\title{第172回東京エリアDebian勉強会 \\　\\systemdとsysvinitのデーモンで動作するDebianパッケージの作り方を調べてみる}
 \subtitle{}
-\author{Norimitsu Sugimoto ($B?yK\(B $BE5=<(B) \\dictoss@live.jp}
+\author{Norimitsu Sugimoto (杉本 典充) \\dictoss@live.jp}
 \date{2019-03-16}
 \logo{\includegraphics[width=8cm]{image200607/openlogo-light.eps}}
 
 \begin{document}
 
-\section{$BI=;f(B}
+\section{表紙}
 
 \begin{frame}
   \titlepage{}
 \end{frame}
 
 
-\section{$B<+8J>R2p(B}
+\section{自己紹介}
 
-\begin{frame}{$B<+8J>R2p(B}
+\begin{frame}{自己紹介}
   \begin{itemize}
-  \item Norimitsu Sugimoto ($B?yK\(B $BE5=<(B)
+  \item Norimitsu Sugimoto (杉本 典充)
   \item dictoss@live.jp
   \item Twitter: @dictoss
-  \item Debian$B;H$C$F(B15$BG/0J>e!#$=$N:"$O(Bsarge$B$N;~4|!#(B
-  \item $B;E;v$O%=%U%H%&%'%"3+H/<T$r$d$C$F$^$9(B
-  \item python$B$H(BDjango$B$NAH$_9g$o$;$G;H$&$3$H$,B?$$$G$9(B
+  \item Debian使って15年以上。その頃はsargeの時期。
+  \item 仕事はソフトウェア開発者をやってます
+  \item pythonとDjangoの組み合わせで使うことが多いです
   \end{itemize}
 \end{frame}
 
 
-\section{$BL\<!(B}
+\section{目次}
 
-\begin{frame}{$B%"%8%'%s%@(B}
+\begin{frame}{アジェンダ}
   \begin{itemize}
-  \item $B$O$8$a$K(B
-  \item Debian$B$K$*$1$k(Binit$B$N;EAH$_(B
-  \item Debian$B$K$*$1$k(Binit$B$,8F$S=P$95/F0!&Dd;_$N@_Dj%U%!%$%k(B
+  \item はじめに
+  \item Debianにおけるinitの仕組み
+  \item Debianにおけるinitが呼び出す起動・停止の設定ファイル
     \begin{itemize}
-    \item systemd$B!"(Bsysvinit
+    \item systemd、sysvinit
     \end{itemize}
-  \item init$B@_Dj$r9T$&(Bdebian$B%Q%C%1!<%8:n@.J}K!(B 
+  \item init設定を行うdebianパッケージ作成方法 
     \begin{itemize}
-    \item systemd$B!"(Bsysvinit
+    \item systemd、sysvinit
     \end{itemize}
-  \item $B$^$H$a(B
-  \item $B;29MJ88%(B
+  \item まとめ
+  \item 参考文献
   \end{itemize}
 \end{frame}
 
 
-\section{debian$B$K$*$1$k(Binit$B$N;EAH$_(B}
-\emtext{debian$B$K$*$1$k(Binit$B$N;EAH$_(B}
+\section{debianにおけるinitの仕組み}
+\emtext{debianにおけるinitの仕組み}
 
-\begin{frame}[containsverbatim]{init$B$N;EAH$_(B}
+\begin{frame}[containsverbatim]{initの仕組み}
   \begin{itemize}
-  \item UNIX/Linux$B7O$N(BOS$B$G$O!"%+!<%M%k$,:G=i$K8F$S=P$9%f!<%6%i%s%I%W%m%0%i%`!V(Binit$B!W(B
-  \item Debian$B$G$N(Binit$B$N@bL@(B \\Debian$B%j%U%!%l%s%9$N!VBh(B3$B>O(B $B%7%9%F%`$N=i4|2=!W(B\footnote{\url{https://www.debian.org/doc/manuals/debian-reference/ch03.ja.html}}
-  \item Debian$B$K$*$1$k(Binit
+  \item UNIX/Linux系のOSでは、カーネルが最初に呼び出すユーザランドプログラム「init」
+  \item Debianでのinitの説明 \\Debianリファレンスの「第3章 システムの初期化」\footnote{\url{https://www.debian.org/doc/manuals/debian-reference/ch03.ja.html}}
+  \item Debianにおけるinit
     \begin{itemize}
-    \item $B@N$+$iB8:_$9$k!V(Bsysvinit$B!W(B
-    \item $B?7@$Be$N!V(Bsystemd$B!W!J(BDebian GNU/Linux 8 $B$+$i%G%U%)%k%H!K(B 
+    \item 昔から存在する「sysvinit」
+    \item 新世代の「systemd」（Debian GNU/Linux 8 からデフォルト） 
     \end{itemize}
-  \item Debian$B$G$O(B init$B$r@Z$jBX$($k$3$H$,2DG=(B\footnote{\url{https://wiki.debian.org/Init}}
+  \item Debianでは initを切り替えることが可能\footnote{\url{https://wiki.debian.org/Init}}
     \begin{itemize}
-    \item systemd$B$H(Bsysvinit$B$NN>J}$r9MN8$7$F%Q%C%1!<%8$r:n$kI,MW$"$j(B
+    \item systemdとsysvinitの両方を考慮してパッケージを作る必要あり
     \end{itemize}
   \end{itemize}
 \end{frame}
 
 
-\section{debian$B$K$*$1$k(Binit$B$,8F$S=P$95/F0!&Dd;_$N@_Dj%U%!%$%k(B}
-\emtext{debian$B$K$*$1$k(Binit$B$,8F$S=P$95/F0!&Dd;_$N@_Dj%U%!%$%k(B}
+\section{debianにおけるinitが呼び出す起動・停止の設定ファイル}
+\emtext{debianにおけるinitが呼び出す起動・停止の設定ファイル}
 
-\subsection{systemd: service$B%U%!%$%k(B}
+\subsection{systemd: serviceファイル}
 
 \begin{frame}
-  \begin{center}\Huge{systemd: service$B%U%!%$%k(B}\end{center}
+  \begin{center}\Huge{systemd: serviceファイル}\end{center}
 \end{frame} 
 
-\begin{frame}[containsverbatim]{systemd: service$B%U%!%$%k(B}
+\begin{frame}[containsverbatim]{systemd: serviceファイル}
   \begin{itemize}
-  \item systemd$B4D6-$G$O!"(Bsystemctl$B%3%^%s%I$G%G!<%b%s$N5/F0!&=*N;$r9T$&(B
-  \item $B@_Dj%U%!%$%k$N>l=j(B
+  \item systemd環境では、systemctlコマンドでデーモンの起動・終了を行う
+  \item 設定ファイルの場所
     \begin{itemize}
       \item /lib/systemd/system/[package].service
     \end{itemize}
@@ -139,21 +139,21 @@
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{systemd: systemctl$B%3%^%s%I(B}
+\begin{frame}[containsverbatim]{systemd: systemctlコマンド}
 
-systemctl$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
+systemctlコマンドの使い方（nginxの例）
 
-$B5/F0(B
+起動
 \begin{commandline}
 # systemctl start nginx
 \end{commandline}
 
-$B=*N;(B
+終了
 \begin{commandline}
 # systemctl stop nginx
 \end{commandline}
 
-$B@_Dj%U%!%$%k(B
+設定ファイル
 \begin{itemize}
 \item /lib/systemd/system/nginx.service
 \end{itemize}
@@ -161,20 +161,20 @@ systemctl$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
 \end{frame}
 
 
-\subsection{sysvinit: init$B%9%/%j%W%H(B}
+\subsection{sysvinit: initスクリプト}
 
 \begin{frame}
-  \begin{center}\Huge{sysvinit: init$B%9%/%j%W%H(B}\end{center}
+  \begin{center}\Huge{sysvinit: initスクリプト}\end{center}
 \end{frame} 
 
-\begin{frame}[containsverbatim]{sysvinit: init$B%9%/%j%W%H(B}
+\begin{frame}[containsverbatim]{sysvinit: initスクリプト}
   \begin{itemize}
-  \item sysvinit$B4D6-$G$O!"(Bservice$B%3%^%s%I$G%G!<%b%s$N5/F0!&=*N;$r9T$&(B
-  \item $B@_Dj%U%!%$%k$N>l=j(B
+  \item sysvinit環境では、serviceコマンドでデーモンの起動・終了を行う
+  \item 設定ファイルの場所
     \begin{itemize}
     \item /etc/init.d/[package]
     \end{itemize}
-  \item $B@_Dj%U%!%$%k$NCf$G;H$o$l$k%X%k%Q!<%9%/%j%W%H(B
+  \item 設定ファイルの中で使われるヘルパースクリプト
     \begin{itemize}
     \item /lib/init/vars.sh
     \item /lib/lsb/init-functions
@@ -184,21 +184,21 @@ systemctl$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{sysvinit: service$B%3%^%s%I(B}
+\begin{frame}[containsverbatim]{sysvinit: serviceコマンド}
 
-service$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
+serviceコマンドの使い方（nginxの例）
 
-$B5/F0(B
+起動
 \begin{commandline}
 # service nginx start
 \end{commandline}
 
-$B=*N;(B
+終了
 \begin{commandline}
 # service nginx stop
 \end{commandline}
 
-$B@_Dj%U%!%$%k(B
+設定ファイル
 \begin{itemize}
 \item /etc/init.d/nginx
 \end{itemize}
@@ -206,31 +206,31 @@ service$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
 \end{frame}
 
 
-\section{init$B@_Dj$r9T$&(Bdebian$B%Q%C%1!<%8:n@.J}K!(B}
+\section{init設定を行うdebianパッケージ作成方法}
 
 \begin{frame}
-  \begin{center}\Huge{init$B@_Dj$r9T$&(Bdebian$B%Q%C%1!<%8:n@.J}K!(B}\end{center}
+  \begin{center}\Huge{init設定を行うdebianパッケージ作成方法}\end{center}
 \end{frame} 
 
-\begin{frame}[containsverbatim]{$BA0Ds(B}
+\begin{frame}[containsverbatim]{前提}
   \begin{itemize}
   \item Debian GNU/Linux 9 (stretch)
-  \item debhlper$B$rMxMQ$7$F(Bdebian$B%Q%C%1!<%8$r:n@.(B\footnote{debian$B$N(B98\%$B$N%Q%C%1!<%8$K$*$$$F:NMQ(B}\footnote{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}
+  \item debhlperを利用してdebianパッケージを作成\footnote{debianの98\%のパッケージにおいて採用}\footnote{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}
   \item \url{https://wiki.debian.org/ja/Packaging}
   \item packaging-tutorial \\ \url{https://www.debian.org/doc/manuals/packaging-tutorial/packaging-tutorial.ja.pdf}
-  \item Debian$B?7%a%s%F%J!<%,%$%I(B \\ \url{https://www.debian.org/doc/manuals/maint-guide/index.ja.html}
+  \item Debian新メンテナーガイド \\ \url{https://www.debian.org/doc/manuals/maint-guide/index.ja.html}
   \item Debian Policy Manual \\ \url{https://www.debian.org/doc/debian-policy/}
   \end{itemize}
 \end{frame}
 
 
-\subsection{systemd$B$KBP1~$9$k@_Dj(B}
+\subsection{systemdに対応する設定}
 
 \begin{frame}
-  \begin{center}\Huge{systemd$B$KBP1~$9$k@_Dj(B}\end{center}
+  \begin{center}\Huge{systemdに対応する設定}\end{center}
 \end{frame} 
 
-\begin{frame}[containsverbatim]{systemd$BBP1~!'4pAC>pJs(B}
+\begin{frame}[containsverbatim]{systemd対応：基礎情報}
   \begin{itemize}
   \item Teams pkg-systemd Packaging
     \begin{itemize}
@@ -240,19 +240,19 @@ service$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{systemd$BBP1~!'(Bpackage$B:n6H(B}
+\begin{frame}[containsverbatim]{systemd対応：package作業}
   \begin{itemize}
-  \item debian/rules$B$N=$@5(B
-  \item debian/control$B$N=$@5(B
-  \item debian/package.service $B$N:n@.(B
+  \item debian/rulesの修正
+  \item debian/controlの修正
+  \item debian/package.service の作成
   \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{systemd$BBP1~!'(Bdebian/rules$B$N=$@5(B}
+\begin{frame}[containsverbatim]{systemd対応：debian/rulesの修正}
 
 \begin{itemize}
-\item dh\_make$B%3%^%s%I$G$R$J7A%U%!%$%k$,:n@.$5$l$k(B
-\item debian/rules$B$K(Baddon$B$rDI2C!J(Bwith$B%*%W%7%g%s$N8e$m$KDI5-!K(B
+\item dh\_makeコマンドでひな形ファイルが作成される
+\item debian/rulesにaddonを追加（withオプションの後ろに追記）
 \end{itemize}
 \begin{commandline}
 %:
@@ -260,7 +260,7 @@ service$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
 \end{commandline}
 
 \begin{itemize}
-\item "--with systemd"$B$r;XDj$9$k$H%Q%C%1!<%8$N%S%k%I=hM}$G0J2<$rDI2C$G<B9T(B
+\item "--with systemd"を指定するとパッケージのビルド処理で以下を追加で実行
   \begin{itemize}
   \item dh\_systemd\_enable
   \item dh\_systemd\_start
@@ -269,17 +269,17 @@ service$B%3%^%s%I$N;H$$J}!J(Bnginx$B$NNc!K(B
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{systemd$BBP1~!'(Bdebian/control$B$N=$@5(B}
+\begin{frame}[containsverbatim]{systemd対応：debian/controlの修正}
 
-dh\_make$B%3%^%s%I$G$R$J7A%U%!%$%k$,:n@.$5$l$k(B
+dh\_makeコマンドでひな形ファイルが作成される
 
-debian/compat $B$NCf?H$,(B "10$B0J>e(B"
+debian/compat の中身が "10以上"
 
 \begin{commandline}
 Build-Depends: debhelper (>= 9.20160709)
 \end{commandline}
 
-debian/compat $B$NCf?H$,(B "10$BL$K~(B"
+debian/compat の中身が "10未満"
 \begin{commandline}
 Build-Depends: debhelper (>= 9.20150101),
                dh-systemd (>= 1.5)
@@ -287,73 +287,73 @@ Build-Depends: debhelper (>= 9.20150101),
   
 \end{frame}
 
-\begin{frame}[containsverbatim]{systemd$BBP1~!'(Bpackage.service$B$N:n@.(B}
+\begin{frame}[containsverbatim]{systemd対応：package.serviceの作成}
 
   \begin{itemize}
-  \item dh\_make$B%3%^%s%I$G$R$J7A%U%!%$%k$,:n@.$5$l$J$$(B
-  \item $BB>$N%Q%C%1!<%8$N%U%!%$%k$d%^%K%e%"%k$r;29M$K:n@.$7$F$/$@$5$$(B\footnote{\url{https://www.freedesktop.org/software/systemd/man/systemd.service.html}}
-  \item package.service$B$,B8:_$9$k>l9g!"%Q%C%1!<%8$N%S%k%I$N(B dh\_installinit$B$G(B /lib/systemd/system $B$X%$%s%9%H!<%k$9$k$h$&=hM}$9$k(B
+  \item dh\_makeコマンドでひな形ファイルが作成されない
+  \item 他のパッケージのファイルやマニュアルを参考に作成してください\footnote{\url{https://www.freedesktop.org/software/systemd/man/systemd.service.html}}
+  \item package.serviceが存在する場合、パッケージのビルドの dh\_installinitで /lib/systemd/system へインストールするよう処理する
   \end{itemize}
 
 \end{frame}
 
 
-\subsection{sysvinit$B$KBP1~$9$k@_Dj(B}
+\subsection{sysvinitに対応する設定}
 
 \begin{frame}
-  \begin{center}\Huge{sysvinit$B$KBP1~$9$k@_Dj(B}\end{center}
+  \begin{center}\Huge{sysvinitに対応する設定}\end{center}
 \end{frame} 
 
-\begin{frame}[containsverbatim]{sysvinit$BBP1~!'(Bpackage$B:n6H(B}
+\begin{frame}[containsverbatim]{sysvinit対応：package作業}
   \begin{itemize}
-  \item debian/package.init $B$N:n@.(B
+  \item debian/package.init の作成
   \end{itemize}
 \end{frame}
 
 
-\begin{frame}[containsverbatim]{sysvinit$BBP1~!'(Bpackage.init$B$N:n@.(B}
+\begin{frame}[containsverbatim]{sysvinit対応：package.initの作成}
 
   \begin{itemize}
-  \item dh\_make$B%3%^%s%I$G$R$J7A%U%!%$%k$,:n@.$5$l$J$$(B\footnote{Debian 8$B0JA0$N(Bdh\_make$B$G$O(Binit.d.ex$B$H$$$&$R$J7A%U%!%$%k$,:n@.$5$l$^$7$?(B}
-  \item $BB>$N%Q%C%1!<%8$N%U%!%$%k$d2a5n$N$R$J7A%U%!%$%k$r;29M$K:n@.$7$F$/$@$5$$(B\footnote{\url{https://www.apt-browse.com/browse/debian/jessie/main/all/dh-make/1.20140617/file/usr/share/debhelper/dh_make/debian/init.d.ex}}
-  \item package.init $B$,B8:_$9$k>l9g!"%Q%C%1!<%8$N%S%k%I$N(B dh\_installinit $B$G(B /etc/init.d $B$X%$%s%9%H!<%k$9$k$h$&=hM}$9$k(B
+  \item dh\_makeコマンドでひな形ファイルが作成されない\footnote{Debian 8以前のdh\_makeではinit.d.exというひな形ファイルが作成されました}
+  \item 他のパッケージのファイルや過去のひな形ファイルを参考に作成してください\footnote{\url{https://www.apt-browse.com/browse/debian/jessie/main/all/dh-make/1.20140617/file/usr/share/debhelper/dh_make/debian/init.d.ex}}
+  \item package.init が存在する場合、パッケージのビルドの dh\_installinit で /etc/init.d へインストールするよう処理する
   \end{itemize}
 
 \end{frame}
 
 
-\section{$B$^$H$a(B}
-\emtext{$B$^$H$a(B}
+\section{まとめ}
+\emtext{まとめ}
 
-\begin{frame}[containsverbatim]{$B$^$H$a(B}
+\begin{frame}[containsverbatim]{まとめ}
 
 \begin{itemize}
-\item systemd$B$H(Bsysvinit$B$O@Z$jBX$($k$3$H$,$G$-$k$?$a!"N>J}$N$3$H$r0U<1$7$^$7$g$&(B
+\item systemdとsysvinitは切り替えることができるため、両方のことを意識しましょう
 \item systemd
   \begin{itemize}
-  \item systemctl$B%3%^%s%I!"@_Dj$O(B /lib/systemd/system
+  \item systemctlコマンド、設定は /lib/systemd/system
   \end{itemize}
   \item sysvinit
   \begin{itemize}
-  \item service$B%3%^%s%I!"@_Dj$O(B /etc/init.d$BG[2<(B
+  \item serviceコマンド、設定は /etc/init.d配下
   \end{itemize}
-\item $B%Q%C%1!<%8$N:n@.!"%S%k%I$O(Bdebhelper$BJXMx(B
-\item dh\_installinit $B$G(B service$B%U%!%$%k!"(Binit$B%9%/%j%W%H$r(Bdebian$B%Q%C%1!<%8$K4^$a$F$$$k(B
-\item $B#1$D$N%=!<%9%Q%C%1!<%8$+$iJ#?t$N%P%$%J%j%Q%C%1!<%8$r:n$k>l9g$K%U%!%$%kL>$NL?L>5,B'$,0[$J$k$?$a%I%-%e%a%s%H$r8+$^$7$g$&(B
+\item パッケージの作成、ビルドはdebhelper便利
+\item dh\_installinit で serviceファイル、initスクリプトをdebianパッケージに含めている
+\item １つのソースパッケージから複数のバイナリパッケージを作る場合にファイル名の命名規則が異なるためドキュメントを見ましょう
 \end{itemize}
 
 \end{frame}
 
 
-\section{$B;29MJ88%(B}
-\emtext{$B;29MJ88%(B}
+\section{参考文献}
+\emtext{参考文献}
 
-\begin{frame}[containsverbatim]{$B;29MJ88%(B}
+\begin{frame}[containsverbatim]{参考文献}
 
 \begin{itemize}
-\item $B!V(BTeams pkg-systemd Packaging$B!W(B\\ \url{https://wiki.debian.org/Teams/pkg-systemd/Packaging}
-\item mkouhei (2014) $B!V(BHow to create a Debian package of support to sysvinit,  upstart,  systemd$B!W(B\\ \url{https://d.palmtb.net/2014/01/30/how_to_create_a_debian_package_of_support_to_sysvinit__upstart__systemd.html}
-\item @henrich (2016) $B!V(Bdh-systemd$B$O(Bdebhelper 9.20160709$B$GE}9g$5$l$?!W(B \\ \url{https://qiita.com/henrich/items/e1651e3284c6b3d0d39e}
+\item 「Teams pkg-systemd Packaging」\\ \url{https://wiki.debian.org/Teams/pkg-systemd/Packaging}
+\item mkouhei (2014) 「How to create a Debian package of support to sysvinit,  upstart,  systemd」\\ \url{https://d.palmtb.net/2014/01/30/how_to_create_a_debian_package_of_support_to_sysvinit__upstart__systemd.html}
+\item @henrich (2016) 「dh-systemdはdebhelper 9.20160709で統合された」 \\ \url{https://qiita.com/henrich/items/e1651e3284c6b3d0d39e}
 \end{itemize}
 
 \end{frame}

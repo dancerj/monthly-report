@@ -1,4 +1,4 @@
-% Created 2011-09-25 $BF|(B 16:25
+% Created 2011-09-25 日 16:25
 \documentclass[10pt,final,c,dvipdfmx,cjk,colorlinks=false]{beamer}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -19,11 +19,11 @@
 \providecommand{\alert}[1]{\textbf{#1}}
 
 \title{git-buildpackage (again)}
-\author{$B:4!9LZMNJ?(B/Youhei SASAKI}
+\author{佐々木洋平/Youhei SASAKI}
 \date{\footnotesize{2011-08-28}}
 
 \AtBeginDvi{\special{pdf:tounicode EUC-UCS2}}
-\hypersetup{pdftitle={VCS-buildpackage, Git $BJT(B},bookmarks}
+\hypersetup{pdftitle={VCS-buildpackage, Git 編},bookmarks}
 \usetheme{Kyoto}
 \usepackage[varg]{txfonts}
 \usefonttheme{professionalfonts}
@@ -40,152 +40,152 @@
 \tableofcontents
 \end{frame}
 
-\section{$B$O$8$a$K(B}
+\section{はじめに}
 \label{sec-1}
 \begin{frame}[fragile,squeeze]
-\frametitle{$B!!(B}
+\frametitle{　}
 \label{sec-1-1}
 
 \end{frame}
-\takahashi[50]{$BCY$l$F(B}
-\takahashi[50]{$BBgJQ(B}
-\takahashi[70]{$B?=$7Lu$"$j$^$;$s(B}
-\begin{frame}{$B<U:a$P$C$+$GBgJQ?=$7Lu$"$j$^$;$s(B}
+\takahashi[50]{遅れて}
+\takahashi[50]{大変}
+\takahashi[70]{申し訳ありません}
+\begin{frame}{謝罪ばっかで大変申し訳ありません}
 \begin{center}
-{\huge{$B2OED$5$s$"$j$,$H$&(B!!}}
+{\huge{河田さんありがとう!!}}
 \end{center}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$BOC$NKm(B}
+\frametitle{話の枕}
 \label{sec-1-2}
 
 
 \begin{itemize}
-\item $B;32<$5$s$N(B bzr $BJT$K0z$-B3$-!"(BGit $B$r;H$&>l9g$N$*OC(B
-\item $B4pK\(B, $BA02s$*$h$SA0!92s$NB3$-(B(?)
+\item 山下さんの bzr 編に引き続き、Git を使う場合のお話
+\item 基本, 前回および前々回の続き(?)
 \begin{itemize}
-\item $BA0!9!92s(B(2011$BG/(B6$B7n(B, $BBh(B48$B2s(B): \texttt{git-buildpackage}
-\item $BA02s(B(2011$BG/(B8$B7n(B, $BBh(B50$B2s(B): $B%Q%C%1!<%8:n@.F~Lg(B
+\item 前々々回(2011年6月, 第48回): \texttt{git-buildpackage}
+\item 前回(2011年8月, 第50回): パッケージ作成入門
 \end{itemize}
-\item $B4v$D$+%3%^%s%I(B/$B%Q%C%1!<%8$,DI2C$5$l$F$$$F(B, $B$=$l$r;n$7$F$_$?$j(B.
+\item 幾つかコマンド/パッケージが追加されていて, それを試してみたり.
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$BA0Ds$H$9$kCN<1$HL\E*(B}
+\frametitle{前提とする知識と目的}
 \label{sec-1-3}
-\begin{block}{$BA0DsCN<1(B}
+\begin{block}{前提知識}
 \label{sec-1-3-1}
 
 \begin{itemize}
-\item source package $B$K$D$$$F$N$"$kDxEY$NCN<1(B
-\item Git $B$K4X$7$F(B, $BFC$K(B tag $B$H(B branch $B$K$D$$$F$N$"$kDxEY$NCN<1(B
+\item source package についてのある程度の知識
+\item Git に関して, 特に tag と branch についてのある程度の知識
 \begin{itemize}
-\item $BE,59<ALd$7$F2<$5$$(B
+\item 適宜質問して下さい
 \end{itemize}
 \end{itemize}
 \end{block}
-\begin{block}{$B:#F|$NL\E*(B}
+\begin{block}{今日の目的}
 \label{sec-1-3-2}
 
 \begin{itemize}
-\item $B2?$r$7$F$$$k$N$+(B/$B2?$,$G$-$k$N$+(B/$B$G$-$J$$$N$+(B
+\item 何をしているのか/何ができるのか/できないのか
 \begin{itemize}
-\item $BFC$K(B source format 3.0 (quilt) $B$H$NO"7H(B
+\item 特に source format 3.0 (quilt) との連携
 \end{itemize}
 \end{itemize}
 \end{block}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$B%Q%C%1!<%8:n@.:n6H$N%5%$%/%k(B($BI|=,(B)}
+\frametitle{パッケージ作成作業のサイクル(復習)}
 \label{sec-1-4}
 
 
 \begin{itemize}
-\item $BDL>o!"%Q%C%1!<%8:n@.$O(B
+\item 通常、パッケージ作成は
 \begin{enumerate}
-\item upstream $B$N%=!<%9$r<hF@(B
-\item ($B>l9g$K$h$C$F$O(B) non-free $B$JItJ,$r=|$$$?$j$7$F!"(B
-\item \texttt{./debian} $B%G%#%l%/%H%j0J2<$r:n@.(B/$B99?7$7$F!"(B
-\item $B>l9g$K$h$C$F$O(B upstream $B$N%=!<%9$K%Q%C%A$rEv$F$F!"(B
-\item $B%=!<%9(B/$B%P%$%J%j(B $B%Q%C%1!<%8$r%S%k%I(B
+\item upstream のソースを取得
+\item (場合によっては) non-free な部分を除いたりして、
+\item \texttt{./debian} ディレクトリ以下を作成/更新して、
+\item 場合によっては upstream のソースにパッチを当てて、
+\item ソース/バイナリ パッケージをビルド
 \end{enumerate}
 \end{itemize}
 
-$B$H$$$&;v$r9T$J$$$^$9!#(B
+という事を行ないます。
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$BE57?E*$J%j%]%8%H%j%l%$%"%&%H(B}
+\frametitle{典型的なリポジトリレイアウト}
 \label{sec-1-5}
 
 
-$B$8$c$"(B, $B$I$&$$$&Iw$K(B Git $B$G:n6H$9$k$N$+(B, $B$H$$$&$H(B
+じゃあ, どういう風に Git で作業するのか, というと
 
 \begin{commandline}
   $ git branch
-  * master             <-- debian/ $BF~$j$N%U%k%=!<%9(B
-    pristine-tar       <-- orig.tar.{gz,bz2} $B$N%P%$%J%j%G%k%?(B
-    upstream           <-- debian/ $BL5$7(B(upstream)$B$N%=!<%9(B
+  * master             <-- debian/ 入りのフルソース
+    pristine-tar       <-- orig.tar.{gz,bz2} のバイナリデルタ
+    upstream           <-- debian/ 無し(upstream)のソース
 \end{commandline}
 
-$B$H$$$&9=@.$N%j%]%8%H%jFb$G:n6H$7$^$9(B.
+という構成のリポジトリ内で作業します.
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{Git $B$G(B Debian $B%Q%C%1!<%8$r4IM}$9$k$K$O(B?}
+\frametitle{Git で Debian パッケージを管理するには?}
 \label{sec-1-6}
 
 
 \begin{itemize}
-\item $B0J2<$N%Q%C%1!<%8$,Ds6!$5$l$F$$$^$9(B
+\item 以下のパッケージが提供されています
 \begin{itemize}
 \item git-buildpackage
 \item git-dpm
 \item gitpkg
 \item topgit
 \end{itemize}
-\item $B%Q%C%1!<%8Kh$K$=$l$>$lFCD'$,$"$j$^$9(B
+\item パッケージ毎にそれぞれ特徴があります
 \begin{itemize}
-\item $BB>$N(B vcs-buildpackage $B$HF1$8MM$K;H$&$J$i(B
-    \texttt{git-buildpackage} $B$r;H$&$HNI$$(B
+\item 他の vcs-buildpackage と同じ様に使うなら
+    \texttt{git-buildpackage} を使うと良い
 \end{itemize}
 \end{itemize}
 \end{frame}
-\section{upstream $B%=!<%9$r(B import $B$9$k$K$O(B?}
+\section{upstream ソースを import するには?}
 \label{sec-2}
 \begin{frame}[fragile,squeeze]
-\frametitle{upstream $B%=!<%9$r(B import $B$9$k$K$O(B?}
+\frametitle{upstream ソースを import するには?}
 \label{sec-2-1}
 
 
 \begin{itemize}
-\item $B4{B8$N(B source package $B$r(B import $B$9$k;~$O0J2<$NDL$j$K(B
+\item 既存の source package を import する時は以下の通りに
 \end{itemize}
 \begin{commandline}
  $ git-import-dsc [some dsc files]
 \end{commandline}
 \begin{itemize}
-\item $B$8$c$"(B, upstream $B$N(B tarball $B$d(B VCS $B$+$i(B
-  $B;O$a$k$K$O(B?
+\item じゃあ, upstream の tarball や VCS から
+  始めるには?
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{upstream $B%=!<%9$r(B import $B$9$k$K$O(B?}
+\frametitle{upstream ソースを import するには?}
 \label{sec-2-2}
 
 
 \begin{itemize}
-\item simple $B$J>l9g$O(B
+\item simple な場合は
 \begin{itemize}
-\item tarball $B$rE83+$7$F(B import \newline
+\item tarball を展開して import \newline
     or
-\item upstream $B$N(B VCS $B$r(B import
+\item upstream の VCS を import
 \end{itemize}
-\item $BD4@0$,I,MW$J>l9g(B
+\item 調整が必要な場合
 \begin{itemize}
-\item non-dfsg-free $B$JItJ,$r:o=|$7$F$+$i(B import
+\item non-dfsg-free な部分を削除してから import
 \end{itemize}
-\item $B5$$r$D$1$kI,MW$,$"$k$N$O(B
+\item 気をつける必要があるのは
 \begin{itemize}
-\item \alert{\textbf{$B@53N$J(B tarball $B$N(B copy $B$rJ]B8(B}}: \texttt{pristine-tar}
+\item \alert{\textbf{正確な tarball の copy を保存}}: \texttt{pristine-tar}
 \end{itemize}
 \end{itemize}
 \end{frame}
@@ -195,12 +195,12 @@
 
 
 \begin{itemize}
-\item upstream $B$N(B tarball $B$r(B import $B$9$k:]$K%P%$%J%j%G%k%?$rJ]B8(B
-\item \texttt{upstream} $B%V%i%s%A$+$i(B tarball(\texttt{.orig.tar.gz}) $B$r(B
-  $B@8@.$9$k:]$K!"(Bchecksum $B$NEy$7$$(B tarball $B$r@8@.(B
+\item upstream の tarball を import する際にバイナリデルタを保存
+\item \texttt{upstream} ブランチから tarball(\texttt{.orig.tar.gz}) を
+  生成する際に、checksum の等しい tarball を生成
 \begin{itemize}
-\item $B%P%$%J%j%G%k%?$O(B \texttt{pristine-tar} $B%V%i%s%A$KJ]B8$5$l$k(B.
-\item import $B;~$KK:$l$?>l9g$O0J2<$NMM$K(B\ldots{}
+\item バイナリデルタは \texttt{pristine-tar} ブランチに保存される.
+\item import 時に忘れた場合は以下の様に\ldots{}
 \end{itemize}
 \end{itemize}
 \begin{commandline}
@@ -209,38 +209,38 @@
 \end{commandline}
 
 \begin{itemize}
-\item $B$4$/5)$KBLL\$J(B tarball $B$,$"$k(B($B$i$7$$(B)$B$1$l$I(B, $BB?$/$N>l9g>e<j$/F0:n(B
+\item ごく稀に駄目な tarball がある(らしい)けれど, 多くの場合上手く動作
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{upstream $B$N(B VCS $B$+$i(B import $B$9$k(B}
+\frametitle{upstream の VCS から import する}
 \label{sec-2-4}
 
 
 \begin{itemize}
-\item \alert{\textbf{tarball$B$b0l=o$K(Bimport$B$9$k$3$H(B!!}}
+\item \alert{\textbf{tarballも一緒にimportすること!!}}
 \begin{itemize}
-\item $BFCDj$N(B branch $B$K(B upstream $B$N%3%_%C%HMzNr$r(B import $B$9$k(B
+\item 特定の branch に upstream のコミット履歴を import する
 \end{itemize}
-\item $B$=$N(B Top $B$K(B tarball $B$r(B import $B$9$k(B
+\item その Top に tarball を import する
 \begin{itemize}
-\item import $B$7$?%3%_%C%HMzNr$,(B diff $B$H$7$F4IM}$5$l$k(B
+\item import したコミット履歴が diff として管理される
 \begin{itemize}
-\item $B%3%_%C%HMzNr(B $\to$ quilt $B%Q%C%A$H$7$F07$($k(B!!
+\item コミット履歴 $\to$ quilt パッチとして扱える!!
 \end{itemize}
 \end{itemize}
-\item import $B$7$?$i%?%0$rBG$C$F$*$/$Y$-(B
+\item import したらタグを打っておくべき
 \begin{itemize}
-\item git-buildpackage $BEy$GJXMx(B
+\item git-buildpackage 等で便利
 \end{itemize}
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{upstream $B$N(B VCS $B$+$i(B import $B$9$k(B(1)}
+\frametitle{upstream の VCS から import する(1)}
 \label{sec-2-5}
 
 
-$B9,1?$K$b(B upstream $B$,(B Git $B$@$C$?$i(B
+幸運にも upstream が Git だったら
 
 \begin{commandline}
 $ git remote add upstream-repos [url]
@@ -248,14 +248,14 @@ $ git fetch upstream-repos
 $ git co upstream && git merge  [upstream tag]
 \end{commandline}
 
-$B$G(B ok
+で ok
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{upstream $B$N(B VCS $B$+$i(B import $B$9$k(B(2)}
+\frametitle{upstream の VCS から import する(2)}
 \label{sec-2-6}
 
 \begin{itemize}
-\item Subversion: $B=i2s(B
+\item Subversion: 初回
 \end{itemize}
 \begin{commandline}
 $ git-svn init [url]
@@ -265,7 +265,7 @@ $ git checkout -b upstream refs/remotes/git-svn
 $ git push origin upstream:upstream
 \end{commandline}
 \begin{itemize}
-\item Subversion: $BFs2sL\0J9_(B
+\item Subversion: 二回目以降
 \end{itemize}
 \begin{commandline}
 $ git config --remove-section svn-remote.svn 1>/dev/null 2>&1
@@ -274,57 +274,57 @@ $ git show-ref origin/upstream > \
    `git rev-parse-git-dir`/refs/remotes/git-svn
 \end{commandline}
 
-\ldots{}$BLLE]$G$9$M$'(B\ldots{}
+\ldots{}面倒ですねぇ\ldots{}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{tarball $B$r(B import $B$9$k%D!<%k(B(1)}
+\frametitle{tarball を import するツール(1)}
 \label{sec-2-7}
 \begin{block}{\texttt{git-import-orig}}
 \label{sec-2-7-1}
 
 \begin{itemize}
-\item \texttt{git-buildpackage} $B%Q%C%1!<%8$GDs6!(B
+\item \texttt{git-buildpackage} パッケージで提供
 \begin{itemize}
-\item simple $B$K(B tarball $B$r(B import
-\item (Option$B$D$1$l$P(B) pristine-tar $B$b<B9T(B
-\item ($B$"$l$P(B)$B8=>u$N(B master $B%V%i%s%A$X<+F0$G(B merge $B$7$F(B
-\item $B%?%0$bBG$C$F$/$l$k(B
+\item simple に tarball を import
+\item (Optionつければ) pristine-tar も実行
+\item (あれば)現状の master ブランチへ自動で merge して
+\item タグも打ってくれる
 \end{itemize}
 \end{itemize}
 \end{block}
-%% $B0lHV(B simple
+%% 一番 simple
 \label{sec-2-7-2}
 
 
-$BI,MW$J;v$OA4$F$d$C$F$/$l$k$N$G(B, $B$3$l$G==J,$J;v$,B?$$(B
+必要な事は全てやってくれるので, これで十分な事が多い
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{tarball $B$r(B import $B$9$k%D!<%k(B(2)}
+\frametitle{tarball を import するツール(2)}
 \label{sec-2-8}
 \begin{block}{\texttt{git-dpm import-new-upstream}}
 \label{sec-2-8-1}
 
 \begin{itemize}
-\item \texttt{git-dpm}: \alert{git Debian package manager} $B%Q%C%1!<%8$GDs6!(B
-\item $BF0:n$O(B git-import-orig $B$H$[$\F1$8(B
-\item manager $B$H8@$&$@$1$"$C$F(B, $BB?5!G=(B
+\item \texttt{git-dpm}: \alert{git Debian package manager} パッケージで提供
+\item 動作は git-import-orig とほぼ同じ
+\item manager と言うだけあって, 多機能
 \begin{itemize}
-\item VCS $B$NMzNr$H$NBP1~$E$1(B
-\item \texttt{patch-queue}$B%V%i%s%A(B($B8e=R(B)
-        $B$N@8@.(B/$B4IM}(B, $B$J$I(B
+\item VCS の履歴との対応づけ
+\item \texttt{patch-queue}ブランチ(後述)
+        の生成/管理, など
 \end{itemize}
 \end{itemize}
 \end{block}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$BD4@0$,I,MW$J>l9g(B(1)}
+\frametitle{調整が必要な場合(1)}
 \label{sec-2-9}
 
 
 \begin{itemize}
-\item upstream $B%V%i%s%A$G(B non-dfsg-free $B$JItJ,$r:o=|(B/$BD4@0(B
-\item new upstream version $B$H$7$F(B merge/commit
-\item tarball $B$H$7$F(B repack $B$7$?8e$K(B import/$B%?%0BG$A(B
+\item upstream ブランチで non-dfsg-free な部分を削除/調整
+\item new upstream version として merge/commit
+\item tarball として repack した後に import/タグ打ち
 \end{itemize}
 
 \begin{commandline}
@@ -332,7 +332,7 @@ $ git checkout upstream
 $ git merge -s recursive -X theirs [upstream tag]
 \end{commandline}
 
-$B$b$7$/$O(B
+もしくは
 
 \begin{commandline}
 $ git status -s | egrep '^(DU|UA| U|UD)' | cut -c4- | \
@@ -340,49 +340,49 @@ $ git status -s | egrep '^(DU|UA| U|UD)' | cut -c4- | \
 $ git commit
 \end{commandline}
 
-$B$H$+(B?
+とか?
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$BD4@0$,I,MW$J>l9g(B(2)}
+\frametitle{調整が必要な場合(2)}
 \label{sec-2-10}
 
 
 \begin{itemize}
-\item tarball $BE83+$7$F=$@5(B/$B:F(B tarball $B2=$7$F(B, $B$=$l$r(B import $B$9$k(B, $B$G$bNI$$(B
-\item \texttt{uscan} $B$G(B repack $B$9$k(B, $BEy$N(B script $B$,$"$k$J$i(B,
-  $B$=$l$G(B tarball $B@8@.$7$F$+$i(B import, $B$H$+(B.
+\item tarball 展開して修正/再 tarball 化して, それを import する, でも良い
+\item \texttt{uscan} で repack する, 等の script があるなら,
+  それで tarball 生成してから import, とか.
 \end{itemize}
 \end{frame}
-\section{\texttt{./debian} $B$r%,%7%,%7=q$/(B/$B=$@5$9$k(B}
+\section{\texttt{./debian} をガシガシ書く/修正する}
 \label{sec-3}
 \begin{frame}[fragile,squeeze]
-\frametitle{\texttt{./debian} $B$r%,%7%,%7=q$/(B/$B=$@5$9$k(B}
+\frametitle{\texttt{./debian} をガシガシ書く/修正する}
 \label{sec-3-1}
 
 
 \begin{commandline}
   $ git branch
-  * master             <-- debian/ $BF~$j$N%U%k%=!<%9(B
-    pristine-tar       <-- orig.tar.{gz,bz2} $B$N%P%$%J%j%G%k%?(B
-    upstream           <-- debian/ $BL5$7(B(upstream)$B$N%=!<%9(B
+  * master             <-- debian/ 入りのフルソース
+    pristine-tar       <-- orig.tar.{gz,bz2} のバイナリデルタ
+    upstream           <-- debian/ 無し(upstream)のソース
 \end{commandline}
 
 \begin{itemize}
-\item upstream $B$N%=!<%9$OA4$F(B Git $B%j%]%8%H%jFb$K(B
+\item upstream のソースは全て Git リポジトリ内に
 \begin{itemize}
-\item \texttt{upstream} $B%V%i%s%A(B
+\item \texttt{upstream} ブランチ
 \end{itemize}
-\item \texttt{./debian} $B$G$NJQ99$O(B \texttt{master} $B%V%i%s%A$G(B
+\item \texttt{./debian} での変更は \texttt{master} ブランチで
 \begin{itemize}
-\item $BA4$F$NJQ99$O(B \texttt{master} $BFb$G9T$J$&(B
-\item $B2?$r$7$?$N$+$O(B \texttt{git log} $B$GMF0W$KDI@W$G$-$k(B
+\item 全ての変更は \texttt{master} 内で行なう
+\item 何をしたのかは \texttt{git log} で容易に追跡できる
 \begin{itemize}
-\item patch $B$b:n@.$7$d$9$$(B
+\item patch も作成しやすい
 \end{itemize}
 \end{itemize}
 \end{itemize}
 \end{frame}
-\section{patch $B$r07$&$K$O(B?}
+\section{patch を扱うには?}
 \label{sec-4}
 \begin{frame}[fragile,squeeze]
 \frametitle{source format 3.0 (quilt)}
@@ -392,216 +392,216 @@ $ git commit
 \begin{itemize}
 \item source format 3.0 (quilt)
 \begin{itemize}
-\item upstream $B$X$NJQ99E@$O(B quilt $B%Q%C%A$H$7$F(B
-    \texttt{./debian/patches} $B0J2<$K3JG<(B
+\item upstream への変更点は quilt パッチとして
+    \texttt{./debian/patches} 以下に格納
 \end{itemize}
-\item VCS $B$H$I$&CgNI$/$9$k$+(B/$B4IM}$9$k$+(B?
+\item VCS とどう仲良くするか/管理するか?
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{$BC1=c$JJ}K!(B}
+\frametitle{単純な方法}
 \label{sec-4-2}
 
 
 \begin{itemize}
-\item Git $B$N;v$OK:$l$F(B quilt $B$@$1$G(B.
-\item $BJ#;($J;v$O2?$b$J$$(B
-\item $BFC$KF@$9$k$3$H$bL5$$$1$l$I(B
+\item Git の事は忘れて quilt だけで.
+\item 複雑な事は何もない
+\item 特に得することも無いけれど
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{git $B$r;H$&>l9g(B(1)}
+\frametitle{git を使う場合(1)}
 \label{sec-4-3}
 
 
 \begin{itemize}
-\item quilt $B$rK:$l$F(B git $B$@$1$G(B
+\item quilt を忘れて git だけで
 \begin{itemize}
-\item \texttt{master} $B%V%i%s%A$G$NJQ99(B,
-\item \texttt{upstream} $B%V%i%s%A$H$N:9J,(B \newline
+\item \texttt{master} ブランチでの変更,
+\item \texttt{upstream} ブランチとの差分 \newline
 \end{itemize}
-$\to$ $BA4$F(B patch $B$H$7$F(B \texttt{debian/patches} $B0J2<$KCj=P(B
+$\to$ 全て patch として \texttt{debian/patches} 以下に抽出
 \begin{itemize}
-\item $B$3$l$i$r(B \texttt{master} $B%V%i%s%A$K%3%_%C%H$7$F$$$/(B
+\item これらを \texttt{master} ブランチにコミットしていく
 \begin{itemize}
-\item \texttt{dpkg-source} $B$G<+F0E*$K(B apply/unpatch $B$5$l$k(B
+\item \texttt{dpkg-source} で自動的に apply/unpatch される
 \end{itemize}
 \end{itemize}
-\item $BJQ99E@$N(B track $B$,LLE](B
-\item VCS $B$C$]$/$J$$(B
+\item 変更点の track が面倒
+\item VCS っぽくない
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{patch $B%V%i%s%A$G(B}
+\frametitle{patch ブランチで}
 \label{sec-4-4}
 
 
 \begin{itemize}
-\item $B%Q%C%A$r(B track $B$9$k$?$a$N(B branch $B$rMQ0U(B
+\item パッチを track するための branch を用意
 \begin{itemize}
-\item \texttt{patch-queue} $B%V%i%s%A(B
-\item \texttt{master} $B$O(B \texttt{./debian} $B$@$1$r4IM}(B
-\item $B%=!<%9$X$NJQ99E@$OJLES%V%i%s%A$r:n@.(B
-\item 1 $B%Q%C%A(B/1 $B%V%i%s%A(B or 1$B%Q%C%A(B/1$B%3%_%C%H(B
+\item \texttt{patch-queue} ブランチ
+\item \texttt{master} は \texttt{./debian} だけを管理
+\item ソースへの変更点は別途ブランチを作成
+\item 1 パッチ/1 ブランチ or 1パッチ/1コミット
 \end{itemize}
-\item $B%Q%C%A$r(B track $B$9$k%V%i%s%A$NFbMF$r(B quilt $B$K(B export
-\item export $B$7$?(B patch $B72$r(B \texttt{master} $B$X<h$j9~$`(B
-\item quilt $B$X$N(B export $B$r9T$J$&$K$O(B
-  $B%3%_%C%HMzNr$,(B\alert{$Be:No(B}$B$G$J$$$H$$$1$J$$(B
+\item パッチを track するブランチの内容を quilt に export
+\item export した patch 群を \texttt{master} へ取り込む
+\item quilt への export を行なうには
+  コミット履歴が\alert{綺麗}でないといけない
 \begin{itemize}
-\item 1 $B%Q%C%A(B/1$B%3%_%C%H(B
+\item 1 パッチ/1コミット
 \item squash !! squash !! squash !!
 \end{itemize}
-\item $B:#$N$H$3$m(B 1-way rebase
+\item 今のところ 1-way rebase
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{patch $B$b(B Git $B$G4IM}(B}
+\frametitle{patch も Git で管理}
 \label{sec-4-5}
 \begin{block}{topgit: a Git patch queue manager}
 \label{sec-4-5-1}
 
 \begin{itemize}
-\item $B%3%_%C%HMzNr$r%V%i%s%A$H$7$F4IM}(B
-\item $B%Q%C%A4V$N0MB84X78$b4IM}(B
-\item $BJXMx$@$1$I(B, $B$d$j$9$.$J5$$b$7$J$$$G$b$J$$(B
-\item \texttt{patch-queue} $B%V%i%s%A$+$i(B quilt $B$X(B export $B$7$?%Q%C%A$O(B
-  \texttt{master} $B%V%i%s%A$K%3%_%C%H$7$F$*$/I,MW$,$"$k(B
+\item コミット履歴をブランチとして管理
+\item パッチ間の依存関係も管理
+\item 便利だけど, やりすぎな気もしないでもない
+\item \texttt{patch-queue} ブランチから quilt へ export したパッチは
+  \texttt{master} ブランチにコミットしておく必要がある
 \end{itemize}
 \end{block}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{\texttt{patch-queue} $B$NFbMF$r(B \texttt{master} $B$X(B(1)}
+\frametitle{\texttt{patch-queue} の内容を \texttt{master} へ(1)}
 \label{sec-4-6}
 
 
 \begin{itemize}
-\item \texttt{git-dpm} $B$@$H<+F0E*$K9T$J$o$l$k(B
+\item \texttt{git-dpm} だと自動的に行なわれる
 \item \texttt{gitpkg}, \texttt{gbp-pq}:
 \begin{itemize}
-\item \texttt{git merge} $B$N(B wrapper
+\item \texttt{git merge} の wrapper
 \end{itemize}
-\item \texttt{dpkg-source} $B$O<+F0$G(B patch $B$r@8@.(B/$BE,1~$9$k(B
+\item \texttt{dpkg-source} は自動で patch を生成/適応する
 \begin{itemize}
-\item source format 3.0 (quilt) $B$+$i(B
+\item source format 3.0 (quilt) から
 \end{itemize}
 \end{itemize}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{\texttt{patch-queue} $B$NFbMF$r(B \texttt{master} $B$X(B(2)}
+\frametitle{\texttt{patch-queue} の内容を \texttt{master} へ(2)}
 \label{sec-4-7}
 \begin{block}{gbp-pq}
 \label{sec-4-7-1}
 
 \begin{itemize}
-\item \texttt{git-buildpackage} $B$GDs6!(B
-\item \texttt{git format-patch} $B$N(B wrapper
-\item 1$B%Q%C%A(B/1$B%3%_%C%H(B, $B$H$7$F(B patch $B$r@8@.(B/$B<h$j9~$_(B
-\item \texttt{master} $B$r(B rebase
+\item \texttt{git-buildpackage} で提供
+\item \texttt{git format-patch} の wrapper
+\item 1パッチ/1コミット, として patch を生成/取り込み
+\item \texttt{master} を rebase
 \end{itemize}
 \end{block}
-%% $B;H$$J}(B
+%% 使い方
 \label{sec-4-7-2}
 
 \begin{commandline}
 $ git checkout master ; git branch -D patch-queue
 $ quilt pop -a
 $ gbp-pq import
- ... $B:n6H(B ...
+ ... 作業 ...
 $ git checkout master ; gbp-pq export
 \end{commandline}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{\texttt{patch-queue} $B$NFbMF$r(B \texttt{master} $B$X(B(3)}
+\frametitle{\texttt{patch-queue} の内容を \texttt{master} へ(3)}
 \label{sec-4-8}
-\begin{block}{git-dpm $B$G$N(B patch $B$N<h$j07$$(B}
+\begin{block}{git-dpm での patch の取り扱い}
 \label{sec-4-8-1}
 
 \begin{itemize}
-\item $B%Q%C%A$O0l$D$N%V%i%s%A$G4IM}(B
-\item 1$B%Q%C%A(B/1$B%3%_%C%H(B
-\item $B%Q%C%A$O(B \texttt{master} $B%V%i%s%A$K(B merge $B$5$l$?$^$^$G4IM}(B
-\item $B%Q%C%A$,Ev$?$C$?(B \texttt{upstream} $B%V%i%s%A$r(B rebase
-\item $B%W%i%$%Y!<%H%V%i%s%A$N(B SHA1 $B%O%C%7%e$r(B
-      \texttt{./debian/.git-dpm} $B$KJ]B8(B
+\item パッチは一つのブランチで管理
+\item 1パッチ/1コミット
+\item パッチは \texttt{master} ブランチに merge されたままで管理
+\item パッチが当たった \texttt{upstream} ブランチを rebase
+\item プライベートブランチの SHA1 ハッシュを
+      \texttt{./debian/.git-dpm} に保存
 \end{itemize}
 \end{block}
 \end{frame}
 \begin{frame}[fragile,squeeze]
-\frametitle{\texttt{patch-queue} $B$NFbMF$r(B \texttt{master} $B$X(B(4)}
+\frametitle{\texttt{patch-queue} の内容を \texttt{master} へ(4)}
 \label{sec-4-9}
-\begin{block}{gitpkg $B$N(B quilt export hook}
+\begin{block}{gitpkg の quilt export hook}
 \label{sec-4-9-1}
 
 \begin{itemize}
-\item 1$B%Q%C%A(B/1$B%3%_%C%H(B, $B$J$I$H$$$&@)8B$OL5$$(B
-\item \texttt{debian/source/git-patches} $B$K@_Dj$r=q$/(B
+\item 1パッチ/1コミット, などという制限は無い
+\item \texttt{debian/source/git-patches} に設定を書く
 \end{itemize}
     \begin{commandline}
     upstream/[UPSTREAM_REF]...patche-queue1/[DEBIAN_REF1]
     upstream/[UPSTREAM_REF2]...topic1/[DEBIAN_REF2]
     \end{commandline}
 \begin{itemize}
-\item $B%Q%C%A$O%3%_%C%H$5$l$J$$(B
-\item tag $B$O:F@8@.$5$l$k(B
+\item パッチはコミットされない
+\item tag は再生成される
 \end{itemize}
 \end{block}
 \end{frame}
-\section{source package $B$N@8@.(B}
+\section{source package の生成}
 \label{sec-5}
 \begin{frame}[fragile,squeeze]
-\frametitle{source package $B$N@8@.(B}
+\frametitle{source package の生成}
 \label{sec-5-1}
 \begin{block}{git-dpm}
 \label{sec-5-1-1}
 
 \begin{itemize}
-\item $B%S%k%IMQ$NFCDj$N%3%^%s%I$OL5$$(B(\texttt{dpkg-source -b} $B$H$+(B)
+\item ビルド用の特定のコマンドは無い(\texttt{dpkg-source -b} とか)
 \end{itemize}
 \end{block}
 \begin{block}{gitpkg}
 \label{sec-5-1-2}
 
 \begin{itemize}
-\item pristine-tar, \texttt{upstream} $B%V%i%s%A$+$i(B tarball $B$r@8@.$7(B
-      source package $B$r%S%k%I(B
+\item pristine-tar, \texttt{upstream} ブランチから tarball を生成し
+      source package をビルド
 \end{itemize}
 \end{block}
 \begin{block}{git-buildpackage}
 \label{sec-5-1-3}
 
 \begin{itemize}
-\item default. $B%P%$%J%j%Q%C%1!<%8$b:n@.$9$k(B
-\item \texttt{git-pbuilder}: pbuilder/cowbuilder $B$r8F$S=P$;$k(B
-\item $B%?%0$rBG$C$?$j(B.
+\item default. バイナリパッケージも作成する
+\item \texttt{git-pbuilder}: pbuilder/cowbuilder を呼び出せる
+\item タグを打ったり.
 \end{itemize}
 \end{block}
 \end{frame}
-\section{$B$^$H$a(B(?)}
+\section{まとめ(?)}
 \label{sec-6}
 \begin{frame}[fragile,squeeze]
-\frametitle{$B$^$H$^$C$F$^$;$s$,(B\ldots{}}
+\frametitle{まとまってませんが\ldots{}}
 \label{sec-6-1}
 
 
 \begin{itemize}
-\item git-buildpackage $B$,0lHV4JC1(B/$BJXMx(B/$B0\9T%3%9%H$bDc$$(B
+\item git-buildpackage が一番簡単/便利/移行コストも低い
 \begin{itemize}
-\item $B4{$K4v$D$+$N(B project $B$,(B Git $B$G%Q%C%1!<%8$r4IM}$7$F$$$k(B
-\item workflow $B$b$o$+$j$d$9$$(B
+\item 既に幾つかの project が Git でパッケージを管理している
+\item workflow もわかりやすい
 \end{itemize}
 \item git-dpm/gitpkg
 \begin{itemize}
-\item workflow/patch-queue $B$N<+M3EY$O9b$$(B($B$1$l$I(B, $BJ#;($K$J$j$,$A(B)
+\item workflow/patch-queue の自由度は高い(けれど, 複雑になりがち)
 \item git-dpm
 \begin{itemize}
-\item $B%3%^%s%I$,B?$/$F(B, $B$A$g$C$HI_5o$,9b$$(B($B$+$b(B)
-\item $B0lHV!V(Bgit $B$i$7$/!W:n6H$G$-$k(B($B$i$7$$(B)
+\item コマンドが多くて, ちょっと敷居が高い(かも)
+\item 一番「git らしく」作業できる(らしい)
 \end{itemize}
 \item gitpkg
 \begin{itemize}
-\item hook $B$G$N3HD%(B/$B%+%9%?%^%$%:$,MF0W(B.
-\item $B%j%]%8%H%j$N%l%$%"%&%H$b8GDj$5$l$F$$$J$$(B
+\item hook での拡張/カスタマイズが容易.
+\item リポジトリのレイアウトも固定されていない
 \end{itemize}
 \end{itemize}
 \end{itemize}
