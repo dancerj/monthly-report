@@ -28,11 +28,11 @@
 \usepackage{monthlyreport}
 % 日付を定義する、毎月変わります。
 \newcommand{\debmtgyear}{2020}
-\newcommand{\debmtgmonth}{XX}
+\newcommand{\debmtgmonth}{12}
 \newcommand{\debmtgdate}{XX}
 % started from zero:
-% (let ((year 2020) (month 10)) (+ (* (- year 2005) 12) month -1))
-\newcommand{\debmtgnumber}{189}
+% (let ((year 2020) (month 12)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{191}
 
 % Needed to import pandoc-generated LaTeX documents.
 % See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
@@ -119,13 +119,17 @@
 
 Go 言語をDebianで使ってみましょう。
 
+まず入門するにはオンラインでのチュートリアルが充実しているので最初はローカルにインストールすることすら必要ないでしょう\cite{golang:tourofgo}
+\cite{golang:tourofgoja}。
+しかし次第に本格的に使い始めようとすると手元にインストールしたくなるはずです。
+
 \subsection{DebianユーザとしてGoでプログラムを書いてみる}
 
 Go のインストール手順\cite{golangorg-install}に従って公式パッケージをダウンロードしてTarを展開すると最新のバイナリがインストールできます。しかしあとからアンインストールするときとかに面倒ですしアップデートも自動ではありません。
 ここはDebianパッケージが使いたいなぁと思います。
 
 Debianの公式パッケージはBusterでは２０２０年１０月現在1.11ですが、Buster backports にはもう少し新しい1.14があります。
-まず/etc/apt/sources.list に buster-backportsを追加しましょう。
+まず /etc/apt/sources.list に buster-backportsを追加しましょう。
 
 \begin{commandline}
 deb https://deb.debian.org/debian buster-backports main
@@ -140,19 +144,65 @@ $ sudo apt install -t buster-backports golang \
 \end{commandline}
 
 Goの追加のパッケージはDebianパッケージではなくGoの仕組みでインストールし
-ましょう。Debianパッケージはビルドじの依存関係を満たすためだけにパッケー
+ましょう。Debianパッケージはビルド時の依存関係を満たすためだけにパッケー
 ジされているようで、デフォルトのGOPATHに入っていません。
 
+たとえばsqliteを利用したいなと思ったら \verb!~/go! 以下にインストールし
+ます。
+
 \begin{commandline}
-$ go get golang.org/x/text
+$ go get github.com/mattn/go-sqlite3
+\end{commandline}
+
+すると以下のようなプログラム(db.go)がコンパイルできるようになります。
+
+\begin{commandline}
+import (
+	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
+	"log"
+)
+
+func main() {
+	db, err := sql.Open("sqlite3", "./ac.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+}
+
+\end{commandline}
+
+コンパイルはgo build, ただビルドだけじゃなくて実行までしたければgo runで直接実行までできます。
+
+\begin{commandline}
+$ go build db.go
+$ go run db.go
 \end{commandline}
 
 \subsection{Debian開発者としてのGoパッケージ}
+
+
+DebianにGoでできたソフトウェアをパッケージとしていれたいときにの作業とし
+て、一ユーザとして利用していたのと変わるのはポリシー準拠のためにDebianで
+ビルドできるようにする必要があるということです。つまり依存関係にあったも
+のをgo getでダウンロードしてくるのではなくDebianパッケージとして提供する
+必要があるということです。
+
+Debian にあるGoパッケージはpkg-goチームが中心となって行っています
+\cite{debian-go-packaging}、全てではないですが大半のパッケージはこのチー
+ムがやっているようです。
+
+dh-golangを使ってDebianパッケージのビルドは行うようです。dh-make-golang
+コマンドを使うとDebianパッケージの雛形を作成してくれるようです。
 
 \begin{thebibliography}{1}
  \bibitem{golangorg} ``The Go Programming Language'' \url{https://golang.org/}
  \bibitem{golangorg-doc} ``Documentation -- The Go Programming Language'', \url{https://golang.org/doc}
  \bibitem{golangorg-install} \url{https://golang.org/doc/install}
+ \bibitem{golang:tourofgo} ``A Tour of Go'' \url{https://tour.golang.org/welcome/1}
+ \bibitem{golang:tourofgoja} \url{https://go-tour-jp.appspot.com/welcome/1}
+ \bibitem{debian-go-packaging} ``Debian Go Packaging'' \url{https://go-team.pages.debian.net/packaging.html}
 \end{thebibliography}
 
 %\dancersection{title}{username}
