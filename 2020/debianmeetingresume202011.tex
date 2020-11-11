@@ -129,6 +129,135 @@
 %\dancersection{title}{username}
 
 
+
+%-------------------------------------------------------------------------------
+\dancersection{Debian勉強会資料のディレクトリ構成変更}{上川純一}
+%-------------------------------------------------------------------------------
+
+\subsection{Debian勉強会資料ディレクトリ構成変更の目的}
+
+Debian勉強会開始当初はそこまでファイル数が多くなかったのでディレクトリ構
+成はシンプルで、画像などはその月のサブディレクトリにいれてTexファイルや
+スタイルファイルなどはトップレベルに配置するというようにしていました。し
+かし１５年たった現在においては８００以上のファイルが初期状態で配置され、
+TeXコンパイルすると中間ファイルをふくめて１００００近いファイル数が配置
+されるようになってきました。月にTeXファイルは４個くらい追加されるので状
+況はどんどん悪くなります。
+
+\begin{itemize}
+ \item debianmeetingresumeYYYYMM.tex -- TeXファイル
+ \item debianmeetingresumeYYYYMM-kansai.tex -- 関西の勉強会のTeXファイル
+ \item debianmeetingresumeYYYYMM-presentation.tex -- プレゼンテーション用のTeXファイル
+ \item debianmeetingresumeYYYYMM-kansai-presentation.tex -- 関西の勉強会のTeXファイル
+ \item imageYYYYMM/ -- 画像ファイルなどの配置場所
+\end{itemize}
+
+また、初めてチェックアウトした人がMakeコマンドをうつと８コアの十分速い最
+近のマシンでも１５分くらいコンパイルにかかります。遅めのマシンだと数時間
+かかるということもあるようです。Git commit 際にビルドできるかどうかチェッ
+クするためにpre-commit-hookを使うという運用にしていたのですが、状況によっ
+てはGit commitに長時間待たされることになるのです。全体に影響を及ぼす
+大掛かりな変更などもできませんでした。それは流石に不便すぎる
+ので今回ソースを年ごとに分割してみることにしました。
+
+\subsection{ディレクトリ構成変更の実際}
+
+
+ディレクトリ構成は新しいファイ売るについては以下のように変更しました。
+
+\begin{itemize}
+ \item YYYY/Makefile -- そのサブディレクトリ用のMakefile。
+ \item YYYY/debianmeetingresumeYYYYMM.tex -- TeXファイル
+ \item YYYY/debianmeetingresumeYYYYMM-kansai.tex -- 関西の勉強会のTeXファイル
+ \item YYYY/debianmeetingresumeYYYYMM-presentation.tex -- プレゼンテーション用のTeXファイル
+ \item YYYY/debianmeetingresumeYYYYMM-kansai-presentation.tex -- 関西の勉強会のTeXファイル
+ \item YYYY/imageYYYYMM/ -- 画像ファイルなどの配置場所
+\end{itemize}
+
+チェックアウトしたあとの一連の作業は以下のようになると思います。
+
+\begin{commandline}
+$ cd 2020
+$ edit debianmeetingresume202011.tex
+$ make
+$ git commit 
+$ git pull --rebase
+$ git push
+ \end{commandline}
+
+今までディレクトリ構成の変更については何度か途中で諦めているので今回はで
+きるだけ挫折しないようにやりやすいところからはじめています。まず２０２０
+年からはじめました。２０１７年までさかのぼって変更しました。また方針とし
+て、リファクタリングは後回しして必要なファイルはシンボリックリンクで持っ
+てきています。２０１６年より以前はそれ以降の年から依存されているファイル
+があるので移動するにはなんらかのリファクタリングが必要になるかと思います。
+utils/mkdirlinks.sh にスクリプトをおいていますが、使いまわしている画像ファ
+イルなどによって依存関係が結構ありました。
+
+\begin{commandline}
+    beamerthemeKansaiDebian.sty
+    beamerthemeKyoto.sty
+    beamerthemeTokyo.sty
+    image200502
+    image200607
+    image200703
+    image200707
+    image200802
+    image201006
+    image2012-natsu
+    kansaimonthlyreport.sty
+    monthlypresentation.sty
+    monthlyreport.sty
+\end{commandline}
+
+今後の課題としては、再利用しやすい画像やスタイルファイルなどについては再
+利用専用のディレクトリなどに分割するのが良いかなと思っています。
+
+\subsubsection{UTF-8化}
+
+全員が全部のファイルをビルドさせられる状態だと文字コードの一括変換等はあ
+まりやりたくなかったのですが、今回の変更で基本的には2020/サブディレクト
+リだけをビルドし直せば良いようになったので一括でUTF-8に変更しました。
+
+スクリプトを書いてfind + xargsで実行しました。
+\verb!utils/convert_to_utf8.sh!
+
+\begin{commandline}
+$ find -name '*.tex' | xargs bash ./utils/convert_to_utf8.sh
+$ find -name '*.sty' | xargs bash ./utils/convert_to_utf8.sh
+\end{commandline}
+
+\subsubsection{CIの有効化}
+
+CIを有効にしたかったのですが大きすぎておそすぎるという問題がありました。
+Githubにミラーを作ってそこからCloud Build連携で力技で８コアのCloud Build
+インスタンスを利用して１５分以内にビルドできています。結果一回３０円くら
+いだったと思います。
+
+SalsaのCI \footnote{.gitlab-ci.yml 参照} では最近のサブディレクトリ
+（2020, 2021）だけをビルドするようにしてみてます。dictossさん提供の
+gitlab runner 経由で７分でビルドが終わっているようです。
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[keepaspectratio,width=0.5\hsize]{image202011/debci.png}
+\end{center}
+\caption{CIの流れ}
+\label{fig:monthlyreport-ci-configuration}
+\end{figure}
+
+本当はsalsaのmasterにpushされる前にビルドのチェックを走らせたいのですが
+できるのかな？
+
+CIの設定ファイルが複数あるのも今後の課題です。
+
+\begin{itemize}
+ \item cloudbuild.yaml -- cloud buildで使っている。
+ \item Dockerfile -- cloud buildで使っている。
+ \item .gitlab-ci.yml -- salsaの設定
+ \item debian/control -- ２０１３年ころまで pbuilder ベースで走らせていたCI用、現在は何に利用しているのか？
+\end{itemize}
+
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
 \dancersection{メモ}{}
