@@ -1,12 +1,16 @@
 // (shell-command "dot debci.dot -T png > debci.png")
 
 digraph structure {
-  salsa [label="salsa monthly-report.git"]
-  github [label="github dancerj/monthly-report"]
+  salsa [label="salsa monthly-report.git" shape=box]
+  github [label="github dancerj/monthly-report" shape=box]
   cloudbuild [shape=circle label="google cloud build"]
   gitlabrunner [shape=circle label="gitlab runner"]
+  raspberrypi [shape=circle label="raspberry pi cron"]
 
   salsa -> github [label="手動同期"]
+  raspberrypi -> dockerimage [label="定期実行"]
+  dockerimage -> cloudbuild
+  dockerimage [ label="gcr.io/tokyodebian/monthly-report-builder" shape=box]
   github -> cloudbuild [label="コミット後"]
   salsa -> gitlabrunner [label="コミット後"]
 }
