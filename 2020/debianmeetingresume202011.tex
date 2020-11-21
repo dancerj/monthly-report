@@ -122,12 +122,186 @@
 \dancersection{DebianでのPython}{杉本典充}
 %-------------------------------------------------------------------------------
 
-\subsection{xxxx}
+\subsection{はじめに}
+
+Debian では多くのプログラム言語の実行環境、ライブラリ及びアプリケーションのパッケージを多数提供しています。今回はPythonについてDebianではどのようにパッケージをメンテナンスしているのかを調べてみました。
+
+\subsection{Pythonについて}
+
+Python とは Debian などの linux 環境のみならず他の OS でも実行することが可能な
+マルチプラットフォームのプログラミング言語の1つです。
+2015年に機械学習のプラットフォームである tensorflow がオープンソース化され、 tensorflow には Python のライブラリが豊富なことから Python の人気が上がってきています。
+
+Pythonのwebサイト（\url{https://www.python.org/}） では
+初心者向けのチュートリアル\footnote{\url{https://www.python.org/about/gettingstarted/}}、
+Pythonの言語仕様やクラス・関数の仕様書\footnote{\url{https://docs.python.org/3/}}などの多くの情報を公開しています。特に開発者向けの情報ではPEP（Python Enhancement Proposals）\footnote{\url{https://www.python.org/dev/peps/}}と呼ばれるPythonを
+よりよくするための提案の募集と公開しており\footnote{DebianにもDEPという似たような仕組みがあります。\url{https://dep-team.pages.debian.net/}}、コーディング規約やライブラリの廃止勧告、互換性の説明など多岐にわたる情報を公開しています。
 
 
+\subsection{DebianにおけるPython情報の取り扱いについて}
 
-%\dancersection{title}{username}
+\subsubsection{基本な情報}
 
+Debian における Python 関連の情報は以下ページにまとまっています。
+
+\begin{itemize}
+\item Python - Debian Wiki \url{https://wiki.debian.org/Python/}
+\item Debian Python Policy \url{https://www.debian.org/doc/packaging-manuals/python-policy/}
+\end{itemize}
+
+Debian Project では、Python の実行環境をメンテナンスするチーム（cpython-team）とライブラリ及びアプリケーションをメンテナンスするチーム（Debian Python Team）の2つに分かれて活動しています。2つのチームの主な違いを表\ref{tb:pythonteam}に示します。
+
+\begin{table}[htb]
+  \begin{center}
+  \caption{Debian ProjectにおけるPythonのチーム情報}
+  \begin{tabular}{|c|c|c|} \hline
+    チーム名 & cpython-team & Debian Python Team（DPT） \\ \hline
+    役割 & 実行環境のメンテナンス & ライブラリとアプリケーションのメンテナンス \\ \hline
+    メーリングリスト & debian-python@lists.debian.org & （同左） \\ \hline
+    IRC & \#debian-python & （同左） \\ \hline
+    wiki & - & \url{https://wiki.debian.org/Teams/PythonTeam} \\ \hline
+    gitリポジトリ & \url{https://salsa.debian.org/cpython-team} & \url{https://salsa.debian.org/python-team} \\ \hline
+  \end{tabular}
+  \label{tb:pythonteam}
+  \end{center}
+\end{table}
+
+「Debian Python Policy」\footnote{\url{https://www.debian.org/doc/packaging-manuals/python-policy/}} を読んでみて、パッケージの話で大事そうなところを以下に挙げてみます。
+
+\begin{itemize}
+\item python3 へ移行しましょう
+\item python のインタプリタのディレクトリ配置やファイル名の規則（例：/usr/bin/python3、/usr/bin/python3.8）
+\item python ライブラリのパスの規則（debian パッケージでは /usr/lib/python{3,2.7}/dist-packages/ 配下に配置する）
+\item python のライブラリやアプリケーションの debian パッケージ名の命名規則（pythoh3 系用であれば python3-* の形式とすると、モジュール名にアンダースコアが入っている場合は debian パッケージ名ではハイフンに置換すること）
+\item pythonプログラムについて
+  \begin{itemize}
+  \item シェバンには \#!/usr/bin/env interpreter\_name は使わないこと
+  \item \#!/usr/bin/python3 または \#!/usr/bin/python3.y としてdebianが提供するデフォルトのバージョンを指定すること
+  \end{itemize}
+\item python の debian パッケージ化を支援するための debhelper の拡張として dh-python パッケージがある
+\end{itemize}
+
+
+\subsubsection{cpython-teamについて}
+
+cpython-team チームの \url{https://salsa.debian.org/groups/cpython-team/-/group_members} に表示されるメンバーは Matthias Klose（@doko） さん1名のみです。
+
+Klose さんが メンテナンスしている \url{https://tracker.debian.org/pkg/python3.9} を確認してみると、maintainer にはチームでなく Klose さんの名前が書いてあります。そのため 1 人でメンテナンスしているようです。
+
+2020 年 11 月 時点の unstable においては python-2.7、3.8、3.9 のパッケージを提供しており、現在は python-3.9 のデバッグ作業を行っています\footnote{\url{https://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=python3.9;users=debian-python@lists.debian.org}}。
+
+
+\subsubsection{Debian Python Team（DPT）について}
+
+Debian Python Team（DPT）のメンバーは \url{https://wiki.debian.org/Teams/PythonTeam} に記載があり、2020 年 11 月現在では 20 名でメンテナンスしているようです。チームでメンテナンスしているパッケージの一覧は次のURLで見ることができます。
+
+\begin{itemize}
+\item \url{https://qa.debian.org/developer.php?email=team%2Bpython%40tracker.debian.org}
+\end{itemize}  
+
+
+Debian Python Team（DPT）に参加するには チームのポリシードキュメントを読み、応諾した上で参加することを求めています。チームのポリシーを記載したドキュメントは以下のページにあります。
+
+\begin{itemize}
+\item \url{https://salsa.debian.org/python-team/tools/python-modules/blob/master/policy.rst}
+\end{itemize}  
+
+このページに記載しているポリシーにはおおよそ以下の内容が書かれています。
+
+\begin{itemize}
+\item チームへ参加方法
+  \begin{itemize}
+  \item 以下3つを書いたメールを debian-python@lists.debian.org へ送信する
+    \begin{itemize}
+    \item なぜ参加したいのか
+    \item \url{https://salsa.debian.org} にログインするアカウント名
+    \item ポリシードキュメント（policy.rst）を読み、受諾することの宣言
+    \end{itemize}
+  \end{itemize}
+\item パッケージメンテナンスについて
+  \begin{itemize}
+  \item debian パッケージ内の debian/control ファイルの Maintainer フィールド及び Uploaders フィールドの意味
+  \item git-buildpackage を使ったパッケージメンテナンスの説明
+  \end{itemize}
+\end{itemize}
+
+また、Python のパッケージを作るにあたっては debian/control、debian/rules などのファイルの書き方の説明が以下のページ記載されています。
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/Python/LibraryStyleGuide}
+\item \url{https://wiki.debian.org/Python/AppStyleGuide}
+\end{itemize}
+
+
+\subsubsection{pypiパッケージをdebianパッケージに変換する}
+
+プログラム言語にはそれぞれライブラリやアプリケーションをパッケージ化して配布するサイトを持っていることが多いです。そして Debian ではそれぞれのプログラム言語のライブラリを debian パッケージへ変換する debian パッケージを配布しており、以下のページに情報があります。
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/AutomaticPackagingTools}
+\end{itemize}
+    
+Python におけるライブラリやアプリケーションの配布サイトは \url{https://pypi.org/} が有名です。上記 URL で紹介している Python 向けの debian パッケージへの変換ツールは「python3-stdeb」 パッケージに入っている「py2dsc-deb」コマンドがよさそうに思いました\footnote{pypi2debパッケージは依存パッケージがとても多くperl関連のパッケージが大量にインストールされます。}。
+
+試しに py2dsc-deb コマンドを使って pypi が配布するパッケージを debian パッケージに変換してみました。debian/compatバージョンは "9" として変換しているようです。
+
+\begin{commandline}
+$ sudo apt-get install python3-stdeb python-all dh-python
+$ wget https://files.pythonhosted.org/packages/53/20/4019a739b2eefe9282d3822ef6a225250af964b117356971bd55e274193c/ws4py-0.5.1.tar.gz
+$ py2dsc-deb ws4py-0.5.1.tar.gz
+$ ls -l deb_dist
+l合計 128
+-rw-r--r-- 1 norimitu norimitu 38224 11月 19 13:58 python3-ws4py_0.5.1-1_all.deb
+drwxr-xr-x 8 norimitu norimitu  4096 11月 19 13:58 ws4py-0.5.1
+-rw-r--r-- 1 norimitu norimitu   916 11月 19 13:58 ws4py_0.5.1-1.debian.tar.xz
+-rw-r--r-- 1 norimitu norimitu   869 11月 19 13:58 ws4py_0.5.1-1.dsc
+-rw-r--r-- 1 norimitu norimitu  5480 11月 19 13:58 ws4py_0.5.1-1_amd64.buildinfo
+-rw-r--r-- 1 norimitu norimitu  1024 11月 19 13:58 ws4py_0.5.1-1_amd64.changes
+-rw-r--r-- 1 norimitu norimitu  5419 11月 19 13:58 ws4py_0.5.1-1_source.buildinfo
+-rw-r--r-- 1 norimitu norimitu  1377 11月 19 13:58 ws4py_0.5.1-1_source.changes
+-rw-r--r-- 2 norimitu norimitu 51408  2月 26  2020 ws4py_0.5.1.orig.tar.gz
+
+$ cat deb_dist/ws4py-0.5.1/debian/compat
+9
+\end{commandline}
+
+また、python のパッケージをインストールするコマンド "pip" でインストールしたときに binding ライブラリのコンパイルも一緒に行うライブラリ "mysqlclient" を試してみると、以下のコマンドで debian パッケージに変換できました。
+
+\begin{commandline}
+$ sudo apt-get install python3-stdeb python3-all-dev dh-python libmysqlclient-dev
+$ wget https://files.pythonhosted.org/packages/a5/e1/e5f2b231c05dc51d9d87fa5066f90d1405345c54b14b0b11a1c859020f21/mysqlclient-2.0.1.tar.gz
+$ py2dsc-deb mysqlclient-2.0.1.tar.gz
+$ ls -l deb_dist
+合計 264
+drwxr-xr-x 11 norimitu norimitu  4096 11月 19 14:15 mysqlclient-2.0.1
+-rw-r--r--  1 norimitu norimitu  1236 11月 19 14:15 mysqlclient_2.0.1-1.debian.tar.xz
+-rw-r--r--  1 norimitu norimitu   927 11月 19 14:15 mysqlclient_2.0.1-1.dsc
+-rw-r--r--  1 norimitu norimitu  6192 11月 19 14:15 mysqlclient_2.0.1-1_amd64.buildinfo
+-rw-r--r--  1 norimitu norimitu  1394 11月 19 14:15 mysqlclient_2.0.1-1_amd64.changes
+-rw-r--r--  1 norimitu norimitu  5795 11月 19 14:15 mysqlclient_2.0.1-1_source.buildinfo
+-rw-r--r--  1 norimitu norimitu  1464 11月 19 14:15 mysqlclient_2.0.1-1_source.changes
+-rw-r--r--  2 norimitu norimitu 87807  7月  3 03:55 mysqlclient_2.0.1.orig.tar.gz
+-rw-r--r--  1 norimitu norimitu 90744 11月 19 14:15 python3-mysqlclient-dbgsym_2.0.1-1_amd64.deb
+-rw-r--r--  1 norimitu norimitu 48584 11月 19 14:15 python3-mysqlclient_2.0.1-1_amd64.deb
+
+$ cat deb_dist/mysqlclient-2.0.1/debian/compat
+9
+\end{commandline}
+
+
+\subsection{終わりに}
+
+debian における Python パッケージをどういうチームがどのようにパッケージを作成、メンテナンスしているか調べてみました。皆さんも Python や他のプログラム言語のライブラリやアプリケーションを debian パッケージ化し、debian ライフをお楽しみください。
+
+\subsection{参考情報}
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/Python/}
+\item \url{https://www.debian.org/doc/packaging-manuals/python-policy/}
+\item \url{https://salsa.debian.org/python-team/tools/python-modules/blob/master/policy.rst} 
+\item \url{https://wiki.debian.org/Python/LibraryStyleGuide}
+\item \url{https://wiki.debian.org/Python/AppStyleGuide}
+\end{itemize}
 
 
 %-------------------------------------------------------------------------------
