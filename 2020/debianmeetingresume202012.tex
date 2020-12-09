@@ -1,0 +1,363 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011, 2015, 2020 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2020}
+\newcommand{\debmtgmonth}{12}
+\newcommand{\debmtgdate}{20}
+% started from zero:
+% (let ((year 2020) (month 12)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{192}  % いつのまにかずれている？
+
+% Needed to import pandoc-generated LaTeX documents.
+% See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image2012-natsu/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt Python、原稿システム特集}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image200502/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+%-------------------------------------------------------------------------------
+\dancersection{最近のDebian関連のミーティング報告}{杉本　典充}
+%-------------------------------------------------------------------------------
+
+\subsection{2020年11月度 東京エリア・関西合同Debian勉強会}
+
+
+%-------------------------------------------------------------------------------
+\dancersection{事前課題}{杉本　典充}
+%-------------------------------------------------------------------------------
+
+今回の事前課題は以下です。
+
+\begin{enumerate}
+\item ...
+\end{enumerate}
+
+%この課題に対して提出いただいた内容は以下です。
+
+\begin{multicols}{2}
+{\small
+% \input{image202012/prework.tex}
+}
+\end{multicols}
+
+%\dancersection{Debian Trivia Quiz}{username}
+%
+%Debianの昨今の話題についてのQuizです。
+%
+%今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}などに投稿された内容からです。
+%
+%\begin{multicols}{2}
+%\input{image202007/quiz.tex}
+%\end{multicols}
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[    ]\+" "")
+
+
+%-------------------------------------------------------------------------------
+\dancersection{Debian 勉強会資料の準備の方法}{上川 純一}
+%-------------------------------------------------------------------------------
+\label{sec:debmtg2020howtoprepare}
+\index{debianjp@Debian JP} 
+\index{とうきょうえりあ@東京エリアDebian勉強会}
+
+\subsection{はじめに}
+
+Debian勉強会の資料は \LaTeX で作成されています。gitなどの一連のツールを
+組み合わせて作成しているのですが、作成方法をたまには眺めて文章にまとめて
+みようと思います。
+
+\subsection{レポジトリの取得}
+
+まず最初にSalsaのページ
+\footnote{\url{https://salsa.debian.org/tokyodebian-team/monthly-report}}
+から勉強会資料のgitのレポジトリを取得します。「Copy HTTPS Clone URL」ボ
+タンでCloneするためのURLを取得して、git cloneコマンドを実行します。
+
+\begin{commandline}
+ git clone https://salsa.debian.org/tokyodebian-team/monthly-report.git
+\end{commandline}
+
+この結果、カレントディレクトリに monthly-report というディレクトリができ
+ます。
+monthly-report/.git 以下がレポジトリです。
+
+\begin{commandline}
+$ ls -la monthly-report/ |head
+total 179440
+drwxr-xr-x 123 dancer dancer   159744 11月 29 17:09 .
+drwxr-xr-x   6 dancer dancer     4096 12月 14  2009 ..
+drwxr-xr-x   8 dancer dancer     4096 11月 29 17:09 .git
+-rw-r--r--   1 dancer dancer      273  6月 11 07:18 .gitignore
+-rw-r--r--   1 dancer dancer      109  7月 21  2007 .whizzytexrc
+-rw-r--r--   1 dancer dancer      302  1月 14  2012 .yatexrc
+-rw-r--r--   1 dancer dancer    17989  7月  6  2007 COPYING
+-rw-r--r--   1 dancer dancer    25168  7月  6  2007 ChangeLog
+-rw-r--r--   1 dancer dancer   101740 11月 27  2008 EUC-UCS2
+\end{commandline}
+%$
+
+\subsection{git でのコミットの方法}
+
+最初に今年のデータがおいてあるディレクトリに移動します。
+ここ数年からファイルは年ごとのディレクトリに分割して保存してあります。
+2020/ディレクトリか2021ディレクトリになるでしょう。
+
+\begin{commandline}
+cd 2021/
+\end{commandline}
+
+まず、PDFファイルが生成できることを確認します。Makefile があるので、make 
+コマンドを入力するとビルドしてくれるはずです。
+文字コードが正しいか、正常にビルドできるか、などのチェックが組み込まれて
+いるので、チェックに活用しましょう。
+
+\begin{commandline}
+ make
+\end{commandline}
+
+おもむろに対象のファイルを編集します。
+
+ここからは主にGitの操作を簡単に紹介しますが他の入門書など参考にするとよいでしょう。
+
+git diffで変更した部分をを確認します。意図している内容が表示され、問題な
+いようであれば、git commit コマンドでコミットします。そうすると
+monthly-report/.git にある手元のレポジトリに反映されます。
+
+\begin{commandline}
+ git diff
+ git commit -a -m 'revised XXX'
+\end{commandline}
+
+問題がないようであれば、git pull / git push でマージします。git-pull し
+た後にコンフリクトが発生したら、修正し、git commit でコミットしてから
+git push します。
+
+\begin{commandline}
+ git pull --rebase
+ git push 
+\end{commandline}
+
+新規のファイルを追加する場合、ファイルを削除する場合には、 git add /
+git rm コマンドを利用します。
+
+\subsection{ファイルの編集}
+
+\index{latex@\LaTeX}
+ドキュメントは p\LaTeX{}で作成しています。ファイル名として下記になってい
+ます。(YYYY)(MM)は、年と月で、例えば2020年12月であれば 202012 です。
+
+\begin{description}
+ \item[(YYYY)/debianmeetingresume(YYYY)(MM).tex]
+	    事前配布資料
+ \item[(YYYY)/debianmeetingresume(YYYY)(MM)-presentation.tex]
+	    プレゼンテーション用 (prosperを利用)
+ \item[(YYYY)/image(YYYY)(MM)/]
+	    画像ファイルなどの置き場
+\end{description}
+
+作業する前にビルドに必要なパッケージをインストールします。
+utils/docker/Dockerfile.busterにあるDockerfileにCI\footnote{ビルドが壊れ
+たらわかるように継続的にビルドしている環境があります}で使われているコマ
+ンドラインが記述されているのでそれを参照すればよいでしょう
+
+\begin{commandline}
+apt-get install \
+    git \
+    locales \
+    lv \
+    make \
+    poppler-data \
+    python3-pygments \
+    texlive-lang-japanese \
+    texlive-latex-extra \
+    texlive-latex-recommended && \
+\end{commandline}
+
+編集に便利なツールもついでにインストールしてみてもよいでしょう。
+
+\begin{commandline}
+# apt-get install whizzytex advi emacs21 yatex gs-cjk-resource gv \
+  evince poppler-data fonts-japanese-mincho fonts-japanese-gothic
+\end{commandline}
+
+% TODO(uekawa): tex4ht まわりについては未確認。
+
+文字コードは utf-8 で統一しています。最近のほとんどのエディタはそのまま
+で動くでしょう。\footnote{今年まではiso-2022-jpでした}
+
+emacs での編集で、outline-mode を利用すると、アウトラインをベースに編集す
+ることができ、便利です。tex ファイルの最後に以下のようなエントリーを追加
+しています。
+\texttt{M-x outline-minor-mode} で有効にできます。
+
+\begin{commandline}
+;;; Local Variables: ***
+;;; outline-regexp: "\\([ <タブ記号>]*\\\\\\(documentstyle\\|documentclass\\|<改行しない>
+dancersection\\)\\*?[ <タブ記号>]*[[{]\\|[%<^L>]+\\)" ***
+;;; End: ***
+\end{commandline}
+
+\begin{itemize}
+ \item 
+ \verb!<タブ記号>!: タブを入力、
+ \item  \verb!<^L>!: ctrl-L を入力、
+ \item  \verb!<改行しない>!: ここの改行はみやすいように改行をいれているだけで、実際には改行は入力しない。
+\end{itemize}
+
+また、自動で適切な設定で outline-minor-mode に入るように .emacs に設定してもよいでしょう。
+
+\begin{commandline}
+(add-hook 
+ 'yatex-mode-hook
+ '(lambda ()
+    (make-variable-buffer-local 'outline-regexp)
+    (setq outline-regexp 
+	  "\\([ \t]*\\\\\\(documentstyle\\|documentclass\\|chapter\\|dancersection\\|
+section\\|subsection\\|subsubsection\\|paragraph\\)\\*?[ \t]*[[{]\\|[%\f]+\\)")
+    (setq 
+     outline-level 
+     (function
+      (lambda ()
+	(save-excursion
+		   (looking-at outline-regexp)
+		   (cond 
+		    ((equal (char-after (match-beginning 0)) 37) (- (match-end 0) (match-beginning 0)))
+		    (t (let ((bs (buffer-substring (match-beginning 2) (match-end 2))))
+			 (cond ((equal (substring bs 0 2) "do") 15)
+			       ((equal (substring bs 0 1) "c") 0)
+			       ((equal (substring bs 0 1) "p") 4)
+			       ((equal (substring bs 0 2) "da") 1) ; dancersection
+			       ((equal (substring bs 0 2) "se") 1) ;section
+			       ((equal (substring bs 0 5) "subse") 2) ;subsection
+			       ((equal (substring bs 0 8) "subsubse") 3) ;subsubsection
+			       (t (length bs))))))))))
+    (outline-minor-mode t)))
+\end{commandline}
+
+\subsubsection{ドキュメントのスタイル}
+
+スタイルファイルは monthlyreport.sty パッケージを利用します。過去の資料を参考にしてください。
+
+\begin{commandline}
+\usepackage{monthlyreport} 
+\end{commandline}
+
+各担当部分は section として扱います。特別なコマンド dancersection で指定
+します。形式は \texttt{dancersecion\{タイトル\}\{作者名\}}です。
+その中で subsection や subsubsection を利用して文書を構成してくださ
+い。
+
+\begin{commandline}
+ \dancersection{Debian 勉強会資料の準備の方法}{上川 純一}
+ \label{sec:debmtg2007howtoprepare}
+\end{commandline}
+
+\subsubsection{目次の処理}
+
+目次のエントリは下記の形式で作成します。
+\begin{commandline}
+index { alphabet もしくは、 ひらがなの読み @ 項目名称 } 
+\end{commandline}
+
+\subsubsection{画像ファイルの処理}
+
+% TODO 最近どうだっけ？なんか変わった気がする。
+
+画面写真の画像を追加するときは、できるだけサイズの小さい png などを利用
+してください。グラフなどの線画であれば、epsでかまいません。png であれば、 
+ebb コマンドを利用してbounding box を作成してください。
+
+\begin{commandline}
+$ ebb XXX.png
+\end{commandline}
+%$
+
+ps であれば、 eps2epsでバウンディングボックスを追加してあげるとうまくい
+きます。inkscape の出力する ps を eps2epsで処理すれば inkscape で画像を
+作成することができます。
+
+
+% TODO(uekawa): latex beamerの使い方
+% TODO(uekawa): whizzytexはうごくのか？
+
+\printindex
+
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+\mbox{}\newpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image200502/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+\end{document}
