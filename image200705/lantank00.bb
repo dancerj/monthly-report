@@ -1,5 +1,0 @@
-%%Title: ./lantank00.jpg
-%%Creator: ebb Version 0.5.2
-%%BoundingBox: 0 0 346 259
-%%CreationDate: Mon Jun 18 17:59:36 2007
-
