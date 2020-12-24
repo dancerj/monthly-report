@@ -26,6 +26,23 @@
 - nodejs
   - 最新のパッケージのインストール方法とDebian公式パッケージの作成方法。npmをどう使うか。
 
+## デバイス関連
+
+- raspberry pi 
+- m5stack 向け開発をするには
+
+## コンテナ技術
+
+- docker
+- kubernetes
+- CI 関連
+
+## システム管理のツール群
+
+- systemd
+- crontab
+- mail 設定
+
 ## その他
 - checksum いろいろ
 - pristine-tar
@@ -52,19 +69,5 @@
 - Debian package を作成する技術とワークフローについてたまには話をしよ
    うよ。グループワーク？
 - social contract ワークショップ: みんな理解しているか、ケーススタディー
-- ビデオストリーミング会議
 - virtualization, management on virtualization.
 - Packages ファイルをパースする。
-
-## 会場
-
-### 横浜
-
-http://www.city.yokohama.jp/me/naka/renraku/kaikokinen/index.html
-横浜市開港記念会館
-４００人とかいけるぜ。かっこいいたてもの。
-
-### 千葉
-
-http://www.ovta.or.jp/div/facilities/index.html
-宿泊可能な海外職業訓練協会
