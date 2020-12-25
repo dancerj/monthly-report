@@ -114,12 +114,11 @@
 \dancersection{DebianでのNode}{上川純一}
 %-------------------------------------------------------------------------------
 
-\subsection{Nodejsの最近}
+\subsection{node.jsの最近}
 
-Nodeとはv8 というJavascriptエンジンで動作するJavascript環境です
-\cite{nodejsorg}。v8はChromeのjavascriptエンジンとして開発されているので
-広く使われているエンジンで、その環境をコマンドラインでも使えるというのが
-便利なポイントです。
+node.jsとはv8 というJavascriptエンジンで動作するJavascript環境です
+\cite{nodejsorg}。v8はChromeのjavascriptエンジンとして広く使われていおり、
+同じ環境をブラウザ以外でも使えるというのが便利なポイントです。
 
 Javascriptは基本的にはシングルスレッドで動くのでイベントベースでプログラ
 ミングすることになり、はじめにそこをうまく扱った標準ライブラリを整備した
@@ -181,10 +180,12 @@ v16 & 2021-04-?? &            &  \\
 \hline
 \end{tabular}
 
-二年に一回安定版リリースをしているDebianとしてはこれに追いつくのは結構大
-変でしょう。
+二年に一回安定版リリースをしているDebianとしては一年に一回大きなアップデー
+トをしているNode.jsの最新版をおいかけるのは結構大変でしょう。
 
 \subsection{DebianユーザとしてのNodeでプログラムを書いてみる}
+
+\subsubsection{パッケージのインストール}
 
 Nodejsのインストール手段としては公式に配布されているバイナリの最新のLTS
 版を利用するのがよいでしょう\cite{nodejs-install}。ダウンロード方法につ
@@ -213,13 +214,13 @@ $ sudo apt update && sudo apt install nodejs
 ここまでの作業を行うとnpmコマンドやnodejsコマンドが利用できるようになっ
 ています。Debianでは以前nodeコマンドがすでに存在していたのでポリシーに基
 づいてnodejsコマンドを利用、stretchまではnode-legacyパッケージをインストー
-ルしてシンボリックリンクを用意していました。現在はnodeコマンドが利用でき
-るようになっており、nodejsもシンボリックリンクとして提供されているようで
-す。
+ルしてシンボリックリンクを用意していました
+\footnote{\url{https://lists.debian.org/debian-devel-announce/2012/07/msg00002.html}
+に名前衝突についてのCTTE Resolutionがあります}。現在はnodeコマンドが利用できるようになって
+おり、nodejsもシンボリックリンクとして提供されているようです。
 
 node.jsのAPIのドキュメント\cite{nodejs-api}を参照しながらプログラムを書
 くことになるでしょう。
-
 
 \subsection{DockerでのDebianユーザとしてのNodeの利用}
 
@@ -239,7 +240,7 @@ COPY . .
 RUN npm install
 \end{commandline}
 
-\subsection{Debian Developer としてのNodeパッケージ}
+\subsection{Debian Developer としてのNode.jsパッケージ}
 
 Debian パッケージをNodejsのpackages.jsonから生成すること自体は簡単です。
 npm2debをつかえばよいでしょう。おそらく困難はDebianポリシーに従うと
@@ -247,6 +248,52 @@ Debianパッケージとして追加するにはDebianパッケージだけで�
 る必要があります。そのため依存関係を全部追加し、ライセンスなどのチェック
 を行うことにあると思われます。あとはnpm管理じゃない環境にスナップショッ
 トを維持することになるので面倒が増えます。
+
+\subsubsection{Node.jsバージョン}
+
+Debian公式のパッケージ「nodejs」のバージョンを２０２０年１２月２５日時点
+で確認したところ、最新のLTS版をexperimentalに入れるという運用のようです。
+保守的ですが２年間安定版として利用されることを見越すとこれが現実的でしょ
+う。最新のNode.jsの機能に依存しているソフトウェアは扱いが難しそうです。
+
+\begin{tabular}{|l|l|}
+Debian release    & nodejs バージョン \\
+\hline
+stretch           & 4.8.2 \\
+stretch-backports & 8.11.1 \\
+buster            & 10.21.0 \\
+bullseye          & 12.19.0 \\
+sid               & 12.19.0 \\
+experimental      & 14.13.0 \\
+\end{tabular}
+
+\subsubsection{Node.js パッケージポリシー}
+
+Node.jsパッケージのポリシーが書いてあるWikiページがありました\cite{debian-nodejs-manual}。そこにはこんなことが書いてあります：
+
+\begin{itemize}
+ \item バイナリーとソースパッケージはnode-fooという名前にする
+
+ \item MUST: nodejsにBuild-Dependsを指定すること
+
+ \item /usr/lib/nodejs/ か /usr/lib/nodejs/foo/にインストールすること。
+	場所は複数のファイルがあるのか単一ファイルなのかに依存する。
+ \item package.json を /usr/lib/nodejs/foo/package.json にいれておくこと
+
+ \item ウェブブラウザから利用可能であれば libjs-foo バイナリパッケージを作成する。 Javascript/Policy を参照。
+
+ \item require('foo') が動くように確認する自動テストを含めること。
+
+ \item c++ アドオンは nodejs-abi-{\it process.versions.modules} に依存すること。
+
+\end{itemize}
+
+\subsubsection{Debian Javascript policy}
+
+歴史的にはDebianにある既存のJavascriptのコードの多くはブラウザで利用でき
+るようになっているもので、それについてはDebian Javascript Policyで統一し
+ようとしているようです\cite{debian-javascript-policy}。
+
 
 
 
@@ -259,6 +306,13 @@ Debianパッケージとして追加するにはDebianパッケージだけで�
  \bibitem{nodejs-es6} ``ECMAScript 2015 (ES6) とそれ以降のバージョン''
 	 \url{https://nodejs.org/ja/docs/es6/}
  \bibitem{node-green} ``Node.js ES2015 Support'' \url{https://node.green/}
+ \bibitem{debian-nodejs-manual} 
+	 ``Node.js modules policy'' 
+	 \url{https://wiki.debian.org/Javascript/Nodejs/Manual}
+ \bibitem{debian-javascript-policy} 
+	 ``Javascript Policy''
+	 \url{https://wiki.debian.org/Javascript/Policy}
+
 \end{thebibliography}
 
 %-------------------------------------------------------------------------------
