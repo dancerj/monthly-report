@@ -1,0 +1,14 @@
+# Recipe for using Dockerfile to build from scratch using Google Cloud Build service.
+# use:
+#   cd utils/docker/ && gcloud builds submit .  # to refresh the docker files about once a month.
+#   gcloud builds submit --machine-type=n1-highcpu-8 --config=cloudbuild.bullseye.yaml .
+steps:
+- name: 'gcr.io/$PROJECT_ID/monthly-report-builder-bullseye'
+  id: 'build'
+  entrypoint: '/bin/bash'
+  args: [ '-c', 'make clean && make -j$(($(nproc) * 2))' ]
+  timeout: 1000s
+
+timeout: 1000s
+options:
+  machineType: 'N1_HIGHCPU_8'
