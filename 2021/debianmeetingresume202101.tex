@@ -185,30 +185,91 @@ v16 & 2021-04-?? &            &  \\
 
 \subsection{DebianユーザとしてのNodeでプログラムを書いてみる}
 
-\subsubsection{パッケージのインストール}
+\subsubsection{Debian公式パッケージのインストール}
 
-Nodejsのインストール手段としては公式に配布されているバイナリの最新のLTS
-版を利用するのがよいでしょう\cite{nodejs-install}。ダウンロード方法につ
-いて書いてあるページに従うとバイナリインストールから始まるのですがそこか
-らパッケージ版へのリンクがあり、Debian等は別のページにあり、Debianパッケー
-ジのインストールに到達するにはさんページ遷移する必要があります。そこに従
-うと、サイトからダウンロードしたシェルスクリプトを実行することになります。
+
+Debian 公式のパッケージとしてnodejs パッケージが提供されています。npm パッケージにパッケージ管理システムのnpmコマンドが入っています。
 
 \begin{commandline}
-# Using Debian, as root
-$ curl -sL https://deb.nodesource.com/setup_14.x | bash -
-$ apt-get install -y nodejs
+$ apt-get install -y npm nodejs
 \end{commandline}
 
-スクリプトでやっていることは基本的には以下のことなので以下のコマンドを使うのもよいでしょう。
+しかし、いくらDebianのパッケージが多いといってもすべてのパッケージを提供
+するのは現実的ではないのと他の開発者はnpm管理のパッケージを利用している
+ためそことの相互運用のことも考えると悩ましいですがDebianパッケージより
+node.js公式パッケージを使うことになりそうです。
+
+npm install して依存関係をインストールするとDebianパッケージを使うわけで
+はなく、\url{http://npmjs.com} からインストールすることになります。
+
+Debian パッケージとして依存関係をインストールなら該当するパッケージを探
+することになります。インストールされたライブラリは /usr/lib/nodejs以下に
+インストールされています。
+
+手元のSocket.ioテストアプリの例を見てみましょう。
 
 \begin{commandline}
-$ curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+{
+  "name": "wssrtc",
+  "description": "Node.js socket.io app running on Cloud Run for webrtc",
+  "version": "v0.0.1",
+  "private": true,
+  "dependencies": {
+    "cli": "",
+    "ejs": "",
+    "express": "",
+    "socket.io": ""
+  },
+}
+\end{commandline}
+
+Debianパッケージは node-expressなどだと思われるんですが、cli, socket.io
+にそれぞれ該当するパッケージが見つかりませんでした。昔は会ったような気が
+するのに。
+
+npm installを使うと\url{npmjs.com}からダウンロードしてきて
+\texttt{./node\_modules}以下にインストールします。しかしなんかNode.jsの
+バージョン10がサポートされませんと警告が出たり微妙な雰囲気です。
+
+\begin{commandline}
+$ npm install 
+npm WARN npm npm does not support Node.js v10.21.0
+npm WARN npm You should probably upgrade to a newer version of node as we
+npm WARN npm can't make any promises that npm will work with this version.
+npm WARN npm Supported releases of Node.js are the latest release of 4, 6, 7, 8, 9.
+npm WARN npm You can find the latest version at https://nodejs.org/
+npm WARN deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)
+npm WARN ws@7.4.2 requires a peer of bufferutil@^4.0.1 but none is installed. You must install peer dependencies yourself.
+npm WARN ws@7.4.2 requires a peer of utf-8-validate@^5.0.2 but none is installed. You must install peer dependencies yourself.
+
+added 96 packages from 107 contributors in 3.568s 
+\end{commandline}
+
+\subsubsection{Node.js 公式パッケージのインストール}
+
+Node.jsから提供されているパッケージのインストール手段としては公式に配布
+されているバイナリの最新のLTS版を利用するのがよいでしょう
+\cite{nodejs-install}。ダウンロード方法について書いてあるページに従うと
+バイナリインストールから始まるのですがそこからパッケージ版へのリンクがあ
+り、Debian等は別のページにあり、Debianパッケージのインストールに到達する
+には３ページ遷移する必要があります。Debianパッケージのインストール手順に
+従うと、サイトからダウンロードしたシェルスクリプトをroot権限で実行するこ
+とになります。
+
+\begin{commandline}
+# curl -sL https://deb.nodesource.com/setup_14.x | bash -
+# apt-get install -y nodejs
+\end{commandline}
+
+スクリプトでやっていることは基本的には次のような一連のコマンドでした。
+
+\begin{commandline}
+$ curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -  # 鍵の追加
 $ VERSION=node_14.x
 $ DISTRO="$(lsb_release -s -c)"
-$ echo "deb https://deb.nodesource.com/$VERSION $DISTRO main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-$ echo "deb-src https://deb.nodesource.com/$VERSION $DISTRO main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
-$ sudo apt update && sudo apt install nodejs
+$ echo "deb https://deb.nodesource.com/$VERSION $DISTRO main" | sudo tee /etc/apt/sources.list.d/nodesource.list  # パッケージ情報の追加
+$ echo "deb-src https://deb.nodesource.com/$VERSION $DISTRO main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list  # ソースパッケージ情報は必須ではない
+$ sudo apt update && sudo apt install nodejs  # インストール
 \end{commandline}
 
 ここまでの作業を行うとnpmコマンドやnodejsコマンドが利用できるようになっ
@@ -242,7 +303,7 @@ RUN npm install
 
 \subsection{Debian Developer としてのNode.jsパッケージ}
 
-Debian パッケージをNodejsのpackages.jsonから生成すること自体は簡単です。
+Debian パッケージをNodejsの\texttt{package.json}から生成すること自体は簡単です。
 npm2debをつかえばよいでしょう。おそらく困難はDebianポリシーに従うと
 Debianパッケージとして追加するにはDebianパッケージだけで依存関係を解決す
 る必要があります。そのため依存関係を全部追加し、ライセンスなどのチェック
@@ -293,9 +354,6 @@ Node.jsパッケージのポリシーが書いてあるWikiページがありま
 歴史的にはDebianにある既存のJavascriptのコードの多くはブラウザで利用でき
 るようになっているもので、それについてはDebian Javascript Policyで統一し
 ようとしているようです\cite{debian-javascript-policy}。
-
-
-
 
 \begin{thebibliography}{1}
  \bibitem{nodejsorg} ``Node.js'' \url{https://nodejs.org/}
