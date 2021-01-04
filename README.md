@@ -2,6 +2,9 @@
 
 このGitリポジトリは東京エリアDebian勉強会、関西Debian勉強会資料のリポジトリです。
 
+https://salsa.debian.org/tokyodebian-team/monthly-report/ が２０２１年
+１月時点でのメインのサイトです。
+
 ## 配布ライセンスについての注意事項
 
 このプロジェクトに追加する文書はすべて GPL v2 or later の条件で配布でき
