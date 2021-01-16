@@ -349,11 +349,59 @@ Node.jsパッケージのポリシーが書いてあるWikiページがありま
 
 \end{itemize}
 
+
+\texttt{node-}ではじまるバイナリパッケージは1400くらいあるようです。ただ
+npmにあがっているパッケージの数は1.4millionくらいのようで毎日平均１００
+０パッケージが追加されているようです。
+
 \subsubsection{Debian Javascript policy}
 
 歴史的にはDebianにある既存のJavascriptのコードの多くはブラウザで利用でき
 るようになっているもので、それについてはDebian Javascript Policyで統一し
 ようとしているようです\cite{debian-javascript-policy}。
+
+javascript-commonパッケージをRecommendしてパッケージ名は\texttt{libjs-}
+で始めるようにするというものですがBusterでは223パッケージあるようです。
+
+\subsubsection{npm2debを使ってみる}
+
+ためしにnpm2debを使ってみました。公開されているnpmパッケージをとってきて
+テンプレートを作成してくれるというものでした。しかし実際に使おうとすると
+ものによりますが依存関係を全部確認してDebianに入れるのが大変そうです。
+
+\begin{commandline}
+$ npm2deb create simple-peer
+
+This is not a crystal ball, so please take a look at auto-generated files.
+
+You may want fix first these issues:
+
+simple-peer/node-simple-peer/debian/changelog: -- FIX_ME debian author  Sat, 16 Jan 2021 10:39:59 +0900
+simple-peer/node-simple-peer/debian/control:Uploaders: FIX_ME debian author
+simple-peer/node-simple-peer/debian/control:Description: FIX_ME write the Debian package description
+simple-peer/node-simple-peer/debian/copyright:Copyright: 2021, FIX_ME debian author
+simple-peer/node-simple-peer_itp.mail:Subject: ITP: node-simple-peer -- FIX_ME write the Debian package description
+simple-peer/node-simple-peer_itp.mail:Owner: FIX_ME debian author
+simple-peer/node-simple-peer_itp.mail:  Description     : FIX_ME write the Debian package description
+simple-peer/node-simple-peer_itp.mail: FIX_ME: This ITP report is not ready for submission, until you are
+simple-peer/node-simple-peer_itp.mail:FIX_ME: Explain why this package is suitable for adding to Debian. Is
+simple-peer/node-simple-peer_itp.mail:FIX_ME: Explain how you intend to consistently maintain this package
+
+Use uscan to get orig source files. Fix debian/watch and then run                    
+$ uscan --download-current-version
+
+
+*** Warning ***
+Using fakeupstream to download npm dist tarballs, because upstream
+git repo is missing tags. Its better to ask upstream to tag their releases
+instead of using npm dist tarballs as dist tarballs may contain pre built files
+and may not include tests.
+
+Warnings occurred:
+ [error]   get-browser-rtc: dependency node-get-browser-rtc not in debian
+ [error]   queue-microtask: dependency node-queue-microtask not in debian
+
+\end{commandline}
 
 \begin{thebibliography}{1}
  \bibitem{nodejsorg} ``Node.js'' \url{https://nodejs.org/}
