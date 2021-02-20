@@ -1,1 +1,227 @@
-../kansaimonthlyreport.sty
+% -*- yatex; -*-  this is a style file for monthly meeting log.
+%please use it like:
+%\documentclass[mingoth,a4paper]{jsarticle}
+%\usepackage{monthlyreport}
+
+%     Kansai Debian Meeting resources
+%     Copyright (C) 2007 Takaya Yamashita
+%     Thank you for Tokyo Debian Meeting resources
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{fancybox}
+\usepackage{longtable}
+\usepackage{atbegshi}
+\ifnum 42146=\euc"A4A2
+\AtBeginShipoutFirst{\special{pdf:tounicode EUC-UCS2}}
+\else
+\AtBeginShipoutFirst{\special{pdf:tounicode 90ms-RKSJ-UCS2}}
+\fi
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{url}
+\usepackage[dvipdfmx]{color}
+\usepackage{enumitem}
+\usepackage{nextpage}
+\usepackage{float}
+\usepackage[table,dvipdfmx]{xcolor}
+\usepackage{fancyvrb} % fancyvrb in buster or later requires xcolor, which must be used before this line
+\usepackage{wrapfig}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{makeidx}
+\usepackage{ascmac}
+
+\makeindex
+
+%% spacing の設定をする。外枠を減らす。
+\setlength\headheight{0mm}
+\setlength\topmargin{-20mm}
+\setlength\headsep{0mm}
+\setlength\topskip{3mm}
+\setlength\maxdepth{4pt}
+\setlength\columnsep{6mm}
+\setlength\textheight{252mm}
+\setlength\topmargin{-5mm}
+\setlength\textwidth{170mm}
+\setlength\oddsidemargin{-5mm}
+\setlength\evensidemargin{-5mm}
+
+%色を定義
+%\definecolor{dancerdarkblue}{rgb}{0,0.08,0.45}
+%\definecolor{dancernormalblue}{rgb}{0.8,0.9,0.95}
+%\definecolor{dancerlightblue}{rgb}{0.8,0.95,1}
+
+%テーブルに色を付ける。
+%\rowcolors{2}{dancerlightblue}{dancernormalblue}
+
+
+% commandline環境を定義。画面入出力についてはcommandline環境
+% で表記する
+\newenvironment{commandline}%
+{\VerbatimEnvironment
+  \begin{Sbox}\begin{minipage}{15cm}\begin{fontsize}{7.3}{7.3} \begin{BVerbatim}}%
+{\end{BVerbatim}\end{fontsize}\end{minipage}\end{Sbox}
+  \setlength{\fboxsep}{8pt}
+% start on a new paragraph
+
+\vspace{6pt}% skip before
+\fcolorbox{black}{white}{\TheSbox}
+%{\TheSbox}
+
+\vspace{6pt}% skip after
+
+}
+%end of commandline
+
+%%% start of santaku
+\makeatletter
+\newwrite\tf@jqz
+\immediate\openout\tf@jqz\jobname.jqz\relax
+\makeatother
+\newcounter{santakucounter}
+\newcommand{\santaku}[5]{%
+\addtocounter{santakucounter}{1}
+
+\addtocontents{jqz}{\arabic{santakucounter}. #5\\}
+\begin{minipage}{1\hsize}
+問題\arabic{santakucounter}.
+#1\\
+□ A #2\\
+□ B #3\\
+□ C #4
+\end{minipage}
+\hspace{1cm}
+\\
+
+}
+
+%%% end of santaku
+
+\newcommand{\emptyspace}{(\underline{\hspace{1cm}})}
+
+\newcommand{\subsubsubsection}[1]{%
+\vspace{1zw}{\bf #1}\\}
+
+% sectionをセンタリングするとかの小技を駆使
+\makeatletter
+  \renewcommand{\section}{\@startsection{section}{1}%
+    {\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}% 前アキ
+    {.5\Cvs \@plus.3\Cdp}% 後アキ
+    {\normalfont\gt\fontsize{26}{26}\headfont\raggedright}} % style
+\renewcommand{\subsection}{\@startsection{subsection}{2}%
+    %{-2.5zw}%
+    {\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}% 前アキ
+    {.5\Cvs \@plus.3\Cdp}% 後アキ
+%    {\normalfont\large\headfont\color{dancerdarkblue}}}
+    {\normalfont\Large\headfont}}
+\renewcommand{\subsubsection}{\@startsection{subsubsection}{3}{\z@}%
+    {\Cvs \@plus.5\Cdp \@minus.2\Cdp}%
+    {\z@}%
+    {\normalfont\normalsize\headfont\textbf}}
+%    {\normalfont\normalsize\headfont\color{dancerdarkblue}}}
+
+% caption を箱に入れてみる
+\renewcommand{\@makecaption}[2]{\small
+  \vskip\abovecaptionskip
+  \ifdim \wd\@tempboxa <\hsize \centering \fi
+%{\color{dancerdarkblue}#1\hskip1zw\relax #2\par}
+{#1\hskip1zw\relax #2\par}
+  \vskip\belowcaptionskip}
+
+
+%theindex を改変
+\renewenvironment{theindex}{% 索引を3段組で出力する環境
+    \columnseprule.4pt \columnsep 2zw
+      \ifdim\textwidth<\fullwidth
+        \setlength{\evensidemargin}{\oddsidemargin}
+        \setlength{\textwidth}{\fullwidth}
+        \setlength{\linewidth}{\fullwidth}
+        \def\presectionname{}\def\postsectionname{}%
+        \begin{multicols}{3}[\dancersection{\indexname}{}]%
+    \else
+        \def\presectionname{}\def\postsectionname{}%
+        \begin{multicols}{2}[\dancersection{\indexname}{}]%
+      \fi
+    \@mkboth{\indexname}{\indexname}%
+    \plainifnotempty % \thispagestyle{plain}
+    \parindent\z@
+    \parskip\z@ \@plus .3\p@\relax
+    \let\item\@idxitem
+    \raggedright
+    \footnotesize\narrowbaselines
+  }{
+    \end{multicols}
+    \clearpage
+  }
+
+\makeatother
+
+
+% section の代わりの環境
+\newcommand{\dancersection}[2]{%
+\newpage
+第\debmtgnumber{}回 関西Debian勉強会 \debmtgyear{}年\debmtgmonth{}月
+%
+% top line
+\vspace{0.1mm}\\
+%{\color{dancerlightblue}\rule{\hsize}{2mm}}
+{\rule{\hsize}{2mm}}
+%
+% middle text
+%
+\begin{minipage}[t]{0.7\hsize}
+% \color{dancerdarkblue}
+\vspace{1cm}
+\section{#1}
+\hfill{}#2\\
+\end{minipage}
+\begin{minipage}[t]{0.3\hsize}
+\vspace{-2cm}
+\hfill{}\includegraphics[height=8cm]{image-assets/openlogo-nd.eps}\\
+\vspace{-5cm}
+\end{minipage}
+%
+%
+%{\color{dancerdarkblue}\rule{0.74\hsize}{2mm}}
+{\rule{0.74\hsize}{2mm}}
+%
+\vspace{2cm}
+}
+
+% BTSの番号を見るためのコマンド
+\newcommand{\debianbug}[1]{Bug\##1\footnote{\url{http://bugs.debian.org/#1}}}
+
+% for dancerj
+\newcommand{\fgref}[1]{図\ref{#1}}
+\newcommand{\tbref}[1]{表\ref{#1}}
+
+%
+% prework
+%
+\newenvironment{prework}[1]%
+{%begin prework
+\subsection{#1}
+}
+{%end prework
+}
+\newenvironment{prework*}[1]%
+{%begin prework
+\subsection*{#1}
+}
+{%end prework
+}
