@@ -127,8 +127,290 @@ Debianの最近の動向について情報交換を行いました。
 % % (query-replace-regexp "^[    ]\+" "")
 
 %-------------------------------------------------------------------------------
-\dancersection{webブラウザでメモの同時共有ができる Etherpad の紹介}{杉本典充}
+\dancersection{Webブラウザでメモの同時共有ができる Etherpad liteの紹介}{杉本典充}
 %-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+Debian 勉強会を進行をするにあたり、参加者が同時にメモの編集ができる環境がほしいと思っていました。
+Web ブラウザを使って複数人が同時にメモの参照や編集ができるツールである「Etherpad lite」を使ってみました。
+
+\subsection{Etherpad と Etherpad lite について}
+
+Etherpad（\url{https://etherpad.org/}）とは、Web ブラウザを使って複数人が同時にリアルタイムでメモの参照と編集ができるオープンソースソフトウェア\footnote{\url{https://github.com/ether/etherpad-lite}}です。
+
+歴史的には（初代の） Etherpad は 2008 年に etherpad.com（現在は etherpad.org へリダイレクトされる） でプロプラエタリなサービスとして登場し、Java と Scala で実装したものでした。その後 2009 年に etherpad.com は Google に買収され、買収の直後に etherpad のソースコードが Apache License の元で公開されてオープンソースとなりました\footnote{\url{https://code.google.com/archive/p/etherpad/}}\footnote{リリースアナウンス \url{https://web.archive.org/web/20091221023828/http://etherpad.com/ep/blog/posts/etherpad-open-source-release}}。
+
+（初代の）Etherpad がオープンソースで公開された後、2011年8月22日に JavaScript と Node.js で Etherpad の機能を再実装した「etherpad-lite」の ver 1.0 が登場しました。etherpad の開発を行う The Etherpad Foundation は今後 etherpad-lite の開発に専念することを決めたようで、（初代の）Etherpad は 2013 年に開発を終了しています。なお、etherpad-lite については The Etherpad Foundation の元で現在でも開発が続けられています。
+
+こうした背景があり（初代の）"Etherpad" の開発は既に終了していることから、現在では単に "etherpad" というと「etherpad-lite」を指すようになっています\footnote{\url{https://etherpad.org/\#download} のダウンロード先のリンクは etherpad-lite になっています。}。
+
+
+\subsection{Etherpad liteにたどり着くまでの利用変遷}
+
+だいぶ前となりますが Web ブラウザを使って複数人が同時にメモを編集でき無料で使える Web サービスとしてtitanpad.com\footnote{ソースコードのアーカイブはこちら \url{https://github.com/titanpad/titanpad}} がありました。titanpad.com は便利なサービスのためDebian勉強会や他の勉強会でも利用されていましたが、2017年12月31日をもってサービスを終了しました\footnote{\url{http://blog.titanpad.com/2016/11/shutting-down-titanpad_12.html}}。
+
+その後、Debian 勉強会ではメモの同時編集ツールとして DebConf などでも使われている gobby \footnote{\url{https://github.com/gobby/gobby/wiki}} を使っていましたが gobby は使いにくいという声（特にdebianを使っていない方）もあり、Web ブラウザで利用できるメモの同時編集ツールを再度探していました。
+
+ツールを探していく中で Web サービスはでなく自分のサーバにインストールするタイプの「etherpad-lite」があることを知り、最近は Debian 勉強会に導入し BoF で利用しています。
+
+\subsection{Etherpad liteのインストール}
+
+\subsubsection{Node.js のインストール}
+
+etherpad-lite のインストール手順は以下URLに記載されています。
+
+\url{https://github.com/ether/etherpad-lite#installation}
+
+現在のetherpad-lite-1.8.8 では nodejs-10.17.0 以上の環境が必要であり、以下コマンドでnodejsをインストールします。
+
+\begin{commandline}
+$ curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+# apt install -y nodejs
+\end{commandline}
+
+\subsubsection{Etherpad liteのダウンロードと配置}
+
+etherpad-lite のプログラムを以下URLからダウンロードして、/optに配置します。
+
+\begin{commandline}
+# wget https://github.com/ether/etherpad-lite/archive/1.8.8.zip
+# cp 1.8.8.zip /opt/etherpad-lite-1.8.8.zip
+# cd /opt
+# unzip etherpad-lite-1.8.8.zip
+# ln -s etherpad-lite-1.8.8 etherpad-lite  
+\end{commandline}
+
+etherpad-lite のプログラムを実行するスクリプト "bin/run.sh" は、実行時にプログラムを置いているディレクトリの配下に "node\_modules" ディレクトリを作成して依存ライブラリを自動でダウンロードします。そのため、プログラムを実行するユーザはこのディレクトリに書き込み権限を持つ必要があります。プログラムを実行するユーザとグループとして "etherpad" ユーザ及びグループを作成し、etherpad-liteディレクトリとファイルのオーナーとグループを変更します。
+
+\begin{commandline}
+# adduser etherpad
+# chown -fR etherpad:etherpad /opt/etherpad-lite-1.8.8
+# ls -l /opt/etherpad-lite-1.8.8
+合計 180
+-rw-r--r-- 1 etherpad etherpad    64  2月 18 22:17 APIKEY.txt
+-rw-r--r-- 1 etherpad etherpad 40276  2月 16 02:47 CHANGELOG.md
+-rw-r--r-- 1 etherpad etherpad  8217  2月 16 02:47 CONTRIBUTING.md
+-rw-r--r-- 1 etherpad etherpad  1681  2月 16 02:47 Dockerfile
+-rw-r--r-- 1 etherpad etherpad 11353  2月 16 02:47 LICENSE
+-rw-r--r-- 1 etherpad etherpad   849  2月 16 02:47 Makefile
+-rw-r--r-- 1 etherpad etherpad  8229  2月 16 02:47 README.md
+-rw-r--r-- 1 etherpad etherpad   118  2月 16 02:47 SECURITY.md
+-rw-r--r-- 1 etherpad etherpad    64  2月 18 22:16 SESSIONKEY.txt
+lrwxrwxrwx 1 etherpad etherpad     7  2月 18 22:10 bin -> src/bin
+drwxr-xr-x 6 etherpad etherpad  4096  2月 16 02:47 doc
+drwxr-xr-x 2 etherpad etherpad  4096  2月 16 02:47 node_modules
+-rw-r--r-- 1 etherpad etherpad 21152  2月 16 02:47 settings.json.docker
+-rw-r--r-- 1 etherpad etherpad 19209  2月 16 02:47 settings.json.template
+drwxr-xr-x 9 etherpad etherpad  4096  2月 18 22:17 src
+-rw-r--r-- 1 etherpad etherpad    51  2月 16 02:47 start.bat
+lrwxrwxrwx 1 etherpad etherpad     9  2月 18 22:10 tests -> src/tests
+drwxr-xr-x 2 etherpad etherpad  4096  2月 18 22:34 var
+\end{commandline}
+
+次に設定ファイル "settings.json" を配置します。設定内容はひとまずデフォルトのコピーとしておきます。
+
+\begin{commandline}
+# cd /opt/etherpad-lite-1.8.8
+# cp -p settings.json.template settings.json
+\end{commandline}
+
+etherpad-lite を起動できることを確認してみます。
+
+\begin{commandline}
+# cd /opt/etherpad-lite-1.8.8
+# sudo -u etherpad bin/run.sh
+\end{commandline}
+
+以下のURLのアクセスすると etherpad-lite に接続できます。
+
+\url{http://localhost:9001/p/debianmeeting20210220}
+
+
+\subsubsection{systemctlで起動できるようserviceファイルを配置する}
+
+毎回手動で etherpad-lite を起動するのも面倒です。そのため、systemctl から起動できるように設定します。
+
+systemctl で起動できるように以下のような service ファイルを作成します。
+
+\begin{commandline}
+# vi /etc/systemd/system/etherpad-lite.service
+
+[Unit]
+Description=etherpad-lite
+
+[Service]
+Type=simple
+ExecStart=/opt/etherpad-lite/bin/run.sh
+WorkingDirectory=/opt/etherpad-lite
+Restart=always
+RestartSec=10
+User=etherpad
+Group=etherpad
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+\end{commandline}
+
+systemctl daemon-reload を実行して追加した service ファイルを systemd に再読み込みさせ、etherpad-lite を起動します。
+
+\begin{commandline}
+# systemctl daemon-reload
+# systemctl start etherpad-lite
+# systemctl status etherpad-lite
+● etherpad-lite.service - etherpad-lite
+   Loaded: loaded (/etc/systemd/system/etherpad-lite.service; disabled; vendor p
+   Active: active (running) since Fri 2021-02-19 22:11:05 JST; 4s ago
+ Main PID: 26451 (run.sh)
+    Tasks: 13 (limit: 1149)
+   Memory: 155.0M
+   CGroup: /system.slice/etherpad-lite.service
+           ├─26451 /bin/sh /opt/etherpad-lite/bin/run.sh
+           ├─26454 /bin/sh src/bin/installDeps.sh
+           └─26491 npm
+\end{commandline}
+
+これで、systemctl で管理しつつ etherpad-lite を起動できるようになりました。
+
+
+\subsubsection{WebサーバへのアクセスをEtherpad liteへリバースプロキシする}
+
+これまでの手順で起動できるようになった etherpad-lite の状態では、9001 番ポートで待ち受けします。クライアントとなる Web ブラウザから etherpad-lite サーバの 9001 番ポートへ接続する場合に、利用するネットワークやファイアウォール設定などの環境によって接続できない場合があります。
+
+以下URLを参考に apache2.4 の mod\_proxy を使ってリバースプロキシの設定を行い、クライアントからは80番ポート（http://）、または 443 番ポート（https://）で接続できるようにしてみました。
+
+\url{https://github.com/ether/etherpad-lite/wiki/How-to-put-Etherpad-Lite-behind-a-reverse-Proxy}
+
+まずは apache2.4 をインストールします。
+
+\begin{commandline}
+# apt update
+# apt install apache2
+\end{commandline}  
+
+apache2.4 の mod\_proxy などの利用するモジュールを有効にします。
+
+\begin{commandline}
+# a2enmod proxy
+# a2enmod proxy_http
+# a2enmod proxy_balancer
+# a2enmod lbmethod_byrequests
+# a2enmod rewrite
+# a2enmod proxy_wstunnel
+\end{commandline}
+
+etherpad-lite の 9001 番ポートへリバースプロキシする設定ファイル "etherpad-lite.conf" を作成します。
+
+\begin{commandline}
+# vi /etc/apache2/conf-available/etherpad-lite.conf
+
+    ProxyVia On
+    ProxyRequests Off
+    ProxyPreserveHost on
+
+    <Location /etherpad/>
+        ProxyPass http://localhost:9001/ retry=0 timeout=30
+        ProxyPassReverse http://localhost:9001/
+    </Location>
+    <Location /etherpad/socket.io>
+        # This is needed to handle the websocket transport through the proxy, since
+        # etherpad does not use a specific sub-folder, such as /ws/ to handle this kind of traffic.
+        # Taken from https://github.com/ether/etherpad-lite/issues/2318#issuecomment-63548542
+        # Thanks to beaugunderson for the semantics
+        RewriteEngine On
+        RewriteCond %{QUERY_STRING} transport=websocket    [NC]
+        RewriteRule /(.*) ws://localhost:9001/socket.io/$1 [P,L]
+        ProxyPass http://localhost:9001/socket.io retry=0 timeout=30
+        ProxyPassReverse http://localhost:9001/socket.io
+    </Location>
+
+    <Proxy *>
+      Options FollowSymLinks MultiViews
+      AllowOverride All
+      Order allow,deny
+      allow from all
+    </Proxy>
+\end{commandline}
+
+a2enconf コマンドを実行して "etherpad-lite.conf" の設定を apache2.4 へ組み込み、apache2.4 を reload します。
+
+\begin{commandline}
+# a2enconf etherpad-lite
+Enabling conf etherpad-lite.
+To activate the new configuration, you need to run:
+  systemctl reload apache2
+
+# systemctl reload apache2
+\end{commandline}
+
+これで以下の URL のように クライアントから etherpad-lite サーバへ 80 番ポートに接続して使えるようになりました。
+
+\url{http://www.pcdennokan.wjg.jp/etherpad/p/debianmeeting20210220}
+
+
+\subsubsection{etherpad-lite の設定}
+
+デフォルトの設定ファイル "settings.json" はクライアントからのアクセスに認証を必要としない設定になっています。最低限の認証を行えるように設定する例を紹介します。以下の設定は1つのアカウントを全ユーザで共用する設定になっています。
+
+\begin{commandline}
+--- settings.json.template      2021-02-16 02:47:33.000000000 +0900
++++ settings.json       2021-02-18 22:15:43.144967658 +0900
+@@ -315,7 +315,7 @@
+    *
+    * Note: "/admin" always requires authentication.
+    */
+-  "requireAuthentication": false,
++  "requireAuthentication": true,
+
+   /*
+    * Require authorization by a module, or a user with is_admin set, see below.
+@@ -428,22 +428,26 @@
+    *          follow the section "secure your installation" in README.md
+    */
+
+-  /*
+   "users": {
+     "admin": {
+       // 1) "password" can be replaced with "hash" if you install ep_hash_auth
+       // 2) please note that if password is null, the user will not be created
+-      "password": "changeme1",
++      "password": "adminpassword",
+       "is_admin": true
+     },
+-    "user": {
++    //"user": {
+       // 1) "password" can be replaced with "hash" if you install ep_hash_auth
+       // 2) please note that if password is null, the user will not be created
+-      "password": "changeme1",
++    //  "password": "changeme1",
++    //  "is_admin": false
++    //}
++    "myuser": {
++       // 1) "password" can be replaced with "hash" if you install ep_hash_auth
++       // 2) please note that if password is null, the user will not be created
++      "password": "myuserpassword",
+       "is_admin": false
+     }
+   },
+-  */
+\end{commandline}
+
+そのほか、\url{https://static.etherpad.org/index.html} で多数のetherpad-lite 用のプラグインがありますので実用するにあたり自分の利用方法にあるものを探してみるとよいと思います。
+
+\subsection{おわりに}
+
+etherpad-lite の歴史とインストール手順を説明し、etherpad-lite サーバを作ってみました。
+最近はクラウドサービスの Office 系アプリケーションでも同時編集が可能になっているサービスもありますが、オープンソースなアプリケーションを使って複数人でメモの同時編集する環境を構築できますのでオープンソースライフを楽しみつつ実用していただけるのでないかと思います。
+
+
+\subsection{参考情報}
+
+\begin{itemize}
+\item etherpad.com \\ \url{https://etherpad.org/}
+\item EtherPad Open Source Release \\ \url{https://web.archive.org/web/20091221023828/http://etherpad.com/ep/blog/posts/etherpad-open-source-release}
+\item How to put Etherpad Lite behind a reverse Proxy \\ \url{https://github.com/ether/etherpad-lite/wiki/How-to-put-Etherpad-Lite-behind-a-reverse-Proxy}
+\end{itemize}
 
 
 % 冊子にするために、4の倍数にする必要がある。
