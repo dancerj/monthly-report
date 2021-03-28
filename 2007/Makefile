@@ -1,6 +1,6 @@
 SOURCE:=$(wildcard debianmeeting*.tex)
 PDFFILES:=$(SOURCE:%.tex=%.pdf)
-RELEASEFILES:=$(filter debianmeetingresume20%.release-stamp,$(SOURCE:%.tex=%.release-stamp))
+RELEASEFILES:=$(filter debianmeetingresume%.release-stamp,$(SOURCE:%.tex=%.release-stamp))
 PLATEX_FLAGS:= -shell-escape -halt-on-error -interaction=batchmode
 
 all: $(PDFFILES)
