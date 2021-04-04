@@ -23,12 +23,12 @@
 \documentclass[mingoth,a4paper]{jsarticle}
 \usepackage{monthlyreport}
 % 日付を定義する、毎月変わります。
-\newcommand{\debmtgyear}{2020}
-\newcommand{\debmtgmonth}{12}
+\newcommand{\debmtgyear}{2021}
+\newcommand{\debmtgmonth}{5}
 \newcommand{\debmtgdate}{XX}
 % started from zero:
-% (let ((year 2020) (month 12)) (+ (* (- year 2005) 12) month -1))
-\newcommand{\debmtgnumber}{191}
+% (let ((year 2021) (month 5)) (+ (* (- year 2005) 12) month -1))
+\newcommand{\debmtgnumber}{196}
 
 % Needed to import pandoc-generated LaTeX documents.
 % See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
@@ -117,11 +117,15 @@ Go 言語をDebianで使ってみましょう。
 
 \subsection{DebianユーザとしてGoでプログラムを書いてみる}
 
-Go のインストール手順\cite{golangorg-install}に従って公式パッケージをダウンロードしてTarを展開すると最新のバイナリがインストールできます。しかしあとからアンインストールするときとかに面倒ですしアップデートも自動ではありません。
-ここはDebianパッケージが使いたいなぁと思います。
+Go のインストール手順\cite{golangorg-install}に従って公式パッケージをダ
+ウンロードしてTarを展開すると最新のバイナリがインストールできます。しか
+しあとからアンインストールするときとかに面倒ですしアップデートも自動では
+ありません。ここはDebianパッケージが使いたいなぁと思います。
 
-Debianの公式パッケージはBusterでは２０２０年１０月現在1.11ですが、Buster backports にはもう少し新しい1.14があります。
-まず /etc/apt/sources.list に buster-backportsを追加しましょう。
+Debianの公式パッケージはBusterでは2021年4月現在1.11ですが、Buster
+backports にはもう少し新しい1.14があります。まず /etc/apt/sources.list
+に buster-backportsを追加しましょう。bullseye だと1.15になっているようで、
+sidには1.16パッケージがあるようです。
 
 \begin{commandline}
 deb https://deb.debian.org/debian buster-backports main
@@ -172,18 +176,42 @@ $ go build db.go
 $ go run db.go
 \end{commandline}
 
+\subsubsection{GolangのModuleシステム}
+
+Golangの標準のモジュール管理システムはGOPATHが従来利用されていたのですが、
+1.11からGo Modules\cite{golang:go-modules}が提供され、1.14からデフォルト
+に切り替わりました。
+
+\subsubsection{DockerユーザとしてのGo}
+
+DockerでDebianでGoを使う場合にはDockerhub のGolangのDockerイメージ
+\cite{docker:go}を使うのが効率よくお手軽でしょう。
+
+golangという名前でいくつかのバージョンが提供されておりデフォルトはBuster
+イメージのようです。golang:latest は２０２１年４月現在では
+golang:1.16.3-buster になっておりdocker pull やDockerfileにgolangと指定
+するとDebianの上にGolangをインストールしたイメージが入るようです。
+
+たとえばこんなDockerfileを書いてCIに利用しています。
+
+\begin{commandline}
+FROM golang
+COPY . .
+RUN make
+\end{commandline}
+
+
 \subsection{Debian開発者としてのGoパッケージ}
 
+DebianにGoでできたソフトウェアをパッケージとしていれたいときには追加で作
+業が必要になります。いちユーザとして利用していた場合との差異としてはポリ
+シー準拠のためにDebianで依存関係すべて含めてビルドできるようにする必要が
+あるということです。つまり依存関係にあったものをgo getでダウンロードして
+くるのではなくDebianパッケージを利用します。
 
-DebianにGoでできたソフトウェアをパッケージとしていれたいときにの作業とし
-て、一ユーザとして利用していたのと変わるのはポリシー準拠のためにDebianで
-ビルドできるようにする必要があるということです。つまり依存関係にあったも
-のをgo getでダウンロードしてくるのではなくDebianパッケージとして提供する
-必要があるということです。
-
-Debian にあるGoパッケージはpkg-goチームが中心となって行っています
-\cite{debian-go-packaging}、全てではないですが大半のパッケージはこのチー
-ムがやっているようです。
+Debian にあるGoパッケージ作成はpkg-goチームが中心となって行っているよう
+です\cite{debian-go-packaging}、全てではないですが大半のパッケージはこの
+チームがやっているようです。
 
 dh-golangを使ってDebianパッケージのビルドは行うようです。dh-make-golang
 コマンドを使うとDebianパッケージの雛形を作成してくれるようです。
@@ -195,6 +223,8 @@ dh-golangを使ってDebianパッケージのビルドは行うようです。dh
  \bibitem{golang:tourofgo} ``A Tour of Go'' \url{https://tour.golang.org/welcome/1}
  \bibitem{golang:tourofgoja} \url{https://go-tour-jp.appspot.com/welcome/1}
  \bibitem{debian-go-packaging} ``Debian Go Packaging'' \url{https://go-team.pages.debian.net/packaging.html}
+ \bibitem{golang:go-modules} ```Go modules''' \url{https://github.com/golang/go/wiki/Modules}
+ \bibitem{docker:go} ``golang Docker Official Images'' \url{https://hub.docker.com/_/golang}
 \end{thebibliography}
 
 %\dancersection{title}{username}
