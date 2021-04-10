@@ -111,9 +111,10 @@
 
 Go 言語をDebianで使ってみましょう。
 
-まず入門するにはオンラインでのチュートリアルが充実しているので最初はローカルにインストールすることすら必要ないでしょう\cite{golang:tourofgo}
-\cite{golang:tourofgoja}。
-しかし次第に本格的に使い始めようとすると手元にインストールしたくなるはずです。
+まず入門するにはオンラインでのチュートリアルが充実しているので最初はロー
+カルにインストールすることすら必要ないでしょう\cite{golang:tourofgo}
+\cite{golang:tourofgoja}。しかし次第に本格的に使い始めようとすると手元に
+インストールしたくなるはずです。
 
 \subsection{DebianユーザとしてGoでプログラムを書いてみる}
 
@@ -123,9 +124,9 @@ Go のインストール手順\cite{golangorg-install}に従って公式パッ�
 ありません。ここはDebianパッケージが使いたいなぁと思います。
 
 Debianの公式パッケージはBusterでは2021年4月現在1.11ですが、Buster
-backports にはもう少し新しい1.14があります。まず /etc/apt/sources.list
-に buster-backportsを追加しましょう。bullseye だと1.15になっているようで、
-sidには1.16パッケージがあるようです。
+backports にはもう少し新しい1.14があります。まず /etc/apt/sources.listに
+buster-backportsを追加しましょう。\footnote{時期安定版予定の bullseye だ
+と1.15になっているようで、sidには1.16パッケージがあるようです。}
 
 \begin{commandline}
 deb https://deb.debian.org/debian buster-backports main
@@ -135,16 +136,29 @@ deb https://deb.debian.org/debian buster-backports main
 
 \begin{commandline}
 $ sudo apt update
-$ sudo apt install -t buster-backports golang \
-  golang-mode
+$ sudo apt install -t buster-backports golang
+$ sudo apt install -t buster-backports golang-mode  # もしEmacsユーザなら
 \end{commandline}
+%$ -- for emacs
 
 Goの追加のパッケージはDebianパッケージではなくGoの仕組みでインストールし
 ましょう。Debianパッケージはビルド時の依存関係を満たすためだけにパッケー
-ジされているようで、デフォルトのGOPATHに入っていません。
+ジされているようです。理由は２つあり、
 
-たとえばsqliteを利用したいなと思ったら \verb!~/go! 以下にインストールし
-ます。
+\begin{itemize}
+ \item ユーザがgo getを使うことでgo build などに必要な環境をユーザが設定することになる。
+ \item ユーザ権限では書き込めないのと、.gitディレクトリが存在しないため
+       通常のgo get -u でのアップデートなどが不可能なためです。
+\end{itemize}
+
+以上の理由によりDebianパッケージでは\texttt{/usr/share/gocode/src/}にソー
+スがインストールされるのですが特に指定しないとGoのコンパイル時に利用して
+くれません。
+
+たとえばsqlite3を利用したいなと思ったらgo getコマンドを利用してモジュー
+ルを \verb!~/go! 以下にインストールします。 \footnote{Debianパッケージだ
+とgolang-github-mattn-go-sqlite3-devがあるのだがそれはパッケージのビルド
+用に用意されている。}
 
 \begin{commandline}
 $ go get github.com/mattn/go-sqlite3
@@ -169,12 +183,16 @@ func main() {
 
 \end{commandline}
 
-コンパイルはgo build, ただビルドだけじゃなくて実行までしたければgo runで直接実行までできます。
+コンパイルはgo buildで実行します。ただビルドするだけじゃなくてそのまま実
+行までしたければgo runで実行できます。
 
 \begin{commandline}
 $ go build db.go
+$ ./db
+
 $ go run db.go
 \end{commandline}
+%$ -- for emacs
 
 \subsubsection{GolangのModuleシステム}
 
@@ -182,7 +200,11 @@ Golangの標準のモジュール管理システムはGOPATHが従来利用さ�
 1.11からGo Modules\cite{golang:go-modules}が提供され、1.14からデフォルト
 に切り替わりました。
 
-go.modファイルにモジュールメタデータが管理されるように変わりました。
+go.modファイルにモジュールメタデータが管理されています。\footnote{以前は
+ディレクトリ構成とGOPATH環境変数で指定されたディレクトリで管理していまし
+た}。ホームディレクトリ以下のgo/pkg以下にモジュールがインストールされる
+ようです。\footnote{以前はホームディレクトリ以下のgo/src}
+
 
 \subsubsection{DockerユーザとしてのGo}
 
@@ -215,8 +237,74 @@ Debian にあるGoパッケージ作成はpkg-goチームが中心となって�
 です\cite{debian-go-packaging}、全てではないですが大半のパッケージはこの
 チームがやっているようです。
 
-dh-golangを使ってDebianパッケージのビルドは行うようです。dh-make-golang
+\texttt{dh-golang}を使ってDebianパッケージのビルドは行うようです。\texttt{dh-make-golang}
 コマンドを使うとDebianパッケージの雛形を作成してくれるようです。
+
+\begin{commandline}
+$ dh-make-golang make github.com/ncabatoff/fakescraper
+2021/04/10 01:46:49 Starting "dh-make-golang v0.4.0 linux/amd64"
+2021/04/10 01:46:49 Downloading "github.com/ncabatoff/fakescraper/..."
+2021/04/10 01:46:50 Determining upstream version number
+2021/04/10 01:46:50 Package version is "0.0~git20201102.4b37ba6"
+2021/04/10 01:46:50 Determining dependencies
+2021/04/10 01:46:50 Generating temp tarball as "/tmp/dh-make-golang230078837"
+2021/04/10 01:46:50 Moving tempfile to "golang-github-ncabatoff-fakescraper_0.0~git20201102.4b37ba6.orig.tar.xz"
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint: 
+hint: 	git config --global init.defaultBranch <name>
+hint: 
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint: 
+hint: 	git branch -m <name>
+2021/04/10 01:46:50 Adding remote "origin" with URL "git@salsa.debian.org:go-team/packages/golang-github-ncabatoff-fakescraper.git"
+2021/04/10 01:46:50 Adding remote "github" with URL "https://github.com/ncabatoff/fakescraper"
+2021/04/10 01:46:50 Running "git fetch github"
+remote: Enumerating objects: 1, done.        
+remote: Counting objects: 100% (1/1), done.        
+remote: Total 14 (delta 0), reused 0 (delta 0), pack-reused 13        
+Unpacking objects: 100% (14/14), 3.26 KiB | 238.00 KiB/s, done.
+From https://github.com/ncabatoff/fakescraper
+ * [new branch]      master     -> github/master
+2021/04/10 01:46:52 Could not determine license for "github.com/ncabatoff/fakescraper": GET https://api.github.com/repos/ncabatoff/fakescraper/license: 404 Not Found []
+2021/04/10 01:46:52 Setting debian/watch to track git HEAD
+2021/04/10 01:46:52 Could not determine license for "github.com/ncabatoff/fakescraper": GET https://api.github.com/repos/ncabatoff/fakescraper/license: 404 Not Found []
+2021/04/10 01:46:52 Done!
+
+Packaging successfully created in /tmp/kk/golang-github-ncabatoff-fakescraper
+    Source: golang-github-ncabatoff-fakescraper
+    Binary: golang-github-ncabatoff-fakescraper-dev
+
+Resolve all TODOs in itp-golang-github-ncabatoff-fakescraper.txt, then email it out:
+    /usr/sbin/sendmail -t < itp-golang-github-ncabatoff-fakescraper.txt
+
+Resolve all the TODOs in debian/, find them using:
+    grep -r TODO debian
+
+To build the package, commit the packaging and use gbp buildpackage:
+    git add debian && git commit -a -m 'Initial packaging'
+    gbp buildpackage --git-pbuilder
+
+To create the packaging git repository on salsa, use:
+    dh-make-golang create-salsa-project golang-github-ncabatoff-fakescraper
+
+Once you are happy with your packaging, push it to salsa using:
+    gbp push
+
+NOTE: Full upstream git history has been included as per pkg-go team's
+      new workflow.  This feature is new and somewhat experimental,
+      and all feedback are welcome!
+      (For old behavior, use --upstream-git-history=false)
+
+The upstream git history is being tracked with the remote named "github".
+To upgrade to the latest upstream version, you may use something like:
+    git fetch github          # note the latest tag or commit-ish
+    uscan --report-status     # check we get the same tag or commit-ish
+    gbp import-orig --sign-tags --uscan --upstream-vcs-tag=<commit-ish>
+ 
+\end{commandline}
 
 \begin{thebibliography}{1}
  \bibitem{golangorg} ``The Go Programming Language'' \url{https://golang.org/}
