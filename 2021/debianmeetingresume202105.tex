@@ -203,8 +203,44 @@ Golangの標準のモジュール管理システムはGOPATHが従来利用さ�
 go.modファイルにモジュールメタデータが管理されています。\footnote{以前は
 ディレクトリ構成とGOPATH環境変数で指定されたディレクトリで管理していまし
 た}。ホームディレクトリ以下のgo/pkg以下にモジュールがインストールされる
-ようです。\footnote{以前はホームディレクトリ以下のgo/src}
+ようです。\footnote{以前はホームディレクトリ以下の\texttt{go/src}}
 
+\subsubsection{Golangでローカルのモジュール開発をしてみた}
+
+Go Moduleを新規に開発するには、モジュールのディレクトリでgo mod initでgo.modを作成します。
+
+\begin{commandline}
+$ go mod init www.netfort.gr.jp/dancerj/mlname
+$ cat go.mod
+module www.netfort.gr.jp/dancerj/mlname
+
+go 1.15
+
+$ go test  # カレントディレクトリのモジュールのテストを走らせる
+\end{commandline}
+%$
+
+基本はネットワーク経由で取得する仕組みなのですが自前で開発するときは、こ
+うやって作成したローカルなモジュールをサブディレクトリにおいている場合の
+ハックとして、モジュール名の参照をローカルディレクトリにすることができま
+す。\footnote{公開することが前提になっているフローにみえますが、これであっ
+てますか？}
+
+まずメインモジュールのgo.modを作成し、
+
+\begin{commandline}
+$ go mod init main
+\end{commandline}
+%$
+
+go.modファイルにreplace文を追加し、ディレクトリの場所を指定します
+
+\begin{commandline}
+ replace www.netfort.gr.jp/dancerj/mlname => ./mlname
+\end{commandline}
+
+こうしておくと、サブディレクトリにおいておいたモジュールを参照してくれる
+ようです。
 
 \subsubsection{DockerユーザとしてのGo}
 
@@ -237,8 +273,9 @@ Debian にあるGoパッケージ作成はpkg-goチームが中心となって�
 です\cite{debian-go-packaging}、全てではないですが大半のパッケージはこの
 チームがやっているようです。
 
-\texttt{dh-golang}を使ってDebianパッケージのビルドは行うようです。\texttt{dh-make-golang}
-コマンドを使うとDebianパッケージの雛形を作成してくれるようです。
+\texttt{dh-golang}を使ってDebianパッケージのビルドは行うようです。
+\texttt{dh-make-golang}コマンドを使うとDebianパッケージの雛形を作成して
+くれるようです。
 
 \begin{commandline}
 $ dh-make-golang make github.com/ncabatoff/fakescraper
