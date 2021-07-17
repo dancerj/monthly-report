@@ -122,18 +122,500 @@
 
 
 %-------------------------------------------------------------------------------
-\dancersection{piupartsについて調べてみた}{杉本　典充}
+\dancersection{piuparts について調べてみた}{杉本 典充}
 %-------------------------------------------------------------------------------
 
 \subsection{はじめに}
 
-xxx
+Debian パッケージの作り方を学ぶことは多かったのですが、作ったパッケージをテストする方法の
+知識がありませんでした。
+
+今回は作成した Debian パッケージのインストールテストを行うツールである
+piuparts について調べてみました。
+
+
+\subsection{piuparts と piuparts.debian.org}
+
+piuparts とは、Debian パッケージがインストール、アップグレード、アンインストールを
+正しく処理することをテストするツールです\footnote{\url{https://packages.debian.org/ja/sid/piuparts}}。
+2021 年 7 月 11 日現在、Debian unstable において piuparts-1.1.3 の Debian パッケージを配布しています\footnote{Debian 10 buster では python2.7 で動くツールでしたが、Debian 11 bullseye では python3 に対応しました。}。
+
+
+piuparts パッケージの説明には「chroot 環境に最小の Debian をインストールした環境を作り、その chroot 環境でパッケージのインストールとアップグレードとアンインストールを行い、インストール前とアンインストール後のディレクトリの状態を比較して、パッケージの処理に問題があるか判定する」と記述があります。
+
+
+Debian デベロッパー レファレンスの Appendix「1 Debian メンテナツールの概要」に piuparts が紹介されており\footnote{\url{https://www.debian.org/doc/manuals/developers-reference/tools.ja.html\#piuparts}}、Debian パッケージを扱う場合には piuparts を知っておくとよいと記載されています。
+
+
+また、Debian Project ではパッケージを自動でテストするシステム \url{https://piuparts.debian.org/} を運用しています。
+このサイトでは日々アップロードされる Debian パッケージを piuparts を使ってテストを実行し続けています。
+テスト結果は \url{https://piuparts.debian.org/} の web サイトを見ることができます。
+
+
+\subsection{piuparts を使ったパッケージのテスト}
+
+\subsubsection{テストする hello パッケージのビルド}
+
+ここでは、unstableにある hello パッケージ\url{https://packages.debian.org/sid/hello} を参考にしてみます。
+
+まずは hello の ソースパッケージをダウンロードして、debian パッケージを手元でビルドしてみます。
+
+\begin{commandline}
+# apt-get update
+# apt-get install build-essential
+# apt-get build-dep hello
+# apt-get source hello
+# cd hello-2.10/
+# dch
+  -> バージョンを1つ上げます
+# debuild -us -us
+# ls -l .. | grep deb
+-rw-r--r--  1 norimitu norimitu  36356  7月 11 04:53 hello-dbgsym_2.10-2.1_amd64.deb
+-rw-r--r--  1 norimitu norimitu   6224  7月 11 04:53 hello_2.10-2.1.debian.tar.xz
+-rw-r--r--  1 norimitu norimitu  56488  7月 11 04:53 hello_2.10-2.1_amd64.deb
+\end{commandline}
+
+hello\_2.10-2.1\_amd64.deb パッケージができました。
+これ以降の記事では、piuparts コマンドを使ってこの Debian パッケージをテストしてみます。
+
+
+\subsubsection{piuparts の実行とログ}
+
+piuparts コマンドを使うには、piuparts パッケージをインストールします。
+
+\begin{commandline}
+# apt-get install piuparts
+# which piuparts
+/usr/sbin/piuparts
+\end{commandline}
+
+piuparts コマンドを実行して hello パッケージのテストを実行します。
+"-l" オプションは、piupartsを実行したときに出力する標準出力をログファイルに
+追記するオプションです。
+
+\begin{commandline}
+# piuparts hello_2.10-2.1_amd64.deb -l /tmp/piuparts_hello.log
+\end{commandline}
+
+最初はテストするパッケージのメタ情報を dpkg --info コマンドで出力します。
+
+\begin{commandline}
+0m0.0s INFO: ------------------------------------------------------------------------------
+0m0.0s INFO: To quickly glance what went wrong, scroll down to the bottom of this logfile.
+0m0.0s INFO: FAQ available at https://wiki.debian.org/piuparts/FAQ
+0m0.0s INFO: The FAQ also explains how to contact us in case you think piuparts is wrong.
+0m0.0s INFO: ------------------------------------------------------------------------------
+0m0.0s INFO: piuparts version 1.1.3 starting up.
+0m0.0s INFO: Command line arguments: /usr/sbin/piuparts hello_2.10-2.1_amd64.deb -l /tmp/piuparts.log
+0m0.0s INFO: Running on: Linux sid1 4.19.0-17-amd64 #1 SMP Debian 4.19.194-1 (2021-06-10) x86_64
+0m0.0s DEBUG: Starting command: ['dpkg', '--info', 'hello_2.10-2.1_amd64.deb']
+0m0.0s DUMP:
+   new Debian package, version 2.0.
+   size 56488 bytes: control archive=1872 bytes.
+       758 bytes,    20 lines      control
+      3601 bytes,    49 lines      md5sums
+   Package: hello
+   Version: 2.10-2.1
+   Architecture: amd64
+   Maintainer: Santiago Vila <sanvila@debian.org>
+   Installed-Size: 280
+   Depends: libc6 (>= 2.14)
+   Conflicts: hello-traditional
+   Breaks: hello-debhelper (<< 2.9)
+   Replaces: hello-debhelper (<< 2.9), hello-traditional
+   Section: devel
+   Priority: optional
+   Homepage: http://www.gnu.org/software/hello/
+   Description: example package based on GNU hello
+    The GNU hello program produces a familiar, friendly greeting.  It
+    allows non-programmers to use a classic computer science tool which
+    would otherwise be unavailable to them.
+    .
+    Seriously, though: this is an example of how to do a Debian package.
+    It is the Debian version of the GNU Project's `hello world' program
+    (which is itself an example for the GNU Project).
+    0m0.0s DEBUG: Command ok: ['dpkg', '--info', 'hello_2.10-2.1_amd64.deb']
+\end{commandline}
+
+次に、debootstrap（'--no-merged-usr'オプションを指定）を実行してテストに使う chroot 環境を作ります。
+このとき、/proc や /dev などを bind mountしています。
+
+\begin{commandline}
+0m0.0s DEBUG: Created temporary directory /tmp/tmphcw125x_
+0m0.0s DEBUG: Setting up minimal chroot for sid at /tmp/tmphcw125x_.
+0m0.0s DEBUG: Starting command: ['debootstrap', '--variant=minbase',
+'--keyring=/usr/share/keyrings/debian-archive-keyring.gpg', '--include=eatmydata',
+'--no-merged-usr', '--components=main', 'sid', '/tmp/tmphcw125x_', 'http://deb.debian.org/debian']
+  (debootstrapの標準出力は省略)
+0m41.2s DEBUG: Command ok: ['debootstrap', '--variant=minbase',
+'--keyring=/usr/share/keyrings/debian-archive-keyring.gpg', '--include=eatmydata', '--no-merged-usr',
+'--components=main', 'sid', '/tmp/tmphcw125x_', 'http://deb.debian.org/debian']
+0m41.2s DEBUG: Starting command: ['mount', '-t', 'proc', 'proc', '/tmp/tmphcw125x_/proc']
+0m41.2s DEBUG: Command ok: ['mount', '-t', 'proc', 'proc', '/tmp/tmphcw125x_/proc']
+0m41.2s DEBUG: Starting command: ['mount', '-t', 'devpts',
+'-o', 'newinstance,noexec,nosuid,gid=5,mode=0620,ptmxmode=0666', 'devpts', '/tmp/tmphcw125x_/dev/pts']
+0m41.2s DEBUG: Command ok: ['mount', '-t', 'devpts',
+'-o', 'newinstance,noexec,nosuid,gid=5,mode=0620,ptmxmode=0666', 'devpts', '/tmp/tmphcw125x_/dev/pts']
+0m41.2s DEBUG: Starting command: ['mount', '-o', 'bind', '/tmp/tmphcw125x_/dev/pts/ptmx',
+'/tmp/tmphcw125x_/dev/ptmx']
+0m41.2s DEBUG: Command ok: ['mount', '-o', 'bind', '/tmp/tmphcw125x_/dev/pts/ptmx', '/tmp/tmphcw125x_/dev/ptmx']
+0m41.2s DEBUG: Starting command: ['mount', '-o', 'bind', '/dev/pts/4', '/tmp/tmphcw125x_/dev/console']
+0m41.2s DEBUG: Command ok: ['mount', '-o', 'bind', '/dev/pts/4', '/tmp/tmphcw125x_/dev/console']
+0m41.2s DEBUG: Starting command: ['mount', '-t', 'tmpfs', '-o', 'size=65536k', 'tmpfs', '/tmp/tmphcw125x_/dev/shm']
+0m41.2s DEBUG: Command ok: ['mount', '-t', 'tmpfs', '-o', 'size=65536k', 'tmpfs', '/tmp/tmphcw125x_/dev/shm']
+0m41.2s DEBUG: sources.list:
+  deb http://deb.debian.org/debian sid main
+0m41.2s DEBUG: Created policy-rc.d and chmodded it.
+0m41.2s DEBUG: Created resolv.conf.
+\end{commandline}
+
+debootstrap で作成したディレクトリに chroot で入り、apt-get update を実行して試験対象のリポジトリの
+パッケージ情報を取得します。また、このタイミングで chroot のテスト環境のディレクトリ状態を保存しています。
+
+\begin{commandline}
+0m41.2s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'update']
+0m44.4s DUMP:
+  Hit:1 http://deb.debian.org/debian sid InRelease
+  Get:2 http://deb.debian.org/debian sid/main Translation-en [6509 kB]
+  Fetched 6509 kB in 2s (2650 kB/s)
+  Reading package lists...
+0m44.4s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'update']
+0m44.4s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'sh', '-c', 'apt-cache dumpavail | md5sum']
+0m44.5s DUMP:
+  c0117488ce119ec145559966f8a0cef8  -
+0m44.5s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'sh', '-c', 'apt-cache dumpavail | md5sum']
+0m44.5s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'clean']
+0m44.5s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'clean']
+0m44.5s DEBUG: Recording chroot state
+\end{commandline}
+
+dpkg-query、dpkg-divert --listを実行してパッケージの情報や中身を調べています。
+
+\begin{commandline}
+0m44.6s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-W',
+'-f', '${Status}\\t${binary:Package}\\t${Package}\\t${Version}\\n']
+　（dpkg-queryの結果は省略）
+0m44.6s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-W',
+'-f', '${Status}\\t${binary:Package}\\t${Package}\\t${Version}\\n']
+0m44.6s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-divert', '--list']
+0m44.6s DUMP:
+  diversion of /usr/share/man/man1/sh.1.gz to /usr/share/man/man1/sh.distrib.1.gz by dash
+  diversion of /bin/sh to /bin/sh.distrib by dash
+0m44.6s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-divert', '--list']
+0m44.6s INFO: apt-cache does not know about any of the requested packages
+0m44.6s DEBUG: Starting command: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m44.8s DEBUG: Command failed (status=1), but ignoring error: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m45.3s DEBUG: No broken symlinks as far as we can find.
+0m45.3s DEBUG: Starting command: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m45.4s DEBUG: Command failed (status=1), but ignoring error: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m45.9s DEBUG: No broken symlinks as far as we can find.
+0m45.9s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-f', '${Version}\n', '-W', 'apt']
+0m45.9s DUMP:
+  2.2.4
+0m45.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-f', '${Version}\n', '-W', 'apt']
+\end{commandline}
+
+piuparts コマンドの引数に指定した Debian パッケージを chroot のテスト環境内にコピーし、
+apt-get install コマンドを実行してコピーした Debian パッケージをインストールします。
+
+\begin{commandline}
+0m45.9s DEBUG: Copying hello_2.10-2.1_amd64.deb to /tmp/tmphcw125x_/tmp
+0m45.9s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', '-y',
+'--allow-downgrades', 'install', './tmp/hello_2.10-2.1_amd64.deb']
+0m47.1s DUMP:
+  Reading package lists...
+  Building dependency tree...
+  The following NEW packages will be installed:
+    hello
+  0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+  Need to get 0 B/56.5 kB of archives.
+  After this operation, 287 kB of additional disk space will be used.
+  Get:1 /tmp/hello_2.10-2.1_amd64.deb hello amd64 2.10-2.1 [56.5 kB]
+  debconf: delaying package configuration, since apt-utils is not installed
+  Selecting previously unselected package hello.
+
+  Preparing to unpack /tmp/hello_2.10-2.1_amd64.deb ...
+  Unpacking hello (2.10-2.1) ...
+  Setting up hello (2.10-2.1) ...
+0m47.1s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', '-y',
+'--allow-downgrades', 'install', './tmp/hello_2.10-2.1_amd64.deb']
+0m47.1s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query',
+'-f', '${Package} ${Status}\n', '-W', 'hello']
+0m47.1s DUMP:
+  hello install ok installed
+0m47.1s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query',
+'-f', '${Package} ${Status}\n', '-W', 'hello']
+0m47.1s INFO: Installation of ['./tmp/hello_2.10-2.1_amd64.deb'] ok
+\end{commandline}
+
+chroot のテスト環境内のディレクトリを調べたり、インストールしているパッケージのバージョンを調べています。
+
+\begin{commandline}
+0m47.1s DEBUG: Removing /tmp/tmphcw125x_/./tmp/hello_2.10-2.1_amd64.deb
+0m47.1s DEBUG: Starting command: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m47.3s DEBUG: Command failed (status=1), but ignoring error: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m47.7s DEBUG: No broken symlinks as far as we can find.
+0m48.0s DEBUG: Starting command: ['debsums', '--root', '/tmp/tmphcw125x_', '-ac', '--ignore-obsolete']
+0m48.5s DEBUG: Command ok: ['debsums', '--root', '/tmp/tmphcw125x_', '-ac', '--ignore-obsolete']
+0m48.5s DEBUG: Starting command: ['dpkg-query', '-f', '${Version}\n', '-W', 'adequate']
+0m48.5s DUMP:
+  0.15.6
+0m48.5s DEBUG: Command ok: ['dpkg-query', '-f', '${Version}\n', '-W', 'adequate']
+0m48.5s INFO: Running adequate version 0.15.6 now.
+0m48.5s DEBUG: Starting command: ['adequate', '--root', '/tmp/tmphcw125x_', 'hello']
+0m48.6s DEBUG: Command ok: ['adequate', '--root', '/tmp/tmphcw125x_', 'hello']
+0m48.6s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-W',
+'-f', '${Status}\\t${binary:Package}\\t${Package}\\t${Version}\\n'
+0m48.6s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-W',
+'-f', '${Status}\\t${binary:Package}\\t${Package}\\t${Version}\\n']
+\end{commandline}
+
+chroot のテスト環境内でインストールしたパッケージを apt-get remove を実行してアンインストールします。
+これで Debian パッケージのインストールからアンインストールするテストは終了です。
+
+\begin{commandline}
+0m48.6s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get',
+'remove', 'hello']
+  （省略）
+0m49.1s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'remove', 'hello']
+0m49.1s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', 'hello']
+0m49.2s DUMP:
+  dpkg: warning: ignoring request to remove hello which isn't installed
+0m49.2s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', 'hello']
+0m49.2s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', '--pending']
+0m49.2s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', '--pending']
+0m49.2s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--remove', '--pending']
+0m49.2s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--remove', '--pending']
+0m49.2s DEBUG: Starting command: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m49.4s DEBUG: Command failed (status=1), but ignoring error: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m49.8s DEBUG: No broken symlinks as far as we can find.
+0m49.8s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-divert', '--list']
+0m49.8s DUMP:
+  diversion of /usr/share/man/man1/sh.1.gz to /usr/share/man/man1/sh.distrib.1.gz by dash
+  diversion of /bin/sh to /bin/sh.distrib by dash
+0m49.8s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-divert', '--list']
+0m49.8s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'clean']
+0m49.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'clean']
+0m49.9s DEBUG: Recording chroot state
+0m50.0s INFO: PASS: Installation and purging test.
+\end{commandline}
+
+引き続き、インストール、アップグレード、アンインストールのテストを実行します。
+まずはリポジトリにある同名の hello パッケージを apt-get install でインストールします。
+
+\begin{commandline}
+0m50.0s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-cache', 'show',
+  '--no-all-versions', 'hello']
+0m50.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-cache', 'policy', 'hello']
+0m50.9s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', '-y', 'install', 'hello']
+0m51.5s DUMP:
+  Reading package lists...
+  Building dependency tree...
+  Reading state information...
+  The following NEW packages will be installed:
+    hello
+    0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+0m51.5s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', '-y', 'install', 'hello']
+0m51.5s DEBUG: Starting command: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m51.7s DEBUG: Command failed (status=1), but ignoring error: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m52.2s DEBUG: No broken symlinks as far as we can find.
+0m52.2s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-f', '${Version}\n', '-W', 'apt']
+0m52.2s DUMP:
+  2.2.4
+0m52.2s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query', '-f', '${Version}\n', '-W', 'apt']
+\end{commandline}
+
+次に piuparts コマンドの引数に指定した Debian パッケージを chroot のテスト環境内にコピーし、
+apt-get install コマンドを実行してコピーしたパッケージでアップグレードします。
+
+\begin{commandline}
+0m52.2s DEBUG: Copying hello_2.10-2.1_amd64.deb to /tmp/tmphcw125x_/tmp
+0m52.2s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', '-y',
+'--allow-downgrades', 'install', './tmp/hello_2.10-2.1_amd64.deb']
+0m52.8s DUMP:
+  Reading package lists...
+  Building dependency tree...
+  Reading state information...
+  The following packages will be upgraded:
+    hello
+  1 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+0m52.8s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', '-y',
+'--allow-downgrades', 'install', './tmp/hello_2.10-2.1_amd64.deb']
+0m52.8s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query',
+'-f', '${Package} ${Status}\n', '-W', 'hello']
+0m52.8s DUMP:
+  hello install ok installed
+0m52.8s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-query',
+'-f', '${Package} ${Status}\n', '-W', 'hello']
+0m52.8s INFO: Installation of ['./tmp/hello_2.10-2.1_amd64.deb'] ok
+\end{commandline}
+
+次に apt-get remove コマンドを実行してパッケージをアンインストールします。
+これで Debian パッケージのインストールからアップグレード、アンインストールするテストは終了です。
+
+\begin{commandline}
+0m54.3s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'remove', 'hello']
+0m54.9s DUMP:
+  Reading package lists...
+  Building dependency tree...
+  Reading state information...
+  The following packages will be REMOVED:
+    hello
+  0 upgraded, 0 newly installed, 1 to remove and 0 not upgraded.
+0m54.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'remove', 'hello']
+0m54.9s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', 'hello']
+0m54.9s DUMP:
+  dpkg: warning: ignoring request to remove hello which isn't installed
+0m54.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', 'hello']
+0m54.9s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', '--pending']
+0m54.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--purge', '--pending']
+0m54.9s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--remove', '--pending']
+0m54.9s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg', '--remove', '--pending']
+0m54.9s DEBUG: Starting command: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m55.1s DEBUG: Command failed (status=1), but ignoring error: ['lsof', '-w', '+D', '/tmp/tmphcw125x_']
+0m55.5s DEBUG: No broken symlinks as far as we can find.
+0m55.5s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-divert', '--list']
+0m55.5s DUMP:
+  diversion of /usr/share/man/man1/sh.1.gz to /usr/share/man/man1/sh.distrib.1.gz by dash
+  diversion of /bin/sh to /bin/sh.distrib by dash
+0m55.5s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'dpkg-divert', '--list']
+0m55.5s DEBUG: Starting command: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'clean']
+0m55.5s DEBUG: Command ok: ['chroot', '/tmp/tmphcw125x_', 'eatmydata', 'apt-get', 'clean']
+0m55.5s DEBUG: Recording chroot state
+0m55.7s INFO: PASS: Installation, upgrade and purging tests.
+\end{commandline}
+
+最後に debootstrap で構築した chroot 環境をクリーンナップします。
+
+\begin{commandline}
+0m55.9s DEBUG: Starting command: ['umount', '/tmp/tmphcw125x_/dev/shm']
+0m55.9s DEBUG: Command ok: ['umount', '/tmp/tmphcw125x_/dev/shm']
+0m55.9s DEBUG: Starting command: ['umount', '/tmp/tmphcw125x_/dev/console']
+0m55.9s DEBUG: Command ok: ['umount', '/tmp/tmphcw125x_/dev/console']
+0m55.9s DEBUG: Starting command: ['umount', '/tmp/tmphcw125x_/dev/ptmx']
+0m55.9s DEBUG: Command ok: ['umount', '/tmp/tmphcw125x_/dev/ptmx']
+0m55.9s DEBUG: Starting command: ['umount', '/tmp/tmphcw125x_/dev/pts']
+0m56.0s DEBUG: Command ok: ['umount', '/tmp/tmphcw125x_/dev/pts']
+0m56.0s DEBUG: Starting command: ['umount', '/tmp/tmphcw125x_/proc']
+0m56.0s DEBUG: Command ok: ['umount', '/tmp/tmphcw125x_/proc']
+0m56.0s DEBUG: Starting command: ['rm', '-rf', '--one-file-system', '/tmp/tmphcw125x_']
+0m56.1s DEBUG: Command ok: ['rm', '-rf', '--one-file-system', '/tmp/tmphcw125x_']
+0m56.1s DEBUG: Removed directory tree at /tmp/tmphcw125x_
+0m56.1s INFO: PASS: All tests.
+0m56.1s INFO: piuparts run ends.
+\end{commandline}
+
+
+\subsection{piuparts コマンドのオプションの紹介}
+
+\subsubsection{-d オプション：バージョンを指定してテスト}
+
+piuparts に "-d \_distro\_" オプションを指定すると、deboostrap する環境のバージョンを
+指定してテストを実行します。"-d" オプションは省略でき、省略した場合は "-d sid" を
+指定したときと同じ動きをします。
+
+\begin{commandline}
+# piuparts hello_2.10-2.1_amd64.deb -d sid -l /tmp/piuparts.log
+\end{commandline}
+
+この "-d" オプションは複数を連続して指定することができます。
+その場合、最初に指定した"-d" オプションのバージョンで debootstrap してからパッケージをインストールし、それ以降に指定した "-d" のバージョンへ順番に apt-get dist-upgrade を行い、最後まで dist-upgrade が完了した状態で piuparts コマンドに指定したパッケージのインストールテストを実行します。
+
+以下の例では、buster の環境を deboostrap で構築して hello パッケージをインストールし、
+bullseye へ apt-get dist-upgrade し、sid へapt-get dist-upgrade した後に、
+hello\_2.10-2.1\_amd64.deb のアップグレードとアンインストールのテストを実行します。
+
+\begin{commandline}
+# piuparts hello_2.10-2.1_amd64.deb -d buster -d bullseye -d sid -l /tmp/piuparts.log
+\end{commandline}
+
+
+\subsubsection{インストール済みパッケージのテスト}
+
+これまでの紹介では Debian パッケージ自体を piuparts の引数に指定してきました。
+テストするパッケージは .deb ファイルではなく、"--apt"オプションとパッケージ名を指定することで
+実行している PC にインストールしている Debian パッケージのテストを行うことができます。
+
+\begin{commandline}
+# piuparts hello --apt -l /tmp/piuparts.log
+\end{commandline}
+
+
+\subsubsection{-p オプション：pbuilderのイメージを使う}
+
+Debian パッケージをクリーン環境でビルドするツールに pbuiler\footnote{\url{https://packages.debian.org/ja/sid/pbuilder}} があります。
+
+以下のように pbuilder コマンドを実行して debootstrap したクリーン環境で Debian パッケージのビルドを行うことができます。
+
+\begin{commandline}
+# pbuilder create
+# pbuilder update
+# pbuilder build hello_2.10-2.1.dsc
+\end{commandline}
+
+pbuilder create を実行したとき、または pbuilder update を実行したときに pbuilder が利用する
+deboostrap のイメージを「/var/cache/pbuilder/base.tgz」に保存します。
+
+piuparts に "-p" オプションを指定すると、debootstrap を実行する代わりに pbuilder が保存している
+「/var/cache/pbuilder/base.tgz」をテスト環境に利用します。
+
+deboostrap を実行するとインターネットから毎回約 100 MByte 程度のファイルをダウンロードするため
+"-p" オプションを使うことでネットワーク帯域やダウンロード時間を節約できます。
+
+似たようなオプションに "--basetgz=file" があり、base.tgz ファイルを任意のパスで指定することもできます。
+
+
+\subsubsection{--docker-image：dockerイメージを使ってテストする}
+
+piuparts に "--docker-image=IMAGE" オプションを指定すると、テストに使う環境に
+debootstrap で構築したイメージを使わず、dockerイメージを使ってテストを実行します。
+
+実際試してみると、chroot コマンドを使って chroot のテスト環境内でコマンドを実行するところが
+docker run、docker inspect、docker top、docker exec などを使ってテストを実行する動きに変わります。
+
+
+\subsubsection{--merged-usr：/usr マージした環境でdebootstrapする}
+
+piuparts に "--merged-usr" オプションを指定すると、debootstrap するときに "--merged-usr" オプションを指定して実行します（オプションなしの場合は "--no-merged-usr" を指定しています）。
+
+これで /usr マージした環境で Debian パッケージのインストールテストを実行することができます。
+
+
+\subsubsection{--arch：アーキテクチャを指定してdeboostrapする}
+
+piuparts に "--arch=ARCH" オプションを指定すると、debootstrap するときに
+"--arch=ARCH" を指定して実行します。
+
+つまり、異なるアーキテクチャの chroot 環境を構築して Debian パッケージのインストールテストを
+実行することができます。
+ただ、テストするPCが --arch オプションに指定したアーキテクチャで動作する環境であること、
+Debian パッケージも --arch オプションに指定したアーキテクチャ向けにビルドしてある必要があります。
+
+
+\subsection{終わりに}
+
+piuparts を使ってパッケージのテストを試してみました。
+今回試した範囲では Debian Developer が作成したテストが合格するパッケージのみでした。
+今後パッケージを自分で作成するときには様々な不具合に遭遇と思いますので、piuparts を使ってうまくテストできるようになれるとよいと思います。
+
+なお、piuparts コマンドはネットワーク帯域を多く使うため、回線の帯域や通信量の残量に注意してご利用ください。
+\footnote{\url{https://piuparts.debian.org/doc/README_server.txt}に piuparts のサーバでは 100 Mbps の帯域を簡単に使い切ってしまうから気をつけてください、と注意書きがあります。}
+
+\subsection{参考資料}
+
+\begin{itemize}
+\item Debian Wiki - piuparts \url{https://wiki.debian.org/piuparts}
+\item 岩松 信洋、「piuparts の使い方」、あんどきゅめんてっど でびあん 2010 年夏号 \\
+\url{https://tokyodebian-team.pages.debian.net/pdf2010/debianmeetingresume201004.pdf}
+\item Holger Levsen、DebConf19「i'm (a bit) sick of maintaining piuparts.debian.org (mostly) alone, please help」\footnote{\url{https://debconf19.debconf.org/talks/103-im-a-bit-sick-of-maintaining-piupartsdebianorg-mostly-alone-please-help/}}
+\end{itemize}
+
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
-\dancersection{メモ}{}
-\mbox{}\newpage
-\mbox{}\newpage
+% \dancersection{メモ}{}
+% \mbox{}\newpage
 
 \vspace*{15cm}
 \hrule
