@@ -166,413 +166,1077 @@
  それでは、楽しい一時をお楽しみ下さい。
  
 %収録予定
-
-%201912
+%202010
 %-------------------------------------------------------------------------------
-\dancersection{Debian 10 busterでnftablesを使ってみる}{杉本典充}
+\dancersection{DebianでのRust}{上川純一}
+%-------------------------------------------------------------------------------
+
+Rust\cite{rustsite}というプログラミング言語をご存知ですか？私はC++よりメモリ管理
+などが便利になっていてコンパイルさえ通ると大体メモリの所有権についての問題が解決
+しているということで勉強してみることにしました。
+
+執筆時点ではVersion 1.47.0が公開されており、比較的安定しているようです。
+
+良い解説書\cite{rustbook}がオンラインにあり、日本語にも活発に翻訳\cite{rustjp}さ
+れているようです。
+
+しかしどうもDebianにはFirefoxのビルドに必要だからパッケージされているだけのよう
+な気がしなくもない。
+
+\subsection{DebianユーザとしてRustプログラムを書いてみる}
+
+まず入門書を読み始めるとおもむろにRustのサイトからバイナリパッケージをインストー
+ルするためにシェルスクリプトをウェブからダウンロードしてきて実行するように書いて
+あります。
+
+\begin{commandline}
+$ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+\end{commandline}
+%$ -- for emacs
+
+しかしインストールの副作用は何があるのかとかを確認したいし、アンインストールする
+ときに何をしたら良いのかなど考えるのが面倒ですよね。そこでDebianユーザとしてはパッ
+ケージを利用したい。Debianのパッケージを利用するにはどうしたらよいかを解説します。
+
+\begin{commandline}
+$ sudo apt install cargo rustc 
+\end{commandline}
+%$ -- for emacs
+
+まずBusterでは最初にリリースされたときは1.33\footnote{2019年2月28日にリ
+リース}だったのですが２０２０年９月に比較的新しい1.41.1\footnote{2020年2
+月27日にリリースされているようです
+\url{https://blog.rust-lang.org/2020/02/27/Rust-1.41.1.html}}にアップデー
+トされました。firefox-esr のセキュリティーアップデートの依存関係だったよ
+うです。The Rust Book\cite{rustbook}が1.41.0を前提としているのでまぁこれ
+でいいんじゃないでしょうか。
+
+\subsubsection{エディタの設定}
+
+Emacsを使っているのならelpa-rust-modeを入れておきましょう。
+
+\begin{commandline}
+$ sudo apt install elpa-rust-mode  # for local emacs.
+\end{commandline}
+%$ -- for emacs
+
+
+Vim は\url{https://github.com/rust-lang/rust.vim#installation}にたくさん
+書いてあるのですがちょっとよくわかってません。
+
+\subsubsection{シンプルなプログラムを書く}
+
+チュートリアルに従ってプログラムを書いてみます。
+
+\begin{commandline}
+fn main() {
+   println!("Hello, world!");
+}
+\end{commandline}
+
+コンパイルして実行してみます。
+
+\begin{commandline}
+$ rustc helloworld.rs 
+$ ./helloworld
+Hello, world! 
+\end{commandline}
+
+\subsubsection{Cargoを使う}
+
+Rustcを直接つかうよりはCargoというビルド管理ツールを使うことが多いようで
+す。テンプレートの生成からビルドやテストの実行までやってくれます。Crate
+とよばれるRustのパッケージシステムが利用できるようになります。
+
+Cargo関連のファイルはホームディレクトリ以下の\verb!~/.cargo/! に作成され
+ます。
+
+cargo newでプロジェクトのテンプレートが作成され、Hello world とだけ出力
+するsrc/main.rsが生成されます。cargo buildでビルド。cargo runで実行、
+cargo testでテストが実行されます。
+
+\begin{commandline}
+$ cargo new 名前
+$ cd 名前
+$ cargo build
+$ cargo run
+Hello, world!
+$ cargo clean
+\end{commandline}
+%$ -- for emacs
+
+Cargo.tomlというファイルに依存関係を記述することができます。このCrateパッ
+ケージインストールはDebianの管理下ではなくユーザのホームディレクトリ以下
+にインストールされます。
+
+\subsection{Docker で使うには}
+
+Dockerイメージで使うということもあるでしょう。公式で提供されているDocker
+イメージがあるのでそれを使うのが手っ取り早いと思われます。Debianのパッケー
+ジを使いたい場合はパッケージをインストールすればよいです。
+
+\begin{commandline}
+FROM debian
+
+RUN apt-get clean && apt-get update && apt-get install -yq \
+      make \
+      rustc \
+      && apt-get clean
+\end{commandline}
+
+しかしながらDockerhubにはすでに公式のDockerイメージが提供されており、
+rustパッケージはDebian BusterにRustupでRustの最新版をインストールしたも
+のになっています\cite{docker:rust}。パッケージとして提供されていないのは
+気になりますがDockerイメージの中なのでアンインストールの方法などを考える
+必要がなく、影響範囲が限定されており、便利に使えそうです。
+
+\begin{commandline}
+FROM rust 
+\end{commandline}
+
+
+\subsection{Debian Developer としてのRustパッケージ}
+
+Rustパッケージをメンテンスしているチーム\cite{rust:debianwiki}がいるので
+Wikiページなどに情報がまとまっています。Crateのパッケージングについての
+資料\cite{debcargo-conf}に解説があります。
+
+パッケージのためのツールとしてdebcargoというものを使うようです。
+
+\begin{commandline}
+$ apt update && apt install debcargo
+\end{commandline}
+%$ -- for emacs
+
+おそらく一番の困難は、RustのCrateは複数のバージョンが共存できるように作
+られているのですが、Debian側のポリシーとしては単一のバージョンのライブラ
+リをできるだけ使いたいです。そうすると古いバージョンを要求される場合はそ
+れをできるだけ新しいバージョンで置き換えることになるでしょう。大量にパッ
+チを書くことになりそうです。
+
+debcargo の動作原理ですが、Cargoの利用するcargo.tomlファイル
+\cite{cargo-toml}に依存関係の情報があるのでそれを利用してDebianパッケー
+ジを生成するようです。
+
+\begin{thebibliography}{1}
+ \bibitem{rustbook} \url{https://doc.rust-lang.org/book/}
+ \bibitem{rustsite} \url{https://www.rust-lang.org/}
+ \bibitem{rustjp} ``Rustの日本語ドキュメント/Japanese Docs for Rust''
+	 \url{https://doc.rust-jp.rs/}
+ \bibitem{rust:debianwiki} \url{https://wiki.debian.org/Teams/RustPackaging}
+ \bibitem{debcargo-conf} ``Packaging a crate for Debian''
+	\url{https://salsa.debian.org/rust-team/debcargo-conf/blob/master/README.rst}
+ \bibitem{cargo-toml} ``The Manifest Format''
+	\url{https://doc.rust-lang.org/cargo/reference/manifest.html}
+ \bibitem{docker:rust} ``Rust -- Docker Official Images'' \url{https://hub.docker.com/_/rust} 
+\end{thebibliography}
+
+%202011
+%-------------------------------------------------------------------------------
+\dancersection{DebianでのPython}{杉本典充}
 %-------------------------------------------------------------------------------
 
 \subsection{はじめに}
 
-2019年7月6日にリリースした安定版Debian 10 busterではネットワークフィルタリング機能にnftablesがデフォルトで使われるように変わりました。
+Debian では多くのプログラム言語の実行環境、ライブラリ及びアプリケーションのパッケージを多数提供しています。今回はPythonについてDebianではどのようにパッケージをメンテナンスしているのかを調べてみました。
 
-Debian 10 busterを使ってサーバを公開する場合にはnftablesを使うことがあると思いますので、調べてみました。
+\subsection{Pythonについて}
 
+Python とは Debian などの linux 環境のみならず他の OS でも実行することが可能な
+マルチプラットフォームのプログラミング言語の1つです。
+2015年に機械学習のプラットフォームである tensorflow がオープンソース化され、 tensorflow には Python のライブラリが豊富なことから Python の人気が上がってきています。
 
-\subsection{nftableとは}
-
-\subsubsection{nftableの歴史}
-
-nftables\footnote{\url{https://wiki.nftables.org/wiki-nftables/index.php/Main_Page}}とは、linux-3.13 （2014/1/19リリース）から追加されたネットワークフィルタリング機能で iptables を置き換えることを目的として開発を進めている機能です。
-
-iptables は linux-2.4 で新たに実装されたnetfilter\footnote{\url{https://www.netfilter.org/}}という機能を使ってネットワークフィルタリング処理を行う仕組みで、歴史が長いです\footnote{iptables-1.0.0.tar.bz2に含まれるmanファイル"iptables.8"には2000年3月20日という日付が入っています。}。
-
-iptables は非常に長く多くの人たちに使われており、以下の課題があることがわかってきました\footnote{\url{https://wiki.nftables.org/wiki-nftables/index.php/Why_nftables\%3F}}。
-
-\begin{itemize}
-\item ソースコードに重複したコードが存在している
-\item 性能の頭打ち
-\item IPv4とIPv6のデュアルスタック時の管理の煩雑さ（nftablesのinetファミリーの追加につながる）
-\item ルールセットの更新処理がアトミックでない
-\item サードパーティアプリケーションが使えるAPIがない（nftablesではNetlink APIがある）
-\item 構文の改善
-\end{itemize}
-
-上記を改善するため nftables の開発とlinux kernel の netfilter 機能の改善が行われ、2014年1月20日に nftables-0.099 がリリースされました\footnote{\url{https://www.netfilter.org/projects/nftables/downloads.html}}。現在の最新版は2019年12月2日にリリースした nftables-0.9.3 が最新版です。
+Pythonのwebサイト（\url{https://www.python.org/}） では
+初心者向けのチュートリアル\footnote{\url{https://www.python.org/about/gettingstarted/}}、
+Pythonの言語仕様やクラス・関数の仕様書\footnote{\url{https://docs.python.org/3/}}などの多くの情報を公開しています。特に開発者向けの情報ではPEP（Python Enhancement Proposals）\footnote{\url{https://www.python.org/dev/peps/}}と呼ばれるPythonを
+よりよくするための提案の募集と公開しており\footnote{DebianにもDEPという似たような仕組みがあります。\url{https://dep-team.pages.debian.net/}}、コーディング規約やライブラリの廃止勧告、互換性の説明など多岐にわたる情報を公開しています。
 
 
-\subsubsection{debianとnftables}
+\subsection{DebianにおけるPython情報の取り扱いについて}
 
-Debian においては、Debian wiki に nftables の情報があります\footnote{\url{https://wiki.debian.org/nftables}}。
+\subsubsection{基本な情報}
 
-Debian 9 stretch から nftables パッケージを提供しており、従来通り iptables をデフォルトとしつつ nftables も利用できる状況になっていました。このとき iptables が使う kernel module は以下になっています。
-
-\begin{commandline}
-$ cat /etc/debian_version
-9.11  
-$ lsmod | grep table
-  ebtable_filter         16384  0
-  ebtables               36864  1 ebtable_filter
-  ip6table_filter        16384  0
-  ip6_tables             28672  1 ip6table_filter
-  iptable_filter         16384  1
-  iptable_nat            16384  1
-  nf_nat_ipv4            16384  1 iptable_nat
-  iptable_mangle         16384  1
-  ip_tables              24576  3 iptable_mangle,iptable_filter,iptable_nat
-  x_tables               36864  12 ipt_REJECT,iptable_mangle,ip_tables,ebtables,iptable_filter,xt_tcpudp,
-ipt_MASQUERADE,xt_CHECKSUM,ip6table_filter,xt_policy,xt_conntrack,ip6_tables
-\end{commandline}
-
-Debian 10 buster では iptables から nftables へデフォルトを切り替えており\footnote{\url{https://www.debian.org/releases/stable/amd64/release-notes/ch-whats-new.ja.html}}、nftables-0.9.0 を提供しています。nftables が使う kernel module は以下になっています。
-
-\begin{commandline}
-$ cat /etc/debian_version
-10.2
-$ lsmod | grep table
-nf_tables_set          32768  6
-nf_tables             143360  60 nft_ct,nf_tables_set
-nfnetlink              16384  1 nf_tables
-\end{commandline}
-
-また、iptables パッケージの提供もしており昔ながらの使い方もできるようになっています。iptables パッケージの中には "/usr/sbin/iptables-nft" と "/usr/sbin/iptables-legacy" の二種類を提供しており、*-nft の方は nf\_tables の kernel module を使い、*-legacy の方は従来通り x\_tables の kernel module を使っています。そのため、Debian 10 busterでは、1. nf\_tables の nft インタフェース、2. nf\_tables の iptables 互換インタフェース、3. x\_tables の旧来の iptables インタフェース の3つが動作するようになっています。
-
-Debian 11 bullseye で nftables と iptables をどうしていくかの意見がメーリングリストやブログに投稿されています。意見としては iptables パッケージを optional 扱いにして nftables パッケージのみインストールされるようにする案に賛同する人が見られます（他の意見は firewalld をデフォルトにしてはどうかという案）。
+Debian における Python 関連の情報は以下ページにまとまっています。
 
 \begin{itemize}
-\item default firewall utility changes for Debian 11 bullseye\footnote{\url{https://lists.debian.org/debian-devel/2019/07/msg00332.html}}
-\item What to expect in Debian 11 Bullseye for nftables/iptables\footnote{\url{https://ral-arturo.org/2019/10/14/debian-netfilter.html}}
+\item Python - Debian Wiki \url{https://wiki.debian.org/Python/}
+\item Debian Python Policy \url{https://www.debian.org/doc/packaging-manuals/python-policy/}
 \end{itemize}
 
-
-\subsection{Debian 10 busterでnftablesを使ってみる}
-
-\subsubsection{インストール方法}
-
-Debian 10 busterにおいて提供している nftables パッケージをインストールすると nft コマンドを利用できるようになり、nftables が systemd に登録されます。
-
-\begin{commandline}
-# apt-get install nftables
-  
-# which nft
-/usr/sbin/nft
-  
-# systemctl status nftables
-nftables.service - nftables
-  Loaded: loaded (/lib/systemd/system/nftables.service; disabled; vendor preset: enabled)
-  Active: inactive (dead)
-  Docs: man:nft(8)
-  http://wiki.nftables.org
-\end{commandline}
-
-nftables のパケットフィルタリングルールの設定ファイルは、/etc/nftables.conf に配置されます。初期状態では以下の設定が入っています。
-
-\begin{commandline}
-$ cat /etc/nftables.conf
-#!/usr/sbin/nft -f
-
-flush ruleset
-
-table inet filter {
-  chain input {
-    type filter hook input priority 0;
-  }
-  chain forward {
-    type filter hook forward priority 0;
-  }
-  chain output {
-    type filter hook output priority 0;
-  }
-} 
-\end{commandline}
-
-
-\subsubsection{nftコマンドの使い方}
-
-nftables によるネットワークフィルタリングの機能は nft コマンドで制御します。
-
-"nft list ruleset" コマンドを実行すると現在のルールを表示します。
-
-\begin{commandline}
-# nft list ruleset
-table inet filter {
-    chain input {
-        type filter hook input priority 0; policy accept;
-    }
-
-    chain forward {
-        type filter hook forward priority 0; policy accept;
-    }
-
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
-}
-\end{commandline}
-
-nftables へのルール定義の追加、変更、削除は以下の流れで行います。
-
-\begin{itemize}
-\item table の作成
-\item chain の作成
-\item rule の作成
-\end{itemize}
-
-
-\subsubsubsection{table の作成}
-
-まずは最初に table を作成します。table を作成するときの引数にはアドレスファミリーを指定します。アドレスファミリーは以下表を値を指定できます\footnote{man nftより抜粋}。
+Debian Project では、Python の実行環境をメンテナンスするチーム（cpython-team）とライブラリ及びアプリケーションをメンテナンスするチーム（Debian Python Team）の2つに分かれて活動しています。2つのチームの主な違いを表\ref{tb:pythonteam}に示します。
 
 \begin{table}[htb]
   \begin{center}
-  \caption{nft で利用できるアドレスファミリー} 
-  \begin{tabular}{|c|c|}
-    \hline
-    アドレスファミリー & 説明 \\ \hline
-    ip & IPv4 address family. \\ \hline
-    ip6 & IPv6 address family. \\ \hline
-    inet & Internet (IPv4/IPv6) address family. \\ \hline
-    arp & ARP address family, handling IPv4 ARP packets. \\ \hline
-    bridge & Bridge address family, handling packets which traverse a bridge device. \\ \hline
-    netdev & Netdev address family, handling packets from ingress. \\ \hline
+  \caption{Debian ProjectにおけるPythonのチーム情報}
+  \begin{tabular}{|c|c|c|} \hline
+    チーム名 & cpython-team & Debian Python Team（DPT） \\ \hline
+    役割 & 実行環境のメンテナンス & ライブラリとアプリケーションのメンテナンス \\ \hline
+    メーリングリスト & debian-python@lists.debian.org & （同左） \\ \hline
+    IRC & \#debian-python & （同左） \\ \hline
+    wiki & - & \url{https://wiki.debian.org/Teams/PythonTeam} \\ \hline
+    gitリポジトリ & \url{https://salsa.debian.org/cpython-team} & \url{https://salsa.debian.org/python-team} \\ \hline
   \end{tabular}
+  \label{tb:pythonteam}
   \end{center}
 \end{table}
 
-
-コマンドの例です。
-
-\begin{commandline}
-# nft add table ip mytable
-\end{commandline}
-
-
-\subsubsubsection{chain の作成}
-
-次に chain を作成します。chain を作成するときの引数には フックタイプ を指定します\footnote{linux kernelのNetfilter機構ではネットワークの入出力するパケットに対して任意な処理をひっかける機能がありこれを「フック」と呼んでいます。nftables や iptables で行う設定はこのフック処理を設定するフロントエンドツールと言えると思います。}。前述ではip (=IPv4）を指定していますので、以下表のIPv4/IPv6/Inetのフックタイプを指定できます\footnote{man nftより抜粋。}。
-
-\begin{table}[htb]
-  \begin{center}
-  \caption{nft の IPv4/IPv6/Inet で利用できるフックタイプ} 
-  \begin{tabular}{|c|c|}
-    \hline
-    フックタイプ & 説明 \\ \hline
-    prerouting & ルーティング処理の前に実行するフック \\ \hline
-    input & パケットの入力時に実行するフック \\ \hline
-    forward & パケットの転送時に実行するフック \\ \hline
-    output & パケットの出力時に実行するフック \\ \hline
-    postrouting & ルーティング処理の後に呼び出されるフック \\ \hline
-  \end{tabular}
-  \end{center}
-\end{table}
-
-コマンドの例です。
-
-\begin{commandline}
-# nft add chain ip mytable mychain_in { type filter hook input priority 0 \; }
-\end{commandline}
-
-
-\subsubsubsection{rule の作成}
-
-次に rule を作成をします。前述の例では IPv4 の入力パケットをフィルターするchainを作成しましたのでこれに準ずるruleを作成します。以下は、外部から入力パケット はssh のみを許可し、他は拒否する設定にしてみた例です。
-
-\begin{commandline}
-# nft add rule ip mytable mychain_in tcp dport ssh accept
-# nft chain ip mytable mychain_in { policy drop \; }
-\end{commandline}
-
-上述の実行する nft コマンドを見ると「tcp」「dport」「ssh」「accept」と記述しています。「tcp」の部分は udp とも書け、「dport」の部分は sport とも書け、「ssh」の部分は プロトコル名またはポート番号でもよく、「accept」の部分は drop とも書けます。これらを記述を組み合わせて自分の実現したいルールを作ってください。
-
-細かいruleを設定するコマンドの構文は「man nft」を参照してください。
-
-
-\subsubsubsection{設定の保存}
-
-ここまで設定すると以下のようなルールで動作しています\footnote{例示のためこのようなルールになっていますが、IPv6のssh通信が外からくると通信できてしまうため本番運用するにはおそらく設定として不完全ですので注意してください。}。
-
-\begin{commandline}
-# nft list ruleset
-table inet filter {
-    chain input {
-        type filter hook input priority 0; policy accept;
-    }
-
-    chain forward {
-        type filter hook forward priority 0; policy accept;
-    }
-
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
-}
-table ip mytable {
-    chain mychain_in {
-        type filter hook input priority 0; policy drop;
-        tcp dport ssh accept
-    }
-}
-\end{commandline}
-
-nftables が参照する設定ファイルは /etc/nftables.conf であり、"nft list ruleset" コマンドの出力をそのまま保存すればよいようになっています。
-
-\begin{commandline}
-# cp -p /etc/nftables.conf /etc/nftables.conf.backup1
-# nft list ruleset > /etc/nftables.conf  
-\end{commandline}
-
-nftables を再起動して同じ設定が読み込まれるか確認します。
-
-\begin{commandline}
-# systemctl restart nftables
-# nft list ruleset
-\end{commandline}
-
-設定に問題がなければサーバの起動時にルールを自動反映するように設定します。
-
-\begin{commandline}
-# systemctl enable nftables
-\end{commandline}
-
-
-\subsection{利用シーンにおける設定例}
-
-\subsubsection{インターネットに公開するwebサーバ向け}
-
-インターネットに公開するwebサーバでは、基本的にhttp、https、sshのポートを公開すればよいと思います。設定は以下の条件で設定してみました。
+「Debian Python Policy」\footnote{\url{https://www.debian.org/doc/packaging-manuals/python-policy/}} を読んでみて、パッケージの話で大事そうなところを以下に挙げてみます。
 
 \begin{itemize}
-\item 入力パケットのデフォルト処理は破棄とし、許可したルールの入力パケットのみを受信
-\item ループバックインタフェースの通信はすべて許可
-\item 自分のホストから通信を開始した場合の相手のサーバからの戻りパケットは受信許可
-\item TCPのコネクションの状態としておかしいパケットは破棄
-\item pingのエコー要求を許可
-\item sshをLAN内から通信を許可
-\item sshをインターネットからポート番号をtcpの10022ポートに変更した状態で通信を許可
-\item http/httpsはインターネットからもLAN内からも通信を許可
-\item IPv6ではssh、http/httpsのサービスはせず、ping6の応答もしない
+\item python3 へ移行しましょう
+\item python のインタプリタのディレクトリ配置やファイル名の規則（例：/usr/bin/python3、/usr/bin/python3.8）
+\item python ライブラリのパスの規則（debian パッケージでは /usr/lib/python{3,2.7}/dist-packages/ 配下に配置する）
+\item python のライブラリやアプリケーションの debian パッケージ名の命名規則（pythoh3 系用であれば python3-* の形式とすると、モジュール名にアンダースコアが入っている場合は debian パッケージ名ではハイフンに置換すること）
+\item pythonプログラムについて
+  \begin{itemize}
+  \item シェバンには \#!/usr/bin/env interpreter\_name は使わないこと
+  \item \#!/usr/bin/python3 または \#!/usr/bin/python3.y としてdebianが提供するデフォルトのバージョンを指定すること
+  \end{itemize}
+\item python の debian パッケージ化を支援するための debhelper の拡張として dh-python パッケージがある
 \end{itemize}
 
-nftables の設定は以下になります。
+
+\subsubsection{cpython-teamについて}
+
+cpython-team チームの \url{https://salsa.debian.org/groups/cpython-team/-/group_members} に表示されるメンバーは Matthias Klose（@doko） さん1名のみです。
+
+Klose さんが メンテナンスしている \url{https://tracker.debian.org/pkg/python3.9} を確認してみると、maintainer にはチームでなく Klose さんの名前が書いてあります。そのため 1 人でメンテナンスしているようです。
+
+2020 年 11 月 時点の unstable においては python-2.7、3.8、3.9 のパッケージを提供しており、現在は python-3.9 のデバッグ作業を行っています\footnote{\url{https://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=python3.9;users=debian-python@lists.debian.org}}。
+
+
+\subsubsection{Debian Python Team（DPT）について}
+
+Debian Python Team（DPT）のメンバーは \url{https://wiki.debian.org/Teams/PythonTeam} に記載があり、2020 年 11 月現在では 20 名でメンテナンスしているようです。チームでメンテナンスしているパッケージの一覧は次のURLで見ることができます。
+
+\begin{itemize}
+\item \url{https://qa.debian.org/developer.php?email=team%2Bpython%40tracker.debian.org}
+\end{itemize}  
+
+
+Debian Python Team（DPT）に参加するには チームのポリシードキュメントを読み、応諾した上で参加することを求めています。チームのポリシーを記載したドキュメントは以下のページにあります。
+
+\begin{itemize}
+\item \url{https://salsa.debian.org/python-team/tools/python-modules/blob/master/policy.rst}
+\end{itemize}  
+
+このページに記載しているポリシーにはおおよそ以下の内容が書かれています。
+
+\begin{itemize}
+\item チームへ参加方法
+  \begin{itemize}
+  \item 以下3つを書いたメールを debian-python@lists.debian.org へ送信する
+    \begin{itemize}
+    \item なぜ参加したいのか
+    \item \url{https://salsa.debian.org} にログインするアカウント名
+    \item ポリシードキュメント（policy.rst）を読み、受諾することの宣言
+    \end{itemize}
+  \end{itemize}
+\item パッケージメンテナンスについて
+  \begin{itemize}
+  \item debian パッケージ内の debian/control ファイルの Maintainer フィールド及び Uploaders フィールドの意味
+  \item git-buildpackage を使ったパッケージメンテナンスの説明
+  \end{itemize}
+\end{itemize}
+
+また、Python のパッケージを作るにあたっては debian/control、debian/rules などのファイルの書き方の説明が以下のページ記載されています。
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/Python/LibraryStyleGuide}
+\item \url{https://wiki.debian.org/Python/AppStyleGuide}
+\end{itemize}
+
+
+\subsubsection{pypiパッケージをdebianパッケージに変換する}
+
+プログラム言語にはそれぞれライブラリやアプリケーションをパッケージ化して配布するサイトを持っていることが多いです。そして Debian ではそれぞれのプログラム言語のライブラリを debian パッケージへ変換する debian パッケージを配布しており、以下のページに情報があります。
+
+\begin{itemize}
+\item \url{https://wiki.debian.org/AutomaticPackagingTools}
+\end{itemize}
+    
+Python におけるライブラリやアプリケーションの配布サイトは \url{https://pypi.org/} が有名です。上記 URL で紹介している Python 向けの debian パッケージへの変換ツールは「python3-stdeb」 パッケージに入っている「py2dsc-deb」コマンドがよさそうに思いました\footnote{pypi2debパッケージは依存パッケージがとても多くperl関連のパッケージが大量にインストールされます。}。
+
+試しに py2dsc-deb コマンドを使って pypi が配布するパッケージを debian パッケージに変換してみました。debian/compatバージョンは "9" として変換しているようです。
 
 \begin{commandline}
-# nft list ruleset
-table ip filter {
-    chain input {
-        type filter hook input priority 0; policy drop;
-        ct state { established, related } accept
-        ct state { invalid } drop
-        iifname "lo" accept
-        icmp type { echo-reply, echo-request } accept
-        tcp dport ssh ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept
-        tcp dport 10022 ip saddr { 0.0.0.0-255.255.255.255 } accept
-        tcp dport { http, https } ip saddr { 0.0.0.0-255.255.255.255 } accept
-    }
+$ sudo apt-get install python3-stdeb python-all dh-python
+$ wget https://files.pythonhosted.org/packages/53/20/4019a739b2eefe9282d3822ef6a225250af964b117356971bd55e274193c/ws4py-0.5.1.tar.gz
+$ py2dsc-deb ws4py-0.5.1.tar.gz
+$ ls -l deb_dist
+l合計 128
+-rw-r--r-- 1 norimitu norimitu 38224 11月 19 13:58 python3-ws4py_0.5.1-1_all.deb
+drwxr-xr-x 8 norimitu norimitu  4096 11月 19 13:58 ws4py-0.5.1
+-rw-r--r-- 1 norimitu norimitu   916 11月 19 13:58 ws4py_0.5.1-1.debian.tar.xz
+-rw-r--r-- 1 norimitu norimitu   869 11月 19 13:58 ws4py_0.5.1-1.dsc
+-rw-r--r-- 1 norimitu norimitu  5480 11月 19 13:58 ws4py_0.5.1-1_amd64.buildinfo
+-rw-r--r-- 1 norimitu norimitu  1024 11月 19 13:58 ws4py_0.5.1-1_amd64.changes
+-rw-r--r-- 1 norimitu norimitu  5419 11月 19 13:58 ws4py_0.5.1-1_source.buildinfo
+-rw-r--r-- 1 norimitu norimitu  1377 11月 19 13:58 ws4py_0.5.1-1_source.changes
+-rw-r--r-- 2 norimitu norimitu 51408  2月 26  2020 ws4py_0.5.1.orig.tar.gz
 
-    chain forward {
-        type filter hook forward priority 0; policy accept;
-    }
+$ cat deb_dist/ws4py-0.5.1/debian/compat
+9
+\end{commandline}
 
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
-}
-table ip6 filter {
-    chain input {
-        type filter hook input priority 0; policy drop;
-        iifname "lo" accept
-    }
+また、python のパッケージをインストールするコマンド "pip" でインストールしたときに binding ライブラリのコンパイルも一緒に行うライブラリ "mysqlclient" を試してみると、以下のコマンドで debian パッケージに変換できました。
 
-    chain forward {
-        type filter hook forward priority 0; policy accept;
-    }
+\begin{commandline}
+$ sudo apt-get install python3-stdeb python3-all-dev dh-python libmysqlclient-dev
+$ wget https://files.pythonhosted.org/packages/a5/e1/e5f2b231c05dc51d9d87fa5066f90d1405345c54b14b0b11a1c859020f21/mysqlclient-2.0.1.tar.gz
+$ py2dsc-deb mysqlclient-2.0.1.tar.gz
+$ ls -l deb_dist
+合計 264
+drwxr-xr-x 11 norimitu norimitu  4096 11月 19 14:15 mysqlclient-2.0.1
+-rw-r--r--  1 norimitu norimitu  1236 11月 19 14:15 mysqlclient_2.0.1-1.debian.tar.xz
+-rw-r--r--  1 norimitu norimitu   927 11月 19 14:15 mysqlclient_2.0.1-1.dsc
+-rw-r--r--  1 norimitu norimitu  6192 11月 19 14:15 mysqlclient_2.0.1-1_amd64.buildinfo
+-rw-r--r--  1 norimitu norimitu  1394 11月 19 14:15 mysqlclient_2.0.1-1_amd64.changes
+-rw-r--r--  1 norimitu norimitu  5795 11月 19 14:15 mysqlclient_2.0.1-1_source.buildinfo
+-rw-r--r--  1 norimitu norimitu  1464 11月 19 14:15 mysqlclient_2.0.1-1_source.changes
+-rw-r--r--  2 norimitu norimitu 87807  7月  3 03:55 mysqlclient_2.0.1.orig.tar.gz
+-rw-r--r--  1 norimitu norimitu 90744 11月 19 14:15 python3-mysqlclient-dbgsym_2.0.1-1_amd64.deb
+-rw-r--r--  1 norimitu norimitu 48584 11月 19 14:15 python3-mysqlclient_2.0.1-1_amd64.deb
 
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
-}
+$ cat deb_dist/mysqlclient-2.0.1/debian/compat
+9
 \end{commandline}
 
 
-\subsubsection{インターネットに公開するopenvpnサーバ向け}
+\subsection{終わりに}
 
-openvpn\footnote{\url{https://openvpn.net/community/}} とは SSL-VPN の機能をもった VPN サーバ及び VPN クライアントアプリケーションです。openvpn を使って VPN 接続したクライアントは openvpn サーバを中継して別のネットワークのサーバと通信することができます。
+debian における Python パッケージをどういうチームがどのようにパッケージを作成、メンテナンスしているか調べてみました。皆さんも Python や他のプログラム言語のライブラリやアプリケーションを debian パッケージ化し、debian ライフをお楽しみください。
 
-ここでは openvpn に接続したサーバ及びクライアントに割り当てられるネットワークアドレス帯"192.168.200.0/24"からパケットが入力された場合に、他のネットワークへパケットをルーティングする設定を行います。
+\subsection{参考情報}
 
+\begin{itemize}
+\item \url{https://wiki.debian.org/Python/}
+\item \url{https://www.debian.org/doc/packaging-manuals/python-policy/}
+\item \url{https://salsa.debian.org/python-team/tools/python-modules/blob/master/policy.rst} 
+\item \url{https://wiki.debian.org/Python/LibraryStyleGuide}
+\item \url{https://wiki.debian.org/Python/AppStyleGuide}
+\end{itemize}
+
+%202008kansai
+\dancersection{Makefile から CMake に高速で入門する}{Yosuke OTSUKI}
+
+\subsection{はじめに}
+
+CMake はkitware 社によるマルチプラットフォームで使用できるビルドツールです。
+Unix 系の OS で使用されている gmake, ninja などを始め、Windows の nmake や Visual Studio の solution ファイルも出力できます。
+また、unit test と .rpm や .deb 形式 \footnote{debian 公式のパッケージの規格は満たしていません。あくまでも野良パッケージです。} の作成もできます。
+
+Go や Rust など最近のコンパイルが必要な言語は、言語独自のビルド・パッケージ機構を持っているものが多く CMake は必要ないと思います。
+しかし、C/C++, Fortran など古くてコンパイルが必要な言語には便利です。
+cmake は明文化されていない仕様が多く、熟練した技術者でも意外な使い方でハマることがあると思います。そこで本書では Makefile と CMakeLists.txt  を比較して cmake の習得時間を短くしようと思います。繰り返しになりますが、以下が狙いです。
+
+\subsection{本著の狙い}
+\begin{itemize}
+  \item{Makefile が書ける人が、CMakeLists.txt を書けるようになる手助けをする}
+  \item{CMake の明文化されてない仕様を説明して、はまらないようにする}
+\end{itemize}
+
+また、本著は CUI による cmake の使用を前提としています。IDE との連携は説明しません。\footnote{著者が cmake と IDE の連携に詳しくないのは秘密です。}
+サンプルはすべて、C 言語をビルドすることにします。
+ただし、パッケージングについては CMakeLists.txt のみの説明しています。
+なお、本著では執筆時時点の debian buster の環境で動作確認をしています。
+cmake のバージョンは 3.13.4-1 です。
+
+note: footnote に記載しているリンクは 2020/08/21  日時の時点ではアクセスを確認しています。
+\clearpage
+
+%==============================================================================
+\subsection{最初に単一ソースコードのビルド}
+%==============================================================================
+最初にサンプルでは C 言語のコードを単体ビルドすることにします。
+そのコードをビルドする Makefile を示したあとに、同じことを CMakeLists.txt で記述した例を示します。
+
+\vspace{1em}
+C 言語のコード
 \begin{commandline}
-# nft add table ip nat
-# nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
-# nft add rule ip nat postrouting oifname "eth0" ip saddr 192.168.200.0/24 masquerade 
-\end{commandline}
+#include <stdio.h>
 
-openvpnを起動すると追加される"tun"インタフェースについても受信許可し、openvpnが利用するUDPとTCPの119番ポートの通信を受信許可に設定します。
-
-nftables の設定は以下になります。
-
-\begin{commandline}
-# nft list ruleset
-table ip filter {
-    chain input {
-        type filter hook input priority 0; policy drop;
-        ct state { established, related } accept
-        ct state { invalid } drop
-        iifname "lo" accept
-        iifname "tun*" accept
-        icmp type { echo-reply, echo-request } accept
-        tcp dport ssh ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept
-        tcp dport 10022 ip saddr { 0.0.0.0-255.255.255.255 } accept
-        udp dport openvpn ip saddr { 0.0.0.0-255.255.255.255 } accept
-        tcp dport openvpn ip saddr { 0.0.0.0-255.255.255.255 } accept
-    }
-
-    chain forward {
-        type filter hook forward priority 0; policy accept;
-    }
-
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
-}
-table ip6 filter {
-    chain input {
-        type filter hook input priority 0; policy drop;
-        iifname "lo" accept
-    }
-
-    chain forward {
-        type filter hook forward priority 0; policy accept;
-    }
-
-    chain output {
-        type filter hook output priority 0; policy accept;
-    }
-}  
-table ip nat {
-    chain postrouting {
-        type nat hook postrouting priority 100; policy accept;
-        oifname "eth0" ip saddr 192.168.200.0/24 masquerade
-    }
+int main(){
+    printf("Hello World\n");
+    return 0;
 }
 \end{commandline}
+\vspace{1em}
+Makefile
+\begin{commandline}
+all: main.c
+	gcc -o hello_world $?
+\end{commandline}
+\vspace{1em}
+CMakeLists.txt
+\begin{commandline}
+# 必要となる最小の cmake のバージョンを指定
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
+# プロジェクト名 executable の名前になる
+project(hello_world)
 
-\subsection{おわりに}
+# 文字列を標準出力に出力する。変数 CMAKE_C_COMPILER は c コンパラの絶対パス。
+# cmake 実行後に生成される CMakeCache.txt の中に変数は記述される。
+message ("*** ${CMAKE_C_COMPILER}")
 
-Debian 10 でデフォルトになった nftables を調べてみました。
+# executable のビルド
+add_executable(hello_world main.c)
 
-今後 nftables が主流になっていくと思われるため Debian 10 buster を使い始める方は nftables も合わせて使い始めてみてはいかがでしょうか。 
+# インストールのディレクトリ構成を GNU の構成にする (bin/, lib/ ...)
+include(GNUInstallDirs)
 
+# executable のみなので、bin のディレクトリをインストール対象にする
+install(TARGETS hello_world DESTINATION ${CMAKE_INSTALL_BINDIR})
+\end{commandline}
+
+cmake の syntax を説明をします。
+cmake\_minimum\_required は必須です。ただし、FATAL\_ERROR は省くことができます。
+project で対象となる executable の名前を決めています。
+add\_executable でプロジェクトのソースコードを指定し、ビルドします。
+include(GNUInstallDirs) で GNU のディレクトリ構造でインストールするようにしています。
+他の方法も使うことができますが、パッケージング時に絶対パスとなってしまうのでこの方法がおすすめです。
+
+CMakeLists.txt には autools の dist clean に相当するコマンドが存在しません。
+そのため、作業用のディレクトリを作りその中で cmake を呼び出します。(ここでは build という作業用のディレクトリを作ります)
+そうすることで、ソースコードのディレクトリに一時的なファイルを作らなくて良くなります。
+\footnote{cmake だけの用語かもしれませんが out of source build と呼ばれる方法です。}
+ただし、OSS プロジェクトの中にはソースコードでビルドの実行を要求するものもあります。
+以下のコマンドを実行して、autools の configure に相当することをします。
+
+\vspace{1em}
+実行コマンド
+\begin{commandline}
+mkdir build
+cd build
+
+# autools の configure に相当。-G で出力するビルドシステムを指定 (省略可能)
+cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=`pwd`/build ../
+
+make
+make install
+cd ..
+\end{commandline}
+正常終了すると 00.hello\_world/hello\_world が生成されます。
+
+-G はcmake generator option です。省略するとデフォルトの Makefile が生成されます。
+使用できる generator については、cmake -G で確認してください。
+使用している OS によって異なります。\footnote{https://cmake.org/cmake/help/v3.18/manual/cmake-generators.7.html}
+
+build/CMakeCache.txt を調べてみましょう。
+ビルドに使用する linker, archiver や インストール先のディレクトリなどが記載されています。
+中には、デフォルトで値が決まっているものもあります。
+ここでは、autools の \-\-prefix に相当する CMAKE\_INSTALL\_PREFIX を使って cmake の変数の上書きについて説明します。
+CMAKE\_INSTALL\_PREFIX はデフォルトでは /usr/local が値としてされています。
+cmake では基本的には変数の上書きは推奨されていません。 \footnote{set(CMAKE\_INSTALL\_PREFIX /home/yosukesan PATH FORCE "") などで強制的な上書きは可能です。}
+その代わりに、cmake の起動時に -D\{変数名\} として変数の初期値を与える方法が一般的です。
+
+%==============================================================================
+\subsection{外部ライブラリのリンク}
+%==============================================================================
+
+次に外部のライブラリとリンクをしてみましょう
+説明のために、共有ライブラリと静的ライブラリを直接リンクします。
+その後、一般的なプロジェクトで利用される共有・静的リンクどちらでも使用できる方法を紹介します。
+以下の C 言語のコードのように pthread を使いたい場合を例とします。
+
+\vspace{1em}
+C 言語
+\begin{commandline}
+#include <pthread.h>
+#include <stdio.h>
+
+void *work(void* parg){
+    int *val = (int*)parg;
+    printf("worker tid=%d\n", *val);
+    *val = 100;
+}
+
+int main (){
+    pthread_t handle; 
+    int data = 0;
+
+    pthread_create(&handle, NULL, work, &data);    
+    pthread_join(handle, NULL);
+    printf("final = %d\n", data);
+
+    return 0;
+}
+\end{commandline}
+
+例えば、Makefile で共有ライブラリをリンクする場合、以下のように書きます。
+
+\vspace{1em}
+Makefile
+\begin{commandline}
+shared: main.c
+	gcc $? -lpthread
+static: main.c
+	gcc $? /usr/lib/x86_64-linux-gnu/libpthread.a
+\end{commandline}
+
+\subsubsection{共有ライブラリ}
+
+では、cmake でビルドする例を見ていきましょう。
+共有ライブラリのリンクは比較的簡単に行なえます。
+
+\vspace{1em}
+CMakeLists.txt
+\begin{commandline}
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+
+project(pthread_task)
+add_executable(pthread_task main.c)
+
+# プロジェクトとリンクするライブラリ名を指定すれば良い。システムライブラリならば、自動的に見つけてくれる。
+# なお、先頭の lib は自動的に保管されるので付けてはいけない。 (libpthread.so)
+target_link_libraries(pthread_task pthread)
+
+include(GNUInstallDirs)
+install(TARGETS pthread_task DESTINATION ${CMAKE_INSTALL_BINDIR})
+\end{commandline}
+
+新しく、target\_link\_library() というコマンドを使いました。
+使い方については、スクリプト中のコメントを参照してください。
+pthread に拡張子 (.so か .a) を付けない場合、共有ライブラリがリンクされます
+cmake の実行は先の例と同じです。
+
+\subsubsection{静的ライブラリ}
+
+次に、静的なリンクをする方法を説明します。
+共有ライブラリと異なる方法を使用します。\footnote{試した限り、共有ライブラリと同じ方法でもビルドはできました。しかし、Seg ります。これにどハマリしました。}
+
+\vspace{1em}
+CMakeLists.txt
+\begin{commandline}
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+
+project(pthread_task)
+add_executable(pthread_task main.c)
+
+# cmake のライブラリ用のプロジェクトに外部ライブラリをインポートする。
+add_library(libpthread STATIC IMPORTED)
+
+# ライブラリの path を指定
+set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libpthread.a)
+
+# ヘッダーの path を指定
+set_target_properties(libpthread PROPERTIES INTERFACE_INCLUDE_DIRECTORIES /usr/include)
+
+target_link_libraries(pthread_task libpthread)
+include (GNUInstallDirs)
+install(TARGETS pthread_task DESTINATION ${CMAKE_INSTALL_BINDIRS})
+\end{commandline}
+
+add\_library というコマンドを追加しました。
+静的なライブラリをリンクする場合は、一度 cmake のライブラリのオブジェクトにインポートする必要が有ります。
+
+\subsubsection{推奨する方法 find\_package()}
+
+今までの方法では、ライブラリの絶対パスを明示的に指定してきました。
+しかし、ビルドに必要な複数のライブラリの絶対パスを、全て記述するのは効率的ではありません。
+また、テスト時などはインストール先を、システムパスではない PATH にするかもしれません。
+
+そのような場合、find\_package() というコマンドを使用します。\footnote{\url{https://discourse.cmake.org/t/how-to-statically-link-external-library-by-target-link-libraries/1718}}
+特定のパッケージについて、検索用の cmake スクリプトを書いておくと、find\_package() を呼び出すだけで、指定されたルートディレクトリから自動的に lib と include のパスを検索してくれます。
+
+\vspace{1em}
+CMakeLists.txt
+\begin{commandline}
+cmake_minimum_required(VERSION 3.13)
+project(pthread_task)
+
+# thread の中で pthread が使いたいのでフラグを立てる
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+
+# thread ライブラリを検索。findThread.cmake が提供されているので使えるコマンド
+find_package(Threads REQUIRED)
+
+add_executable(pthread_task main.c)
+
+# thread ライブラリをリンク
+target_link_libraries(pthread_task PRIVATE Threads::Threads)
+
+include(GNUInstallDirs)
+install(TARGETS pthread_task DESTINATION ${CMAKE_INSTALL_BINDIR})
+\end{commandline}
+
+pthread のような一般的なものは、検索用のスクリプトが cmake に備わっています。\footnote{\url{https://cmake.org/cmake/help/latest/module/FindThreads.html}}
+しかし、特定の用途でしか使わないライブラリの場合、例えば gmp などは自分で検索用のスクリプトを準備する必要があります。\footnote{\url{https://github.com/shohirose/cmake-find-package/blob/master/FindGMP.cmake}}
+FLOSS が cmake をビルドシステムとしている場合、多くの場合検索用のスクリプトも提供される場合が多いです。
+例えば、kitware 社の VTK ライブラリでは、ソースコードとともに findVTK.cmake というスクリプトが提供されています。
+
+%==============================================================================
+\subsection{分割コンパイルとリンク}
+%==============================================================================
+
+この例では、自分で作成したライブラリと自分の executable にリンクします。
+この例でも共有と静的なリンクの方法を説明します。
+分割コンパイルは、外部ライブラリのリンクほど難しくはありません。
+
+整数の変数を入力引数とし、1 を加算して返す簡単な関数を自作しました。
+
+\vspace{1em}
+my\_inc.h
+\begin{commandline}
+#pragma once
+
+extern int inc(int val);
+\end{commandline}
+
+\vspace{1em}
+my\_inc.c
+\begin{commandline}
+#include <stdio.h>
+#include "my_inc.h"
+
+int inc(int val){
+    printf("%d\n", ++val);
+}
+\end{commandline}
+
+\vspace{1em}
+main.c
+\begin{commandline}
+#include "my_inc.h"
+
+int main(){
+    int val = 0;
+    inc(val);
+    return 0;
+}
+\end{commandline}
+
+\vspace{1em}
+Makefile
+\begin{commandline}
+CFLAGS=-W -Wall
+CC=gcc
+
+.PHONY: libmyinc
+
+all: libmyinc
+	gcc $(CFLAGS) main.c libmyinc.so
+
+libmyinc: my_inc.c
+	gcc $(CFLAGS) -shared -o libmyinc.so -fPIC $?
+
+clean:
+	rm *.o *.so *.out
+\end{commandline}
+上記の Makefile に対応する CMakeLists.txt は以下です。
+\vspace{1em}
+CMakeLists.txt
+\begin{commandline}
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+project(sample)
+
+# 共有ライブラリをビルドする
+add_library(my_inc SHARED my_inc.c)
+
+add_executable(sample main.c)
+target_link_libraries(sample my_inc)
+
+include(GNUInstallDirs)
+install(TARGETS my_inc DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS sample DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS my_inc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+\end{commandline}
+
+動的なリンクでも、静的なリンクでもcmake の実行は先の例と同じです。
+add\_library() というコマンドを追加しました。共有ライブラリを作成する場合は SHARED、STATIC と記述すると静的ライブラリが生成されます。何も記述しない場合は、共有ライブラリが生成されます。
+
+\clearpage
+
+%==============================================================================
+\subsection{ctest で単体テスト}
+%==============================================================================
+
+自作のライブラリと自作のアプリのビルドができるようになったので、単体テストを組み込みます。
+先程の、my\_inc() コマンドをテストする test() というコマンドを書いた test.c というソールコードを追加しました。このソースコードをビルドして単体テストを実行しましょう。
+
+\vspace{1em}
+test.c
+\begin{commandline}
+#include <stdbool.h>
+#include <assert.h>
+
+#include "my_inc.c"
+
+bool test ()
+{
+    assert(inc(0) == 1);
+    assert(inc(65535) == 65536);
+
+    return true;
+}
+
+int main(){
+    return test() ? 0 : -1;
+}
+\end{commandline}
+
+\vspace{1em}
+Makefile
+\begin{commandline}
+CFLAGS=-W -Wall
+CC=gcc
+ld_lib_path=
+
+.PHONY: libmyinc
+
+all: libmyinc
+	gcc $(CFLAGS) main.c libmyinc.so
+
+libmyinc: my_inc.c
+	gcc $(CFLAGS) -shared -o libmyinc.so -fPIC $?
+
+test:
+	gcc $(CFLAGS) -o test.out test.c libmyinc.so
+	echo -e "#!/bin/bash -x\nexport LD_LIBARY_PATH=`pwd`\n./test.out"
+
+clean:
+	rm *.o *.so *.out *.sh
+\end{commandline}
+
+\vspace{1em}
+MakeLists.txt
+\begin{commandline}
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR) 
+project(sample)
+add_library(my_inc my_inc.c)
+add_executable(sample main.c)
+target_link_libraries(sample my_inc)
+
+enable_testing()
+add_executable(test_sample test.c)
+target_link_libraries(test_sample my_inc)
+message ("${PROJECT_SOURCE_DIR}")
+add_test(NAME unit_test COMMAND $<TARGET_FILE:test_sample> WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
+
+include(GNUInstallDirs)
+install(TARGETS sample DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS my_inc DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES my_inc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+\end{commandline}
+
+enable\_testing() と add\_test() というコマンドを追加しました。
+テストを実行するために、CMAKE\_BUILD\_TYPE という変数を実行時に指定して、初期化をしています。
+これは ctest を実行する場合、デフォルトの BUILD\_TYPE が実行対象に含まれないためです。 
+
+\begin{commandline}
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/../  -DCMAKE_BUILD_TYPE=Release ../
+make
+
+# --stop-on-failure テストに失敗したところで停止
+# --verbose 詳細なメッセージを出す。実行したテストの絶対パスを表示してほしいので使っている
+ctest --stop-on-failure --verbose
+make install
+cd ..
+\end{commandline}
+
+ctest コマンドでテストを実行します。 
+引数なしでも実行は可能ですが、おすすめはサンプルの通りです。
+
+%==============================================================================
+\subsection{パッケージング}
+%==============================================================================
+
+今まで説明してきたものをすべて追加して、lib の作成、executable の作成をした後に単体テストを行い、パッケージングをするスクリプトが以下です。
+CMake は正式な Debian の基準に沿った .deb は生成できません。
+しかし、複数の形式のパッケージングに対応しているので社内ツールなど、それほど品質が必要ないものには便利かもしれません。
+
+\begin{commandline}
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+
+project(sample)
+add_library(my_inc SHARED my_inc.c)
+add_executable(sample main.c)
+target_link_libraries(sample my_inc)
+
+enable_testing()
+add_executable(test_sample test.c)
+target_link_libraries(test_sample my_inc)
+message ("${PROJECT_SOURCE_DIR}")
+add_test(NAME unit_test COMMAND $<TARGET_FILE:test_sample> WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
+
+include(GNUInstallDirs)
+install(TARGETS sample DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS my_inc DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES my_inc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# prerequisite apt-get install build-essetial rpm
+# .deb と .rpm をパッケージングする
+set (CPACK_GENERATOR "DEB" "RPM")
+set (CPACK_DEBIAN_PACKAGE_MAINTAINER "yosukesan")
+set (CPACK_PACKAGE_VERSION_MAJOR "0")
+set (CPACK_PACKAGE_VERSION_MINOR "1")
+include (CPack)
+\end{commandline}
+
+上記の例では、.deb と .rpm を作成します。
+cmake は debuild と rpmbuild を呼び出して実行するので、もしインストールしていない場合はコメント行の apt を実行してください。
+
+上記のスクリプトを実行する場合は、以下で実行してください。
+cpack でパッケージングを行っています。
+今回は .deb と .rpm のみですが FreeBSD, Qt, MacOS, Windows (Wix) などにも対応しています\footnote{\url{https://cmake.org/cmake/help/v3.13/manual/cpack-generators.7.html}}。
+
+\begin{commandline}
+mkdir build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=`pwd`/../  -DCMAKE_BUILD_TYPE=Release ../
+make
+ctest
+cpack
+cd ..
+\end{commandline}
+
+先に説明しましたが include (GNUInstallDirs) を指定して CMAKE\_INSTALL\_\{BINDIR, LIBDIR, INCLUDEDIR\} をインストール先にしています。
+このようにしないと、インストール先が絶対パスとして格納されたパッケージが出来上がってしまいます。
+
+\subsection{まとめ}
+
+Makefile と CMakeLists.txt を対比しつつ説明してきました。
+Windows のネイティブ環境にも対応しているので、複数の OS に対してバイナリーを出力しなければならないときなどには便利です。
+
+最後に私は以下ぐらいしか記憶していません。下記のキーワードで検索して、コマンドの仕様や、関連する仕様について cmake のドキュメントを読んだり、使用例を探したりしています。
+\begin{itemize}
+  \item{add\_executable() : executable のビルド}
+  \item{add\_library() : ライブラリのビルド}
+  \item{target\_link\_library() : executable とライブラリのリンク}
+  \item{install() : make install をやるためのコマンド}
+  \item{ctest, enable\_testing() and add\_test() : 単体テストに必要}
+  \item{cpack : パッケージングのコマンド}
+\end{itemize}
 
 \subsection{参考文献}
 
 \begin{itemize}
-\item 「nftables - Debian Wiki」 \url{https://wiki.debian.org/nftables}
-\item 「netfilte.org」 \url{https://www.netfilter.org/}
-\item 「netfilter wiki」 \url{https://wiki.nftables.org/wiki-nftables/index.php/Main_Page}
-\item 「Linuxにおける新たなパケットフィルタリングツール「nftables」入門 - さくらのナレッジ」 \url{https://knowledge.sakura.ad.jp/22636/}
-\item 「nftables で基本的なフィルタリングを設定してみた - SIOS TECH.LAB」 \url{https://tech-lab.sios.jp/archives/16930}
+\item \url{http://opencv.jp/cmake/cmake_tutorial.html} (accessed 2020/Aug/20th)
+\item \url{https://www.qoosky.io/techs/814fda555d} (accessed 2020/Aug/20th)
+\item \url{https://blog.usejournal.com/creating-debian-packages-cmake-e519a0186e87?gi=1efc3589ce87} (accessed 2020/aug/20th)
 \end{itemize}
+
+\vspace{\fill}
+本資料は GPL v 2.0 のライセンスで公開いたします。
+
+%202007
+\dancersection{10年ぶりのニューラルネットワーク}{野首貴嗣}
+
+過去、2010年3月に行われた第62回東京エリアDebian勉強会では
+「ニューラルネットワークで画像認識してみた」
+というタイトルで本庄弘典さんが発表をされていました。
+
+それから10年が経過した2020年7月現在、ニューラルネットワークをとりまく
+状況がどのように変化したかを俯瞰的に見ていきます。
+
+また、個人的に開発、公開している成果につても紹介します。
+
+\subsection{ニューラルネットワークのお気持ち}
+
+まず、ニューラルネットワークについての厳密ではない、なんとなくなお気持ちで
+概要を解説します。
+
+パーセプトロン(\url{https://ja.wikipedia.org/wiki/%E3%83%91%E3%83%BC%E3%82%BB%E3%83%97%E3%83%88%E3%83%AD%E3%83%B3})と呼ばれる、人間の脳(ニューロン)を模した演算ユニットがあります。
+これは入力信号Xに対し、重みWを乗じバイアスbを加算した結果Yをえる単純なユニットです。さらに、Yに対し活性化関数と呼ばれる関数を適用しその結果を分類タスクの結果として考えます。
+
+分類が正しいなら1を、間違っているなら0を返す関数と考え、実際に用意したデータをもちいて訓練を行います。訓練は、逆誤差伝播(バックプロパゲーション)という手法を使い、求められた結果と訓練データ上の正解との誤差を最小化するよう、重みを調整していきます。
+
+単一のパーセプトロンはANDやORを表現することができます。パーセプトロンの式は線形分離境界を表していると考えることで直感的に理解できるでしょう。
+さらには、XORは実現できないことも理解できると思います(1つの直線で分離できないため)。
+
+ニューロンを増やしたり、多段に接続することで、より複雑な非線形分離が可能となります。この段数が概ね4段以上になったものをディープラーニングと呼ぶことが多いようです。
+
+\subsection{ブレイクスルー}
+
+2012年に、Googleが''Using large-scale brain simulations for machine learning and A.I.''(\url{https://blog.google/topics/machine-learning/using-large-scale-brain-simulations-for/})というblog記事と論文
+(\url{http://static.googleusercontent.com/media/research.google.com/ja//archive/unsupervised_icml2012.pdf})
+を公開しました。
+16コアをもつマシン169台を駆使し、大量の画像を訓練することで教師なしで人体や猫の特徴を獲得したと話題になりました。このときに採用されたアーキテクチャはAutoAEncoderと呼ばれるものです。
+
+AutoEncoderは入力側と出力側が等しくなるように構成された多段ニューラルネットワークで、入出力画像よりも小さなベクトル表現によって、入力画像の特徴を獲得することができるものです。
+AutoEncoderが行っていることは、一種の次元圧縮ともいえます。ニューラルネットワークを用いない次元圧縮手法もありますが、多段ニューラルネットワーク(ディープラーニング)が実用になることを示した大きな一歩でした。
+
+\subsection{ブレイクスルー実現要素}
+
+従来のニューラルネットワークが抱えていた課題を解決した要素にはさまざまなものがあります。
+
+\begin{description}
+\item[計算資源の向上] \mbox{} \\
+  私がニューラルネットワークに触れた1995年の時点で、実際に利用されていたコンピュータのスペックは次のようなものでした。
+  \begin{itemize}
+  \item PA-RISC 25Mhz
+  \item メモリ16MB
+  \end{itemize}
+  そもそも利用可能なメモリが少なく、大きなニューラルネットワーク構造を持つこと自体が困難でした。現代においてはスマートフォンでも4GB程度のメモリを搭載するものも珍しくありません。
+\item[GPGPUの一般化] \mbox{} \\
+  CPU自体も当時と比較してかなり高速にはなりましたが、単一コアあたりの処理能力向上には限界が見えつつあります。一方でグラフィックス処理向けに設計されたGPUをより一般的なコンピューティングに応用する環境が整備されてきました。\\
+  GPUは特に並列計算を得意としており、多段ニューラルネットワークの演算とは非常に相性がよく、その方向へ進化していっています。
+\item[大規模データセットの拡充]  \mbox{} \\
+  Googleの猫の例で活躍したのは、Google photosやFacebook album等、画像データを大量に収集できるプラットフォームの存在でした。\\
+  さらに、ラベル(物体の種別情報)を付与したデータセットも増えていきます。これにはクラウドソーシングサービスの拡充(Amazon Mechanical Turk, Cloudworks等)も寄与しています。
+\item[技術的な進歩]  \mbox{} \\
+  多段ニューラルネットワークが抱えていた他の問題として、勾配消失/発散問題がありました。逆誤差伝播をする際に、層が増えることによって伝播すべき誤差がどんどん小さくなってしまったり、逆に大きくなったりする問題です。\\
+  要因の一つに、活性化関数があります。シグモイド関数を使うことが昔は一般的でしたが、この関数が取りうる値は0〜1しかありません。より幅広い値を扱える活性化関数(ReLU等のランプ関数)の出現により、より大きな勾配を扱えるようになりました。\\
+  また勾配のクリッピングによって、勾配爆発を抑えることができるようになりました。
+  その他Batch Normalizationなどの正規化手法も学習の安定化に寄与しています。
+\item[分散表現の活用]  \mbox{} \\
+  単語や抽象的なカテゴリーといったものを表現するために分散表現(埋め込み表現)が活用できることがわかり、自然言語処理などへの活用が広がりました。word2vecは単語埋め込み表現の最たる活用例です。
+\item[データ拡張]  \mbox{} \\
+  既存のデータを変形したり、ノイズをのせるなどのデータ拡張技術が主に画像認識分野で発達しています。これにより、学習データを水増しすることができ、認識制度向上に寄与しています。
+\item[教師データを必要としない学習]  \mbox{} \\
+  一般的な教師あり学習には正解データを用意する必要があり、その作成にはコストがかかります。一方でword2vecのような、教師データを必要としない手法が発達してきています。\\
+  既存のデータの一部をマスクしたり、並べ替えたりして正解を予想させることで、対象となるデータの特徴をうまく表現する情報を獲得することができます(表現学習)。
+\item[敵対的生成ネットワーク]  \mbox{} \\
+  生成モデルと識別モデルを組み合わせ、互いを競わせるように学習させることで、現実には存在しない画像などを生成する手法が提案され、広く使われています。
+\end{description}
+
+\subsection{環境}
+
+\begin{description}
+\item[データサイエンティストブーム] \mbox{} \\
+  2000年代よりデータサイエンティストブームが発生し、ゼロ年代は統計的手法が広まりました。
+  その流れは2010年台でも継続し、深層学習手法にも波及しています。
+  数多くのMOOCsプラットフォームも立ち上がり、安価で良質な学習環境が整備されています。
+\item[コンペティションの隆盛] \mbox{} \\
+  Kaggle, SIGNATEといったコンペティションサイトが立ち上がり、技術者の研鑽が日々なされています。
+\item[実行環境の充実] \mbox{} \\
+  かねてから GPGPU 環境は AWS, GCE などで提供されていましたが、それ以外にも無料でGPUの利用が可能なGoogle Colaboratoryといったサービスが使えるようになり、ブラウザさえあれば環境構築不要で機械学習が行えるようになりました。
+\end{description}
+
+\subsection{もたらされた変化}
+
+\begin{description}
+\item[人を越える精度/能力] \mbox{} \\
+  画像認識分野では、ImageNet(\url{http://image-net.org/})というデータセットでいかに高い認識精度を達成するか、という試みが行われています。2012年にディープラーニングベースの手法 AlexNet が登場して以来、急速にその精度は向上し、2015年には ResNet によって人間の認識能力を超える精度を達成しました(参考: \url{https://www.slideshare.net/ren4yu/ss-234439652/21})。\\
+  自然言語の分野でも、Stanford Question Answering Dataset (SQuAD) (\url{https://rajpurkar.github.io/SQuAD-explorer/})などで人間の正答率を超える正答率を達成しています。\\
+  問題を分類タスクに落とし込むことができ、十分な学習データを用意することができれば、機械学習モデルは人間を超える精度を達成できる可能性を示しています。
+\item[生成モデル] \mbox{} \\
+  たくさんの画像やテキストデータ、音楽データから、新しいデータを生成するモデルが広く使われるようになりました。\\
+  主に敵対的生成ネットワークによる成果ですが、テキストに関しては言語モデルベースの手法(GPT-2等)が主流です。\\
+  さらにこれらを応用することで、画像復元(inpainting)や自動着色、さらには描画支援(GauGAN)といったことが実現できています。
+\item[機械翻訳] \mbox{} \\
+  ディープラーニング以前の機械翻訳は統計ベースの手法が利用されていました。この手法はあまり流暢ではない文が生成されがちという欠点があったのですが、ニューラル機械翻訳によって、その問題は大きく改善されました。\\
+  一方でGPUが持つメモリがボトルネックとなり、語彙を多くもたせることが難しくなりました。そのため、単語より小さな単位(サブワード)でトークンを区切ることによって語彙を抑える手法が主流となってきています。\\
+  ニューラルネットワークの学習は多くがend-to-endで行えるため、正確な単語区切りや品詞を考慮しなくても良くなったという事情もあります。\\
+  その副作用として、多言語を一度に扱えるようにもなりました。サブワードより小さい、バイト単位で区切る手法もあります。この場合、デコード時に正しいバイト列であることを保証する必要性があります。
+\end{description}
+
+\subsection{新たな課題}
+
+ニューラルネットワーク固有の課題も登場しています。
+
+\begin{description}
+\item[翻訳ミス] \mbox{} \\
+  統計ベースの機械翻訳でも翻訳ミスはありましたが、ニューラル機械翻訳の場合、それを見つけることが難しくなっています。なまじ流暢な結果を出力してしまうため、注意深く見ないと訳抜けなどを見逃してしまいがちです。
+  また、統計ベースでは、原文と翻訳文のフレーズ対応が処理の関係上あきらかだったのですが、ニューラル機械翻訳ではend-to-endな学習になったことで、翻訳文と原文との対応づけが明らかでなくなったというデメリットもあります。\\
+  他に、逆の意味を出力してしまうことがある問題もあります。これも訳文の対応付けが不明瞭なため、原因をさぐることは難しい問題です。\\
+  同じ文言を繰り返し生成するという、ニューラル機械翻訳特有の問題もあります(参考事例: \url{https://www.slideshare.net/ToshiakiNakazawa/nlp2017-nmt-tutorial/79})。
+\item[データセットとバイアス] \mbox{} \\
+  近年よく問題としてとりあげられるものに、バイアスがあります。これは、学習に使ったデータセット内に偏りがあった場合、特に注意をしないとそれがそのまま機械学習モデルに反映されてしまいます。\\
+  たとえば、多くの場合英語で''sister''という単語は姉・妹の区別をつけることはあまりなく、機械翻訳でそれを日本語にした際に、文脈に応じて出現しやすい方に訳してしまうことが発生します。
+\item[敵対的サンプル] \mbox{} \\
+  人間が見るとパンダなのに、識別モデルにはテナガザルに見えるような画像が有名です(参考: \url{https://speakerdeck.com/settenqb/ji-jie-xue-xi-tosekiyuritei?slide=5})。このように機械翻訳モデルを騙す画像を生成する技術と、それを防衛する技術が互いにしのぎを削っています。
+\item[バックドア] \mbox{} \\
+  訓練に用いるデータセットに悪意あるデータを混ぜることで、バックドアを仕掛けるという手法もあります。クラウドソーシングなどを使う際には、用途によってはそのような問題があることを想定しておく必要もあるでしょう。
+\end{description}
+
+\subsection{フレームワーク}
+
+よく使わていた(いる)代表的なフレームワークには以下のものがあります。
+
+\begin{itemize}
+\item 古参
+  \begin{itemize}
+  \item Torch7
+  \item Caffe
+  \item Theano
+  \end{itemize}
+\item 現代的なもの
+  \begin{itemize}
+  \item Chainer
+  \item PyTorch
+  \item TensorFlow
+  \item Keras
+  \item Darknet
+  \end{itemize}
+\end{itemize}
+
+どれも多次元配列を扱うことができ、自動微分機能を備えています。
+
+\subsection{Web/JavaScriptランタイム}
+
+先に述べたようなフレームワークで訓練されたモデルを、ブラウザやJavaScriptで実行するフレームワークがいくつかあります。
+
+\begin{itemize}
+\item WebDNN
+  \begin{itemize}
+  \item https://mil-tokyo.github.io/webdnn/ja/
+  \item 日本発
+  \item 複数のフレームワークに対応
+  \item 現在開発はinactive
+  \end{itemize}
+\item TensorFlow.js
+  \begin{itemize}
+  \item https://www.tensorflow.org/js
+  \item TensorFlow公式
+  \item 訓練もサポート
+  \item 多くの訓練済みモデルを配布
+  \item https://github.com/tensorflow/tfjs-models
+  \end{itemize}
+\item ONNX.js
+  \begin{itemize}
+  \item https://github.com/microsoft/onnxjs
+  \item フレームワーク共通フォーマットONNXに対応
+  \item 対応している演算に制限あり
+  \end{itemize}
+\end{itemize}
+
+\subsection{作成したものの紹介}
+
+WebDNNを用いて、いくつかのデモサイトを公開しています。
+
+\begin{description}
+\item[edges2cats] \mbox{} \\
+  Chainerとpix2pixを用いて、猫の線画に着色をするモデルを公開しています (\url{http://pix2pix.daio.net/})。
+  公式のデモサイト \url{https://affinelayer.com/pixsrv/} でも同じことができますが、こちらは猫着色モデルのみ、訓練データを公開していません。それ以外のデモは訓練データを含め公開しているので再現可能です。\\
+  同じことをするために、猫画像収集スクリプトを公開しています \url{https://github.com/knok/pixabay-cat-images}。\\
+  猫画像から背景の除去は DilatedNetのkeras実装 \url{https://github.com/nicolov/segmentation_keras} とその訓練済みモデルを用いています (解説記事: \url{https://qiita.com/knok/items/6ad09cc870739dbd921b})。
+\item[Wasserstein AutoEncoder] \mbox{} \\
+  TensorFlowで実装されていた著者実装 \url{https://github.com/tolstikhin/wae} をもとに、Chainerへ移植し、2次元の潜在空間へ300程度のイラストを埋め込み、推論を行えるサイトとして公開しました \url{http://wae-friends.daio.net} 。
+\end{description}
+
+また、TensorFlow.jsと訓練済みモデルを利用したデモサイトも公開しています。
+
+\begin{description}
+\item[バーチャル背景] \mbox{} \\
+  訓練済みBodyPixモデル \url{https://github.com/tensorflow/tfjs-models/tree/master/body-pix}を用いてWebカムから人体部分のみを抽出(セマンティックセグメンテーション)し、背景用画像と合成して表示するサイトをGitHub Pagesで公開しています \url{https://knok.github.io/virtbg/} (ソースコード: \url{https://github.com/knok/virtbg})。\\
+  これ単体では配信などには使えませんが、OBS Studioのウィンドウキャプチャー機能とOBS-v4l2sinkを組み合わせれば、v4l2loopbackを利用可能な任意のサービスに応用できます(解説記事: \url{https://qiita.com/knok/items/b3eb87769151ac04efeb})。\\
+\item[VRM Thee.js PoseNet Sample] \mbox{} \\
+  既存の公開されていたコード \url{https://github.com/t-takasaka/vrm-three-posenet} をforkし、最近のAPIに合わせつつ再配布可能なVRMモデルに差し替えたものを公開しています \url{https://knok.github.io/vrm-three-posenet/} (ソースコード: \url{https://github.com/knok/vrm-three-posenet})。\\
+  こちらは訓練済みPoseNet \url{https://github.com/tensorflow/tfjs-models/tree/master/posenet} を利用しています。
+\end{description}
+
+\subsection{Debianにおける訓練済みモデルの扱い}
+
+2020年7月時点では、ニューラルネットワークの訓練済みモデルについて、まだ明確なポリシーは決まっていません。ドラフトレベルのものはあります \url{https://salsa.debian.org/deeplearning-team/ml-policy}。
+再現性のため、訓練データや訓練用コードを含んだ状態が望ましいという方向性で進みつつあります。\\
+その観点でいうと、TensorFlow Hubやtfjs-modelsはその条件を満たしていません。そういったものを用いるツールはおそらくmainとして配布されないのではないかと個人的には思っています。\\
+一方で、Deepでない機械学習訓練済みモデルは既に配布されている現状があります (例: OpenCVの識別モデル \url{https://salsa.debian.org/science-team/opencv/-/tree/master/data})。
+機械学習という分野自体でも再現性は重視されてはいますが、公開されている多くのものは研究用途に限定したデータセットや訓練済みモデルなのが現状です。
+プライバシーとの兼ね合いもあり、この問題の解決は難しいと思われます。
+
+\subsection{まとめ}
+
+2010年の勉強会から10年が経過し、ニューラルネットワークをベースとした機械学習手法は飛躍的な発展を遂げました。
+今ではWebブラウザやスマートフォンなどのモバイルデバイスで動作させることも容易になってきています。
+
+一方でニューラルネットワーク固有の問題や、データセットに起因する諸問題(バイアス、プライバシー等)もあります。
+
+DFSGに照らし合わせると、再現性を担保するようなデータセットや訓練コードを伴った訓練済みモデルの配布が望ましいところですが、その実現はなかなかむずかしそうです。
 
 %202003
 %-------------------------------------------------------------------------------
@@ -1234,8 +1898,417 @@ ii  jitsi-videobridge      1126-1      amd64  WebRTC compatible Selective Forwar
 
 Jitsi サーバを実際に構築してオンラインのビデオ会議で使ってみました。Jitsi サーバの快適な動作に必要なサーバ性能やネットワーク帯域はクライアントPCのカメラの解像度やフレームレートによっても変わってきます。自分好みの設定に調整できること、イントラネットに自分でビデオ会議サーバを作れること、そしてソースコードの書き換えもできること、これがオープンソースの醍醐味ですのでぜひとも Jitsi を利用してみてください。
 
+
+
+%201912
+%-------------------------------------------------------------------------------
+\dancersection{Debian 10 busterでnftablesを使ってみる}{杉本典充}
+%-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+2019年7月6日にリリースした安定版Debian 10 busterではネットワークフィルタリング機能にnftablesがデフォルトで使われるように変わりました。
+
+Debian 10 busterを使ってサーバを公開する場合にはnftablesを使うことがあると思いますので、調べてみました。
+
+
+\subsection{nftableとは}
+
+\subsubsection{nftableの歴史}
+
+nftables\footnote{\url{https://wiki.nftables.org/wiki-nftables/index.php/Main_Page}}とは、linux-3.13 （2014/1/19リリース）から追加されたネットワークフィルタリング機能で iptables を置き換えることを目的として開発を進めている機能です。
+
+iptables は linux-2.4 で新たに実装されたnetfilter\footnote{\url{https://www.netfilter.org/}}という機能を使ってネットワークフィルタリング処理を行う仕組みで、歴史が長いです\footnote{iptables-1.0.0.tar.bz2に含まれるmanファイル"iptables.8"には2000年3月20日という日付が入っています。}。
+
+iptables は非常に長く多くの人たちに使われており、以下の課題があることがわかってきました\footnote{\url{https://wiki.nftables.org/wiki-nftables/index.php/Why_nftables\%3F}}。
+
+\begin{itemize}
+\item ソースコードに重複したコードが存在している
+\item 性能の頭打ち
+\item IPv4とIPv6のデュアルスタック時の管理の煩雑さ（nftablesのinetファミリーの追加につながる）
+\item ルールセットの更新処理がアトミックでない
+\item サードパーティアプリケーションが使えるAPIがない（nftablesではNetlink APIがある）
+\item 構文の改善
+\end{itemize}
+
+上記を改善するため nftables の開発とlinux kernel の netfilter 機能の改善が行われ、2014年1月20日に nftables-0.099 がリリースされました\footnote{\url{https://www.netfilter.org/projects/nftables/downloads.html}}。現在の最新版は2019年12月2日にリリースした nftables-0.9.3 が最新版です。
+
+
+\subsubsection{debianとnftables}
+
+Debian においては、Debian wiki に nftables の情報があります\footnote{\url{https://wiki.debian.org/nftables}}。
+
+Debian 9 stretch から nftables パッケージを提供しており、従来通り iptables をデフォルトとしつつ nftables も利用できる状況になっていました。このとき iptables が使う kernel module は以下になっています。
+
+\begin{commandline}
+$ cat /etc/debian_version
+9.11  
+$ lsmod | grep table
+  ebtable_filter         16384  0
+  ebtables               36864  1 ebtable_filter
+  ip6table_filter        16384  0
+  ip6_tables             28672  1 ip6table_filter
+  iptable_filter         16384  1
+  iptable_nat            16384  1
+  nf_nat_ipv4            16384  1 iptable_nat
+  iptable_mangle         16384  1
+  ip_tables              24576  3 iptable_mangle,iptable_filter,iptable_nat
+  x_tables               36864  12 ipt_REJECT,iptable_mangle,ip_tables,ebtables,iptable_filter,xt_tcpudp,
+ipt_MASQUERADE,xt_CHECKSUM,ip6table_filter,xt_policy,xt_conntrack,ip6_tables
+\end{commandline}
+
+Debian 10 buster では iptables から nftables へデフォルトを切り替えており\footnote{\url{https://www.debian.org/releases/stable/amd64/release-notes/ch-whats-new.ja.html}}、nftables-0.9.0 を提供しています。nftables が使う kernel module は以下になっています。
+
+\begin{commandline}
+$ cat /etc/debian_version
+10.2
+$ lsmod | grep table
+nf_tables_set          32768  6
+nf_tables             143360  60 nft_ct,nf_tables_set
+nfnetlink              16384  1 nf_tables
+\end{commandline}
+
+また、iptables パッケージの提供もしており昔ながらの使い方もできるようになっています。iptables パッケージの中には "/usr/sbin/iptables-nft" と "/usr/sbin/iptables-legacy" の二種類を提供しており、*-nft の方は nf\_tables の kernel module を使い、*-legacy の方は従来通り x\_tables の kernel module を使っています。そのため、Debian 10 busterでは、1. nf\_tables の nft インタフェース、2. nf\_tables の iptables 互換インタフェース、3. x\_tables の旧来の iptables インタフェース の3つが動作するようになっています。
+
+Debian 11 bullseye で nftables と iptables をどうしていくかの意見がメーリングリストやブログに投稿されています。意見としては iptables パッケージを optional 扱いにして nftables パッケージのみインストールされるようにする案に賛同する人が見られます（他の意見は firewalld をデフォルトにしてはどうかという案）。
+
+\begin{itemize}
+\item default firewall utility changes for Debian 11 bullseye\footnote{\url{https://lists.debian.org/debian-devel/2019/07/msg00332.html}}
+\item What to expect in Debian 11 Bullseye for nftables/iptables\footnote{\url{https://ral-arturo.org/2019/10/14/debian-netfilter.html}}
+\end{itemize}
+
+
+\subsection{Debian 10 busterでnftablesを使ってみる}
+
+\subsubsection{インストール方法}
+
+Debian 10 busterにおいて提供している nftables パッケージをインストールすると nft コマンドを利用できるようになり、nftables が systemd に登録されます。
+
+\begin{commandline}
+# apt-get install nftables
+  
+# which nft
+/usr/sbin/nft
+  
+# systemctl status nftables
+nftables.service - nftables
+  Loaded: loaded (/lib/systemd/system/nftables.service; disabled; vendor preset: enabled)
+  Active: inactive (dead)
+  Docs: man:nft(8)
+  http://wiki.nftables.org
+\end{commandline}
+
+nftables のパケットフィルタリングルールの設定ファイルは、/etc/nftables.conf に配置されます。初期状態では以下の設定が入っています。
+
+\begin{commandline}
+$ cat /etc/nftables.conf
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+  chain input {
+    type filter hook input priority 0;
+  }
+  chain forward {
+    type filter hook forward priority 0;
+  }
+  chain output {
+    type filter hook output priority 0;
+  }
+} 
+\end{commandline}
+
+
+\subsubsection{nftコマンドの使い方}
+
+nftables によるネットワークフィルタリングの機能は nft コマンドで制御します。
+
+"nft list ruleset" コマンドを実行すると現在のルールを表示します。
+
+\begin{commandline}
+# nft list ruleset
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy accept;
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+\end{commandline}
+
+nftables へのルール定義の追加、変更、削除は以下の流れで行います。
+
+\begin{itemize}
+\item table の作成
+\item chain の作成
+\item rule の作成
+\end{itemize}
+
+
+\subsubsubsection{table の作成}
+
+まずは最初に table を作成します。table を作成するときの引数にはアドレスファミリーを指定します。アドレスファミリーは以下表を値を指定できます\footnote{man nftより抜粋}。
+
+\begin{table}[htb]
+  \begin{center}
+  \caption{nft で利用できるアドレスファミリー} 
+  \begin{tabular}{|c|c|}
+    \hline
+    アドレスファミリー & 説明 \\ \hline
+    ip & IPv4 address family. \\ \hline
+    ip6 & IPv6 address family. \\ \hline
+    inet & Internet (IPv4/IPv6) address family. \\ \hline
+    arp & ARP address family, handling IPv4 ARP packets. \\ \hline
+    bridge & Bridge address family, handling packets which traverse a bridge device. \\ \hline
+    netdev & Netdev address family, handling packets from ingress. \\ \hline
+  \end{tabular}
+  \end{center}
+\end{table}
+
+
+コマンドの例です。
+
+\begin{commandline}
+# nft add table ip mytable
+\end{commandline}
+
+
+\subsubsubsection{chain の作成}
+
+次に chain を作成します。chain を作成するときの引数には フックタイプ を指定します\footnote{linux kernelのNetfilter機構ではネットワークの入出力するパケットに対して任意な処理をひっかける機能がありこれを「フック」と呼んでいます。nftables や iptables で行う設定はこのフック処理を設定するフロントエンドツールと言えると思います。}。前述ではip (=IPv4）を指定していますので、以下表のIPv4/IPv6/Inetのフックタイプを指定できます\footnote{man nftより抜粋。}。
+
+\begin{table}[htb]
+  \begin{center}
+  \caption{nft の IPv4/IPv6/Inet で利用できるフックタイプ} 
+  \begin{tabular}{|c|c|}
+    \hline
+    フックタイプ & 説明 \\ \hline
+    prerouting & ルーティング処理の前に実行するフック \\ \hline
+    input & パケットの入力時に実行するフック \\ \hline
+    forward & パケットの転送時に実行するフック \\ \hline
+    output & パケットの出力時に実行するフック \\ \hline
+    postrouting & ルーティング処理の後に呼び出されるフック \\ \hline
+  \end{tabular}
+  \end{center}
+\end{table}
+
+コマンドの例です。
+
+\begin{commandline}
+# nft add chain ip mytable mychain_in { type filter hook input priority 0 \; }
+\end{commandline}
+
+
+\subsubsubsection{rule の作成}
+
+次に rule を作成をします。前述の例では IPv4 の入力パケットをフィルターするchainを作成しましたのでこれに準ずるruleを作成します。以下は、外部から入力パケット はssh のみを許可し、他は拒否する設定にしてみた例です。
+
+\begin{commandline}
+# nft add rule ip mytable mychain_in tcp dport ssh accept
+# nft chain ip mytable mychain_in { policy drop \; }
+\end{commandline}
+
+上述の実行する nft コマンドを見ると「tcp」「dport」「ssh」「accept」と記述しています。「tcp」の部分は udp とも書け、「dport」の部分は sport とも書け、「ssh」の部分は プロトコル名またはポート番号でもよく、「accept」の部分は drop とも書けます。これらを記述を組み合わせて自分の実現したいルールを作ってください。
+
+細かいruleを設定するコマンドの構文は「man nft」を参照してください。
+
+
+\subsubsubsection{設定の保存}
+
+ここまで設定すると以下のようなルールで動作しています\footnote{例示のためこのようなルールになっていますが、IPv6のssh通信が外からくると通信できてしまうため本番運用するにはおそらく設定として不完全ですので注意してください。}。
+
+\begin{commandline}
+# nft list ruleset
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy accept;
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+table ip mytable {
+    chain mychain_in {
+        type filter hook input priority 0; policy drop;
+        tcp dport ssh accept
+    }
+}
+\end{commandline}
+
+nftables が参照する設定ファイルは /etc/nftables.conf であり、"nft list ruleset" コマンドの出力をそのまま保存すればよいようになっています。
+
+\begin{commandline}
+# cp -p /etc/nftables.conf /etc/nftables.conf.backup1
+# nft list ruleset > /etc/nftables.conf  
+\end{commandline}
+
+nftables を再起動して同じ設定が読み込まれるか確認します。
+
+\begin{commandline}
+# systemctl restart nftables
+# nft list ruleset
+\end{commandline}
+
+設定に問題がなければサーバの起動時にルールを自動反映するように設定します。
+
+\begin{commandline}
+# systemctl enable nftables
+\end{commandline}
+
+
+\subsection{利用シーンにおける設定例}
+
+\subsubsection{インターネットに公開するwebサーバ向け}
+
+インターネットに公開するwebサーバでは、基本的にhttp、https、sshのポートを公開すればよいと思います。設定は以下の条件で設定してみました。
+
+\begin{itemize}
+\item 入力パケットのデフォルト処理は破棄とし、許可したルールの入力パケットのみを受信
+\item ループバックインタフェースの通信はすべて許可
+\item 自分のホストから通信を開始した場合の相手のサーバからの戻りパケットは受信許可
+\item TCPのコネクションの状態としておかしいパケットは破棄
+\item pingのエコー要求を許可
+\item sshをLAN内から通信を許可
+\item sshをインターネットからポート番号をtcpの10022ポートに変更した状態で通信を許可
+\item http/httpsはインターネットからもLAN内からも通信を許可
+\item IPv6ではssh、http/httpsのサービスはせず、ping6の応答もしない
+\end{itemize}
+
+nftables の設定は以下になります。
+
+\begin{commandline}
+# nft list ruleset
+table ip filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        ct state { established, related } accept
+        ct state { invalid } drop
+        iifname "lo" accept
+        icmp type { echo-reply, echo-request } accept
+        tcp dport ssh ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept
+        tcp dport 10022 ip saddr { 0.0.0.0-255.255.255.255 } accept
+        tcp dport { http, https } ip saddr { 0.0.0.0-255.255.255.255 } accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+table ip6 filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        iifname "lo" accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+\end{commandline}
+
+
+\subsubsection{インターネットに公開するopenvpnサーバ向け}
+
+openvpn\footnote{\url{https://openvpn.net/community/}} とは SSL-VPN の機能をもった VPN サーバ及び VPN クライアントアプリケーションです。openvpn を使って VPN 接続したクライアントは openvpn サーバを中継して別のネットワークのサーバと通信することができます。
+
+ここでは openvpn に接続したサーバ及びクライアントに割り当てられるネットワークアドレス帯"192.168.200.0/24"からパケットが入力された場合に、他のネットワークへパケットをルーティングする設定を行います。
+
+\begin{commandline}
+# nft add table ip nat
+# nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
+# nft add rule ip nat postrouting oifname "eth0" ip saddr 192.168.200.0/24 masquerade 
+\end{commandline}
+
+openvpnを起動すると追加される"tun"インタフェースについても受信許可し、openvpnが利用するUDPとTCPの119番ポートの通信を受信許可に設定します。
+
+nftables の設定は以下になります。
+
+\begin{commandline}
+# nft list ruleset
+table ip filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        ct state { established, related } accept
+        ct state { invalid } drop
+        iifname "lo" accept
+        iifname "tun*" accept
+        icmp type { echo-reply, echo-request } accept
+        tcp dport ssh ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } accept
+        tcp dport 10022 ip saddr { 0.0.0.0-255.255.255.255 } accept
+        udp dport openvpn ip saddr { 0.0.0.0-255.255.255.255 } accept
+        tcp dport openvpn ip saddr { 0.0.0.0-255.255.255.255 } accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+table ip6 filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        iifname "lo" accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}  
+table ip nat {
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+        oifname "eth0" ip saddr 192.168.200.0/24 masquerade
+    }
+}
+\end{commandline}
+
+
+\subsection{おわりに}
+
+Debian 10 でデフォルトになった nftables を調べてみました。
+
+今後 nftables が主流になっていくと思われるため Debian 10 buster を使い始める方は nftables も合わせて使い始めてみてはいかがでしょうか。 
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+\item 「nftables - Debian Wiki」 \url{https://wiki.debian.org/nftables}
+\item 「netfilte.org」 \url{https://www.netfilter.org/}
+\item 「netfilter wiki」 \url{https://wiki.nftables.org/wiki-nftables/index.php/Main_Page}
+\item 「Linuxにおける新たなパケットフィルタリングツール「nftables」入門 - さくらのナレッジ」 \url{https://knowledge.sakura.ad.jp/22636/}
+\item 「nftables で基本的なフィルタリングを設定してみた - SIOS TECH.LAB」 \url{https://tech-lab.sios.jp/archives/16930}
+\end{itemize}
+
 %202005
-\dancersection{aptly}{岩松 信洋}
+\dancersection{Debian パッケージリポジトリの作成・管理ツール aptly}{岩松 信洋}
 %-------------------------------------------------------------------------------
 
 Debian パッケージリポジトリのミラー作成、独自のパッケージリポジトリ作成などを
@@ -2309,1079 +3382,6 @@ APIの機能はまだ足りてない部分も多く、使いづらいところ�
 dpkg-dev や apt-ftparchive 使いながらCI/CD環境を構築されている方はもちろん、
 会社のインフラ整備やDebian/Ubuntuをつかった製品開発をされている方やDebianパッケージ
 メンテナにも有用なツールです。これを機会に aptly へのきりかえを検討してみませんか。
-
-%202007
-\dancersection{10年ぶりのニューラルネットワーク}{野首貴嗣}
-
-過去、2010年3月に行われた第62回東京エリアDebian勉強会では
-「ニューラルネットワークで画像認識してみた」
-というタイトルで本庄弘典さんが発表をされていました。
-
-それから10年が経過した2020年7月現在、ニューラルネットワークをとりまく
-状況がどのように変化したかを俯瞰的に見ていきます。
-
-また、個人的に開発、公開している成果につても紹介します。
-
-\subsection{ニューラルネットワークのお気持ち}
-
-まず、ニューラルネットワークについての厳密ではない、なんとなくなお気持ちで
-概要を解説します。
-
-パーセプトロン(\url{https://ja.wikipedia.org/wiki/%E3%83%91%E3%83%BC%E3%82%BB%E3%83%97%E3%83%88%E3%83%AD%E3%83%B3})と呼ばれる、人間の脳(ニューロン)を模した演算ユニットがあります。
-これは入力信号Xに対し、重みWを乗じバイアスbを加算した結果Yをえる単純なユニットです。さらに、Yに対し活性化関数と呼ばれる関数を適用しその結果を分類タスクの結果として考えます。
-
-分類が正しいなら1を、間違っているなら0を返す関数と考え、実際に用意したデータをもちいて訓練を行います。訓練は、逆誤差伝播(バックプロパゲーション)という手法を使い、求められた結果と訓練データ上の正解との誤差を最小化するよう、重みを調整していきます。
-
-単一のパーセプトロンはANDやORを表現することができます。パーセプトロンの式は線形分離境界を表していると考えることで直感的に理解できるでしょう。
-さらには、XORは実現できないことも理解できると思います(1つの直線で分離できないため)。
-
-ニューロンを増やしたり、多段に接続することで、より複雑な非線形分離が可能となります。この段数が概ね4段以上になったものをディープラーニングと呼ぶことが多いようです。
-
-\subsection{ブレイクスルー}
-
-2012年に、Googleが''Using large-scale brain simulations for machine learning and A.I.''(\url{https://blog.google/topics/machine-learning/using-large-scale-brain-simulations-for/})というblog記事と論文
-(\url{http://static.googleusercontent.com/media/research.google.com/ja//archive/unsupervised_icml2012.pdf})
-を公開しました。
-16コアをもつマシン169台を駆使し、大量の画像を訓練することで教師なしで人体や猫の特徴を獲得したと話題になりました。このときに採用されたアーキテクチャはAutoAEncoderと呼ばれるものです。
-
-AutoEncoderは入力側と出力側が等しくなるように構成された多段ニューラルネットワークで、入出力画像よりも小さなベクトル表現によって、入力画像の特徴を獲得することができるものです。
-AutoEncoderが行っていることは、一種の次元圧縮ともいえます。ニューラルネットワークを用いない次元圧縮手法もありますが、多段ニューラルネットワーク(ディープラーニング)が実用になることを示した大きな一歩でした。
-
-\subsection{ブレイクスルー実現要素}
-
-従来のニューラルネットワークが抱えていた課題を解決した要素にはさまざまなものがあります。
-
-\begin{description}
-\item[計算資源の向上] \mbox{} \\
-  私がニューラルネットワークに触れた1995年の時点で、実際に利用されていたコンピュータのスペックは次のようなものでした。
-  \begin{itemize}
-  \item PA-RISC 25Mhz
-  \item メモリ16MB
-  \end{itemize}
-  そもそも利用可能なメモリが少なく、大きなニューラルネットワーク構造を持つこと自体が困難でした。現代においてはスマートフォンでも4GB程度のメモリを搭載するものも珍しくありません。
-\item[GPGPUの一般化] \mbox{} \\
-  CPU自体も当時と比較してかなり高速にはなりましたが、単一コアあたりの処理能力向上には限界が見えつつあります。一方でグラフィックス処理向けに設計されたGPUをより一般的なコンピューティングに応用する環境が整備されてきました。\\
-  GPUは特に並列計算を得意としており、多段ニューラルネットワークの演算とは非常に相性がよく、その方向へ進化していっています。
-\item[大規模データセットの拡充]  \mbox{} \\
-  Googleの猫の例で活躍したのは、Google photosやFacebook album等、画像データを大量に収集できるプラットフォームの存在でした。\\
-  さらに、ラベル(物体の種別情報)を付与したデータセットも増えていきます。これにはクラウドソーシングサービスの拡充(Amazon Mechanical Turk, Cloudworks等)も寄与しています。
-\item[技術的な進歩]  \mbox{} \\
-  多段ニューラルネットワークが抱えていた他の問題として、勾配消失/発散問題がありました。逆誤差伝播をする際に、層が増えることによって伝播すべき誤差がどんどん小さくなってしまったり、逆に大きくなったりする問題です。\\
-  要因の一つに、活性化関数があります。シグモイド関数を使うことが昔は一般的でしたが、この関数が取りうる値は0〜1しかありません。より幅広い値を扱える活性化関数(ReLU等のランプ関数)の出現により、より大きな勾配を扱えるようになりました。\\
-  また勾配のクリッピングによって、勾配爆発を抑えることができるようになりました。
-  その他Batch Normalizationなどの正規化手法も学習の安定化に寄与しています。
-\item[分散表現の活用]  \mbox{} \\
-  単語や抽象的なカテゴリーといったものを表現するために分散表現(埋め込み表現)が活用できることがわかり、自然言語処理などへの活用が広がりました。word2vecは単語埋め込み表現の最たる活用例です。
-\item[データ拡張]  \mbox{} \\
-  既存のデータを変形したり、ノイズをのせるなどのデータ拡張技術が主に画像認識分野で発達しています。これにより、学習データを水増しすることができ、認識制度向上に寄与しています。
-\item[教師データを必要としない学習]  \mbox{} \\
-  一般的な教師あり学習には正解データを用意する必要があり、その作成にはコストがかかります。一方でword2vecのような、教師データを必要としない手法が発達してきています。\\
-  既存のデータの一部をマスクしたり、並べ替えたりして正解を予想させることで、対象となるデータの特徴をうまく表現する情報を獲得することができます(表現学習)。
-\item[敵対的生成ネットワーク]  \mbox{} \\
-  生成モデルと識別モデルを組み合わせ、互いを競わせるように学習させることで、現実には存在しない画像などを生成する手法が提案され、広く使われています。
-\end{description}
-
-\subsection{環境}
-
-\begin{description}
-\item[データサイエンティストブーム] \mbox{} \\
-  2000年代よりデータサイエンティストブームが発生し、ゼロ年代は統計的手法が広まりました。
-  その流れは2010年台でも継続し、深層学習手法にも波及しています。
-  数多くのMOOCsプラットフォームも立ち上がり、安価で良質な学習環境が整備されています。
-\item[コンペティションの隆盛] \mbox{} \\
-  Kaggle, SIGNATEといったコンペティションサイトが立ち上がり、技術者の研鑽が日々なされています。
-\item[実行環境の充実] \mbox{} \\
-  かねてから GPGPU 環境は AWS, GCE などで提供されていましたが、それ以外にも無料でGPUの利用が可能なGoogle Colaboratoryといったサービスが使えるようになり、ブラウザさえあれば環境構築不要で機械学習が行えるようになりました。
-\end{description}
-
-\subsection{もたらされた変化}
-
-\begin{description}
-\item[人を越える精度/能力] \mbox{} \\
-  画像認識分野では、ImageNet(\url{http://image-net.org/})というデータセットでいかに高い認識精度を達成するか、という試みが行われています。2012年にディープラーニングベースの手法 AlexNet が登場して以来、急速にその精度は向上し、2015年には ResNet によって人間の認識能力を超える精度を達成しました(参考: \url{https://www.slideshare.net/ren4yu/ss-234439652/21})。\\
-  自然言語の分野でも、Stanford Question Answering Dataset (SQuAD) (\url{https://rajpurkar.github.io/SQuAD-explorer/})などで人間の正答率を超える正答率を達成しています。\\
-  問題を分類タスクに落とし込むことができ、十分な学習データを用意することができれば、機械学習モデルは人間を超える精度を達成できる可能性を示しています。
-\item[生成モデル] \mbox{} \\
-  たくさんの画像やテキストデータ、音楽データから、新しいデータを生成するモデルが広く使われるようになりました。\\
-  主に敵対的生成ネットワークによる成果ですが、テキストに関しては言語モデルベースの手法(GPT-2等)が主流です。\\
-  さらにこれらを応用することで、画像復元(inpainting)や自動着色、さらには描画支援(GauGAN)といったことが実現できています。
-\item[機械翻訳] \mbox{} \\
-  ディープラーニング以前の機械翻訳は統計ベースの手法が利用されていました。この手法はあまり流暢ではない文が生成されがちという欠点があったのですが、ニューラル機械翻訳によって、その問題は大きく改善されました。\\
-  一方でGPUが持つメモリがボトルネックとなり、語彙を多くもたせることが難しくなりました。そのため、単語より小さな単位(サブワード)でトークンを区切ることによって語彙を抑える手法が主流となってきています。\\
-  ニューラルネットワークの学習は多くがend-to-endで行えるため、正確な単語区切りや品詞を考慮しなくても良くなったという事情もあります。\\
-  その副作用として、多言語を一度に扱えるようにもなりました。サブワードより小さい、バイト単位で区切る手法もあります。この場合、デコード時に正しいバイト列であることを保証する必要性があります。
-\end{description}
-
-\subsection{新たな課題}
-
-ニューラルネットワーク固有の課題も登場しています。
-
-\begin{description}
-\item[翻訳ミス] \mbox{} \\
-  統計ベースの機械翻訳でも翻訳ミスはありましたが、ニューラル機械翻訳の場合、それを見つけることが難しくなっています。なまじ流暢な結果を出力してしまうため、注意深く見ないと訳抜けなどを見逃してしまいがちです。
-  また、統計ベースでは、原文と翻訳文のフレーズ対応が処理の関係上あきらかだったのですが、ニューラル機械翻訳ではend-to-endな学習になったことで、翻訳文と原文との対応づけが明らかでなくなったというデメリットもあります。\\
-  他に、逆の意味を出力してしまうことがある問題もあります。これも訳文の対応付けが不明瞭なため、原因をさぐることは難しい問題です。\\
-  同じ文言を繰り返し生成するという、ニューラル機械翻訳特有の問題もあります(参考事例: \url{https://www.slideshare.net/ToshiakiNakazawa/nlp2017-nmt-tutorial/79})。
-\item[データセットとバイアス] \mbox{} \\
-  近年よく問題としてとりあげられるものに、バイアスがあります。これは、学習に使ったデータセット内に偏りがあった場合、特に注意をしないとそれがそのまま機械学習モデルに反映されてしまいます。\\
-  たとえば、多くの場合英語で''sister''という単語は姉・妹の区別をつけることはあまりなく、機械翻訳でそれを日本語にした際に、文脈に応じて出現しやすい方に訳してしまうことが発生します。
-\item[敵対的サンプル] \mbox{} \\
-  人間が見るとパンダなのに、識別モデルにはテナガザルに見えるような画像が有名です(参考: \url{https://speakerdeck.com/settenqb/ji-jie-xue-xi-tosekiyuritei?slide=5})。このように機械翻訳モデルを騙す画像を生成する技術と、それを防衛する技術が互いにしのぎを削っています。
-\item[バックドア] \mbox{} \\
-  訓練に用いるデータセットに悪意あるデータを混ぜることで、バックドアを仕掛けるという手法もあります。クラウドソーシングなどを使う際には、用途によってはそのような問題があることを想定しておく必要もあるでしょう。
-\end{description}
-
-\subsection{フレームワーク}
-
-よく使わていた(いる)代表的なフレームワークには以下のものがあります。
-
-\begin{itemize}
-\item 古参
-  \begin{itemize}
-  \item Torch7
-  \item Caffe
-  \item Theano
-  \end{itemize}
-\item 現代的なもの
-  \begin{itemize}
-  \item Chainer
-  \item PyTorch
-  \item TensorFlow
-  \item Keras
-  \item Darknet
-  \end{itemize}
-\end{itemize}
-
-どれも多次元配列を扱うことができ、自動微分機能を備えています。
-
-\subsection{Web/JavaScriptランタイム}
-
-先に述べたようなフレームワークで訓練されたモデルを、ブラウザやJavaScriptで実行するフレームワークがいくつかあります。
-
-\begin{itemize}
-\item WebDNN
-  \begin{itemize}
-  \item https://mil-tokyo.github.io/webdnn/ja/
-  \item 日本発
-  \item 複数のフレームワークに対応
-  \item 現在開発はinactive
-  \end{itemize}
-\item TensorFlow.js
-  \begin{itemize}
-  \item https://www.tensorflow.org/js
-  \item TensorFlow公式
-  \item 訓練もサポート
-  \item 多くの訓練済みモデルを配布
-  \item https://github.com/tensorflow/tfjs-models
-  \end{itemize}
-\item ONNX.js
-  \begin{itemize}
-  \item https://github.com/microsoft/onnxjs
-  \item フレームワーク共通フォーマットONNXに対応
-  \item 対応している演算に制限あり
-  \end{itemize}
-\end{itemize}
-
-\subsection{作成したものの紹介}
-
-WebDNNを用いて、いくつかのデモサイトを公開しています。
-
-\begin{description}
-\item[edges2cats] \mbox{} \\
-  Chainerとpix2pixを用いて、猫の線画に着色をするモデルを公開しています (\url{http://pix2pix.daio.net/})。
-  公式のデモサイト \url{https://affinelayer.com/pixsrv/} でも同じことができますが、こちらは猫着色モデルのみ、訓練データを公開していません。それ以外のデモは訓練データを含め公開しているので再現可能です。\\
-  同じことをするために、猫画像収集スクリプトを公開しています \url{https://github.com/knok/pixabay-cat-images}。\\
-  猫画像から背景の除去は DilatedNetのkeras実装 \url{https://github.com/nicolov/segmentation_keras} とその訓練済みモデルを用いています (解説記事: \url{https://qiita.com/knok/items/6ad09cc870739dbd921b})。
-\item[Wasserstein AutoEncoder] \mbox{} \\
-  TensorFlowで実装されていた著者実装 \url{https://github.com/tolstikhin/wae} をもとに、Chainerへ移植し、2次元の潜在空間へ300程度のイラストを埋め込み、推論を行えるサイトとして公開しました \url{http://wae-friends.daio.net} 。
-\end{description}
-
-また、TensorFlow.jsと訓練済みモデルを利用したデモサイトも公開しています。
-
-\begin{description}
-\item[バーチャル背景] \mbox{} \\
-  訓練済みBodyPixモデル \url{https://github.com/tensorflow/tfjs-models/tree/master/body-pix}を用いてWebカムから人体部分のみを抽出(セマンティックセグメンテーション)し、背景用画像と合成して表示するサイトをGitHub Pagesで公開しています \url{https://knok.github.io/virtbg/} (ソースコード: \url{https://github.com/knok/virtbg})。\\
-  これ単体では配信などには使えませんが、OBS Studioのウィンドウキャプチャー機能とOBS-v4l2sinkを組み合わせれば、v4l2loopbackを利用可能な任意のサービスに応用できます(解説記事: \url{https://qiita.com/knok/items/b3eb87769151ac04efeb})。\\
-\item[VRM Thee.js PoseNet Sample] \mbox{} \\
-  既存の公開されていたコード \url{https://github.com/t-takasaka/vrm-three-posenet} をforkし、最近のAPIに合わせつつ再配布可能なVRMモデルに差し替えたものを公開しています \url{https://knok.github.io/vrm-three-posenet/} (ソースコード: \url{https://github.com/knok/vrm-three-posenet})。\\
-  こちらは訓練済みPoseNet \url{https://github.com/tensorflow/tfjs-models/tree/master/posenet} を利用しています。
-\end{description}
-
-\subsection{Debianにおける訓練済みモデルの扱い}
-
-2020年7月時点では、ニューラルネットワークの訓練済みモデルについて、まだ明確なポリシーは決まっていません。ドラフトレベルのものはあります \url{https://salsa.debian.org/deeplearning-team/ml-policy}。
-再現性のため、訓練データや訓練用コードを含んだ状態が望ましいという方向性で進みつつあります。\\
-その観点でいうと、TensorFlow Hubやtfjs-modelsはその条件を満たしていません。そういったものを用いるツールはおそらくmainとして配布されないのではないかと個人的には思っています。\\
-一方で、Deepでない機械学習訓練済みモデルは既に配布されている現状があります (例: OpenCVの識別モデル \url{https://salsa.debian.org/science-team/opencv/-/tree/master/data})。
-機械学習という分野自体でも再現性は重視されてはいますが、公開されている多くのものは研究用途に限定したデータセットや訓練済みモデルなのが現状です。
-プライバシーとの兼ね合いもあり、この問題の解決は難しいと思われます。
-
-\subsection{まとめ}
-
-2010年の勉強会から10年が経過し、ニューラルネットワークをベースとした機械学習手法は飛躍的な発展を遂げました。
-今ではWebブラウザやスマートフォンなどのモバイルデバイスで動作させることも容易になってきています。
-
-一方でニューラルネットワーク固有の問題や、データセットに起因する諸問題(バイアス、プライバシー等)もあります。
-
-DFSGに照らし合わせると、再現性を担保するようなデータセットや訓練コードを伴った訓練済みモデルの配布が望ましいところですが、その実現はなかなかむずかしそうです。
-
-%202008kansai
-\dancersection{Makefile から CMake に高速で入門する}{Yosuke OTSUKI}
-
-\subsection{はじめに}
-
-CMake はkitware 社によるマルチプラットフォームで使用できるビルドツールです。
-Unix 系の OS で使用されている gmake, ninja などを始め、Windows の nmake や Visual Studio の solution ファイルも出力できます。
-また、unit test と .rpm や .deb 形式 \footnote{debian 公式のパッケージの規格は満たしていません。あくまでも野良パッケージです。} の作成もできます。
-
-Go や Rust など最近のコンパイルが必要な言語は、言語独自のビルド・パッケージ機構を持っているものが多く CMake は必要ないと思います。
-しかし、C/C++, Fortran など古くてコンパイルが必要な言語には便利です。
-cmake は明文化されていない仕様が多く、熟練した技術者でも意外な使い方でハマることがあると思います。そこで本書では Makefile と CMakeLists.txt  を比較して cmake の習得時間を短くしようと思います。繰り返しになりますが、以下が狙いです。
-
-\subsection{本著の狙い}
-\begin{itemize}
-  \item{Makefile が書ける人が、CMakeLists.txt を書けるようになる手助けをする}
-  \item{CMake の明文化されてない仕様を説明して、はまらないようにする}
-\end{itemize}
-
-また、本著は CUI による cmake の使用を前提としています。IDE との連携は説明しません。\footnote{著者が cmake と IDE の連携に詳しくないのは秘密です。}
-サンプルはすべて、C 言語をビルドすることにします。
-ただし、パッケージングについては CMakeLists.txt のみの説明しています。
-なお、本著では執筆時時点の debian buster の環境で動作確認をしています。
-cmake のバージョンは 3.13.4-1 です。
-
-note: footnote に記載しているリンクは 2020/08/21  日時の時点ではアクセスを確認しています。
-\clearpage
-
-%==============================================================================
-\subsection{最初に単一ソースコードのビルド}
-%==============================================================================
-最初にサンプルでは C 言語のコードを単体ビルドすることにします。
-そのコードをビルドする Makefile を示したあとに、同じことを CMakeLists.txt で記述した例を示します。
-
-\vspace{1em}
-C 言語のコード
-\begin{commandline}
-#include <stdio.h>
-
-int main(){
-    printf("Hello World\n");
-    return 0;
-}
-\end{commandline}
-\vspace{1em}
-Makefile
-\begin{commandline}
-all: main.c
-	gcc -o hello_world $?
-\end{commandline}
-\vspace{1em}
-CMakeLists.txt
-\begin{commandline}
-# 必要となる最小の cmake のバージョンを指定
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
-
-# プロジェクト名 executable の名前になる
-project(hello_world)
-
-# 文字列を標準出力に出力する。変数 CMAKE_C_COMPILER は c コンパラの絶対パス。
-# cmake 実行後に生成される CMakeCache.txt の中に変数は記述される。
-message ("*** ${CMAKE_C_COMPILER}")
-
-# executable のビルド
-add_executable(hello_world main.c)
-
-# インストールのディレクトリ構成を GNU の構成にする (bin/, lib/ ...)
-include(GNUInstallDirs)
-
-# executable のみなので、bin のディレクトリをインストール対象にする
-install(TARGETS hello_world DESTINATION ${CMAKE_INSTALL_BINDIR})
-\end{commandline}
-
-cmake の syntax を説明をします。
-cmake\_minimum\_required は必須です。ただし、FATAL\_ERROR は省くことができます。
-project で対象となる executable の名前を決めています。
-add\_executable でプロジェクトのソースコードを指定し、ビルドします。
-include(GNUInstallDirs) で GNU のディレクトリ構造でインストールするようにしています。
-他の方法も使うことができますが、パッケージング時に絶対パスとなってしまうのでこの方法がおすすめです。
-
-CMakeLists.txt には autools の dist clean に相当するコマンドが存在しません。
-そのため、作業用のディレクトリを作りその中で cmake を呼び出します。(ここでは build という作業用のディレクトリを作ります)
-そうすることで、ソースコードのディレクトリに一時的なファイルを作らなくて良くなります。
-\footnote{cmake だけの用語かもしれませんが out of source build と呼ばれる方法です。}
-ただし、OSS プロジェクトの中にはソースコードでビルドの実行を要求するものもあります。
-以下のコマンドを実行して、autools の configure に相当することをします。
-
-\vspace{1em}
-実行コマンド
-\begin{commandline}
-mkdir build
-cd build
-
-# autools の configure に相当。-G で出力するビルドシステムを指定 (省略可能)
-cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=`pwd`/build ../
-
-make
-make install
-cd ..
-\end{commandline}
-正常終了すると 00.hello\_world/hello\_world が生成されます。
-
--G はcmake generator option です。省略するとデフォルトの Makefile が生成されます。
-使用できる generator については、cmake -G で確認してください。
-使用している OS によって異なります。\footnote{https://cmake.org/cmake/help/v3.18/manual/cmake-generators.7.html}
-
-build/CMakeCache.txt を調べてみましょう。
-ビルドに使用する linker, archiver や インストール先のディレクトリなどが記載されています。
-中には、デフォルトで値が決まっているものもあります。
-ここでは、autools の \-\-prefix に相当する CMAKE\_INSTALL\_PREFIX を使って cmake の変数の上書きについて説明します。
-CMAKE\_INSTALL\_PREFIX はデフォルトでは /usr/local が値としてされています。
-cmake では基本的には変数の上書きは推奨されていません。 \footnote{set(CMAKE\_INSTALL\_PREFIX /home/yosukesan PATH FORCE "") などで強制的な上書きは可能です。}
-その代わりに、cmake の起動時に -D\{変数名\} として変数の初期値を与える方法が一般的です。
-
-%==============================================================================
-\subsection{外部ライブラリのリンク}
-%==============================================================================
-
-次に外部のライブラリとリンクをしてみましょう
-説明のために、共有ライブラリと静的ライブラリを直接リンクします。
-その後、一般的なプロジェクトで利用される共有・静的リンクどちらでも使用できる方法を紹介します。
-以下の C 言語のコードのように pthread を使いたい場合を例とします。
-
-\vspace{1em}
-C 言語
-\begin{commandline}
-#include <pthread.h>
-#include <stdio.h>
-
-void *work(void* parg){
-    int *val = (int*)parg;
-    printf("worker tid=%d\n", *val);
-    *val = 100;
-}
-
-int main (){
-    pthread_t handle; 
-    int data = 0;
-
-    pthread_create(&handle, NULL, work, &data);    
-    pthread_join(handle, NULL);
-    printf("final = %d\n", data);
-
-    return 0;
-}
-\end{commandline}
-
-例えば、Makefile で共有ライブラリをリンクする場合、以下のように書きます。
-
-\vspace{1em}
-Makefile
-\begin{commandline}
-shared: main.c
-	gcc $? -lpthread
-static: main.c
-	gcc $? /usr/lib/x86_64-linux-gnu/libpthread.a
-\end{commandline}
-
-\subsubsection{共有ライブラリ}
-
-では、cmake でビルドする例を見ていきましょう。
-共有ライブラリのリンクは比較的簡単に行なえます。
-
-\vspace{1em}
-CMakeLists.txt
-\begin{commandline}
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
-
-project(pthread_task)
-add_executable(pthread_task main.c)
-
-# プロジェクトとリンクするライブラリ名を指定すれば良い。システムライブラリならば、自動的に見つけてくれる。
-# なお、先頭の lib は自動的に保管されるので付けてはいけない。 (libpthread.so)
-target_link_libraries(pthread_task pthread)
-
-include(GNUInstallDirs)
-install(TARGETS pthread_task DESTINATION ${CMAKE_INSTALL_BINDIR})
-\end{commandline}
-
-新しく、target\_link\_library() というコマンドを使いました。
-使い方については、スクリプト中のコメントを参照してください。
-pthread に拡張子 (.so か .a) を付けない場合、共有ライブラリがリンクされます
-cmake の実行は先の例と同じです。
-
-\subsubsection{静的ライブラリ}
-
-次に、静的なリンクをする方法を説明します。
-共有ライブラリと異なる方法を使用します。\footnote{試した限り、共有ライブラリと同じ方法でもビルドはできました。しかし、Seg ります。これにどハマリしました。}
-
-\vspace{1em}
-CMakeLists.txt
-\begin{commandline}
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
-
-project(pthread_task)
-add_executable(pthread_task main.c)
-
-# cmake のライブラリ用のプロジェクトに外部ライブラリをインポートする。
-add_library(libpthread STATIC IMPORTED)
-
-# ライブラリの path を指定
-set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION /usr/lib/x86_64-linux-gnu/libpthread.a)
-
-# ヘッダーの path を指定
-set_target_properties(libpthread PROPERTIES INTERFACE_INCLUDE_DIRECTORIES /usr/include)
-
-target_link_libraries(pthread_task libpthread)
-include (GNUInstallDirs)
-install(TARGETS pthread_task DESTINATION ${CMAKE_INSTALL_BINDIRS})
-\end{commandline}
-
-add\_library というコマンドを追加しました。
-静的なライブラリをリンクする場合は、一度 cmake のライブラリのオブジェクトにインポートする必要が有ります。
-
-\subsubsection{推奨する方法 find\_package()}
-
-今までの方法では、ライブラリの絶対パスを明示的に指定してきました。
-しかし、ビルドに必要な複数のライブラリの絶対パスを、全て記述するのは効率的ではありません。
-また、テスト時などはインストール先を、システムパスではない PATH にするかもしれません。
-
-そのような場合、find\_package() というコマンドを使用します。\footnote{\url{https://discourse.cmake.org/t/how-to-statically-link-external-library-by-target-link-libraries/1718}}
-特定のパッケージについて、検索用の cmake スクリプトを書いておくと、find\_package() を呼び出すだけで、指定されたルートディレクトリから自動的に lib と include のパスを検索してくれます。
-
-\vspace{1em}
-CMakeLists.txt
-\begin{commandline}
-cmake_minimum_required(VERSION 3.13)
-project(pthread_task)
-
-# thread の中で pthread が使いたいのでフラグを立てる
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-
-# thread ライブラリを検索。findThread.cmake が提供されているので使えるコマンド
-find_package(Threads REQUIRED)
-
-add_executable(pthread_task main.c)
-
-# thread ライブラリをリンク
-target_link_libraries(pthread_task PRIVATE Threads::Threads)
-
-include(GNUInstallDirs)
-install(TARGETS pthread_task DESTINATION ${CMAKE_INSTALL_BINDIR})
-\end{commandline}
-
-pthread のような一般的なものは、検索用のスクリプトが cmake に備わっています。\footnote{\url{https://cmake.org/cmake/help/latest/module/FindThreads.html}}
-しかし、特定の用途でしか使わないライブラリの場合、例えば gmp などは自分で検索用のスクリプトを準備する必要があります。\footnote{\url{https://github.com/shohirose/cmake-find-package/blob/master/FindGMP.cmake}}
-FLOSS が cmake をビルドシステムとしている場合、多くの場合検索用のスクリプトも提供される場合が多いです。
-例えば、kitware 社の VTK ライブラリでは、ソースコードとともに findVTK.cmake というスクリプトが提供されています。
-
-%==============================================================================
-\subsection{分割コンパイルとリンク}
-%==============================================================================
-
-この例では、自分で作成したライブラリと自分の executable にリンクします。
-この例でも共有と静的なリンクの方法を説明します。
-分割コンパイルは、外部ライブラリのリンクほど難しくはありません。
-
-整数の変数を入力引数とし、1 を加算して返す簡単な関数を自作しました。
-
-\vspace{1em}
-my\_inc.h
-\begin{commandline}
-#pragma once
-
-extern int inc(int val);
-\end{commandline}
-
-\vspace{1em}
-my\_inc.c
-\begin{commandline}
-#include <stdio.h>
-#include "my_inc.h"
-
-int inc(int val){
-    printf("%d\n", ++val);
-}
-\end{commandline}
-
-\vspace{1em}
-main.c
-\begin{commandline}
-#include "my_inc.h"
-
-int main(){
-    int val = 0;
-    inc(val);
-    return 0;
-}
-\end{commandline}
-
-\vspace{1em}
-Makefile
-\begin{commandline}
-CFLAGS=-W -Wall
-CC=gcc
-
-.PHONY: libmyinc
-
-all: libmyinc
-	gcc $(CFLAGS) main.c libmyinc.so
-
-libmyinc: my_inc.c
-	gcc $(CFLAGS) -shared -o libmyinc.so -fPIC $?
-
-clean:
-	rm *.o *.so *.out
-\end{commandline}
-上記の Makefile に対応する CMakeLists.txt は以下です。
-\vspace{1em}
-CMakeLists.txt
-\begin{commandline}
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
-project(sample)
-
-# 共有ライブラリをビルドする
-add_library(my_inc SHARED my_inc.c)
-
-add_executable(sample main.c)
-target_link_libraries(sample my_inc)
-
-include(GNUInstallDirs)
-install(TARGETS my_inc DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS sample DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(TARGETS my_inc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-\end{commandline}
-
-動的なリンクでも、静的なリンクでもcmake の実行は先の例と同じです。
-add\_library() というコマンドを追加しました。共有ライブラリを作成する場合は SHARED、STATIC と記述すると静的ライブラリが生成されます。何も記述しない場合は、共有ライブラリが生成されます。
-
-\clearpage
-
-%==============================================================================
-\subsection{ctest で単体テスト}
-%==============================================================================
-
-自作のライブラリと自作のアプリのビルドができるようになったので、単体テストを組み込みます。
-先程の、my\_inc() コマンドをテストする test() というコマンドを書いた test.c というソールコードを追加しました。このソースコードをビルドして単体テストを実行しましょう。
-
-\vspace{1em}
-test.c
-\begin{commandline}
-#include <stdbool.h>
-#include <assert.h>
-
-#include "my_inc.c"
-
-bool test ()
-{
-    assert(inc(0) == 1);
-    assert(inc(65535) == 65536);
-
-    return true;
-}
-
-int main(){
-    return test() ? 0 : -1;
-}
-\end{commandline}
-
-\vspace{1em}
-Makefile
-\begin{commandline}
-CFLAGS=-W -Wall
-CC=gcc
-ld_lib_path=
-
-.PHONY: libmyinc
-
-all: libmyinc
-	gcc $(CFLAGS) main.c libmyinc.so
-
-libmyinc: my_inc.c
-	gcc $(CFLAGS) -shared -o libmyinc.so -fPIC $?
-
-test:
-	gcc $(CFLAGS) -o test.out test.c libmyinc.so
-	echo -e "#!/bin/bash -x\nexport LD_LIBARY_PATH=`pwd`\n./test.out"
-
-clean:
-	rm *.o *.so *.out *.sh
-\end{commandline}
-
-\vspace{1em}
-MakeLists.txt
-\begin{commandline}
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR) 
-project(sample)
-add_library(my_inc my_inc.c)
-add_executable(sample main.c)
-target_link_libraries(sample my_inc)
-
-enable_testing()
-add_executable(test_sample test.c)
-target_link_libraries(test_sample my_inc)
-message ("${PROJECT_SOURCE_DIR}")
-add_test(NAME unit_test COMMAND $<TARGET_FILE:test_sample> WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
-
-include(GNUInstallDirs)
-install(TARGETS sample DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(TARGETS my_inc DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES my_inc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-\end{commandline}
-
-enable\_testing() と add\_test() というコマンドを追加しました。
-テストを実行するために、CMAKE\_BUILD\_TYPE という変数を実行時に指定して、初期化をしています。
-これは ctest を実行する場合、デフォルトの BUILD\_TYPE が実行対象に含まれないためです。 
-
-\begin{commandline}
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/../  -DCMAKE_BUILD_TYPE=Release ../
-make
-
-# --stop-on-failure テストに失敗したところで停止
-# --verbose 詳細なメッセージを出す。実行したテストの絶対パスを表示してほしいので使っている
-ctest --stop-on-failure --verbose
-make install
-cd ..
-\end{commandline}
-
-ctest コマンドでテストを実行します。 
-引数なしでも実行は可能ですが、おすすめはサンプルの通りです。
-
-%==============================================================================
-\subsection{パッケージング}
-%==============================================================================
-
-今まで説明してきたものをすべて追加して、lib の作成、executable の作成をした後に単体テストを行い、パッケージングをするスクリプトが以下です。
-CMake は正式な Debian の基準に沿った .deb は生成できません。
-しかし、複数の形式のパッケージングに対応しているので社内ツールなど、それほど品質が必要ないものには便利かもしれません。
-
-\begin{commandline}
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
-
-project(sample)
-add_library(my_inc SHARED my_inc.c)
-add_executable(sample main.c)
-target_link_libraries(sample my_inc)
-
-enable_testing()
-add_executable(test_sample test.c)
-target_link_libraries(test_sample my_inc)
-message ("${PROJECT_SOURCE_DIR}")
-add_test(NAME unit_test COMMAND $<TARGET_FILE:test_sample> WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
-
-include(GNUInstallDirs)
-install(TARGETS sample DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(TARGETS my_inc DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES my_inc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-# prerequisite apt-get install build-essetial rpm
-# .deb と .rpm をパッケージングする
-set (CPACK_GENERATOR "DEB" "RPM")
-set (CPACK_DEBIAN_PACKAGE_MAINTAINER "yosukesan")
-set (CPACK_PACKAGE_VERSION_MAJOR "0")
-set (CPACK_PACKAGE_VERSION_MINOR "1")
-include (CPack)
-\end{commandline}
-
-上記の例では、.deb と .rpm を作成します。
-cmake は debuild と rpmbuild を呼び出して実行するので、もしインストールしていない場合はコメント行の apt を実行してください。
-
-上記のスクリプトを実行する場合は、以下で実行してください。
-cpack でパッケージングを行っています。
-今回は .deb と .rpm のみですが FreeBSD, Qt, MacOS, Windows (Wix) などにも対応しています\footnote{\url{https://cmake.org/cmake/help/v3.13/manual/cpack-generators.7.html}}。
-
-\begin{commandline}
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=`pwd`/../  -DCMAKE_BUILD_TYPE=Release ../
-make
-ctest
-cpack
-cd ..
-\end{commandline}
-
-先に説明しましたが include (GNUInstallDirs) を指定して CMAKE\_INSTALL\_\{BINDIR, LIBDIR, INCLUDEDIR\} をインストール先にしています。
-このようにしないと、インストール先が絶対パスとして格納されたパッケージが出来上がってしまいます。
-
-\subsection{まとめ}
-
-Makefile と CMakeLists.txt を対比しつつ説明してきました。
-Windows のネイティブ環境にも対応しているので、複数の OS に対してバイナリーを出力しなければならないときなどには便利です。
-
-最後に私は以下ぐらいしか記憶していません。下記のキーワードで検索して、コマンドの仕様や、関連する仕様について cmake のドキュメントを読んだり、使用例を探したりしています。
-\begin{itemize}
-  \item{add\_executable() : executable のビルド}
-  \item{add\_library() : ライブラリのビルド}
-  \item{target\_link\_library() : executable とライブラリのリンク}
-  \item{install() : make install をやるためのコマンド}
-  \item{ctest, enable\_testing() and add\_test() : 単体テストに必要}
-  \item{cpack : パッケージングのコマンド}
-\end{itemize}
-
-\subsection{参考文献}
-
-\begin{itemize}
-\item \url{http://opencv.jp/cmake/cmake_tutorial.html} (accessed 2020/Aug/20th)
-\item \url{https://www.qoosky.io/techs/814fda555d} (accessed 2020/Aug/20th)
-\item \url{https://blog.usejournal.com/creating-debian-packages-cmake-e519a0186e87?gi=1efc3589ce87} (accessed 2020/aug/20th)
-\end{itemize}
-
-%\vspace{\fill}
-%本資料は GPL v 2.0 のライセンスで公開いたします。
-
-%202010
-%-------------------------------------------------------------------------------
-\dancersection{DebianでのRust}{上川純一}
-%-------------------------------------------------------------------------------
-
-Rust\cite{rustsite}というプログラミング言語をご存知ですか？私はC++よりメモリ管理
-などが便利になっていてコンパイルさえ通ると大体メモリの所有権についての問題が解決
-しているということで勉強してみることにしました。
-
-執筆時点ではVersion 1.47.0が公開されており、比較的安定しているようです。
-
-良い解説書\cite{rustbook}がオンラインにあり、日本語にも活発に翻訳\cite{rustjp}さ
-れているようです。
-
-しかしどうもDebianにはFirefoxのビルドに必要だからパッケージされているだけのよう
-な気がしなくもない。
-
-\subsection{DebianユーザとしてRustプログラムを書いてみる}
-
-まず入門書を読み始めるとおもむろにRustのサイトからバイナリパッケージをインストー
-ルするためにシェルスクリプトをウェブからダウンロードしてきて実行するように書いて
-あります。
-
-\begin{commandline}
-$ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
-\end{commandline}
-%$ -- for emacs
-
-しかしインストールの副作用は何があるのかとかを確認したいし、アンインストールする
-ときに何をしたら良いのかなど考えるのが面倒ですよね。そこでDebianユーザとしてはパッ
-ケージを利用したい。Debianのパッケージを利用するにはどうしたらよいかを解説します。
-
-\begin{commandline}
-$ sudo apt install cargo rustc 
-\end{commandline}
-%$ -- for emacs
-
-まずBusterでは最初にリリースされたときは1.33\footnote{2019年2月28日にリ
-リース}だったのですが２０２０年９月に比較的新しい1.41.1\footnote{2020年2
-月27日にリリースされているようです
-\url{https://blog.rust-lang.org/2020/02/27/Rust-1.41.1.html}}にアップデー
-トされました。firefox-esr のセキュリティーアップデートの依存関係だったよ
-うです。The Rust Book\cite{rustbook}が1.41.0を前提としているのでまぁこれ
-でいいんじゃないでしょうか。
-
-\subsubsection{エディタの設定}
-
-Emacsを使っているのならelpa-rust-modeを入れておきましょう。
-
-\begin{commandline}
-$ sudo apt install elpa-rust-mode  # for local emacs.
-\end{commandline}
-%$ -- for emacs
-
-
-Vim は\url{https://github.com/rust-lang/rust.vim#installation}にたくさん
-書いてあるのですがちょっとよくわかってません。
-
-\subsubsection{シンプルなプログラムを書く}
-
-チュートリアルに従ってプログラムを書いてみます。
-
-\begin{commandline}
-fn main() {
-   println!("Hello, world!");
-}
-\end{commandline}
-
-コンパイルして実行してみます。
-
-\begin{commandline}
-$ rustc helloworld.rs 
-$ ./helloworld
-Hello, world! 
-\end{commandline}
-
-\subsubsection{Cargoを使う}
-
-Rustcを直接つかうよりはCargoというビルド管理ツールを使うことが多いようで
-す。テンプレートの生成からビルドやテストの実行までやってくれます。Crate
-とよばれるRustのパッケージシステムが利用できるようになります。
-
-Cargo関連のファイルはホームディレクトリ以下の\verb!~/.cargo/! に作成され
-ます。
-
-cargo newでプロジェクトのテンプレートが作成され、Hello world とだけ出力
-するsrc/main.rsが生成されます。cargo buildでビルド。cargo runで実行、
-cargo testでテストが実行されます。
-
-\begin{commandline}
-$ cargo new 名前
-$ cd 名前
-$ cargo build
-$ cargo run
-Hello, world!
-$ cargo clean
-\end{commandline}
-%$ -- for emacs
-
-Cargo.tomlというファイルに依存関係を記述することができます。このCrateパッ
-ケージインストールはDebianの管理下ではなくユーザのホームディレクトリ以下
-にインストールされます。
-
-\subsection{Docker で使うには}
-
-Dockerイメージで使うということもあるでしょう。公式で提供されているDocker
-イメージがあるのでそれを使うのが手っ取り早いと思われます。Debianのパッケー
-ジを使いたい場合はパッケージをインストールすればよいです。
-
-\begin{commandline}
-FROM debian
-
-RUN apt-get clean && apt-get update && apt-get install -yq \
-      make \
-      rustc \
-      && apt-get clean
-\end{commandline}
-
-しかしながらDockerhubにはすでに公式のDockerイメージが提供されており、
-rustパッケージはDebian BusterにRustupでRustの最新版をインストールしたも
-のになっています\cite{docker:rust}。パッケージとして提供されていないのは
-気になりますがDockerイメージの中なのでアンインストールの方法などを考える
-必要がなく、影響範囲が限定されており、便利に使えそうです。
-
-\begin{commandline}
-FROM rust 
-\end{commandline}
-
-
-\subsection{Debian Developer としてのRustパッケージ}
-
-Rustパッケージをメンテンスしているチーム\cite{rust:debianwiki}がいるので
-Wikiページなどに情報がまとまっています。Crateのパッケージングについての
-資料\cite{debcargo-conf}に解説があります。
-
-パッケージのためのツールとしてdebcargoというものを使うようです。
-
-\begin{commandline}
-$ apt update && apt install debcargo
-\end{commandline}
-%$ -- for emacs
-
-おそらく一番の困難は、RustのCrateは複数のバージョンが共存できるように作
-られているのですが、Debian側のポリシーとしては単一のバージョンのライブラ
-リをできるだけ使いたいです。そうすると古いバージョンを要求される場合はそ
-れをできるだけ新しいバージョンで置き換えることになるでしょう。大量にパッ
-チを書くことになりそうです。
-
-debcargo の動作原理ですが、Cargoの利用するcargo.tomlファイル
-\cite{cargo-toml}に依存関係の情報があるのでそれを利用してDebianパッケー
-ジを生成するようです。
-
-\begin{thebibliography}{1}
- \bibitem{rustbook} \url{https://doc.rust-lang.org/book/}
- \bibitem{rustsite} \url{https://www.rust-lang.org/}
- \bibitem{rustjp} ``Rustの日本語ドキュメント/Japanese Docs for Rust''
-	 \url{https://doc.rust-jp.rs/}
- \bibitem{rust:debianwiki} \url{https://wiki.debian.org/Teams/RustPackaging}
- \bibitem{debcargo-conf} ``Packaging a crate for Debian''
-	\url{https://salsa.debian.org/rust-team/debcargo-conf/blob/master/README.rst}
- \bibitem{cargo-toml} ``The Manifest Format''
-	\url{https://doc.rust-lang.org/cargo/reference/manifest.html}
- \bibitem{docker:rust} ``Rust -- Docker Official Images'' \url{https://hub.docker.com/_/rust} 
-\end{thebibliography}
-
-%202011
-%-------------------------------------------------------------------------------
-\dancersection{DebianでのPython}{杉本典充}
-%-------------------------------------------------------------------------------
-
-\subsection{はじめに}
-
-Debian では多くのプログラム言語の実行環境、ライブラリ及びアプリケーションのパッケージを多数提供しています。今回はPythonについてDebianではどのようにパッケージをメンテナンスしているのかを調べてみました。
-
-\subsection{Pythonについて}
-
-Python とは Debian などの linux 環境のみならず他の OS でも実行することが可能な
-マルチプラットフォームのプログラミング言語の1つです。
-2015年に機械学習のプラットフォームである tensorflow がオープンソース化され、 tensorflow には Python のライブラリが豊富なことから Python の人気が上がってきています。
-
-Pythonのwebサイト（\url{https://www.python.org/}） では
-初心者向けのチュートリアル\footnote{\url{https://www.python.org/about/gettingstarted/}}、
-Pythonの言語仕様やクラス・関数の仕様書\footnote{\url{https://docs.python.org/3/}}などの多くの情報を公開しています。特に開発者向けの情報ではPEP（Python Enhancement Proposals）\footnote{\url{https://www.python.org/dev/peps/}}と呼ばれるPythonを
-よりよくするための提案の募集と公開しており\footnote{DebianにもDEPという似たような仕組みがあります。\url{https://dep-team.pages.debian.net/}}、コーディング規約やライブラリの廃止勧告、互換性の説明など多岐にわたる情報を公開しています。
-
-
-\subsection{DebianにおけるPython情報の取り扱いについて}
-
-\subsubsection{基本な情報}
-
-Debian における Python 関連の情報は以下ページにまとまっています。
-
-\begin{itemize}
-\item Python - Debian Wiki \url{https://wiki.debian.org/Python/}
-\item Debian Python Policy \url{https://www.debian.org/doc/packaging-manuals/python-policy/}
-\end{itemize}
-
-Debian Project では、Python の実行環境をメンテナンスするチーム（cpython-team）とライブラリ及びアプリケーションをメンテナンスするチーム（Debian Python Team）の2つに分かれて活動しています。2つのチームの主な違いを表\ref{tb:pythonteam}に示します。
-
-\begin{table}[htb]
-  \begin{center}
-  \caption{Debian ProjectにおけるPythonのチーム情報}
-  \begin{tabular}{|c|c|c|} \hline
-    チーム名 & cpython-team & Debian Python Team（DPT） \\ \hline
-    役割 & 実行環境のメンテナンス & ライブラリとアプリケーションのメンテナンス \\ \hline
-    メーリングリスト & debian-python@lists.debian.org & （同左） \\ \hline
-    IRC & \#debian-python & （同左） \\ \hline
-    wiki & - & \url{https://wiki.debian.org/Teams/PythonTeam} \\ \hline
-    gitリポジトリ & \url{https://salsa.debian.org/cpython-team} & \url{https://salsa.debian.org/python-team} \\ \hline
-  \end{tabular}
-  \label{tb:pythonteam}
-  \end{center}
-\end{table}
-
-「Debian Python Policy」\footnote{\url{https://www.debian.org/doc/packaging-manuals/python-policy/}} を読んでみて、パッケージの話で大事そうなところを以下に挙げてみます。
-
-\begin{itemize}
-\item python3 へ移行しましょう
-\item python のインタプリタのディレクトリ配置やファイル名の規則（例：/usr/bin/python3、/usr/bin/python3.8）
-\item python ライブラリのパスの規則（debian パッケージでは /usr/lib/python{3,2.7}/dist-packages/ 配下に配置する）
-\item python のライブラリやアプリケーションの debian パッケージ名の命名規則（pythoh3 系用であれば python3-* の形式とすると、モジュール名にアンダースコアが入っている場合は debian パッケージ名ではハイフンに置換すること）
-\item pythonプログラムについて
-  \begin{itemize}
-  \item シェバンには \#!/usr/bin/env interpreter\_name は使わないこと
-  \item \#!/usr/bin/python3 または \#!/usr/bin/python3.y としてdebianが提供するデフォルトのバージョンを指定すること
-  \end{itemize}
-\item python の debian パッケージ化を支援するための debhelper の拡張として dh-python パッケージがある
-\end{itemize}
-
-
-\subsubsection{cpython-teamについて}
-
-cpython-team チームの \url{https://salsa.debian.org/groups/cpython-team/-/group_members} に表示されるメンバーは Matthias Klose（@doko） さん1名のみです。
-
-Klose さんが メンテナンスしている \url{https://tracker.debian.org/pkg/python3.9} を確認してみると、maintainer にはチームでなく Klose さんの名前が書いてあります。そのため 1 人でメンテナンスしているようです。
-
-2020 年 11 月 時点の unstable においては python-2.7、3.8、3.9 のパッケージを提供しており、現在は python-3.9 のデバッグ作業を行っています\footnote{\url{https://bugs.debian.org/cgi-bin/pkgreport.cgi?tag=python3.9;users=debian-python@lists.debian.org}}。
-
-
-\subsubsection{Debian Python Team（DPT）について}
-
-Debian Python Team（DPT）のメンバーは \url{https://wiki.debian.org/Teams/PythonTeam} に記載があり、2020 年 11 月現在では 20 名でメンテナンスしているようです。チームでメンテナンスしているパッケージの一覧は次のURLで見ることができます。
-
-\begin{itemize}
-\item \url{https://qa.debian.org/developer.php?email=team%2Bpython%40tracker.debian.org}
-\end{itemize}  
-
-
-Debian Python Team（DPT）に参加するには チームのポリシードキュメントを読み、応諾した上で参加することを求めています。チームのポリシーを記載したドキュメントは以下のページにあります。
-
-\begin{itemize}
-\item \url{https://salsa.debian.org/python-team/tools/python-modules/blob/master/policy.rst}
-\end{itemize}  
-
-このページに記載しているポリシーにはおおよそ以下の内容が書かれています。
-
-\begin{itemize}
-\item チームへ参加方法
-  \begin{itemize}
-  \item 以下3つを書いたメールを debian-python@lists.debian.org へ送信する
-    \begin{itemize}
-    \item なぜ参加したいのか
-    \item \url{https://salsa.debian.org} にログインするアカウント名
-    \item ポリシードキュメント（policy.rst）を読み、受諾することの宣言
-    \end{itemize}
-  \end{itemize}
-\item パッケージメンテナンスについて
-  \begin{itemize}
-  \item debian パッケージ内の debian/control ファイルの Maintainer フィールド及び Uploaders フィールドの意味
-  \item git-buildpackage を使ったパッケージメンテナンスの説明
-  \end{itemize}
-\end{itemize}
-
-また、Python のパッケージを作るにあたっては debian/control、debian/rules などのファイルの書き方の説明が以下のページ記載されています。
-
-\begin{itemize}
-\item \url{https://wiki.debian.org/Python/LibraryStyleGuide}
-\item \url{https://wiki.debian.org/Python/AppStyleGuide}
-\end{itemize}
-
-
-\subsubsection{pypiパッケージをdebianパッケージに変換する}
-
-プログラム言語にはそれぞれライブラリやアプリケーションをパッケージ化して配布するサイトを持っていることが多いです。そして Debian ではそれぞれのプログラム言語のライブラリを debian パッケージへ変換する debian パッケージを配布しており、以下のページに情報があります。
-
-\begin{itemize}
-\item \url{https://wiki.debian.org/AutomaticPackagingTools}
-\end{itemize}
-    
-Python におけるライブラリやアプリケーションの配布サイトは \url{https://pypi.org/} が有名です。上記 URL で紹介している Python 向けの debian パッケージへの変換ツールは「python3-stdeb」 パッケージに入っている「py2dsc-deb」コマンドがよさそうに思いました\footnote{pypi2debパッケージは依存パッケージがとても多くperl関連のパッケージが大量にインストールされます。}。
-
-試しに py2dsc-deb コマンドを使って pypi が配布するパッケージを debian パッケージに変換してみました。debian/compatバージョンは "9" として変換しているようです。
-
-\begin{commandline}
-$ sudo apt-get install python3-stdeb python-all dh-python
-$ wget https://files.pythonhosted.org/packages/53/20/4019a739b2eefe9282d3822ef6a225250af964b117356971bd55e274193c/ws4py-0.5.1.tar.gz
-$ py2dsc-deb ws4py-0.5.1.tar.gz
-$ ls -l deb_dist
-l合計 128
--rw-r--r-- 1 norimitu norimitu 38224 11月 19 13:58 python3-ws4py_0.5.1-1_all.deb
-drwxr-xr-x 8 norimitu norimitu  4096 11月 19 13:58 ws4py-0.5.1
--rw-r--r-- 1 norimitu norimitu   916 11月 19 13:58 ws4py_0.5.1-1.debian.tar.xz
--rw-r--r-- 1 norimitu norimitu   869 11月 19 13:58 ws4py_0.5.1-1.dsc
--rw-r--r-- 1 norimitu norimitu  5480 11月 19 13:58 ws4py_0.5.1-1_amd64.buildinfo
--rw-r--r-- 1 norimitu norimitu  1024 11月 19 13:58 ws4py_0.5.1-1_amd64.changes
--rw-r--r-- 1 norimitu norimitu  5419 11月 19 13:58 ws4py_0.5.1-1_source.buildinfo
--rw-r--r-- 1 norimitu norimitu  1377 11月 19 13:58 ws4py_0.5.1-1_source.changes
--rw-r--r-- 2 norimitu norimitu 51408  2月 26  2020 ws4py_0.5.1.orig.tar.gz
-
-$ cat deb_dist/ws4py-0.5.1/debian/compat
-9
-\end{commandline}
-
-また、python のパッケージをインストールするコマンド "pip" でインストールしたときに binding ライブラリのコンパイルも一緒に行うライブラリ "mysqlclient" を試してみると、以下のコマンドで debian パッケージに変換できました。
-
-\begin{commandline}
-$ sudo apt-get install python3-stdeb python3-all-dev dh-python libmysqlclient-dev
-$ wget https://files.pythonhosted.org/packages/a5/e1/e5f2b231c05dc51d9d87fa5066f90d1405345c54b14b0b11a1c859020f21/mysqlclient-2.0.1.tar.gz
-$ py2dsc-deb mysqlclient-2.0.1.tar.gz
-$ ls -l deb_dist
-合計 264
-drwxr-xr-x 11 norimitu norimitu  4096 11月 19 14:15 mysqlclient-2.0.1
--rw-r--r--  1 norimitu norimitu  1236 11月 19 14:15 mysqlclient_2.0.1-1.debian.tar.xz
--rw-r--r--  1 norimitu norimitu   927 11月 19 14:15 mysqlclient_2.0.1-1.dsc
--rw-r--r--  1 norimitu norimitu  6192 11月 19 14:15 mysqlclient_2.0.1-1_amd64.buildinfo
--rw-r--r--  1 norimitu norimitu  1394 11月 19 14:15 mysqlclient_2.0.1-1_amd64.changes
--rw-r--r--  1 norimitu norimitu  5795 11月 19 14:15 mysqlclient_2.0.1-1_source.buildinfo
--rw-r--r--  1 norimitu norimitu  1464 11月 19 14:15 mysqlclient_2.0.1-1_source.changes
--rw-r--r--  2 norimitu norimitu 87807  7月  3 03:55 mysqlclient_2.0.1.orig.tar.gz
--rw-r--r--  1 norimitu norimitu 90744 11月 19 14:15 python3-mysqlclient-dbgsym_2.0.1-1_amd64.deb
--rw-r--r--  1 norimitu norimitu 48584 11月 19 14:15 python3-mysqlclient_2.0.1-1_amd64.deb
-
-$ cat deb_dist/mysqlclient-2.0.1/debian/compat
-9
-\end{commandline}
-
-
-\subsection{終わりに}
-
-debian における Python パッケージをどういうチームがどのようにパッケージを作成、メンテナンスしているか調べてみました。皆さんも Python や他のプログラム言語のライブラリやアプリケーションを debian パッケージ化し、debian ライフをお楽しみください。
-
-\subsection{参考情報}
-
-\begin{itemize}
-\item \url{https://wiki.debian.org/Python/}
-\item \url{https://www.debian.org/doc/packaging-manuals/python-policy/}
-\item \url{https://salsa.debian.org/python-team/tools/python-modules/blob/master/policy.rst} 
-\item \url{https://wiki.debian.org/Python/LibraryStyleGuide}
-\item \url{https://wiki.debian.org/Python/AppStyleGuide}
-\end{itemize}
-
 
 %-------------------------------------------------------------------------------
 \dancersection{Debian勉強会資料のディレクトリ構成変更}{上川純一}
