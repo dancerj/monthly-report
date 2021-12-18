@@ -49,7 +49,7 @@
 
 % ここはアップデートすること
 % 全角文字にしないとフォントのサイズが合わないので注意
-\rotatebox{10}{\fontsize{30}{30} {\gt ｌｉｎｔｉａｎ特集}}\\
+\rotatebox{10}{\fontsize{30}{30} {\gt Ａｎｄｒｏｉｄアプリ開発特集}}\\
 
 \vspace*{-2cm}
 \hfill{}\includegraphics[height=6cm]{image-assets/openlogo-nd.eps}
@@ -87,7 +87,7 @@
 今回の事前課題は以下です。
 
 \begin{enumerate}
-  \item xxx
+  \item lintian を知っていますか
 \end{enumerate}
 
 %この課題に対して提出いただいた内容は以下です。
@@ -123,11 +123,77 @@
 
 
 %-------------------------------------------------------------------------------
-%\dancersection{title2}{username2}
+\dancersection{Debian で Android アプリ開発と Kotlin}{杉本 典充}
 %-------------------------------------------------------------------------------
 
-%\subsection{xxx}
+\subsection{はじめに}
 
+最近 Android アプリを開発しており、Debian で Android アプリを開発するには
+どのような準備をすればよいのか、最近の Android アプリの開発で使われるプログラム言語「Kotlin」の Debian における対応状況について調べてみました。
+
+
+\subsection{Debian で Android アプリを開発する}
+
+\subsubsection{Android 情報のドキュメントの場所}
+
+Android アプリの開発者向けのドキュメントは \url{https://developer.android.com/?hl=ja} にあります。
+
+この Web ページでは Android アプリの開発に利用する Android Studio のダウンロードとインストール方法、最近の Android 情報や開発者ガイド、ガイドライン、チュートリアルなどの情報を公開しています。
+
+
+\subsubsection{Android Studio のインストール}
+
+Linux 環境に Android Studio をインストールする手順は、開発者向けドキュメントの \url{https://developer.android.com/studio/install?hl=ja#linux} に記載があり、Debian Wiki\footnote{\url{https://wiki.debian.org/AndroidStudio}} にも情報があります。インストール手順には tarball をダウンロードして任意のディレクトリに展開する方法と、snap 環境にインストールする方法があります。
+
+ここでは、\url{https://developer.android.com/studio#downloads} から利用規約を読み承諾してダウンロードし\footnote{ダウンロードする tarball は 935 MiB ありますので、定額で高速にインターネット接続できる環境でセットアップすることをおすすめします。}、展開して Android Studio を起動するコマンドを示します。
+
+\begin{commandline}
+$ tar xf android-studio-2020.3.1.26-linux.tar.gz
+$ cd android-studio/bin
+$ bash studio.sh
+\end{commandline}
+
+studio.sh を起動すると、Android Studio の画面が表示され、実行に必要な追加のソフトウェアを大量にダウンロードします。ダウンロードとインストールが完了すると Android Studio を起動できます。
+
+なお、Android Studio は IntelliJ IDEA ベースで作られています。そのため Android Studio を実行するには Java 環境が必要であり tarball の中に OpenJDK 11 が含まれています（Debian が提供する openjdk-11-jre パッケージをインストールせずに実行できます）。
+
+
+\subsubsection{Android エミュレータを実行するために KVM を設定する}
+
+Android アプリをデバッグするために Android のエミュレータ (=仮想マシン) が提供されています。Android のエミュレータのイメージファイルは qemu で動作する仮想マシンになっているため、PC 上で KVM を使えるように以下のパッケージをインストールします。
+
+\begin{commandline}
+# apt-get update
+# apt-get install qemu-kvm
+\end{commandline}
+
+
+\subsubsection{Android アプリを実機でデバッグ実行できるように設定する}
+
+Android Studio ではビルドした Android アプリをデバッグ実行することができます。デバッグ実行すると、設定したエミュレータ上または Android スマートフォンの実機上でアプリを動かすことができます。Android アプリを Android スマートフォンの実機上で実行する手順は、\url{https://developer.android.com/studio/run/device?hl=ja} に説明があります。
+
+Debian では PC と Android スマートフォンの実機を USB 接続したことを検知するためのパッケージを提供しており、android-sdk-platform-tools-common パッケージをインストールすると udev の設定ファイルである "/lib/udev/rules.d/51-android.rules" をインストールします。パッケージのインストール後は、udev の設定ファイルを再読み込みします。なお、USB 接続する Android スマートフォンが Pixel シリーズの場合は、Debian 11 bullseye が提供する linux kernel にドライバが含まれているため、別途ドライバのインストールは不要です。
+
+\begin{commandline}
+# apt-get install android-sdk-platform-tools-common
+# systemctl reload udev
+\end{commandline}
+
+次に Android スマートフォンを設定します。Android スマートフォンの設定画面を開いて開発者向けオプションを有効にし\footnote{「ビルド番号」の項目を7回連続でタップすると開発者向けオプションが有効になります。 \url{https://developer.android.com/studio/debug/dev-options?hl=ja}}、開発者向けオプションの設定画面にある「USB デバッグ」を有効にします。この状態の Android スマートフォンを Android Studio を実行している PC に USB 接続すると、Android スマートフォンの画面にフィンガープリントを確認する画面が出てきますので「はい」を選択します。少し待つと Android Studio の上部にある Android アプリの実行対象デバイスを表示するメニューに Android スマートフォン実機の型番が表示されます。ここまで準備ができると Android Studio でアプリをデバッグ実行すれば 実機で Android アプリを動かすことができます。
+
+
+\subsection{Debian での Kotlin}
+
+\subsubsection{ドキュメントの情報}
+
+Kotlin の upstream の Web サイトは \url{https://kotlinlang.org/} にあり、ソースコードは Apache License 2.0 の下でソースコードを公開しています\footnote{\url{https://github.com/JetBrains/kotlin}}。2021 年 12 月 18 日現在では、バージョン 1.6.10 を提供しています。
+
+Debian における Kotlin の情報は、\url{https://wiki.debian.org/Kotlin} に記載があります。Debian パッケージでは unstable のみですが  kotlin パッケージを提供しており（kotlin-1.3.31）、\url{https://salsa.debian.org/java-team/kotlin} で開発作業を進めています。upstream のバージョンと比べると Debian パッケージのものはだいぶ遅れている状況ですが、セルフビルドを目標に作業を進めています。
+
+
+\subsection{おわりに}
+
+Debian で Android アプリを開発するために Android Studio を設定してみました。Kotlin を Debian で使うにはまだ発展途上の状況ですが、ぜひ新しいバージョンが利用できるようになってほしいです。
 
 
 % 冊子にするために、4の倍数にする必要がある。
