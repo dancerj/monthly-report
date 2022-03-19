@@ -229,15 +229,35 @@ upstream/2.10
 
 git-buildpackage において git のブランチは以下の使い分けをします。
 
-gbp import-orig コマンドに --pristine-tar オプションを指定した場合は pristine-tar ブランチも作成されます。
-
 \begin{itemize}
-  \item main (または master)ブランチ：debian パッケージ全体の内容を含むブランチ
+  \item master (または main)ブランチ：debian パッケージ全体の内容を含むブランチ
   \item upstreamブランチ：upstream の配布物をそのまま展開した内容を含むブランチ
   \item pristine-tarブランチ：debian パッケージのビルドに使う upstream ブランチから生成する orig.tar.gz と upstream の tarball の差分をバイナリで保持するブランチ
 \end{itemize}
 
-% --pristine-tar の説明
+gbp import-orig コマンドに --pristine-tar オプションを指定した場合は pristine-tar ブランチも作成されます。
+
+pristine-tar ブランチの作成は必須ではありません。ただ、tarball を展開して upstream ブランチに保存して、逆に upstream ブランチのファイルから再生成した tarball ファイルのハッシュ値が、gbp import-orig で取り込んだ tarball のハッシュ値と同じにならないことがあります。
+pristine-tar ブランチにはその差分をバイナリで保存して、gbp buildpackage で debian パッケージをビルドするときに適用することでハッシュ値が同じになるように調整しています。
+
+\begin{commandline}
+$ git checkout pristine-tar
+Switched to branch 'pristine-tar'
+Your branch is up to date with 'origin/pristine-tar'.
+
+$ ls -l
+合計 28
+-rw-r--r-- 1 norimitu norimitu 6107  3月 19 04:25 hello_2.10.orig.tar.gz.delta
+-rw-r--r-- 1 norimitu norimitu   41  3月 19 04:25 hello_2.10.orig.tar.gz.id
+
+$ cat hello_2.11.orig.tar.gz.id
+61732d00c5e503e9ced7f7f57f5b1c14a449c95c
+
+$ file hello_2.11.orig.tar.gz.delta
+hello_2.11.orig.tar.gz.delta: gzip compressed data, from Unix, original size modulo 2^32 30720
+
+$ git checkout master
+\end{commandline}
 
 
 \subsubsection{debian ディレクトリを生成する}
@@ -636,12 +656,10 @@ quilt コマンドを使ったパッチの作成を gbp pq コマンドでより
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
-%\dancersection{メモ}{}
-%\mbox{}\newpage
-%\mbox{}\newpage
-
-\newpage
-
+\dancersection{メモ}{}
+\mbox{}\newpage
+\mbox{}\newpage
+\mbox{}\newpage
 
 \vspace*{15cm}
 \hrule
