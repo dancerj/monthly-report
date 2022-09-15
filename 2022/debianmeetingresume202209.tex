@@ -1,0 +1,277 @@
+%; whizzy chapter -dvi
+% -initex iniptex -latex platex -format platex -bibtex jbibtex -fmt fmt
+% 以上 whizzytex を使用する場合の設定。
+
+%     Tokyo Debian Meeting resources
+%     Copyright (C) 2012 Junichi Uekawa
+%     Copyright (C) 2011, 2015, 2020 Nobuhiro Iwamatsu
+
+%     This program is free software; you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation; either version 2 of the License, or
+%     (at your option) any later version.
+
+%     This program is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+
+%     You should have received a copy of the GNU General Public License
+%     along with this program; if not, write to the Free Software
+%     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+%  preview (shell-command (concat "evince " (replace-regexp-in-string "tex$" "pdf"(buffer-file-name)) "&"))
+
+%%ここからヘッダ開始。
+
+\documentclass[mingoth,a4paper]{jsarticle}
+\usepackage{monthlyreport}
+% 日付を定義する、毎月変わります。
+\newcommand{\debmtgyear}{2022}
+\newcommand{\debmtgmonth}{5}
+\newcommand{\debmtgdate}{21}
+% started from zero:
+% (let ((year 2021) (month 1)) (+ (* (- year 2005) 12) month -1))
+% and add 1
+\newcommand{\debmtgnumber}{209}
+
+% Needed to import pandoc-generated LaTeX documents.
+% See https://stackoverflow.com/questions/40438037/tightlist-error-using-pandoc-with-markdown
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\begin{document}
+
+\begin{titlepage}
+\thispagestyle{empty}
+% タイトルページ:編集必要な部分は最初のマクロに飛ばすこと
+
+\vspace*{-2cm}
+第\debmtgnumber{}回 東京エリア Debian 勉強会資料\\
+\hspace*{-2cm}
+\includegraphics{image-assets/dotdeb.pdf}\\
+\hfill{}\debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日
+
+% ここはアップデートすること
+% 全角文字にしないとフォントのサイズが合わないので注意
+\rotatebox{10}{\fontsize{30}{30} {\gt ｇｅｔｔｅｘｔ特集}}\\
+
+\vspace*{-2cm}
+\hfill{}\includegraphics[height=6cm]{image-assets/openlogo-nd.eps}
+\end{titlepage}
+
+\newpage
+
+\begin{minipage}[b]{0.2\hsize}
+ \definecolor{titleback}{gray}{0.9}
+ \colorbox{titleback}{\rotatebox{90}{\fontsize{80}{80} {\gt デビアン勉強会} }}
+\end{minipage}
+\begin{minipage}[b]{0.8\hsize}
+\hrule
+\vspace{2mm}
+\hrule
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\vspace{2mm}
+\hrule
+\end{minipage}
+
+\dancersection{最近のDebian関連のミーティング報告}{杉本 典充}
+
+\subsection{2022 年 4 月度 東京エリア・関西合同Debian勉強会}
+
+2022 年 4 月 16 日 (土) に東京エリア Debian 勉強会と関西 Debian 勉強会の合同で
+オンラインによる Debian 勉強会を開催しました。参加者は 8 名でした。
+
+% セミナー
+セミナー発表は dictoss さんの「DDTP及びDDTSSの紹介」を行い、
+BoF「Debianのおすすめポイント」では参加者同士で意見を出し合いました。
+BoFでディスカッションした議事録は以下URLで公開しています。
+\begin{itemize}
+  \item \url{https://tokyodebian-team.pages.debian.net/2022-04_tokyodebian_bof.txt}
+\end{itemize}
+
+勉強会の終了後、参加者同士で Debian や OSS に関する話の情報交換を行いました。
+
+
+\dancersection{事前課題}{杉本 典充}
+
+今回の事前課題は以下です。
+
+\begin{enumerate}
+\item 使っているメールクライアントソフトを教えてください
+\item OSSの活動で利用しているメールサービスを教えてください
+\item メールを送受信するために利用している認証方式を教えてください
+\item メールを送受信するためのパスワードやトークンをどこに保存していますか
+\end{enumerate}
+
+%この課題に対して提出いただいた内容は以下です。
+
+\begin{multicols}{2}
+{\small
+\input{image202205/prework.tex}
+}
+\end{multicols}
+
+%\dancersection{Debian Trivia Quiz}{username}
+%
+%Debianの昨今の話題についてのQuizです。
+%
+%今回の出題範囲は\url{debian-devel-announce@lists.debian.org} や \url{debian-news@lists.debian.org}などに投稿された内容からです。
+%
+%\begin{multicols}{2}
+%\input{image202205/quiz.tex}
+%\end{multicols}
+
+
+% % (query-replace-regexp "<.*?>" "")
+% % (query-replace-regexp "^[    ]\+" "")
+      
+%-------------------------------------------------------------------------------
+\dancersection{動画編集}{Yosuke OTSUKI}
+%-------------------------------------------------------------------------------
+
+YouTuberになったり、Udemyや講義などで動画を作成する機会が増えてきていると思います。OSS のみを利用して、動画を作成する手順が日本語であまりないと感じこの記事を書きました。なお、~~ターミナルの中に生息している人~~ Unix 系の OS に慣れている人を対象としています。
+
+\subsection{動画作成の流れ}
+
+\begin{enumerate}
+\item{台本を書く}
+\item{絵コンテを作成}
+\item{動画を撮影}
+\item{絵コンテをベースに、ナレーションを録音}
+\item{必要ならば、動画を各種フィルタで補正}
+\item{blender で音声と動画を編集}
+\item{ffmpeg で合成}
+\end{enumerate}
+
+\subsection{台本を書く}
+お好きなエディターで書いてください。アウトラインぐらいは書いた方が良いです。
+
+\subsection{絵コンテを作る}
+適当なツールがなかったので、紙媒体やりました
+
+\subsection{ナレーションを録る}
+マイクから音声を入力し、録音します。マイクによっては、highpass と lowpass の値を調整する必要があります。各種ノイズフィルターも利用できるのですが、以下の highpass と lowpass フィルタだけで十分でした。2000 円ぐらいのヘッドセットで録音しましたが、聞くには問題ない品質だと思います。フィルタの設定はハードウェア毎に探る必要があると思います。
+携帯付属と100均のマイク付きイヤホンでも試してみましたが、音質はかなりきびしいです。
+必要に応じて、ノイズキャンラなども試してみましたがあまり改善はしませんでした。以下のノイズキャンセラは、録音と同時でも録音後に音声編集としても使用することができます。
+\begin{commandline}
+ffmpeg -f pulse -i default -af highpass=f=4000,lowpass=f=100 ${output}.mp3
+\end{commandline}
+
+stackoverflow などでは、highpass=200,lowpass=3000 の記述が多いですが、わたしのハードウェアでは上記が有効でした
+
+* オプションの解説
+\begin{commandline}
+  -f: format
+  -i: 入力を指定。この場合はデフォルトのサウンドデバイスになる
+  -af: audio filter
+\end{commandline}
+
+デフォルトのサウンド入力となっているデバイスは、arecool や pacmd などで確認できます
+
+\subsection{動画を撮影する}
+スマホで撮影する。撮影したら、PC にインポートしてください。droidcam なんていうアプリもあるので、スマホをカメラとして使用することもできます。わたしは、いつもインポートしています。
+
+\subsection{必要ならば、動画を各種フィルタで補正する}
+
+\subsubsection{動画から音声を取り除く}
+一部の動画では、ナレーションを被せるため動画の邪魔な音声を取り除きます。以下のコマンドラインで完全に取り除きました。
+%```
+%ffmpeg -i ${input} -vcodec copy -an ${output}.mp4
+%```
+%
+%* オプション
+%  - -i: input
+%  - -vcodec: ビデオコーデック
+%  - -an: input/output
+%
+\subsubsection{ 動画を回転させる}
+スマホで撮影したところ、横向きで録画したのに縦向きで表示されていたり、その逆に保存されていた動画が多数ありました。それを修正します。
+```
+ffmpeg -i ${input} -vf "transpose=1" ${output}.mp4
+```
+* オプション
+  - -i: input
+  - -vf: ビデオフィルタ
+
+* ビデオフィルタのオプション
+  - transpose: 0,1,2,3 のいずれかの整数で回転方向を指定
+	  - 0: 90°半時計周り + 縦軸で反転
+	  - 1: 90°半時計周り
+	  - 2: 90°時計周り
+	  - 3: 90°時計周り + 縦軸で反転
+
+\subsubsection{録音した音声を結合する}
+%```
+%#!/bin/bash
+%
+%MOVIE_FILE="movie.list"
+%
+%if [ -f $MOVIE_FILE ]; then
+%    rm $MIVIE_FILE 
+%fi
+%
+%target_list=""
+%for i in `ls *.mp3`
+%do
+%    echo "file $i" >> $MOVIE_FILE
+%done
+%
+%ffmpeg -f concat -safe 0 -i $MOVIE_FILE -c copy res.mp3
+%```
+%
+
+%# BGMを準備する
+%
+%copy light free のBGMが公開されているので、それを使用しています。自作できるならば、それを使用してください。	
+%
+%# blender で音声と動画を合成する
+%blender から出力した動画と音声を合成します
+%```
+%ffmpeg -i ${movie_file} -i ${sound_file} -c:v copy -c:a aac ${output}
+%```
+%
+%
+\subsection{番外編}
+\subsubsection{その他のツール}
+\begin{description}
+\item{OBS}
+たぶん知名度は No.1。ストリーミングから、動画の録画までできる。
+しかし、動画の編集機能はない(はず)。
+Podcast や雑談などを録画するには良い。debian 11 では パッケージ化済
+
+\item{Natron}
+動画編集用のソフトウェア、Blender の代りに使用できる。
+Adobe の After Effect と同じような、node + edge で編集する仕様らしい。この仕様がハイエンドには多いとか...(未確認)
+プロ用の動画編集ソフトウェアを使用した経験がなかったので、使用しなかった。
+慣れている人には、学習コストが低いかもしれない。debian 11 ではパッケージ化はされていない。
+アップストリームからバイナリをインストールするのが、エンコードがかなり遲かった。
+ローカルでビルドしても良いかも
+
+\item{Openshot}
+こちらも動画編集用のソフトウェア Blender を代替できる。debian 11 では パッケージ化済
+触った感じでは、blender よりも学習コストは低そう
+
+\item{DaVinCi Resolve}
+これだけ、OSS ではない。プロ用のハイエンドだが無料版がある。Win, Mac と Linux のバイナリが公式から入手可能。インストールしてみたが Nvidia の GPU が必須で起動ができなかった
+  
+\end{description}
+\subsubsection{ナレーションを合成音声で生成する}
+OpenjTalk という音声合成ソフトウェアがあるので紹介します。
+
+% 冊子にするために、4の倍数にする必要がある。
+% そのための調整
+%\dancersection{メモ}{}
+%\mbox{}\newpage
+
+\vspace*{15cm}
+\hrule
+\vspace{2mm}
+\includegraphics[width=2cm]{image-assets/openlogo-nd.eps}
+\noindent \Large \bf Debian 勉強会資料\\
+\noindent \normalfont \debmtgyear{}年\debmtgmonth{}月\debmtgdate{}日 \hspace{5mm}  初版第1刷発行\\
+\noindent \normalfont 東京エリア Debian 勉強会 （編集・印刷・発行）\\
+\hrule
+\end{document}
