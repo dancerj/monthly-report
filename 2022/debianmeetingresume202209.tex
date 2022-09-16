@@ -94,7 +94,6 @@ BoFでディスカッションした議事録は以下URLで公開していま�
 
 勉強会の終了後、参加者同士で Debian や OSS に関する話の情報交換を行いました。
 
-
 \dancersection{事前課題}{杉本 典充}
 
 今回の事前課題は以下です。
@@ -132,7 +131,49 @@ BoFでディスカッションした議事録は以下URLで公開していま�
 \dancersection{動画編集}{Yosuke OTSUKI}
 %-------------------------------------------------------------------------------
 
-YouTuberになったり、Udemyや講義などで動画を作成する機会が増えてきていると思います。OSS のみを利用して、動画を作成する手順が日本語であまりないと感じこの記事を書きました。なお、~~ターミナルの中に生息している人~~ Unix 系の OS に慣れている人を対象としています。
+YouTuberになったり、Udemyや講義などで動画を作成する機会が増えてきていると思います。
+OSS のみを利用して、動画を作成する手順が日本語であまりないと感じこの記事を書きました。
+なお、~~ターミナルの中に生息している人~~ Unix 系の OS に慣れている人を対象としています。
+
+本文章では、最新の debian 11 で利用できる blender 2.83.5+dfsg-5+deb11u1 の使用を前提としています。 
+debian パッケージになっている blender とアップストリームの blender では機能に差異がある可能性が高く、
+debian のバージョンでは機能制限があることを確認しています。
+例えば、debian 版では rotate 機能がありません。
+
+なお、本文章では blender のスクリプト機能は使用していません。
+
+\subsection{ffmpeg の基本}
+
+基本的に以下だけ覚えておけば良いと思います。
+あとは、適時検索をするとよいです。
+
+\subsubsection{ffplay で確認して、ffmpeg で動画を出力する}
+動画や音声の簡易プレイヤーとして使用できます。
+\begin{commandline}
+ffplay -i ${movie}.mp4
+\end{commandline}
+
+\begin{commandline}
+ffplay -i ${sound}.mp3
+\end{commandline}
+
+本来はフィルタなどを適応してリアルタイムで確認する用途です。
+下記コマンドを使用すると、読み込んだ動画が反転して再生されるます。
+ffmpeg に同じオプションを渡す事で、動画として出力できます。
+
+\begin{commandline}
+ffplay -i ${input} -vf "transpose=1" ${output}.mp4
+\end{commandline}
+
+\subsubsection{video と audio filter}
+コマンドラインオプションの -vf と -af のあとに、
+対応するフィルタのオプションを羅列します。
+-vf と -af はコマンドライン中に一度しか宣言できません。
+なお、他の方法もあります。
+
+\begin{commandline}
+ffmpeg -vf ${動画フィルタのオプション} -af ${音声フィルタのオプション}
+\end{commandline}
 
 \subsection{動画作成の流れ}
 
@@ -178,33 +219,52 @@ stackoverflow などでは、highpass=200,lowpass=3000 の記述が多いです�
 
 \subsubsection{動画から音声を取り除く}
 一部の動画では、ナレーションを被せるため動画の邪魔な音声を取り除きます。以下のコマンドラインで完全に取り除きました。
-%```
-%ffmpeg -i ${input} -vcodec copy -an ${output}.mp4
-%```
-%
-%* オプション
-%  - -i: input
-%  - -vcodec: ビデオコーデック
-%  - -an: input/output
-%
+\begin{commandline}
+$ ffmpeg -i ${input} -vcodec copy -an ${output}.mp4
+\end{commandline}
+
+* オプション
+\begin{commandline}
+  -i: input
+  -vcodec: ビデオコーデック, h265 で良いと思う
+  -an: output (省略可能)
+\end{commandline}
+
 \subsubsection{ 動画を回転させる}
 スマホで撮影したところ、横向きで録画したのに縦向きで表示されていたり、その逆に保存されていた動画が多数ありました。それを修正します。
-```
+\begin{commandline}
 ffmpeg -i ${input} -vf "transpose=1" ${output}.mp4
-```
-* オプション
-  - -i: input
-  - -vf: ビデオフィルタ
+\end{commandline}
 
-* ビデオフィルタのオプション
+\begin{commandline}
+* オプション
+  -i: input
+  -vf: ビデオフィルタ
+
+* transpose のオプション
   - transpose: 0,1,2,3 のいずれかの整数で回転方向を指定
 	  - 0: 90°半時計周り + 縦軸で反転
 	  - 1: 90°半時計周り
 	  - 2: 90°時計周り
 	  - 3: 90°時計周り + 縦軸で反転
+\end{commandline}
 
-\subsubsection{録音した音声を結合する}
-%```
+\subsubsection{録音した音声を結合(concat)する}
+
+GUI のある動画編集ソフトウェアで結合するのが一般的ですが、ffmpeg でやりました。
+blender では複数のファイルに対して同一の処理ができなかったためです。
+ただし、方法では動画間の遷移効果なども ffmpeg で行う必要があります。
+このような編集を行う場合は、GUI の方が効率的かもしれません。
+
+\begin{commandline}
+$ cat file_list.text
+file './movie1.mp4'
+file './movie2.mp4'
+file './movie3.mp4'
+$ ffmpeg -f concat -safe 0 -i file_list.txt -c copy res.mp3
+\end{commandline}
+
+%\begin{commandline}
 %#!/bin/bash
 %
 %MOVIE_FILE="movie.list"
@@ -220,46 +280,132 @@ ffmpeg -i ${input} -vf "transpose=1" ${output}.mp4
 %done
 %
 %ffmpeg -f concat -safe 0 -i $MOVIE_FILE -c copy res.mp3
-%```
-%
+%\end{commandline}
 
-%# BGMを準備する
-%
-%copy light free のBGMが公開されているので、それを使用しています。自作できるならば、それを使用してください。	
-%
-%# blender で音声と動画を合成する
-%blender から出力した動画と音声を合成します
-%```
-%ffmpeg -i ${movie_file} -i ${sound_file} -c:v copy -c:a aac ${output}
-%```
-%
-%
+\subsection{BGMを準備する}
+
+copy light free のBGMが公開されているので、それを使用しています。自作できるならば、それを使用してください。	
+
+\subsection{blender で音声と動画を合成する}
+
+まずは、blender をインストールします。
+\begin{commandline}
+# apt-get install blender
+\end{commandline}
+
+blender を起動すると、スタートアップメニューが表示されるの [Video Editting]  を選択してください。
+使用している画像は LANG=en\_US.UTF-8 の環境でキャプチャしています。
+
+\subsubsection{動画、音声と画像ファイルをインポートする}
+
+左上のカラムのアイコンから、対象のファイルをシーケンサにドラッグ。
+もしくは、メニューバーの [file/import] ([ファイル/インポート]) から対象のファイルをインポートします。
+対応している画像、動画と音声ファイルならばインポートできます。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_import.png}
+\end{center}
+
+\subsubsection{タイミングを合せる}
+
+マウスでシーケンサのカラーバーをドラッグすると、対象が表示されるタイミングが調節できます。
+カラーバーの端をクリックすると延長/短縮できるモードに切り替ります。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_change_start_frame.png}
+\end{center}
+
+しかし、これよりも開始と終了のフレーム数を指定した方が良いと思います。
+シーケンサで対象をクリックして選択すると、対象のパラメタが右下のメニューに表示されます。
+ここで Start もしくは End に希望するフレーム数を入力してください。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_change_time_frame.png}
+\end{center}
+
+\subsubsection{動画に文字を入れる}
+
+シーケンサの上、中段のメニューにある [add/text] を選択すると、
+シーケンサに text オブジェクトが生成さます。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_add_text.png }
+\end{center}
+
+text オブジェクトを選択して、パラメタを編集します。
+Effect Strip に表示したい文字列を入力し、
+Style で文字のサイズと色を調節します。
+そして、Layout で文字の位置を調節しましょう。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_text_params.png }
+\end{center}
+
+\subsubsection{編集した動画を出力する}
+
+debian 版の bledner は、動画と音声を合成して 1 つの動画ファイルとして出力することができません。\footnote{アップストリーム版は未確認}
+そのため、動画ファイルの出力と音声ファイルの出力を別々に行い、
+ffmpeg で合成します。
+
+ますは、編集した動画をファイル出力します。
+右上段のメニューに、[Output] というファイルパスがあります。
+それが動画ファイルの出力先です。デフォルトでは /tmp になっています。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_output.png }
+\end{center}
+
+また、File Format も PNG になっているので動画ファイル形式に変更しましょう。
+ffmpeg video 形式で良いと思います。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_output_params.png }
+\end{center}
+
+動画の出力はトップのメニューバーから [Render/Render Animation] を押下してください。
+
+\subsubsection{編集した音声を出力する}
+
+今度は、音声ファイルを出力します。
+[Render/Render Audio] を選択し、出力先をしていしたら、[Mix Down] ボタンを押下してください。 
+
+\subsubsection{ffmpeg で出力した動画と音声を合成する}
+
+blender から出力した動画と音声を ffmpeg で合成します
+
+\begin{commandline}
+ffmpeg -i ${movie_file} -i ${sound_file} -c:v copy -c:a aac ${output}
+\end{commandline}
+
 \subsection{番外編}
 \subsubsection{その他のツール}
 \begin{description}
-\item{OBS}
+\item{OBS:
 たぶん知名度は No.1。ストリーミングから、動画の録画までできる。
 しかし、動画の編集機能はない(はず)。
-Podcast や雑談などを録画するには良い。debian 11 では パッケージ化済
+Podcast や雑談などを録画するには良い。debian 11 では パッケージ化済}
 
-\item{Natron}
+\item{Natron:
 動画編集用のソフトウェア、Blender の代りに使用できる。
 Adobe の After Effect と同じような、node + edge で編集する仕様らしい。この仕様がハイエンドには多いとか...(未確認)
 プロ用の動画編集ソフトウェアを使用した経験がなかったので、使用しなかった。
 慣れている人には、学習コストが低いかもしれない。debian 11 ではパッケージ化はされていない。
 アップストリームからバイナリをインストールするのが、エンコードがかなり遲かった。
-ローカルでビルドしても良いかも
+ローカルでビルドしても良いかも}
 
-\item{Openshot}
+\item{Openshot:
 こちらも動画編集用のソフトウェア Blender を代替できる。debian 11 では パッケージ化済
-触った感じでは、blender よりも学習コストは低そう
+触った感じでは、blender よりも学習コストは低そう}
 
-\item{DaVinCi Resolve}
-これだけ、OSS ではない。プロ用のハイエンドだが無料版がある。Win, Mac と Linux のバイナリが公式から入手可能。インストールしてみたが Nvidia の GPU が必須で起動ができなかった
-  
+\item{DaVinCi Resolve:
+これだけ、OSS ではない。プロ用のハイエンドだが無料版がある。Win, Mac と Linux のバイナリが公式から入手可能。インストールしてみたが Nvidia の GPU が必須で起動ができなかった}
+
+\item{OpenjTalk}
+ゆっくり動画っぽいものを作成する場合は、OpenJTalk を使用する方法もあります
+
 \end{description}
-\subsubsection{ナレーションを合成音声で生成する}
-OpenjTalk という音声合成ソフトウェアがあるので紹介します。
+%\subsubsection{ナレーションを合成音声で生成する}
+%OpenjTalk という音声合成ソフトウェアがあるので紹介します。
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
