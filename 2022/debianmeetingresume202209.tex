@@ -129,14 +129,15 @@ YouTuberになったり、Udemyや講義などで動画を作成する機会が�
 OSS のみを利用して、動画を作成する手順が日本語であまりないと感じこの記事を書きました。
 なお、~~ターミナルの中に生息している人~~ Unix 系の OS に慣れている人を対象としています。
 
-本文章では、最新の debian 11 で利用できる blender 2.83.5+dfsg-5+deb11u1 の使用を前提としています。 
+本文章では、最新の debian 11 で利用できる blender 2.83.5+dfsg-5+deb11u1 と ffmpeg 7:4.3.4-0+deb11u1 を前提としています。 
 debian パッケージになっている blender とアップストリームの blender では機能に差異がある可能性が高く、
 debian のバージョンでは機能制限があることを確認しています。
 例えば、debian 版では rotate 機能がありません。
 
 なお、本文章では blender のスクリプト機能は使用していません。
+また、動画編集機能の説明になります。3Dモデリングを作成し、それを映像作品として出力する方法は説明しません。
 
-\subsection{ffmpeg の基本}
+\subsection{ffmpeg の基本ルール}
 
 基本的に以下だけ覚えておけば良いと思います。
 あとは、適時検索をするとよいです。
@@ -166,7 +167,7 @@ ffplay -i ${input} -vf "transpose=1" ${output}.mp4
 なお、他の方法もあります。
 
 \begin{commandline}
-ffmpeg -vf ${動画フィルタのオプション} -af ${音声フィルタのオプション}
+ffmpeg -vf ${動画フィルタのオプション} -af ${音声フィルタのオプション} ${output}.mp4
 \end{commandline}
 
 \subsection{動画作成の流れ}
@@ -190,15 +191,16 @@ ffmpeg -vf ${動画フィルタのオプション} -af ${音声フィルタの�
 \subsection{ナレーションを録る}
 マイクから音声を入力し、録音します。マイクによっては、highpass と lowpass の値を調整する必要があります。各種ノイズフィルターも利用できるのですが、以下の highpass と lowpass フィルタだけで十分でした。2000 円ぐらいのヘッドセットで録音しましたが、聞くには問題ない品質だと思います。フィルタの設定はハードウェア毎に探る必要があると思います。
 携帯付属と100均のマイク付きイヤホンでも試してみましたが、音質はかなりきびしいです。
-必要に応じて、ノイズキャンラなども試してみましたがあまり改善はしませんでした。以下のノイズキャンセラは、録音と同時でも録音後に音声編集としても使用することができます。
+必要に応じて、ノイズキャンラなども試してみましたがあまり改善はしませんでした。
+%以下のノイズキャンセラは、録音と同時でも録音後に音声編集としても使用することができます。
 \begin{commandline}
 ffmpeg -f pulse -i default -af highpass=f=4000,lowpass=f=100 ${output}.mp3
 \end{commandline}
 
 stackoverflow などでは、highpass=200,lowpass=3000 の記述が多いですが、わたしのハードウェアでは上記が有効でした
 
-* オプションの解説
 \begin{commandline}
+* オプション
   -f: format
   -i: 入力を指定。この場合はデフォルトのサウンドデバイスになる
   -af: audio filter
@@ -217,14 +219,14 @@ stackoverflow などでは、highpass=200,lowpass=3000 の記述が多いです�
 $ ffmpeg -i ${input} -vcodec copy -an ${output}.mp4
 \end{commandline}
 
-* オプション
 \begin{commandline}
+* オプション
   -i: input
-  -vcodec: ビデオコーデック, h265 で良いと思う
+  -vcodec: ビデオコーデック
   -an: output (省略可能)
 \end{commandline}
 
-\subsubsection{ 動画を回転させる}
+\subsubsection{動画を回転させる}
 スマホで撮影したところ、横向きで録画したのに縦向きで表示されていたり、その逆に保存されていた動画が多数ありました。それを修正します。
 \begin{commandline}
 ffmpeg -i ${input} -vf "transpose=1" ${output}.mp4
@@ -276,9 +278,27 @@ $ ffmpeg -f concat -safe 0 -i file_list.txt -c copy res.mp3
 %ffmpeg -f concat -safe 0 -i $MOVIE_FILE -c copy res.mp3
 %\end{commandline}
 
+\subsection{Screen Capture}
+
+スクリーンのキャプチャもできます。
+
+\begin{commandline}
+ffmpeg -video_size 1024x768 -framerate 24 -f x11grab -i default  output.mp4
+\end{commandline}
+
+音声もキャプチャーしたい場合は以下になります。
+なお、結構ホワイトノイズが入ります。
+なぜか high,low フィルタを同時に使用すると無音になりました。
+一度ノイズありの状態でキャプチャーをしてから、フィルタを適応すると良いでしょう。
+
+\begin{commandline}
+ffmpeg -video_size 1024x768 -framerate 24 -f x11grab -f pulse -ac 2 -i default output.mp4
+\end{commandline}
+
 \subsection{BGMを準備する}
 
-copy light free のBGMが公開されているので、それを使用しています。自作できるならば、それを使用してください。	
+copy light free のBGMが公開されているので、それを使用しています。
+自作できるならば、それを使用してください。	
 
 \subsection{blender で音声と動画を合成する}
 
@@ -290,20 +310,32 @@ copy light free のBGMが公開されているので、それを使用してい�
 blender を起動すると、スタートアップメニューが表示されるの [Video Editting]  を選択してください。
 使用している画像は LANG=en\_US.UTF-8 の環境でキャプチャしています。
 
+
 \subsubsection{動画、音声と画像ファイルをインポートする}
 
 左上のカラムのアイコンから、対象のファイルをシーケンサにドラッグ。
 もしくは、メニューバーの [file/import] ([ファイル/インポート]) から対象のファイルをインポートします。
 対応している画像、動画と音声ファイルならばインポートできます。
 
+
 \begin{center}
 \includegraphics[scale=0.3]{image202209/blender_import.png}
+\end{center}
+
+デフォルトでは最終のフレームが 250 になっています。このままだと、動画が途中で終了したり、余分な黒画面が表示されてしまうので
+適当な値を入力して変更してください。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_change_end.png}
 \end{center}
 
 \subsubsection{タイミングを合せる}
 
 マウスでシーケンサのカラーバーをドラッグすると、対象が表示されるタイミングが調節できます。
 カラーバーの端をクリックすると延長/短縮できるモードに切り替ります。
+
+また、シーケンサー上で上下にドラッグする事で、チャンネルを変更する事ができます。
+動画、画像、ナレーションやBGMなど、それぞれのチャンネルに分けておいた方が整理できます。
 
 \begin{center}
 \includegraphics[scale=0.3]{image202209/blender_change_start_frame.png}
@@ -322,14 +354,17 @@ blender を起動すると、スタートアップメニューが表示される
 シーケンサの上、中段のメニューにある [add/text] を選択すると、
 シーケンサに text オブジェクトが生成さます。
 
+テキストの替りに、ロゴなどを入れたい場合は画像としてインポートできます。
+gimp で画像を作成、または加工してください
+
 \begin{center}
 \includegraphics[scale=0.3]{image202209/blender_add_text.png }
 \end{center}
 
 text オブジェクトを選択して、パラメタを編集します。
-Effect Strip に表示したい文字列を入力し、
-Style で文字のサイズと色を調節します。
-そして、Layout で文字の位置を調節しましょう。
+Effect Strip (赤枠)に表示したい文字列を入力し、
+Style (黄枠) で文字のサイズと色を調節します。
+そして、Layout (青枠) で文字の位置を調節しましょう。
 
 \begin{center}
 \includegraphics[scale=0.3]{image202209/blender_text_params.png }
@@ -341,19 +376,30 @@ debian 版の bledner は、動画と音声を合成して 1 つの動画ファ�
 そのため、動画ファイルの出力と音声ファイルの出力を別々に行い、
 ffmpeg で合成します。
 
-ますは、編集した動画をファイル出力します。
+まずは出力する動画のフォーマットを決めます。
+デフォルトで full HD の 24 fps になっているので YouTube などにアップロードする場合は変更する必要はないと思います。
+変更する場合は、dimension の横のアイコンをクリックすると、任意のサイズを選択できます。
+
+\begin{center}
+\includegraphics[scale=0.3]{image202209/blender_video_size.png}
+\end{center}
+
+また、少しスクロールしていくと [Frame Rate] という入力があります。
+業界のデファクトスタンダードとして、YouTube が 24fps, 映画が 30fps, 特殊用途の動画が 60fps らしいです。 
+
+次に、編集した動画をファイル出力します。
 右上段のメニューに、[Output] というファイルパスがあります。
 それが動画ファイルの出力先です。デフォルトでは /tmp になっています。
 
 \begin{center}
-\includegraphics[scale=0.3]{image202209/blender_output.png }
+\includegraphics[scale=0.3]{image202209/blender_output.png}
 \end{center}
 
 また、File Format も PNG になっているので動画ファイル形式に変更しましょう。
 ffmpeg video 形式で良いと思います。
 
 \begin{center}
-\includegraphics[scale=0.3]{image202209/blender_output_params.png }
+\includegraphics[scale=0.3]{image202209/blender_output_params.png}
 \end{center}
 
 動画の出力はトップのメニューバーから [Render/Render Animation] を押下してください。
@@ -378,6 +424,7 @@ ffmpeg -i ${movie_file} -i ${sound_file} -c:v copy -c:a aac ${output}
 たぶん知名度は No.1。ストリーミングから、動画の録画までできる。
 しかし、動画の編集機能はない(はず)。
 Podcast や雑談などを録画するには良い。debian 11 では パッケージ化済}
+\vspace{1em}
 
 \item{Natron:
 動画編集用のソフトウェア、Blender の代りに使用できる。
@@ -386,16 +433,20 @@ Adobe の After Effect と同じような、node + edge で編集する仕様ら
 慣れている人には、学習コストが低いかもしれない。debian 11 ではパッケージ化はされていない。
 アップストリームからバイナリをインストールするのが、エンコードがかなり遲かった。
 ローカルでビルドしても良いかも}
+\vspace{1em}
 
 \item{Openshot:
 こちらも動画編集用のソフトウェア Blender を代替できる。debian 11 では パッケージ化済
 触った感じでは、blender よりも学習コストは低そう}
+\vspace{1em}
 
 \item{DaVinCi Resolve:
 これだけ、OSS ではない。プロ用のハイエンドだが無料版がある。Win, Mac と Linux のバイナリが公式から入手可能。インストールしてみたが Nvidia の GPU が必須で起動ができなかった}
+\vspace{1em}
 
-\item{OpenjTalk}
-ゆっくり動画っぽいものを作成する場合は、OpenJTalk を使用する方法もあります
+\item{OpenjTalk:
+OSS ゆっくり動画っぽいものを作成する場合は、OpenJTalk を使用する方法もあります}
+\vspace{1em}
 
 \end{description}
 %\subsubsection{ナレーションを合成音声で生成する}
