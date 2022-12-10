@@ -30,7 +30,7 @@
 
 
 % progress memo:
-% 2021/12 kansai-2022/11がマージ対象
+% 2021/12 - 2022/11? がマージ対象
 % イベント等でない場合は理由を書くこと。
 % 必要な変更点は FIXME で記録しています。
 
@@ -64,7 +64,7 @@
 %\vspace*{-1.5cm}
 \hspace*{11cm}\includegraphics[height=6cm]{../2005/image200502/openlogo-nd.eps}\\
 \vspace*{0.1cm}
-\hfill あんどきゅめんてっど でびあん 2021年冬号 2021年12月31日 初版発行
+\hfill あんどきゅめんてっど でびあん 2022年冬号 2022年12月31日 初版発行
 \end{titlepage}
 
 \newpage
@@ -74,7 +74,7 @@
 % section の代わりの環境 -- 改訂する。
 \renewcommand{\dancersection}[2]{%
 \newpage
-あんどきゅめんてっど でびあん 2021年冬号
+あんどきゅめんてっど でびあん 2022年冬号
 %
 % top line
 \vspace{0.1mm}\\
@@ -240,6 +240,544 @@ Debian における Kotlin の情報は、\url{https://wiki.debian.org/Kotlin} �
 
 Debian で Android アプリを開発するために Android Studio を設定してみました。Kotlin を Debian で使うにはまだ発展途上の状況ですが、ぜひ新しいバージョンが利用できるようになってほしいです。
 
+%202202
+%-------------------------------------------------------------------------------
+%\dancersection{Debian で始める Python Programming}{taiseiyo さん}
+%-------------------------------------------------------------------------------
+%ハンズオンのため印刷資料無し
+
+%202202
+%-------------------------------------------------------------------------------
+\dancersection{git-buildpackage を使ってみる}{杉本典充}
+%-------------------------------------------------------------------------------
+
+\subsection{はじめに}
+
+debian パッケージを作成し管理する方法はいろいろあると思います。
+
+今回はgitでパッケージを管理し、ビルドする仕組みを提供する git-buildpackage (gbp) に
+ついて調べてみました。
+
+\subsection{git-buildpackage とは}
+
+debian では「git-buildpackage」パッケージを提供しています。
+sid では git-buildpackage-0.9.25 を提供しており、gbp コマンド\footnote{中身は python3 で書かれています。}、
+git-pbuilder コマンドが含まれています。
+
+gbp コマンドには debian パッケージを開発する上で様々な操作ができる便利な以下のサブコマンドがあります\footnote{\$ gbp --list-cmds}。
+
+\begin{itemize}
+  \item	gbp buildpackage
+  \item gbp import-orig
+  \item gbp export-orig
+  \item gbp import-{dsc,dscs}
+  \item gbp import-ref
+  \item gbp dch
+  \item gbp pq
+  \item gbp {pull,clone,push}
+  \item gbp create-remote-repo
+  \item gbp tag
+  \item gbp config
+  \item gbp pristine-tar
+  \item gbp setup-gitattributes
+\end{itemize}
+
+なお、git-buildpackage というパッケージ名になっていますが、他のバージョン管理システムに対応した cvs-buildpackage、svn-buildpackage、mercurial-buildpackage パッケージも存在します。
+
+
+\subsection{git-buildpackage を使って tarball を新規にパッケージ化する}
+
+ここでは例として、GNU hello\footnote{\url{https://www.gnu.org/software/hello/}} の tarball を debian パッケージ化\footnote{\url{https://packages.debian.org/ja/sid/hello} が既に存在します}する作業を gbp コマンドを使って行ってみます。
+
+なお、今回の作業環境は Debian sid とします。
+
+\subsubsection{必要な debian パッケージのインストール}
+
+まずは git-buildpackage パッケージを apt-get コマンドでインストールします。
+そして、debian パッケージの作成に必要な build-essential、大変便利な debhelper をインストールします。
+
+\begin{commandline}
+$ sudo apt-get update
+$ sudo apt-get install git-buildpackage
+$ sudo apt-get install build-essential debhelper dh-make
+\end{commandline}
+
+今回 Debian パッケージを作成する GNU hello のビルドに使うツール、およびビルドに必要な依存パッケージをインストールしておきます。
+
+\begin{commandline}
+$ sudo apt-get install wget
+$ sudo apt-get install gnulib help2man
+\end{commandline}
+
+
+\subsubsection{git リポジトリの作成と tarball のインポート}
+
+まずはGNU hello の tarball をダウンロードします。
+
+\begin{commandline}
+$ wget https://ftp.gnu.org/gnu/hello/hello-2.10.tar.gz
+\end{commandline}
+
+git のローカルブランチのディレクトリ名は tarball のファイル名と同じ "hello" にすることとし、git リポジトリ "hello" をローカルに作成します。最近の git の使い方としてデフォルトを main ブランチにするように変わってきていますので、ブランチ名を指定しています\footnote{git-buildpackage ではデフォルトのブランチ名は現状 master のままになっています。}。
+
+\begin{commandline}
+$ git init hello --initial-branch=main
+$ cd hello
+\end{commandline}
+
+tarball を指定して gbp import-orig コマンドを実行すると、tarball を git に取り込んでコミットします。デフォルトでは master ブランチを作成しますが、\url{https://salsa.debian.org/} の git デフォルトブランチは main のため --debian-branch=main を指定しています。
+
+\begin{commandline}
+$ gbp import-orig --debian-branch=main --pristine-tar ../hello-2.10.tar.gz
+
+What will be the source package name? [hello]
+What is the upstream version? [2.10]
+gbp:info: Importing '../hello-2.10.tar.gz' to branch 'upstream'...
+gbp:info: Source package is hello
+gbp:info: Upstream version is 2.10
+gbp:info: Successfully imported version 2.10 of ../hello_2.10.orig.tar.gz
+\end{commandline}
+
+gbp import-orig で tarball を取り込むと以下のブランチとタグが作成されます。
+
+\begin{commandline}
+$ git branch
+* main
+  pristine-tar
+  upstream
+\end{commandline}
+
+\begin{commandline}
+$ git tag
+upstream/2.10
+\end{commandline}
+
+git-buildpackage において git のブランチは以下の使い分けをします。
+
+\begin{itemize}
+  \item master (または main)ブランチ：debian パッケージ全体の内容を含むブランチ
+  \item upstreamブランチ：upstream の配布物をそのまま展開した内容を含むブランチ
+  \item pristine-tarブランチ：debian パッケージのビルドに使う upstream ブランチから生成する orig.tar.gz と upstream の tarball の差分をバイナリで保持するブランチ
+\end{itemize}
+
+gbp import-orig コマンドに --pristine-tar オプションを指定した場合は pristine-tar ブランチも作成されます。
+
+pristine-tar ブランチの作成は必須ではありません。ただ、tarball を展開して upstream ブランチに保存して、逆に upstream ブランチのファイルから再生成した tarball ファイルのハッシュ値が、gbp import-orig で取り込んだ tarball のハッシュ値と同じにならないことがあります。
+pristine-tar ブランチにはその差分をバイナリで保存して、gbp buildpackage で debian パッケージをビルドするときに適用することでハッシュ値が同じになるように調整しています。
+
+\begin{commandline}
+$ git checkout pristine-tar
+Switched to branch 'pristine-tar'
+Your branch is up to date with 'origin/pristine-tar'.
+
+$ ls -l
+合計 28
+-rw-r--r-- 1 norimitu norimitu 6107  3月 19 04:25 hello_2.10.orig.tar.gz.delta
+-rw-r--r-- 1 norimitu norimitu   41  3月 19 04:25 hello_2.10.orig.tar.gz.id
+
+$ cat hello_2.11.orig.tar.gz.id
+61732d00c5e503e9ced7f7f57f5b1c14a449c95c
+
+$ file hello_2.11.orig.tar.gz.delta
+hello_2.11.orig.tar.gz.delta: gzip compressed data, from Unix, original size modulo 2^32 30720
+
+$ git checkout master
+\end{commandline}
+
+
+\subsubsection{debian ディレクトリを生成する}
+
+debian パッケージを作成するのは、main ブランチに debian ディレクトリを作成します。
+dh\_make コマンドを使って作成できます。
+
+\begin{commandline}
+$ dh_make -p hello_2.10
+
+Type of package: (single, indep, library, python)
+[s/i/l/p]?
+Maintainer Name     : Norimitsu Sugimoto
+Email-Address       : dictoss@live.jp
+Date                : Thu, 17 Mar 2022 13:27:56 +0000
+Package Name        : hello
+Version             : 2.10
+License             : blank
+Package Type        : single
+Are the details correct? [Y/n/q]
+Skipping creating ../hello_2.10.orig.tar.gz because it already exists
+Done. Please edit the files in the debian/ subdirectory now.
+\end{commandline}
+
+dch コマンドで debian/changelog ファイルを開いて編集します\footnote{通常、debian パッケージを新規作成する場合は ITP のバグ報告を行っている前提があり、debian/changelog ファイルにそのバグ番号を含めます。}。
+
+\begin{commandline}
+$ dch
+
+hello (2.10-1) UNRELEASED; urgency=medium
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Norimitsu Sugimoto <dictoss@live.jp>  Thu, 17 Mar 2022 13:31:04 +0000
+\end{commandline}
+
+debian/control ファイルを編集し、パッケージのメタ情報を更新します。
+
+\begin{commandline}
+$ vim debian/control
+
+Source: hello
+Section: devel
+Priority: optional
+Maintainer: Norimitsu Sugimoto <dictoss@live.jp>
+Build-Depends: debhelper-compat (= 13), autotools-dev, gnulib, help2man
+Standards-Version: 4.6.0
+Homepage: http://www.gnu.org/software/hello/
+#Vcs-Browser: https://salsa.debian.org/debian/hello
+#Vcs-Git: https://salsa.debian.org/debian/hello.git
+Rules-Requires-Root: no
+
+Package: hello
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: example package based on GNU hello
+ The GNU hello program produces a familiar, friendly greeting.  It
+ allows non-programmers to use a classic computer science tool which
+ would otherwise be unavailable to them.
+ .
+ Seriously, though: this is an example of how to do a Debian package.
+ It is the Debian version of the GNU Project's `hello world' program
+ (which is itself an example for the GNU Project).
+\end{commandline}
+
+debian/rules ファイルを編集し、debhelper を使って debian パッケージをビルドできるように調整します。
+
+\begin{commandline}
+$ vim debian/rules
+
+%:
+        dh $@
+
+override_dh_auto_clean:
+        [ ! -f Makefile ] || $(MAKE) distclean
+\end{commandline}
+
+それでは gbp buildpackage コマンドを使って debian パッケージをビルドしてみます。しかし、コミットしていないファイルがあるとコマンドがエラーになります。まずは編集した debian ディレクトリを git へコミットします。
+
+\begin{commandline}
+$ gbp buildpackage --git-pristine-tar --git-debian-branch=main
+
+gbp:error: You have uncommitted changes in your source tree:
+gbp:error: On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        debian/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+gbp:error: Use --git-ignore-new to ignore.
+\end{commandline}
+
+\begin{commandline}
+$ git add debian
+$ git commit -m "add debian directory."
+\end{commandline}
+
+再度、gbp buildpackage コマンドを実行します。debian パッケージのビルドに成功しました。しかし、lintian の警告がたくさん出ていますのでリリースするまでに警告をできるだけ減らすパッケージを見直す必要があります。
+
+\begin{commandline}
+$ gbp buildpackage --git-pristine-tar --git-debian-branch=main
+
+gbp:info: Performing the build
+dpkg-buildpackage -us -uc -ui -i -I
+dpkg-buildpackage: info: source package hello
+dpkg-buildpackage: info: source version 2.10-1
+dpkg-buildpackage: info: source distribution UNRELEASED
+dpkg-buildpackage: info: source changed by Norimitsu Sugimoto <dictoss@live.jp>
+ dpkg-source -i -I --before-build .
+dpkg-buildpackage: info: host architecture amd64
+ debian/rules clean
+
+  (省略)
+
+dpkg-buildpackage: info: full upload (original source is included)
+Now running lintian hello_2.10-1_amd64.changes ...
+E: hello: changelog-is-dh_make-template
+  (省略)
+W: hello: wrong-bug-number-in-closes #nnnn in the installed changelog (line 4)
+Finished running lintian.
+\end{commandline}
+
+これで debian パッケージのビルドができました。
+ビルド時に生成されたファイルを削除してから、main ブランチにタグを作成し、
+リモートの git リポジトリに push します。
+
+\begin{commandline}
+$ gbp buildpackage --git-tag-only --git-debian-branch=main
+gbp:info: Tagging Debian package 2.10-1 as debian/2.10-1 in git
+
+$ git tag
+debian/2.10-1
+upstream/2.10
+\end{commandline}
+
+\begin{commandline}
+$ git remote add origin git@salsa.debian.org:dictoss-guest/hello.git
+$ git remote -v
+origin  git@salsa.debian.org:dictoss-guest/hello.git (fetch)
+origin  git@salsa.debian.org:dictoss-guest/hello.git (push)
+
+$ git push -u origin --all
+$ git push -u origin --tag
+\end{commandline}
+
+
+% 過去のパッケージの再ビルド手順
+
+\subsection{upstreamで新しいバージョンのtarballがリリースされた場合の作業}
+
+まず、更新された tarball をダウンロードします。
+
+\begin{commandline}
+$ cd ..
+$ wget https://ftp.gnu.org/gnu/hello/hello-2.11.tar.gz
+\end{commandline}
+
+gbp import-orig コマンドで tarball を git のローカルブランチに取り込みます。
+
+\begin{commandline}
+$ gbp import-orig --debian-branch=main --pristine-tar ../hello-2.11.tar.gz
+
+What is the upstream version? [2.11]
+gbp:info: Importing '../hello-2.11.tar.gz' to branch 'upstream'...
+gbp:info: Source package is hello
+gbp:info: Upstream version is 2.11
+gbp:info: Replacing upstream source on 'main'
+gbp:info: Successfully imported version 2.11 of ../hello_2.11.orig.tar.gz
+\end{commandline}
+
+git branch を実行するとブランチの数に変化はありません。
+
+\begin{commandline}
+$ git branch
+* main
+  pristine-tar
+  upstream
+\end{commandline}
+
+git tag を実行すると "upstream/2.11" が追加されています。
+
+\begin{commandline}
+$ git tag
+
+debian/2.10-1
+upstream/2.10
+upstream/2.11
+\end{commandline}
+
+dch コマンドで debian/changelog ファイルを開いて編集します。
+
+\begin{commandline}
+$ dch
+
+hello (2.11-1) UNRELEASED; urgency=medium
+
+  * New upstream version 2.11
+
+ -- Norimitsu Sugimoto <dictoss@live.jp>  Fri, 19 Mar 2022 14:10:38 +0000
+
+hello (2.10-1) UNRELEASED; urgency=medium
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Norimitsu Sugimoto <dictoss@live.jp>  Fri, 18 Mar 2022 13:39:37 +0000
+\end{commandline}
+
+debian ディレクトリの変更内容をコミットします。
+
+\begin{commandline}
+$ git add debian
+$ git commit -m "New upstream version 2.11."
+\end{commandline}
+
+gbp buildpackage を実行して debian パッケージをビルドしてみるとエラーになりました。
+
+\begin{commandline}
+$ gbp buildpackage --git-pristine-tar --git-debian-branch=main
+
+  （省略）
+*** error: gettext infrastructure mismatch: using a Makefile.in.in from gettext
+version 0.18 but the autoconf macros are from gettext version 0.20
+make[3]: *** [Makefile:165: check-macro-version] Error 1
+make[3]: *** Waiting for unfinished jobs....
+（省略）
+dh_auto_build: error: make -j3 returned exit code 2
+make: *** [debian/rules:18: binary] エラー 25
+dpkg-buildpackage: error: debian/rules binary subprocess returned exit status 2
+debuild: fatal error at line 1182:
+dpkg-buildpackage -us -uc -ui -i -I failed
+gbp:error: 'debuild -i -I' failed: it exited with 29
+\end{commandline}
+
+gettext のバージョンが sid のバージョンと tarball のファイルに書いてあるバージョンが
+合わないためエラーになったようです。gbp pq コマンドを使ってパッチ作成用のブランチを作ります。
+gbp pq import コマンドを実行すると patch-queue/main ブランチが作成されチェックアウトした状態になります。
+
+\begin{commandline}
+$ gbp pq import
+gbp:info: Trying to apply patches at 'cacbfce059a86c836513ff70eb6af780d9255910'
+gbp:info: 0 patches listed in 'debian/patches/series' imported on 'patch-queue/main'
+
+$ git branch
+  main
+* patch-queue/main
+  pristine-tar
+  upstream
+\end{commandline}
+
+patch-queue/main ブランチ上で変更が必要なファイルを編集します。
+
+\begin{commandline}
+$ vim configure.ac
+$ git diff
+diff --git a/configure.ac b/configure.ac
+index 6d52c41..f101d7b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -62,7 +62,7 @@ dnl Ensure VLAs are not used.
+ AC_DEFINE([GNULIB_NO_VLA], [1], [Define to 1 to disable use of VLAs])
+
+ dnl i18n support from GNU gettext.
+-AM_GNU_GETTEXT_VERSION([0.18.1])
++AM_GNU_GETTEXT_VERSION([0.21])
+ AM_GNU_GETTEXT([external])
+
+ AC_CONFIG_FILES([Makefile
+\end{commandline}
+
+patch-queue/main ブランチに変更したファイルをコミットします。
+
+\begin{commandline}
+$ git add configure.ac
+$ git commit -m "change to gettext version to use with sid."
+[patch-queue/main cc568aa] change to gettext version to use with sid.
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+\end{commandline}
+
+すべてのファイルの変更が完了した後、gbp pq export コマンドを実行して編集を終了します。
+gbp pq export コマンドを実行すると main ブランチをチェックアウトした状態になり、
+main ブランチと patch-queue/main ブランチの差分が debian/patches/ ディレクトリに
+生成されます。
+
+\begin{commandline}
+$ gbp pq export
+gbp:info: On 'patch-queue/main', switching to 'main'
+gbp:info: Generating patches from git (main..patch-queue/main)
+\end{commandline}
+
+\begin{commandline}
+$ git branch
+* main
+  patch-queue/main
+  pristine-tar
+  upstream
+\end{commandline}
+
+\begin{commandline}
+$ git status .
+On branch main
+Your branch is ahead of 'origin/main' by 3 commits.
+  (use "git push" to publish your local commits)
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        debian/patches/
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+$ ls -l debian/patches/
+合計 8
+-rw-r--r-- 1 norimitu norimitu 596  3月 19 02:28 0001-change-to-gettext-version-to-use-with-sid.patch
+-rw-r--r-- 1 norimitu norimitu  53  3月 19 02:28 series
+\end{commandline}
+
+生成された debian/patches ディレクトリを main ブランチにコミットします。
+
+\begin{commandline}
+$ git add debian/patches
+$ git commit -m "change to gettext version to use with sid."
+[main 6ae3e38] change to gettext version to use with sid.
+ 2 files changed, 22 insertions(+)
+ create mode 100644 debian/patches/0001-change-to-gettext-version-to-use-with-sid.patch
+ create mode 100644 debian/patches/series
+\end{commandline}
+
+gbp buildpackage を実行すると、更新した debian パッケージをビルドできます。
+
+\begin{commandline}
+$ gbp buildpackage --git-pristine-tar --git-debian-branch=main
+
+$ ls ..
+hello                          hello_2.10-1.debian.tar.xz    hello_2.10-1_amd64.deb      hello_2.11-1_amd64.buildinfo
+hello-2.10.tar.gz              hello_2.10-1.dsc              hello_2.10.orig.tar.gz      hello_2.11-1_amd64.changes
+hello-2.11.tar.gz              hello_2.10-1_amd64.build      hello_2.11-1.debian.tar.xz  hello_2.11-1_amd64.deb
+hello-dbgsym_2.10-1_amd64.deb  hello_2.10-1_amd64.buildinfo  hello_2.11-1.dsc            hello_2.11.orig.tar.gz
+hello-dbgsym_2.11-1_amd64.deb  hello_2.10-1_amd64.changes    hello_2.11-1_amd64.build
+\end{commandline}
+
+ビルド時に生成されたファイルを削除してから、main ブランチにタグを作成し、
+リモートの git リポジトリに push します。
+
+\begin{commandline}
+$ gbp buildpackage --git-tag-only --git-debian-branch=main
+gbp:info: Tagging Debian package 2.11-1 as debian/2.11-1 in git
+
+$ git tag
+debian/2.10-1
+debian/2.11-1
+upstream/2.10
+upstream/2.11
+\end{commandline}
+
+\begin{commandline}
+$ git push -u origin main upstream pristine-tar
+$ git push -u origin --tag
+\end{commandline}
+
+作業を終えた patch-queue/main ブランチは不要のため削除します。
+
+\begin{commandline}
+$ git branch -D patch-queue/main
+\end{commandline}
+
+
+\subsection{今回取り扱えなかったこと}
+
+今回取り扱えなかったことはたくさんあります。
+
+\begin{itemize}
+  \item upstream が git リポジトリのみで tarball を提供していない場合
+  \item sid、stable、stable-backports、experimental を平行で管理する方法
+  \item gbp buildpackage --git-pbuilder
+  \item gbp.conf
+  \item upstream のソースコードにすでに debian ディレクトリが存在している場合
+\end{itemize}
+
+
+\subsection{おわりに}
+
+git-buildpackage パッケージに入っている gbp コマンドを調べてみました。
+quilt コマンドを使ったパッチの作成を gbp pq コマンドでより便利に使えるのがよいと思いました。
+
+実際にパッケージをメンテナンスするときには、複数のリリースを 1 つの git リポジトリで管理したいのだと思います。その場合にどのように git-buildpackage を使いこなせばよいか、まだまだ勉強が必要であると感じました。
+
+
+\subsection{参考文献}
+
+\begin{itemize}
+  \item Debian Wiki - PackagingWithGit \url{https://wiki.debian.org/PackagingWithGit}
+  \item Debian パッケージング道場 git-buildpackage\\ \url{https://tokyodebian-team.pages.debian.net/pdf2015/debianmeetingresume201509-presentation.pdf}
+  \item Debian 新メンテナーガイド 第6章 パッケージのビルド \\ \url{https://www.debian.org/doc/manuals/maint-guide/build.ja.html}
+  \item git-buildpackageを用いたdebパッケージ管理方法の紹介 \\ \url{https://blog.cybozu.io/entry/2019/04/11/110000}
+\end{itemize}
 
 %for less page
 %\printindex
@@ -697,8 +1235,8 @@ THE SOFTWARE.
 {\color{dancerlightblue}\rule{\hsize}{1mm}}
 \vspace{2mm}
 \includegraphics[width=2cm]{image200502/openlogo-nd.eps}
-\noindent \Large \bf あんどきゅめんてっど でびあん 2021年冬号\\
-\noindent \normalfont 2021年12月31日 \hspace{5mm}  初版第1刷発行\\
+\noindent \Large \bf あんどきゅめんてっど でびあん 2022年冬号\\
+\noindent \normalfont 2022年12月31日 \hspace{5mm}  初版第1刷発行\\
 \noindent \normalfont 東京エリア Debian 勉強会/関西Debian 勉強会 （編集・印刷・発行）\\
 {\color{dancerdarkblue}\rule{\hsize}{1mm}}
 
