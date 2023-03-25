@@ -1,11 +1,14 @@
-FILENAME=debian_flyer
+SVG_FILENAME=$(wildcard debian_flyer*.svg)
+PDF_FILENAME=$(SVG_FILENAME:%.svg=%.pdf)
 PAPERSIZE=a4
 PDFQUALITY=prepress
 
-all: clean build
+.PHONY: all clean
 
-build:
-	inkscape --without-gui --vacuum-defs --export-area-page --export-dpi=300 --export-pdf=$(FILENAME).pdf --file=$(FILENAME).svg
+all: $(PDF_FILENAME)
+
+%.pdf: %.svg
+	inkscape --without-gui --vacuum-defs --export-area-page --export-dpi=300 --export-pdf=$@ --file=$<
 
 # PDF/X-3 
 # inkscape --without-gui --vacuum-defs --export-area-page --export-dpi=300 --export-eps=$(FILENAME).eps --file=$(FILENAME).svg
