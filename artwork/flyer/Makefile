@@ -8,7 +8,7 @@ PDFQUALITY=prepress
 all: $(PDF_FILENAME)
 
 %.pdf: %.svg
-	inkscape --without-gui --vacuum-defs --export-area-page --export-dpi=300 --export-pdf=$@ --file=$<
+	inkscape --vacuum-defs --export-area-page --export-dpi=300 --export-type=pdf $<
 
 # PDF/X-3 
 # inkscape --without-gui --vacuum-defs --export-area-page --export-dpi=300 --export-eps=$(FILENAME).eps --file=$(FILENAME).svg
