@@ -144,10 +144,442 @@
 % % (query-replace-regexp "^[    ]\+" "")
       
 %-------------------------------------------------------------------------------
-%\dancersection{Debian で PHP の Web サーバ構築してみる}{杉本典充}
+\dancersection{Debian で PHP が動く Web サーバを構築してみる (apache2 / nginx)}{杉本 典充}
 %-------------------------------------------------------------------------------
-%
-%\subsection{はじめに}
+
+\subsection{はじめに}
+
+最近 PHP で Web アプリの開発を少ししているため、Debian で PHP の Web アプリ開発をの開発する方法とサーバを構築する設定方法を調べてみました。なお、本記事における実行環境は Debian 12 bookworm とします。
+
+\subsection{Debian における PHP}
+
+\subsubsection{PHP のインストール}
+
+Debian 12 bookworm では php というパッケージ名で PHP-8.2.4 を提供しています。
+
+PHP を利用するには、以下の apt-get コマンドでインストールします。
+PHP は Web サーバ向けのスクリプト言語のため、依存関係の都合で apache2 が一緒にインストールされます。
+
+\begin{commandline}
+# apt-get install php
+  (中略)
+以下のパッケージが新たにインストールされます:
+  apache2 apache2-bin apache2-data apache2-utils libapache2-mod-php8.2 libapr1
+  libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap libcurl4 liblua5.3-0
+  php php-common php8.2 php8.2-cli php8.2-common php8.2-opcache
+  php8.2-readline psmisc ssl-cert
+アップグレード: 0 個、新規インストール: 20 個、削除: 0 個、保留: 0 個。
+7,408 kB のアーカイブを取得する必要があります。
+この操作後に追加で 31.2 MB のディスク容量が消費されます。
+続行しますか? [Y/n]
+\end{commandline}
+
+インストールした php コマンドを実行してバージョンを確認してみます。
+
+\begin{commandline}
+# php -v
+PHP 8.2.4 (cli) (built: Mar 16 2023 14:24:40) (NTS)
+Copyright (c) The PHP Group
+Zend Engine v4.2.4, Copyright (c) Zend Technologies
+    with Zend OPcache v8.2.4, Copyright (c), by Zend Technologie
+\end{commandline}
+
+
+\subsubsection{PHP のスクリプト開発 最初の一歩}
+
+\subsubsubsection{ファイルをまとめるディレクトリを作成}
+
+PHP のスクリプト開発を行うにあたり、まずはファイルを保存するディレクトリを作成します。
+
+\begin{commandline}
+$ cd
+$ mkdir phpapp
+$ cd phpapp
+\end{commandline}
+
+\subsubsubsection{phpinfo()}
+
+まずは PHP のスクリプト開発を始めるときのお約束である、phpinfo() を呼び出すファイルを作成します。
+
+\begin{commandline}
+$ vi phpinfo.php
+
+<?php
+    phpinfo();
+?>  
+\end{commandline}
+
+php コマンドで phpinfo.php を実行すると、 PHP の実行環境について詳細な情報が出力されます。
+
+\begin{commandline}
+$ php phpinfo.php | head
+phpinfo()
+PHP Version => 8.2.4
+
+System => Linux deb12-webapp-test 6.1.0-7-amd64 #1 SMP PREEMPT_DYNAMIC
+ Debian 6.1.20-1 (2023-03-19) x86_64
+Build Date => Mar 16 2023 14:24:40
+Build System => Linux
+Server API => Command Line Interface
+Virtual Directory Support => disabled
+Configuration File (php.ini) Path => /etc/php/8.2/cli
+Loaded Configuration File => /etc/php/8.2/cli/php.ini
+  (省略)
+\end{commandline}
+
+
+\subsubsubsection{PHP の簡単な処理}
+
+PHP で for を使って、箇条書きの HTML を出力する printli.php を作成してみます。
+
+\begin{commandline}
+$ vi printli.php
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>test printli</title>
+</head>
+<body>
+<ul>
+<?php
+for($i = 0; $i < 5; $i++){
+  $s_link = sprintf("./detail/%d/", $i);
+  $s_str = sprintf("article %d", $i);
+  print "<li><a href=\"$s_link\">$s_str</li>\n";
+}
+?>
+</ul>
+</body>
+</html>
+\end{commandline}
+
+Web ブラウザからディレクトリ直下にアクセスした場合に表示するトップページとして index.php を作成します。
+ページ内には、先ほど作成した phpinfo.php と printli.php へのリンクがある箇条書きの HTML が作成しておきます。
+
+\begin{commandline}
+$ vi index.php
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>test page</title>
+</head>
+<body>
+<ul>
+  <li><a href="./phpinfo.php">phpinfo</li>
+  <li><a href="./printli.php">printli</li>
+</ul>
+</body>
+</html>
+\end{commandline}
+
+
+\subsubsubsection{PHP のビルトインウェブサーバーでの Web 画面表示}
+
+
+PHP には 「ビルトインウェブサーバー」という機能があります\footnote{\url{https://www.php.net/manual/ja/features.commandline.webserver.php}}。この機能を使うと PHP を動くように設定した Web サーバ を用意せずとも、ユーザのホームディレクトリ内にある PHP スクリプトを実行して Web 画面の表示と動作を確認することができます。
+
+\begin{commandline}
+$ php -S 0.0.0.0:8000
+[Mon Apr 10 22:56:08 2023] PHP 8.2.4 Development Server (http://0.0.0.0:8000) started
+\end{commandline}  
+
+PHP を開発しているサーバの IP アドレスとポート番号を含めた "http://192.168.1.2:8000/"
+などの URL を Web ブラウザで開くと index.php の Web 画面が表示されます。
+Web ページには phpinfo.php と printli.php へのリンクが表示されますので、クリックして画面表示を確認してみましょう。
+
+\begin{center}
+  \begin{figure}[htbp]
+    \fbox{
+      \includegraphics[scale=0.75]{image202304/php_index.png}
+    }
+    \fbox{
+      \includegraphics[scale=0.35]{image202304/phpinfo_builtin.png}
+    }
+    \fbox{
+      \includegraphics[scale=0.75]{image202304/php_printli.png}
+    }
+    \caption{index.php、phpinfo.php、printli.php}
+  \end{figure}
+\end{center}
+
+
+\subsubsubsection{PHP パッケージマネージャ「composer」}
+
+PHP のパッケージマネージャに「composer」というコマンドがあります\footnote{\url{https://getcomposer.org/}}。
+composer を使うと PHP 向けのパッケージを配布するWebサイト\footnote{規定では \url{https://packagist.org/} から
+ダウンロードします。} から、アプリの動作に必要な PHP のパッケージを一括でインストールやアップグレードすることができます。
+
+composer は以下の apt-get コマンドでインストールできます。
+
+\begin{commandline}
+# apt-get install composer
+\end{commandline}
+
+composer の使い方は、まずユーザ定義の設定ファイル "composer.json" を作成します。
+次に "composer install" コマンドを実行すると、composer.json の定義にしたがって PHP のパッケージをインストールします。
+コマンドの実行後は vendor ディレクトリ と composer.lock ファイルが生成され、インストールしたファイルと処理結果が保存されます。
+
+\begin{commandline}
+$ vi composer.json
+{
+    "require": {
+        "phpmailer/phpmailer": "^6.8.0"
+    }
+}
+\end{commandline}
+
+\begin{commandline}
+$ composer install
+$ ls -l
+composer.json  composer.lock  index.php  phpinfo.php  printli.php  vendor
+合計 24
+-rw-r--r-- 1 dictoss dictoss   67  4月 10 23:47 composer.json
+-rw-r--r-- 1 dictoss dictoss 4039  4月 10 23:47 composer.lock
+-rw-r--r-- 1 dictoss dictoss  216  4月 10 22:51 index.php
+-rw-r--r-- 1 dictoss dictoss   24  4月  9 14:36 phpinfo.php
+-rw-r--r-- 1 dictoss dictoss  299  4月 10 23:25 printli.php
+drwxr-xr-x 4 dictoss dictoss 4096  4月 10 23:47 vendor
+\end{commandline}
+
+
+\subsubsection{PHP アプリケーションサーバ}
+
+\subsubsubsection{mod\_php}
+
+mod\_php \footnote{\url{https://www.php.net/manual/ja/install.unix.apache2.php}} とは apache で PHP を実行できるようにする組み込みモジュールであり、apache-1 時代から存在している PHP アプリケーションサーバの歴史ある実装です。Debian 12 bookworm では apache-2.4 向けに libapache2-mod-php8.2 パッケージで mod\_php を提供しています。
+
+linux 向けの apache-2.4 では MPM (マルチプロセッシングモジュール) が 3 つ含まれています (prefork、worker、event)。mod\_php の実運用環境では apache を MPM マルチスレッドモードで使用することは推奨されていないため\footnote{\url{https://www.php.net/manual/ja/install.unix.apache2.php}}、prefork MPM を選択する必要があります。
+
+prefork MPM は 1 つの apache プロセスで同時に 1 つのクライアントのみを処理する方式であり、マルチスレッドの機能は実装されていないため動作がかなり安定しています。しかし、クライアント数が増えると PHP を処理する apache2 プロセスも連動して増えるためメモリの使用量がとても大きくなるデメリットがあります。
+
+\subsubsubsection{php-fpm}
+
+php-fpm \footnote{\url{https://www.php.net/manual/ja/install.fpm.php}}とは PHP における FastCGI\footnote{仕様は元々 fastcgi.com で公開していたが今は閉鎖されているため、コピーサイトの \url{https://fast-cgi.github.io/} で情報を確認できます。} 実装です。なお、fpm とは "FastCGI Process Manager" の単語の頭文字をとった略称です。php-fpm には 高負荷のサイトで有用な機能が含まれています。Debian 12 bookworm では php-fpm というパッケージ名で php-fpm の機能を提供しています。
+
+
+php-fpm は web サーバとは別の独立したプロセスで php を処理できるようバックグラウンドで待機し、web サーバから FastCGI プロトコルでの接続要求を受け入れて PHP スクリプトの実行結果を応答します。このとき、php-fpm のプロセスはクライアントの同時接続数に応じてプロセス数を自動で増減する仕組みがあります。
+
+PHP の Web アプリケーションを提供するサーバでは多数のクライアントを処理するため、mod\_php よりプロセス数が少なくメモリの利用効率がよい php-fpm を選択することを筆者はお勧めします\footnote{php-fpm で PHP を実行する場合は、apache は event MPM を利用することができます。event MPM はlinux では epoll を使ったイベント駆動な実装になっており、少ないプロセス数とスレッド数で多数のクライアントを処理することができます。}。
+
+
+\subsection{Debian で PHP が動く Web サーバの構築手順}
+
+\subsubsection{apache2 + mod\_php}
+
+apache2、php、libapache2-mod-php8.2 パッケージをインストールします。
+apache2 パッケージを単独でインストールすると MPM は event が有効になるのですが、mod\_php である libapache2-mod-php8.2 パッケージのインストール処理で MPM が prefork へ切り替わります。
+
+\begin{commandline}
+# apt-get install apache2 php libapache2-mod-php8.2
+
+  (中略)
+Module mpm_event disabled.
+Enabling module mpm_prefork.
+apache2_switch_mpm Switch to prefork
+apache2_invoke: Enable module php8.2
+  (省略)
+\end{commandline}
+
+有効になっている apache2 の MPM を確認すると prefork になっています。
+
+\begin{commandline}
+# cd /etc/apache2/mods-enabled
+# ls -l mpm*
+lrwxrwxrwx 1 root root 34  4月  9 14:34 mpm_prefork.conf -> ../mods-available/mpm_prefork.conf
+lrwxrwxrwx 1 root root 34  4月  9 14:34 mpm_prefork.load -> ../mods-available/mpm_prefork.load
+\end{commandline}
+
+もし、MPM が prefork になっていない場合は、a2dismod で mpm\_event を無効化し、a2enmod で mpm\_prefork を有効化してください。
+
+\begin{commandline}
+# a2dismod mpm_event
+Module mpm_event disabled.
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+
+# a2enmod mpm_prefork
+Considering conflict mpm_event for mpm_prefork:
+Considering conflict mpm_worker for mpm_prefork:
+Enabling module mpm_prefork.
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+\end{commandline}
+
+apache2 を再起動します。
+
+\begin{commandline}
+# systemctl restart apache2
+\end{commandline}
+
+Web ブラウザで phpinfo を表示する画面を開きます。一番上部にある表の "Server API" 行の設定値が "Apache 2.0 Handler" になっていれば mod\_php で動作しています。
+
+\begin{center}
+  \begin{figure}[htbp]
+    \includegraphics[width=1.00\hsize]{image202304/phpinfo_apache2-mod_php.png}
+    \caption{phpinfo 画面 (apache2 + mod\_php)}
+  \end{figure}
+\end{center}
+
+
+\subsubsection{apache2 + php-fpm}
+
+apache2、php、php-fpm パッケージをインストールします。php パッケージの依存関係の都合で mod\_php である libapache2-mod-php8.2 がインストールされてしまいます。
+
+\begin{commandline}
+# apt-get install apache2 php php-fpm
+
+  (中略)
+下のパッケージが新たにインストールされます:
+  apache2 apache2-bin apache2-data apache2-utils libapache2-mod-php8.2
+  libapr1 libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap libcurl4
+  liblua5.3-0 php php-common php-fpm php8.2 php8.2-cli php8.2-common
+  php8.2-fpm php8.2-opcache php8.2-readline psmisc ssl-cert
+
+  (中略)
+php8.2-fpm (8.2.4-1) のトリガを処理しています ...
+NOTICE: Not enabling PHP 8.2 FPM by default.
+NOTICE: To enable PHP 8.2 FPM in Apache2 do:
+NOTICE: a2enmod proxy_fcgi setenvif
+NOTICE: a2enconf php8.2-fpm
+NOTICE: You are seeing this message because you have apache2 package installed.
+libapache2-mod-php8.2 (8.2.4-1) のトリガを処理しています ...
+\end{commandline}
+
+php-fpm で動作させたい場合は mod\_php をインストールしておくと設定のコンフリクトを起こすため libapache2-mod-php8.2 パッケージを削除しておきます。
+
+\begin{commandline}
+# apt-get purge libapache2-mod-php8.2
+\end{commandline}
+
+パッケージのインストール時に表示された NOTICE に従い、apache2 のモジュールと設定を有効化します。
+
+\begin{commandline}
+# a2enmod proxy_fcgi setenvif
+Considering dependency proxy for proxy_fcgi:
+Enabling module proxy.
+Enabling module proxy_fcgi.
+Module setenvif already enabled
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+
+# a2enconf php8.2-fpm
+Enabling conf php8.2-fpm.
+To activate the new configuration, you need to run:
+  systemctl reload apache2
+\end{commandline}
+
+apache2 の MPM を prefork から event へ切り替えます。
+
+\begin{commandline}
+# a2dismod mpm_prefork  
+Module mpm_prefork disabled.
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+
+# a2enmod mpm_event
+Considering conflict mpm_worker for mpm_event:
+Considering conflict mpm_prefork for mpm_event:
+Enabling module mpm_event.
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+\end{commandline}
+
+php8.2-fpm、apache2 を再起動します。
+
+\begin{commandline}
+# systemctl restart php8.2-fpm  
+# systemctl restart apache2
+\end{commandline}
+
+Web ブラウザで phpinfo を表示する画面を開きます。一番上部にある表の "Server API" 行の設定値が "FPM/FastCGI" になっていれば php-fpm で動作しています。
+
+\begin{center}
+  \begin{figure}[htbp]
+    \includegraphics[width=1.00\hsize]{image202304/phpinfo_apache2-phpfpm.png}
+    \caption{phpinfo 画面 (apache2 + php-fpm)}
+  \end{figure}
+\end{center}
+
+
+\subsubsection{nginx + php-fpm}
+
+nginx、php-fpm パッケージをインストールします。
+
+\begin{commandline}
+# apt-get install nginx php-fpm
+
+  (中略)
+下のパッケージが新たにインストールされます:
+  nginx nginx-common php-common php-fpm php8.2-cli php8.2-common php8.2-fpm php8.2-opcache php8.2-readline
+\end{commandline}
+
+php8.2-fpm、nginx を再起動します。
+
+\begin{commandline}
+# systemctl restart php8.2-fpm  
+# systemctl restart nginx
+\end{commandline}
+
+Web ブラウザで phpinfo を表示する画面を開きます。なぜか phpinfo.php ファイルがサーバで実行されず、ダウンロードされてしまいました。
+
+nginx の設定を確認すると、/etc/nginx/sites-available/default の fastcgi の中継先となる UNIX ドメインソケットのパスがコメントで無効になっていました。
+
+\begin{commandline}
+# grep -nr fastcgi_pass /etc/nginx
+/etc/nginx/sites-available/default:60:  #       fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+/etc/nginx/sites-available/default:62:  #       fastcgi_pass 127.0.0.1:9000;
+\end{commandline}
+
+/etc/nginx/sites-available/default を変更します。
+
+\begin{commandline}
+# vi /etc/nginx/sites-available/default
+
+-       #location ~ \.php$ {
+-       #       include snippets/fastcgi-php.conf;
+-       #
+-       #       # With php-fpm (or other unix sockets):
+-       #       fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+-       #       # With php-cgi (or other tcp sockets):
+-       #       fastcgi_pass 127.0.0.1:9000;
+-       #}
++       location ~ \.php$ {
++               include snippets/fastcgi-php.conf;
++
++               # With php-fpm (or other unix sockets):
++               fastcgi_pass unix:/run/php/php8.2-fpm.sock;
++               # With php-cgi (or other tcp sockets):
++               #fastcgi_pass 127.0.0.1:9000;
++       }
+\end{commandline}
+
+変更した設定を反映するため、nginx を再起動します。
+
+\begin{commandline}
+# systemctl restart nginx
+\end{commandline}
+
+Web ブラウザで phpinfo を表示する画面を開きます。一番上部にある表の"Server API" 行の設定値が "FPM/FastCGI" になっていれば php-fpm で動作しています。
+
+\begin{center}
+  \begin{figure}[htbp]
+    \includegraphics[width=1.00\hsize]{image202304/phpinfo_nginx-phpfpm.png}
+    \caption{phpinfo 画面 (nginx + php-fpm)}
+  \end{figure}
+\end{center}
+
+
+\subsection{終わりに}
+
+Debian 12 bookworm で PHP を実行できる Web サーバを構築する設定方法を説明しました。apache2 のモジュールや設定を有効化・無効化する a2enmod、a2dismod、a2enconf、a2disconf コマンドや、nginx の php-fpm の 中継先の設定を正しく行わないと PHP をうまく実行できないため、注意が必要です。
+
+そのほか、apache2 の MPM 設定、nginx の worker 設定、php-fpm のプロセス数設定をチューニングするとサーバの応答性能をさらに引き出すことができるため、こだわりがある人は挑戦してみてください。
+
+
 
 % 冊子にするために、4の倍数にする必要がある。
 % そのための調整
